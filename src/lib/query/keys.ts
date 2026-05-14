@@ -10,7 +10,7 @@ export const queryKeys = {
   },
   transactions: {
     all: ["transactions"] as const,
-    list: (opts?: Record<string, unknown>) => ["transactions", "list", opts ?? {}] as const,
+    list: (opts?: object) => ["transactions", "list", opts ?? {}] as const,
     byId: (id: string) => ["transactions", "byId", id] as const,
   },
   budgets: {

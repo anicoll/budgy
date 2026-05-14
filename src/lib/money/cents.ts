@@ -1,5 +1,5 @@
 declare const __cents: unique symbol;
-export type Cents = number & { readonly [__cents]: void };
+export type Cents = number & { readonly [__cents]: undefined };
 
 export const ZERO_CENTS = 0 as Cents;
 

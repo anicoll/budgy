@@ -1,35 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type { Account } from "@/features/accounts/types";
-
-// Future entities — declared here so the schema is stable from v1 even
-// before their feature code lands. Concrete shapes are owned by each feature.
-export interface CategoryRow {
-  id: string;
-  name: string;
-  parentId: string | null;
-  type: "income" | "expense" | "transfer";
-  icon?: string;
-  color: string;
-  archived: boolean;
-  sortOrder: number;
-}
-
-export interface TransactionRow {
-  id: string;
-  accountId: string;
-  date: string;
-  amount: number;
-  type: "debit" | "credit" | "transfer";
-  categoryId: string | null;
-  payee?: string;
-  description?: string;
-  tags: string[];
-  transferAccountId?: string;
-  transferPairId?: string;
-  cleared: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Category } from "@/features/categories/types";
+import type { Transaction } from "@/features/transactions/types";
 
 export interface BudgetRow {
   id: string;
@@ -57,8 +29,8 @@ export interface MortgagePlanRow {
 
 export class BudgyDB extends Dexie {
   accounts!: Table<Account, string>;
-  categories!: Table<CategoryRow, string>;
-  transactions!: Table<TransactionRow, string>;
+  categories!: Table<Category, string>;
+  transactions!: Table<Transaction, string>;
   budgets!: Table<BudgetRow, string>;
   superPlans!: Table<SuperPlanRow, string>;
   mortgagePlans!: Table<MortgagePlanRow, string>;
