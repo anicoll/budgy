@@ -224,7 +224,7 @@ function BalanceChart({
 
 // ─── amortisation schedule table ─────────────────────────────────────────────
 
-const PAGE_SIZE = 60;
+const PAGE_SIZE = 30;
 
 function ScheduleTable({ result }: { result: ReturnType<typeof amortise> }) {
   const [page, setPage] = useState(0);
