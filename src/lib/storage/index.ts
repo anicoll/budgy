@@ -1,6 +1,7 @@
 import type { Account } from "@/features/accounts/types";
 import type { Budget } from "@/features/budgets/types";
 import type { Category } from "@/features/categories/types";
+import type { MortgagePlan } from "@/features/mortgage/types";
 import type { SuperPlan } from "@/features/super/types";
 import type { Transaction } from "@/features/transactions/types";
 import { getDB } from "./db";
@@ -15,6 +16,7 @@ export interface Repositories {
   transactions: Repository<Transaction>;
   budgets: Repository<Budget>;
   superPlans: Repository<SuperPlan>;
+  mortgagePlans: Repository<MortgagePlan>;
 }
 
 let registry: Repositories | null = null;
@@ -27,6 +29,7 @@ export function getRepositories(): Repositories {
       transactions: new LocalRepository<Transaction>(() => getDB().transactions),
       budgets: new LocalRepository<Budget>(() => getDB().budgets),
       superPlans: new LocalRepository<SuperPlan>(() => getDB().superPlans),
+      mortgagePlans: new LocalRepository<MortgagePlan>(() => getDB().mortgagePlans),
     };
   }
   return registry;

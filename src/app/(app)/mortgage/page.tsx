@@ -1,13 +1,5 @@
-import { Landmark } from "lucide-react";
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
+import { MortgagePageClient } from "@/features/mortgage/components/MortgagePageClient";
 
 export default function MortgagePage() {
-  return (
-    <PagePlaceholder
-      icon={Landmark}
-      title="Mortgage projector"
-      milestone="M7 (Phase 2)"
-      description="Loan balance, rate, repayments with offset/redraw modelling, extra repayments routed to principal / offset / redraw, rate-change scenarios, payoff timeline, and scenario comparison."
-    />
-  );
+  return <MortgagePageClient />;
 }

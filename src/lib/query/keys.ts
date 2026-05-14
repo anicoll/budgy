@@ -21,4 +21,8 @@ export const queryKeys = {
     all: ["super"] as const,
     plan: () => ["super", "plan"] as const,
   },
+  mortgage: {
+    all: ["mortgage"] as const,
+    plan: () => ["mortgage", "plan"] as const,
+  },
 } as const;
