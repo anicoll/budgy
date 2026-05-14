@@ -141,12 +141,7 @@ function CategoryNode({
       {expanded && subcategories.length > 0 && (
         <div className="ml-7 flex flex-col gap-0.5 border-l border-border/40 pl-3">
           {subcategories.map((child) => (
-            <ChildNode
-              key={child.id}
-              child={child}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
+            <ChildNode key={child.id} child={child} onEdit={onEdit} onDelete={onDelete} />
           ))}
         </div>
       )}
