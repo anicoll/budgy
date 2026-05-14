@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Money } from "@/components/money/money";
@@ -14,6 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/features/categories/hooks";
 import type { Cents } from "@/lib/money/cents";
+import { queryKeys } from "@/lib/query/keys";
 import type { NovatedLease } from "@/lib/state/prefs-store";
 import { usePrefs } from "@/lib/state/prefs-store";
 import { cn } from "@/lib/utils";
@@ -90,6 +92,7 @@ export function BudgetPlannerView({ budget }: Props) {
     name: string;
     color: string;
   } | null>(null);
+  const qc = useQueryClient();
   const setTargetMutation = useSetTarget();
   const removeTargetMutation = useRemoveTarget();
   const setPeriodMutation = useSetBudgetViewPeriod();
@@ -173,6 +176,41 @@ export function BudgetPlannerView({ budget }: Props) {
 
   const periodLabel = BUDGET_PERIOD_LABEL[viewPeriod].toLowerCase();
 
+  // Salary sync: detect when stored budget target differs from current take-home estimate
+  const salaryEstimate =
+    annualSalary && annualSalary > 0
+      ? estimateFortnightlyNet(annualSalary, hasPrivateHealth, novatedLeases)
+      : null;
+
+  const salaryIncomeItem = income.find((item) => /salary/i.test(item.categoryName));
+  const salaryOutOfSync =
+    salaryEstimate !== null &&
+    salaryIncomeItem !== undefined &&
+    salaryIncomeItem.nativeFrequency === "fortnightly" &&
+    Math.abs(salaryIncomeItem.nativeAmount - salaryEstimate) > 100; // > $1/fn difference
+
+  function syncSalaryTarget() {
+    if (!salaryIncomeItem || !salaryEstimate) return;
+    // Optimistically update the cache so the banner disappears and the row resets immediately
+    const updatedBudget: Budget = {
+      ...budget,
+      targets: budget.targets.map((t) =>
+        t.categoryId === salaryIncomeItem.categoryId
+          ? { ...t, amount: salaryEstimate, frequency: "fortnightly" as BudgetFrequency }
+          : t,
+      ),
+    };
+    qc.setQueryData([...queryKeys.budgets.list(), "active"], updatedBudget);
+    // Persist to DB in the background
+    setTargetMutation.mutate({
+      budgetId: budget.id,
+      categoryId: salaryIncomeItem.categoryId,
+      amount: salaryEstimate,
+      frequency: "fortnightly",
+      rollover: false,
+    });
+  }
+
   return (
     <div className="flex flex-col gap-0">
       {/* Period tabs + total */}
@@ -219,6 +257,26 @@ export function BudgetPlannerView({ budget }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Salary sync banner */}
+      {salaryOutOfSync && salaryEstimate && (
+        <div className="flex items-center gap-3 border-b border-violet-500/20 bg-violet-500/10 px-4 py-2.5 text-sm">
+          <span className="flex-1 text-muted-foreground">
+            Your salary settings changed — estimated take-home is now{" "}
+            <strong className="text-foreground tabular-nums">
+              <Money value={salaryEstimate} />
+              /fn
+            </strong>
+          </span>
+          <button
+            type="button"
+            onClick={syncSalaryTarget}
+            className="shrink-0 rounded-lg bg-violet-500/20 px-3 py-1 text-xs font-medium text-violet-300 hover:bg-violet-500/30 transition-colors"
+          >
+            Update budget
+          </button>
+        </div>
+      )}
 
       {/* Category strip */}
       {allItems.length > 0 && (
@@ -351,7 +409,7 @@ function PlannerSection({
         <div className="divide-y divide-border/20">
           {items.map((item) => (
             <PlannerRow
-              key={item.categoryId}
+              key={`${item.categoryId}-${item.nativeAmount}`}
               item={item}
               viewPeriod={viewPeriod}
               periodLabel={periodLabel}
