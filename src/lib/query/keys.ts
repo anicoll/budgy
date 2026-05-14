@@ -19,7 +19,9 @@ export const queryKeys = {
   },
   super: {
     all: ["super"] as const,
-    plan: () => ["super", "plan"] as const,
+    plans: () => ["super", "plans"] as const,
+    plan: (id: string) => ["super", "plan", id] as const,
+    settings: () => ["super", "settings"] as const,
   },
   mortgage: {
     all: ["mortgage"] as const,

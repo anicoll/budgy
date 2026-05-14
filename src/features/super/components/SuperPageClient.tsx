@@ -1,23 +1,35 @@
 "use client";
 
-import type { ApexAxisChartSeries, ApexOptions } from "apexcharts";
-import { AlertTriangle, PiggyBank, TrendingUp } from "lucide-react";
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { baseApexOptions, getChartTheme } from "@/components/charts/chart-theme";
+import { ChevronDown, PiggyBank, Plus, TrendingUp, X } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { AreaChart } from "@/components/charts/AreaChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Cents } from "@/lib/money/cents";
 import { formatAUDCompact } from "@/lib/money/format";
 import { cn } from "@/lib/utils";
-import { useSaveSuperPlan, useSuperPlan } from "../hooks";
-import type { SuperPlan, VoluntaryFrequency, VoluntaryType } from "../types";
-import { DEFAULT_SUPER_PLAN } from "../types";
-import { DRAWDOWN_YEARS } from "../utils/au-rules";
+import {
+  useDeleteSuperPlan,
+  useListSuperPlans,
+  useSaveOneSuperPlan,
+  useSaveSuperSettings,
+  useSuperSettings,
+} from "../hooks";
+import type { SuperPlan, SuperSettings } from "../types";
+import { DEFAULT_SUPER_PLAN, DEFAULT_SUPER_SETTINGS } from "../types";
+import { CONCESSIONAL_CAP, DRAWDOWN_YEARS, NON_CONCESSIONAL_CAP } from "../utils/au-rules";
 import { projectSuper } from "../utils/project";
 
-const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
+// ─── constants ────────────────────────────────────────────────────────────────
 
-// ─── helpers ───────────────────────────────────────────────────────────────
+const FUND_COLORS = [
+  "hsl(262 83% 65%)",
+  "hsl(190 95% 55%)",
+  "hsl(152 65% 50%)",
+  "hsl(38 92% 55%)",
+  "hsl(330 80% 65%)",
+];
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
 
 function pctToDisplay(v: number) {
   return (v * 100).toFixed(2);
@@ -32,78 +44,33 @@ function displayToCents(s: string): Cents {
   return (Number.isFinite(n) ? Math.max(0, n) : 0) as Cents;
 }
 
-// ─── slider ────────────────────────────────────────────────────────────────
+// ─── shared input atoms ───────────────────────────────────────────────────────
 
-interface SliderRowProps {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  display: string;
-  suffix?: string;
-  onChange: (v: number) => void;
-}
-
-function SliderRow({
+function MoneyInput({
   label,
   value,
-  min,
-  max,
-  step,
-  display,
-  suffix = "%",
   onChange,
-}: SliderRowProps) {
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="tabular-nums text-xs font-medium">
-          {display}
-          {suffix}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="super-slider h-1 w-full cursor-pointer appearance-none rounded-full bg-border accent-violet-500"
-      />
-    </div>
-  );
-}
-
-// ─── money input ────────────────────────────────────────────────────────────
-
-interface MoneyInputProps {
+  hint,
+}: {
   label: string;
   value: Cents;
   onChange: (v: Cents) => void;
   hint?: string;
-}
-
-function MoneyInput({ label, value, onChange, hint }: MoneyInputProps) {
-  const [raw, setRaw] = useState(centsToDisplay(value));
-
-  useEffect(() => {
-    setRaw(centsToDisplay(value));
-  }, [value]);
-
+}) {
+  // Uncontrolled input — key={value} resets the field when the stored value changes externally
+  const localRef = useRef<HTMLInputElement>(null);
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-surface px-3 py-1.5 focus-within:border-violet-500/70">
         <span className="text-sm text-muted-foreground">$</span>
         <input
+          ref={localRef}
           type="text"
           inputMode="numeric"
-          value={raw}
-          onChange={(e) => setRaw(e.target.value)}
-          onBlur={() => onChange(displayToCents(raw))}
+          key={value}
+          defaultValue={centsToDisplay(value)}
+          onBlur={() => onChange(displayToCents(localRef.current?.value ?? ""))}
           className="min-w-0 flex-1 bg-transparent text-sm tabular-nums outline-none"
         />
       </div>
@@ -112,17 +79,80 @@ function MoneyInput({ label, value, onChange, hint }: MoneyInputProps) {
   );
 }
 
-// ─── age input ───────────────────────────────────────────────────────────────
+function SliderWithText({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+}) {
+  const [text, setText] = useState(pctToDisplay(value));
+  const prevValue = useRef(value);
+  if (prevValue.current !== value) {
+    prevValue.current = value;
+    setText(pctToDisplay(value));
+  }
 
-interface AgeInputProps {
+  function commitText(raw: string) {
+    const n = parseFloat(raw);
+    if (Number.isFinite(n) && n >= min && n <= max) {
+      onChange(Math.round(n * 1000) / 100000);
+    } else {
+      setText(pctToDisplay(value));
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-1">
+          <input
+            type="text"
+            inputMode="decimal"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onBlur={(e) => commitText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && commitText(text)}
+            className="w-14 rounded border border-border/60 bg-surface px-1.5 py-0.5 text-right text-xs tabular-nums focus:border-violet-500/70 focus:outline-none"
+          />
+          <span className="text-xs text-muted-foreground">%</span>
+        </div>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={Math.min(max, Math.max(min, value * 100))}
+        onChange={(e) => onChange(parseFloat(e.target.value) / 100)}
+        className="super-slider h-1 w-full cursor-pointer appearance-none rounded-full bg-border"
+      />
+    </div>
+  );
+}
+
+function AgeInput({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
   label: string;
   value: number;
   min: number;
   max: number;
   onChange: (v: number) => void;
-}
-
-function AgeInput({ label, value, min, max, onChange }: AgeInputProps) {
+}) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -144,16 +174,17 @@ function AgeInput({ label, value, min, max, onChange }: AgeInputProps) {
   );
 }
 
-// ─── KPI card ────────────────────────────────────────────────────────────────
-
-interface KpiCardProps {
+function KpiCard({
+  label,
+  value,
+  sub,
+  accent,
+}: {
   label: string;
   value: string;
   sub?: string;
   accent?: boolean;
-}
-
-function KpiCard({ label, value, sub, accent }: KpiCardProps) {
+}) {
   return (
     <div className="flex flex-col gap-1 rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
@@ -170,255 +201,138 @@ function KpiCard({ label, value, sub, accent }: KpiCardProps) {
   );
 }
 
-// ─── chart ───────────────────────────────────────────────────────────────────
+// ─── FundCard (accordion item) ───────────────────────────────────────────────
 
-interface ProjectionChartProps {
-  nominal: { age: number; value: Cents }[];
-  real: { age: number; value: Cents }[];
-}
-
-function ProjectionChart({ nominal, real }: ProjectionChartProps) {
-  const options = useMemo<ApexOptions>(() => {
-    const theme = getChartTheme();
-    const base = baseApexOptions(theme);
-    return {
-      ...base,
-      chart: { ...base.chart, type: "area" },
-      stroke: { curve: "smooth", width: 2 },
-      fill: {
-        type: "gradient",
-        gradient: {
-          shadeIntensity: 0.6,
-          opacityFrom: 0.35,
-          opacityTo: 0.02,
-          stops: [0, 90, 100],
-        },
-      },
-      colors: [theme.accentFrom, theme.accentTo],
-      xaxis: {
-        ...base.xaxis,
-        title: { text: "Age", style: { color: theme.muted, fontSize: "11px" } },
-      },
-      yaxis: {
-        ...base.yaxis,
-        labels: {
-          style: { colors: theme.muted },
-          formatter: (v: number) =>
-            new Intl.NumberFormat("en-AU", {
-              style: "currency",
-              currency: "AUD",
-              notation: "compact",
-              maximumFractionDigits: 0,
-            }).format(v),
-        },
-      },
-      tooltip: {
-        ...base.tooltip,
-        y: {
-          formatter: (v: number) =>
-            new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(v),
-        },
-      },
-      legend: {
-        show: true,
-        position: "top",
-        horizontalAlign: "right",
-        labels: { colors: theme.muted },
-      },
-    };
-  }, []);
-
-  const series = useMemo<ApexAxisChartSeries>(
-    () => [
-      {
-        name: "Nominal",
-        data: nominal.map((p) => ({ x: String(p.age), y: Math.round(p.value / 100) })),
-      },
-      {
-        name: "Real (today's $)",
-        data: real.map((p) => ({ x: String(p.age), y: Math.round(p.value / 100) })),
-      },
-    ],
-    [nominal, real],
-  );
-
-  if (nominal.length < 2) {
-    return (
-      <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
-        Set retirement age greater than current age to see projection
-      </div>
-    );
-  }
-
-  return <ReactApexChart type="area" options={options} series={series} height={280} />;
-}
-
-// ─── main component ───────────────────────────────────────────────────────────
-
-type FormState = Omit<SuperPlan, "id" | "updatedAt">;
-
-function planToForm(plan: SuperPlan): FormState {
-  const { id: _id, updatedAt: _u, ...rest } = plan;
-  return rest;
-}
-
-export function SuperPageClient() {
-  const { data: saved, isPending } = useSuperPlan();
-  const saveMutation = useSaveSuperPlan();
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [form, setForm] = useState<FormState>(DEFAULT_SUPER_PLAN);
-  const initialised = useRef(false);
-
-  useEffect(() => {
-    if (!isPending && !initialised.current) {
-      initialised.current = true;
-      if (saved) setForm(planToForm(saved));
-    }
-  }, [saved, isPending]);
-
-  const scheduleSave = useCallback(
-    (next: FormState) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => saveMutation.mutate(next), 600);
-    },
-    [saveMutation],
-  );
-
-  function update(patch: Partial<FormState>) {
-    const next = { ...form, ...patch };
-    setForm(next);
-    scheduleSave(next);
-  }
-
-  const projection = useMemo(() => projectSuper(form), [form]);
-
-  const yearsToRetirement = Math.max(0, form.retirementAge - form.currentAge);
-
-  if (isPending) {
-    return (
-      <div className="flex flex-col gap-6 p-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
-          <Skeleton className="h-[500px]" />
-          <Skeleton className="h-[500px]" />
-        </div>
-      </div>
-    );
-  }
+function FundCard({
+  plan,
+  color,
+  isOpen,
+  isActive,
+  settings,
+  onToggle,
+  onUpdate,
+  onSetActive,
+  onDelete,
+}: {
+  plan: SuperPlan;
+  color: string;
+  isOpen: boolean;
+  isActive: boolean;
+  settings: SuperSettings;
+  onToggle: () => void;
+  onUpdate: (patch: Partial<Omit<SuperPlan, "id" | "updatedAt">>) => void;
+  onSetActive: () => void;
+  onDelete: () => void;
+}) {
+  const sgPerYear = Math.round(settings.annualSalary * settings.employerContributionPct) as Cents;
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Page header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15">
-          <PiggyBank className="h-5 w-5 text-violet-400" />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold">Super Projector</h1>
-          <p className="text-xs text-muted-foreground">
-            Month-by-month growth to retirement using AU SG rules
-          </p>
-        </div>
-        {saveMutation.isPending && (
-          <span className="ml-auto text-xs text-muted-foreground">Saving…</span>
+    <div className="rounded-xl border border-border/60 bg-surface/40 overflow-hidden">
+      {/* Collapsed header */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+      >
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
+        <span className="flex-1 text-sm font-medium truncate">{plan.name}</span>
+        {isActive && (
+          <span className="shrink-0 rounded-full bg-income/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-income">
+            Active
+          </span>
         )}
-      </div>
+        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+          {formatAUDCompact(plan.currentBalance)}
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+            isOpen && "rotate-180",
+          )}
+        />
+      </button>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
-        {/* ── Inputs panel ─────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-surface/70 p-5 backdrop-blur-md">
-          <h2 className="text-sm font-semibold text-foreground">Assumptions</h2>
+      {/* Expanded body */}
+      {isOpen && (
+        <div className="flex flex-col gap-3 border-t border-border/40 px-4 pb-4 pt-3">
+          {/* Fund name */}
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Fund name</span>
+            <input
+              type="text"
+              key={plan.id + plan.name}
+              defaultValue={plan.name}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (v && v !== plan.name) onUpdate({ name: v });
+              }}
+              className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-violet-500/70"
+            />
+          </label>
 
           <MoneyInput
-            label="Current super balance"
-            value={form.currentBalance}
-            onChange={(v) => update({ currentBalance: v })}
-          />
-          <MoneyInput
-            label="Annual salary (gross)"
-            value={form.annualSalary}
-            onChange={(v) => update({ annualSalary: v })}
+            label="Current balance"
+            value={plan.currentBalance}
+            onChange={(v) => onUpdate({ currentBalance: v })}
           />
 
-          <div className="grid grid-cols-2 gap-3">
-            <AgeInput
-              label="Current age"
-              value={form.currentAge}
-              min={18}
-              max={74}
-              onChange={(v) => update({ currentAge: Math.min(v, form.retirementAge - 1) })}
-            />
-            <AgeInput
-              label="Retirement age"
-              value={form.retirementAge}
-              min={form.currentAge + 1}
-              max={80}
-              onChange={(v) => update({ retirementAge: Math.max(v, form.currentAge + 1) })}
-            />
-          </div>
+          {/* Employer SG note */}
+          {isActive ? (
+            <div className="rounded-lg bg-income/10 border border-income/30 px-3 py-2 text-xs text-income">
+              Receiving employer SG: <strong>{formatAUDCompact(sgPerYear)}/yr</strong>
+              <span className="text-muted-foreground ml-1">
+                ({pctToDisplay(settings.employerContributionPct)}% of salary)
+              </span>
+            </div>
+          ) : (
+            <div className="rounded-lg bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              No employer contributions — returns only
+            </div>
+          )}
 
-          <div className="border-t border-border/40 pt-3">
-            <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="border-t border-border/30 pt-2">
+            <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Rates
-            </h3>
-            <div className="flex flex-col gap-4">
-              <SliderRow
-                label="Employer SG rate"
-                value={form.employerContributionPct * 100}
-                min={9}
-                max={15}
-                step={0.5}
-                display={pctToDisplay(form.employerContributionPct)}
-                onChange={(v) => update({ employerContributionPct: v / 100 })}
-              />
-              <SliderRow
+            </h4>
+            <div className="flex flex-col gap-3">
+              <SliderWithText
                 label="Expected return (p.a.)"
-                value={form.expectedReturnPct * 100}
+                value={plan.expectedReturnPct}
                 min={2}
                 max={14}
                 step={0.25}
-                display={pctToDisplay(form.expectedReturnPct)}
-                onChange={(v) => update({ expectedReturnPct: v / 100 })}
+                onChange={(v) => onUpdate({ expectedReturnPct: v })}
               />
-              <SliderRow
-                label="Inflation (p.a.)"
-                value={form.inflationPct * 100}
-                min={0}
-                max={8}
-                step={0.25}
-                display={pctToDisplay(form.inflationPct)}
-                onChange={(v) => update({ inflationPct: v / 100 })}
-              />
-              <SliderRow
+              <SliderWithText
                 label="Annual fees"
-                value={form.feesPct * 100}
+                value={plan.feesPct}
                 min={0}
                 max={3}
                 step={0.05}
-                display={pctToDisplay(form.feesPct)}
-                onChange={(v) => update({ feesPct: v / 100 })}
+                onChange={(v) => onUpdate({ feesPct: v })}
               />
             </div>
           </div>
 
-          <div className="border-t border-border/40 pt-3">
-            <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="border-t border-border/30 pt-2">
+            <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Voluntary contributions
-            </h3>
-            <div className="flex flex-col gap-3">
+            </h4>
+            <div className="flex flex-col gap-2">
               <MoneyInput
                 label="Amount"
-                value={form.voluntaryContribution}
-                onChange={(v) => update({ voluntaryContribution: v })}
+                value={plan.voluntaryContribution}
+                onChange={(v) => onUpdate({ voluntaryContribution: v })}
               />
               <div className="grid grid-cols-2 gap-2">
                 <label className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Frequency</span>
                   <select
-                    value={form.voluntaryFrequency}
+                    value={plan.voluntaryFrequency}
                     onChange={(e) =>
-                      update({ voluntaryFrequency: e.target.value as VoluntaryFrequency })
+                      onUpdate({
+                        voluntaryFrequency: e.target.value as SuperPlan["voluntaryFrequency"],
+                      })
                     }
                     className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-violet-500/70"
                   >
@@ -430,8 +344,12 @@ export function SuperPageClient() {
                 <label className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Type</span>
                   <select
-                    value={form.voluntaryType}
-                    onChange={(e) => update({ voluntaryType: e.target.value as VoluntaryType })}
+                    value={plan.voluntaryType}
+                    onChange={(e) =>
+                      onUpdate({
+                        voluntaryType: e.target.value as SuperPlan["voluntaryType"],
+                      })
+                    }
                     className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-violet-500/70"
                   >
                     <option value="concessional">Concessional</option>
@@ -439,141 +357,458 @@ export function SuperPageClient() {
                   </select>
                 </label>
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                Concessional = pre-tax / salary sacrifice (counts toward $30k cap). Non-concessional
-                = after-tax (cap $120k/yr).
-              </p>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            {!isActive && (
+              <button
+                type="button"
+                onClick={onSetActive}
+                className="text-xs text-violet-400 hover:text-violet-300 hover:underline"
+              >
+                Set as active fund
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onDelete}
+              className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-expense"
+            >
+              <X className="h-3 w-3" />
+              Remove fund
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── main component ───────────────────────────────────────────────────────────
+
+export function SuperPageClient() {
+  const { data: settings, isPending: settingsPending } = useSuperSettings();
+  const { data: plans = [], isPending: plansPending } = useListSuperPlans();
+  const savePlanMutation = useSaveOneSuperPlan();
+  const deletePlanMutation = useDeleteSuperPlan();
+  const saveSettingsMutation = useSaveSuperSettings();
+
+  const [openId, setOpenId] = useState<string | null>(null);
+  const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isPending = settingsPending || plansPending;
+
+  // ── settings helpers ──────────────────────────────────────────────────────
+
+  const updateSettings = useCallback(
+    (patch: Partial<Omit<SuperSettings, "id" | "updatedAt">>) => {
+      if (!settings) return;
+      const next = { ...settings, ...patch };
+      if (settingsTimer.current) clearTimeout(settingsTimer.current);
+      settingsTimer.current = setTimeout(() => saveSettingsMutation.mutate(next), 600);
+    },
+    [settings, saveSettingsMutation],
+  );
+
+  function setActiveFund(planId: string) {
+    if (!settings) return;
+    saveSettingsMutation.mutate({ ...settings, activePlanId: planId });
+  }
+
+  // ── plan helpers ──────────────────────────────────────────────────────────
+
+  function updatePlan(id: string, patch: Partial<Omit<SuperPlan, "id" | "updatedAt">>) {
+    const plan = plans.find((p) => p.id === id);
+    if (!plan) return;
+    savePlanMutation.mutate({ ...plan, ...patch });
+  }
+
+  function addFund() {
+    const isFirst = plans.length === 0;
+    savePlanMutation.mutate(
+      { ...DEFAULT_SUPER_PLAN, name: `Fund ${plans.length + 1}` },
+      {
+        onSuccess: (created) => {
+          setOpenId(created.id);
+          if (isFirst && settings) {
+            saveSettingsMutation.mutate({ ...settings, activePlanId: created.id });
+          }
+        },
+      },
+    );
+  }
+
+  function deleteFund(id: string) {
+    deletePlanMutation.mutate(id);
+    if (openId === id) setOpenId(null);
+    if (settings?.activePlanId === id) {
+      const remaining = plans.filter((p) => p.id !== id);
+      saveSettingsMutation.mutate({
+        ...settings,
+        activePlanId: remaining[0]?.id ?? null,
+      });
+    }
+  }
+
+  // ── projections ───────────────────────────────────────────────────────────
+
+  const resolvedSettings = settings ?? { ...DEFAULT_SUPER_SETTINGS, id: "primary", updatedAt: "" };
+
+  const fundProjections = useMemo(() => {
+    return plans.map((plan, i) => ({
+      plan,
+      projection: projectSuper({
+        currentBalance: plan.currentBalance,
+        annualSalary:
+          plan.id === resolvedSettings.activePlanId ? resolvedSettings.annualSalary : (0 as Cents),
+        employerContributionPct:
+          plan.id === resolvedSettings.activePlanId ? resolvedSettings.employerContributionPct : 0,
+        voluntaryContribution: plan.voluntaryContribution,
+        voluntaryFrequency: plan.voluntaryFrequency,
+        voluntaryType: plan.voluntaryType,
+        expectedReturnPct: plan.expectedReturnPct,
+        feesPct: plan.feesPct,
+        inflationPct: resolvedSettings.inflationPct,
+        currentAge: resolvedSettings.currentAge,
+        retirementAge: resolvedSettings.retirementAge,
+      }),
+      color: FUND_COLORS[i % FUND_COLORS.length],
+    }));
+  }, [plans, resolvedSettings]);
+
+  const chartSeries = useMemo(() => {
+    const series = fundProjections.map((fp) => ({
+      name: fp.plan.name,
+      data: fp.projection.years.map((y) => ({ x: String(y.age), y: y.nominal as number })),
+      color: fp.color,
+    }));
+    if (fundProjections.length > 1) {
+      series.push({
+        name: "Total",
+        data: fundProjections[0].projection.years.map((y, idx) => ({
+          x: String(y.age),
+          y: fundProjections.reduce(
+            (s, fp) => s + (fp.projection.years[idx].nominal as number),
+            0,
+          ),
+        })),
+        color: "hsl(210 20% 96%)",
+      });
+    }
+    return series;
+  }, [fundProjections]);
+
+  const totalNominal = fundProjections.reduce(
+    (s, fp) => (s + fp.projection.retirementNominal) as Cents,
+    0 as Cents,
+  );
+  const totalReal = fundProjections.reduce(
+    (s, fp) => (s + fp.projection.retirementReal) as Cents,
+    0 as Cents,
+  );
+  const totalDrawdown = fundProjections.reduce(
+    (s, fp) => (s + fp.projection.monthlyDrawdown) as Cents,
+    0 as Cents,
+  );
+  const yearsToRetirement = Math.max(
+    0,
+    resolvedSettings.retirementAge - resolvedSettings.currentAge,
+  );
+
+  const capBreaches = fundProjections.filter(
+    (fp) => fp.projection.concessionalCapBreached || fp.projection.nonConcessionalCapBreached,
+  );
+
+  if (isPending) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
+          <Skeleton className="h-[580px]" />
+          <Skeleton className="h-[580px]" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15">
+          <PiggyBank className="h-5 w-5 text-violet-400" />
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold">Super Projector</h1>
+          <p className="text-xs text-muted-foreground">
+            Month-by-month growth across all your funds
+          </p>
+        </div>
+        {(saveSettingsMutation.isPending || savePlanMutation.isPending) && (
+          <span className="ml-auto text-xs text-muted-foreground">Saving…</span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
+        {/* ── Left panel ── */}
+        <div className="flex flex-col gap-0 rounded-xl border border-border/60 bg-surface/70 backdrop-blur-md overflow-hidden">
+          {/* Global settings */}
+          <div className="flex flex-col gap-4 p-5 border-b border-border/40">
+            <h2 className="text-sm font-semibold">Global settings</h2>
+
+            <div className="grid grid-cols-2 gap-3">
+              <AgeInput
+                label="Current age"
+                value={resolvedSettings.currentAge}
+                min={18}
+                max={74}
+                onChange={(v) =>
+                  updateSettings({ currentAge: Math.min(v, resolvedSettings.retirementAge - 1) })
+                }
+              />
+              <AgeInput
+                label="Retirement age"
+                value={resolvedSettings.retirementAge}
+                min={resolvedSettings.currentAge + 1}
+                max={80}
+                onChange={(v) =>
+                  updateSettings({ retirementAge: Math.max(v, resolvedSettings.currentAge + 1) })
+                }
+              />
+            </div>
+
+            <MoneyInput
+              label="Annual salary (gross)"
+              value={resolvedSettings.annualSalary}
+              onChange={(v) => updateSettings({ annualSalary: v })}
+              hint="Applied to your active fund"
+            />
+
+            <SliderWithText
+              label="Employer SG rate"
+              value={resolvedSettings.employerContributionPct}
+              min={9}
+              max={15}
+              step={0.5}
+              onChange={(v) => updateSettings({ employerContributionPct: v })}
+            />
+
+            <SliderWithText
+              label="Inflation (p.a.)"
+              value={resolvedSettings.inflationPct}
+              min={0}
+              max={8}
+              step={0.25}
+              onChange={(v) => updateSettings({ inflationPct: v })}
+            />
+          </div>
+
+          {/* Fund list */}
+          <div className="flex flex-col gap-0 p-4">
+            <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Funds
+            </h3>
+
+            {plans.length === 0 && (
+              <p className="py-3 text-center text-xs text-muted-foreground">
+                No funds yet. Add your first to start projecting.
+              </p>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {fundProjections.map((fp) => (
+                <FundCard
+                  key={fp.plan.id}
+                  plan={fp.plan}
+                  color={fp.color}
+                  isOpen={openId === fp.plan.id}
+                  isActive={resolvedSettings.activePlanId === fp.plan.id}
+                  settings={resolvedSettings}
+                  onToggle={() => setOpenId(openId === fp.plan.id ? null : fp.plan.id)}
+                  onUpdate={(patch) => updatePlan(fp.plan.id, patch)}
+                  onSetActive={() => setActiveFund(fp.plan.id)}
+                  onDelete={() => deleteFund(fp.plan.id)}
+                />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addFund}
+              className="mt-3 flex items-center gap-1.5 text-sm text-violet-400 hover:text-violet-300 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add fund
+            </button>
           </div>
         </div>
 
-        {/* ── Right panel: KPIs + chart + warnings ─────────────────────── */}
+        {/* ── Right panel ── */}
         <div className="flex flex-col gap-4">
-          {/* KPI cards */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <KpiCard
-              label="At retirement (nominal)"
-              value={formatAUDCompact(projection.retirementNominal)}
-              sub={`In ${yearsToRetirement} years`}
-              accent
-            />
-            <KpiCard
-              label="At retirement (real)"
-              value={formatAUDCompact(projection.retirementReal)}
-              sub="Today's dollars"
-            />
-            <KpiCard
-              label={`Monthly income`}
-              value={formatAUDCompact(projection.monthlyDrawdown)}
-              sub={`${DRAWDOWN_YEARS}yr drawdown (real)`}
-            />
-            <KpiCard
-              label="Years to retirement"
-              value={String(yearsToRetirement)}
-              sub={`Age ${form.currentAge} → ${form.retirementAge}`}
-            />
-          </div>
-
-          {/* Cap warnings */}
-          {(projection.concessionalCapBreached || projection.nonConcessionalCapBreached) && (
-            <div className="flex flex-col gap-2">
-              {projection.concessionalCapBreached && (
-                <div className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-                  <div>
-                    <span className="font-medium text-warning">Concessional cap exceeded</span>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Your employer SG + salary sacrifice totals{" "}
-                      <strong>{formatAUDCompact(projection.annualConcessionalContrib)}/yr</strong>,
-                      above the $30,000 concessional cap. Excess is taxed at marginal rate + 31.5%
-                      excess charge.
-                    </p>
-                  </div>
-                </div>
-              )}
-              {projection.nonConcessionalCapBreached && (
-                <div className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-                  <div>
-                    <span className="font-medium text-warning">Non-concessional cap exceeded</span>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Your after-tax contributions total{" "}
-                      <strong>
-                        {formatAUDCompact(projection.annualNonConcessionalContrib)}/yr
-                      </strong>
-                      , above the $120,000 non-concessional cap. Excess attracts a 47% tax.
-                    </p>
-                  </div>
-                </div>
-              )}
+          {plans.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-border/60 bg-surface/70 p-12 text-center backdrop-blur-md">
+              <PiggyBank className="mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm font-medium">No super funds yet</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Add your first fund to see projections
+              </p>
+              <button
+                type="button"
+                onClick={addFund}
+                className="mt-4 flex items-center gap-1.5 rounded-lg bg-violet-500/20 px-4 py-2 text-sm text-violet-300 hover:bg-violet-500/30 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Add fund
+              </button>
             </div>
+          ) : (
+            <>
+              {/* KPI cards */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <KpiCard
+                  label="At retirement (nominal)"
+                  value={formatAUDCompact(totalNominal)}
+                  sub={`In ${yearsToRetirement} years`}
+                  accent
+                />
+                <KpiCard
+                  label="At retirement (real)"
+                  value={formatAUDCompact(totalReal)}
+                  sub="Today's dollars"
+                />
+                <KpiCard
+                  label="Monthly income"
+                  value={formatAUDCompact(totalDrawdown)}
+                  sub={`${DRAWDOWN_YEARS}yr drawdown (real)`}
+                />
+                <KpiCard
+                  label="Years to retirement"
+                  value={String(yearsToRetirement)}
+                  sub={`Age ${resolvedSettings.currentAge} → ${resolvedSettings.retirementAge}`}
+                />
+              </div>
+
+              {/* Cap warnings */}
+              {capBreaches.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {capBreaches.map((fp) => (
+                    <div
+                      key={fp.plan.id}
+                      className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm"
+                    >
+                      <span
+                        className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: fp.color }}
+                      />
+                      <div>
+                        <span className="font-medium text-warning">{fp.plan.name}</span>
+                        {fp.projection.concessionalCapBreached && (
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            Concessional cap exceeded:{" "}
+                            <strong>
+                              {formatAUDCompact(fp.projection.annualConcessionalContrib)}/yr
+                            </strong>{" "}
+                            &gt; ${(CONCESSIONAL_CAP / 100).toLocaleString("en-AU")} cap
+                          </p>
+                        )}
+                        {fp.projection.nonConcessionalCapBreached && (
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            Non-concessional cap exceeded:{" "}
+                            <strong>
+                              {formatAUDCompact(fp.projection.annualNonConcessionalContrib)}/yr
+                            </strong>{" "}
+                            &gt; ${(NON_CONCESSIONAL_CAP / 100).toLocaleString("en-AU")} cap
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Combined chart */}
+              <div className="rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
+                <div className="mb-1 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-violet-400" />
+                  <span className="text-sm font-medium">Balance projection</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Age →</span>
+                </div>
+                <AreaChart series={chartSeries} height={280} gradient={false} />
+              </div>
+
+              {/* Per-fund contribution summary */}
+              <div className="rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
+                <h3 className="mb-3 text-sm font-medium">Annual contribution summary</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border/40 text-left text-muted-foreground">
+                        <th className="pb-2 pr-4">Fund</th>
+                        <th className="pb-2 pr-4 text-right">Employer SG</th>
+                        <th className="pb-2 pr-4 text-right">Voluntary</th>
+                        <th className="pb-2 pr-4 text-right">Concessional</th>
+                        <th className="pb-2 text-right">Non-concessional</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/20">
+                      {fundProjections.map((fp) => {
+                        const employerAnnual =
+                          resolvedSettings.activePlanId === fp.plan.id
+                            ? (Math.round(
+                                resolvedSettings.annualSalary *
+                                  resolvedSettings.employerContributionPct,
+                              ) as Cents)
+                            : (0 as Cents);
+                        const voluntaryAnnual = (fp.projection.annualConcessionalContrib +
+                          fp.projection.annualNonConcessionalContrib -
+                          employerAnnual) as Cents;
+                        return (
+                          <tr key={fp.plan.id} className="hover:bg-muted/10">
+                            <td className="py-2 pr-4">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className="h-2 w-2 shrink-0 rounded-full"
+                                  style={{ background: fp.color }}
+                                />
+                                {fp.plan.name}
+                              </div>
+                            </td>
+                            <td className="py-2 pr-4 text-right tabular-nums">
+                              {employerAnnual > 0 ? `${formatAUDCompact(employerAnnual)}/yr` : "—"}
+                            </td>
+                            <td className="py-2 pr-4 text-right tabular-nums">
+                              {voluntaryAnnual > 0
+                                ? `${formatAUDCompact(voluntaryAnnual)}/yr`
+                                : "—"}
+                            </td>
+                            <td
+                              className={cn(
+                                "py-2 pr-4 text-right tabular-nums",
+                                fp.projection.concessionalCapBreached && "text-warning",
+                              )}
+                            >
+                              {formatAUDCompact(fp.projection.annualConcessionalContrib)}/yr
+                            </td>
+                            <td
+                              className={cn(
+                                "py-2 text-right tabular-nums",
+                                fp.projection.nonConcessionalCapBreached && "text-warning",
+                              )}
+                            >
+                              {fp.projection.annualNonConcessionalContrib > 0
+                                ? `${formatAUDCompact(fp.projection.annualNonConcessionalContrib)}/yr`
+                                : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
-
-          {/* Projection chart */}
-          <div className="rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
-            <div className="mb-1 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-violet-400" />
-              <span className="text-sm font-medium">Balance projection</span>
-            </div>
-            <p className="mb-2 text-[11px] text-muted-foreground">
-              Net {((form.expectedReturnPct - form.feesPct) * 100).toFixed(2)}% return p.a. after{" "}
-              {(form.feesPct * 100).toFixed(2)}% fees
-            </p>
-            <ProjectionChart
-              nominal={projection.years.map((y) => ({ age: y.age, value: y.nominal }))}
-              real={projection.years.map((y) => ({ age: y.age, value: y.real }))}
-            />
-          </div>
-
-          {/* Contribution breakdown */}
-          <div className="rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
-            <h3 className="mb-3 text-sm font-medium">Annual contribution summary</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-              <div>
-                <div className="text-xs text-muted-foreground">Employer SG</div>
-                <div className="tabular-nums font-semibold">
-                  {formatAUDCompact(
-                    Math.round(form.annualSalary * form.employerContributionPct) as Cents,
-                  )}
-                  /yr
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Voluntary</div>
-                <div className="tabular-nums font-semibold">
-                  {formatAUDCompact(
-                    (form.voluntaryType === "concessional"
-                      ? projection.annualConcessionalContrib -
-                        Math.round(form.annualSalary * form.employerContributionPct)
-                      : projection.annualNonConcessionalContrib) as Cents,
-                  )}
-                  /yr
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Concessional total</div>
-                <div
-                  className={cn(
-                    "tabular-nums font-semibold",
-                    projection.concessionalCapBreached ? "text-warning" : "",
-                  )}
-                >
-                  {formatAUDCompact(projection.annualConcessionalContrib)}/yr
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Non-concessional</div>
-                <div
-                  className={cn(
-                    "tabular-nums font-semibold",
-                    projection.nonConcessionalCapBreached ? "text-warning" : "",
-                  )}
-                >
-                  {formatAUDCompact(projection.annualNonConcessionalContrib)}/yr
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

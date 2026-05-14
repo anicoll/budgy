@@ -3,7 +3,7 @@ import type { Account } from "@/features/accounts/types";
 import type { Budget } from "@/features/budgets/types";
 import type { Category } from "@/features/categories/types";
 import type { MortgagePlan } from "@/features/mortgage/types";
-import type { SuperPlan } from "@/features/super/types";
+import type { SuperPlan, SuperSettings } from "@/features/super/types";
 import type { Transaction } from "@/features/transactions/types";
 
 export class BudgyDB extends Dexie {
@@ -12,6 +12,7 @@ export class BudgyDB extends Dexie {
   transactions!: Table<Transaction, string>;
   budgets!: Table<Budget, string>;
   superPlans!: Table<SuperPlan, string>;
+  superSettings!: Table<SuperSettings, string>;
   mortgagePlans!: Table<MortgagePlan, string>;
 
   constructor() {
@@ -24,6 +25,34 @@ export class BudgyDB extends Dexie {
       superPlans: "&id, updatedAt",
       mortgagePlans: "&id, updatedAt",
     });
+    // v2: adds superSettings table; migrates shared fields out of the single superPlan
+    this.version(2)
+      .stores({ superSettings: "&id, updatedAt" })
+      .upgrade(async (tx) => {
+        const existing = await tx.table("superPlans").get("primary");
+        await tx.table("superSettings").put({
+          id: "primary",
+          inflationPct: (existing as Record<string, unknown>)?.inflationPct ?? 0.025,
+          currentAge: (existing as Record<string, unknown>)?.currentAge ?? 35,
+          retirementAge: (existing as Record<string, unknown>)?.retirementAge ?? 67,
+          annualSalary: (existing as Record<string, unknown>)?.annualSalary ?? 10_000_000,
+          employerContributionPct:
+            (existing as Record<string, unknown>)?.employerContributionPct ?? 0.12,
+          activePlanId: existing ? "primary" : null,
+          updatedAt: new Date().toISOString(),
+        });
+        if (existing) {
+          const {
+            inflationPct: _i,
+            currentAge: _a,
+            retirementAge: _r,
+            annualSalary: _s,
+            employerContributionPct: _e,
+            ...rest
+          } = existing as Record<string, unknown>;
+          await tx.table("superPlans").put({ ...rest, name: "My Super" });
+        }
+      });
   }
 }
 
