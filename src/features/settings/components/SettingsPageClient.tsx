@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Car,
+  ChevronDown,
   Database,
   Download,
   Moon,
@@ -39,6 +40,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { estimateFortnightlyNet } from "@/features/budgets/utils/au-tax";
+import { CHANGELOG } from "@/lib/changelog";
 import { downloadJSON, exportData, importData, resetAllData } from "@/lib/data/export-import";
 import type { Cents } from "@/lib/money/cents";
 import { formatAUDCompact, parseAUDInput } from "@/lib/money/format";
@@ -280,13 +282,65 @@ export function SettingsPageClient() {
 
       <Separator />
 
+      {/* Changelog */}
+      <ChangelogSection />
+
+      <Separator />
+
       {/* About */}
       <Section title="About">
         <Row label="Budgy" description="Personal finance app — local-first, no login required">
-          <span className="text-xs text-muted-foreground">v0.5.0</span>
+          <span className="text-xs text-muted-foreground">v0.9.0</span>
         </Row>
       </Section>
     </div>
+  );
+}
+
+// ── Changelog section ────────────────────────────────────────────────────────
+
+function ChangelogSection() {
+  const [expanded, setExpanded] = useState<string | null>(CHANGELOG[0].version);
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-xs uppercase tracking-wider text-muted-foreground">What&apos;s new</h2>
+      <div className="flex flex-col gap-2">
+        {CHANGELOG.map((entry) => (
+          <div
+            key={entry.version}
+            className="rounded-xl border border-border/60 bg-surface/60 backdrop-blur-md overflow-hidden"
+          >
+            <button
+              type="button"
+              onClick={() => setExpanded(expanded === entry.version ? null : entry.version)}
+              className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+            >
+              <span className="shrink-0 rounded-full border border-violet-500/40 bg-violet-500/10 px-2 py-0.5 text-[10px] font-mono font-medium text-violet-400">
+                v{entry.version}
+              </span>
+              <span className="flex-1 text-sm font-medium">{entry.title}</span>
+              <span className="shrink-0 text-[11px] text-muted-foreground">{entry.date}</span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                  expanded === entry.version && "rotate-180",
+                )}
+              />
+            </button>
+            {expanded === entry.version && (
+              <ul className="border-t border-border/40 px-4 pb-4 pt-3 flex flex-col gap-1.5">
+                {entry.changes.map((change) => (
+                  <li key={change} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-violet-400" />
+                    {change}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

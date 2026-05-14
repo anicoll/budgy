@@ -25,10 +25,10 @@ describe("estimateAUNetAnnual — base salary (no leases)", () => {
     // Net: $205,000 - $58,388 - $4,100 = $142,512
     const annual = estimateAUNetAnnual(cents(20_500_000), true);
     expect(annual).toBeGreaterThanOrEqual(14_200_000); // ≥ $142,000
-    expect(annual).toBeLessThanOrEqual(14_310_000);    // ≤ $143,100
+    expect(annual).toBeLessThanOrEqual(14_310_000); // ≤ $143,100
     const fortnightly = estimateFortnightlyNet(cents(20_500_000), true);
     expect(fortnightly).toBeGreaterThanOrEqual(546_000); // ≥ $5,460/fn
-    expect(fortnightly).toBeLessThanOrEqual(551_000);    // ≤ $5,510/fn
+    expect(fortnightly).toBeLessThanOrEqual(551_000); // ≤ $5,510/fn
   });
 
   it("$205,000 without private health: adds 1.5% MLS", () => {
@@ -37,11 +37,11 @@ describe("estimateAUNetAnnual — base salary (no leases)", () => {
     // MLS = $205,000 × 1.5% = $3,075 less take-home
     const diff = withHealth - withoutHealth;
     expect(diff).toBeGreaterThanOrEqual(300_000); // ≥ $3,000
-    expect(diff).toBeLessThanOrEqual(315_000);    // ≤ $3,150
+    expect(diff).toBeLessThanOrEqual(315_000); // ≤ $3,150
   });
 
   it("MLS tier 1 ($93,001-$108,000): 1% surcharge when no private health", () => {
-    const withHealth = estimateAUNetAnnual(cents(10_000_000), true);    // $100K
+    const withHealth = estimateAUNetAnnual(cents(10_000_000), true); // $100K
     const withoutHealth = estimateAUNetAnnual(cents(10_000_000), false);
     // MLS = $100,000 × 1% = $1,000 difference
     const diff = withHealth - withoutHealth;
@@ -50,7 +50,7 @@ describe("estimateAUNetAnnual — base salary (no leases)", () => {
   });
 
   it("MLS tier 2 ($108,001-$144,000): 1.25% surcharge", () => {
-    const withHealth = estimateAUNetAnnual(cents(12_000_000), true);    // $120K
+    const withHealth = estimateAUNetAnnual(cents(12_000_000), true); // $120K
     const withoutHealth = estimateAUNetAnnual(cents(12_000_000), false);
     // MLS = $120,000 × 1.25% = $1,500
     const diff = withHealth - withoutHealth;
@@ -59,7 +59,7 @@ describe("estimateAUNetAnnual — base salary (no leases)", () => {
   });
 
   it("no MLS below $93,000 threshold", () => {
-    const withHealth = estimateAUNetAnnual(cents(8_000_000), true);    // $80K
+    const withHealth = estimateAUNetAnnual(cents(8_000_000), true); // $80K
     const withoutHealth = estimateAUNetAnnual(cents(8_000_000), false);
     expect(withHealth).toBe(withoutHealth);
   });
@@ -95,14 +95,14 @@ describe("estimateAUNetAnnual — novated leases", () => {
     id: "1",
     name: "Tesla",
     annualPreTaxAmount: cents(1_500_000), // $15,000/yr
-    fbtRate: 0,                           // EV exempt
+    fbtRate: 0, // EV exempt
   };
 
   const stdLease: NovatedLease = {
     id: "2",
     name: "BMW",
     annualPreTaxAmount: cents(2_000_000), // $20,000/yr
-    fbtRate: 0.2,                         // 20% FBT
+    fbtRate: 0.2, // 20% FBT
   };
 
   it("EV lease (0% FBT): take-home is lower but tax saving > 0 (lease beats paying after-tax)", () => {
