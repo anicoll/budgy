@@ -12,6 +12,7 @@ export interface Preferences {
 }
 
 interface PrefsState extends Preferences {
+  _hydrated: boolean;
   setPref: <K extends keyof Preferences>(key: K, value: Preferences[K]) => void;
   reset: () => void;
 }
@@ -27,9 +28,15 @@ export const usePrefs = create<PrefsState>()(
   persist(
     (set) => ({
       ...DEFAULTS,
+      _hydrated: false,
       setPref: (key, value) => set({ [key]: value } as Partial<PrefsState>),
       reset: () => set({ ...DEFAULTS }),
     }),
-    { name: "budgy:prefs" },
+    {
+      name: "budgy:prefs",
+      onRehydrateStorage: () => (state) => {
+        if (state) state._hydrated = true;
+      },
+    },
   ),
 );

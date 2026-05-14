@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Settings2, Wallet } from "lucide-react";
+import { Plus, Settings2, TrendingDown } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -124,12 +124,13 @@ function NoBudgetEmpty({ onCreate }: { onCreate: () => void }) {
     <Card className="mx-auto max-w-md border-dashed border-border/70 bg-surface/40">
       <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-accent text-primary-foreground shadow-md">
-          <Wallet className="h-6 w-6" />
+          <TrendingDown className="h-6 w-6" />
         </span>
         <div>
           <h2 className="text-lg font-semibold">No budget yet</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Set spending targets by category and track how you&apos;re tracking against them.
+            Create a budget and your transactions will automatically appear. Add targets to set
+            spending and income goals — they normalise to any period you choose.
           </p>
         </div>
         <Button

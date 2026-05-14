@@ -6,25 +6,30 @@ import { queryKeys } from "@/lib/query/keys";
 import {
   createBudget,
   deleteBudget,
-  getActiveBudget,
+  getActiveBudgetNormalised,
   listBudgets,
-  removeAllocation,
+  normaliseLegacyBudget,
+  removeTarget,
+  setTarget,
   updateBudget,
-  upsertAllocation,
 } from "./repository";
 import type { BudgetFormValues } from "./schema";
+import type { BudgetFrequency } from "./types";
 
 export function useBudgets() {
   return useQuery({
     queryKey: queryKeys.budgets.list(),
-    queryFn: listBudgets,
+    queryFn: async () => {
+      const all = await listBudgets();
+      return all.map(normaliseLegacyBudget);
+    },
   });
 }
 
 export function useActiveBudget() {
   return useQuery({
     queryKey: [...queryKeys.budgets.list(), "active"],
-    queryFn: getActiveBudget,
+    queryFn: getActiveBudgetNormalised,
   });
 }
 
@@ -64,35 +69,37 @@ export function useDeleteBudget() {
   });
 }
 
-export function useUpsertAllocation() {
+export function useSetTarget() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({
       budgetId,
       categoryId,
       amount,
+      frequency,
       rollover,
     }: {
       budgetId: string;
       categoryId: string;
       amount: number;
+      frequency: BudgetFrequency;
       rollover: boolean;
-    }) => upsertAllocation(budgetId, categoryId, amount, rollover),
+    }) => setTarget(budgetId, categoryId, amount, frequency, rollover),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.budgets.all });
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to save allocation"),
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to save target"),
   });
 }
 
-export function useRemoveAllocation() {
+export function useRemoveTarget() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ budgetId, categoryId }: { budgetId: string; categoryId: string }) =>
-      removeAllocation(budgetId, categoryId),
+      removeTarget(budgetId, categoryId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.budgets.all });
-      toast.success("Allocation removed");
+      toast.success("Target removed");
     },
   });
 }

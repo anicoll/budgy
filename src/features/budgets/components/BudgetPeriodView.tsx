@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Plus, Wallet } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
@@ -9,209 +9,239 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/features/categories/hooks";
 import { useTransactions } from "@/features/transactions/hooks";
-import type { Cents } from "@/lib/money/cents";
 import { cn } from "@/lib/utils";
-import { useRemoveAllocation, useUpsertAllocation } from "../hooks";
-import type { AllocationActual, Budget } from "../types";
-import { budgetTotals, computeActuals, computeUnbudgetedSpend } from "../utils/actuals";
+import { useRemoveTarget, useSetTarget } from "../hooks";
+import type { Budget, BudgetFrequency, BudgetPeriod, FluidActual } from "../types";
+import { computeFluidActuals } from "../utils/actuals";
 import { currentPeriodRange, formatPeriodLabel, shiftBudgetPeriod } from "../utils/period";
-import { AddAllocationDialog } from "./AddAllocationDialog";
-import { AllocationEditDialog } from "./AllocationEditDialog";
-import { AllocationRow } from "./AllocationRow";
+import { SetTargetDialog } from "./SetTargetDialog";
+import { TargetEditDialog } from "./TargetEditDialog";
+import { TargetRow } from "./TargetRow";
+import { UntargetedSection } from "./UntargetedSection";
 
 interface Props {
   budget: Budget;
 }
 
 export function BudgetPeriodView({ budget }: Props) {
-  const [range, setRange] = useState(() => currentPeriodRange(budget.period, budget.startDate));
-  const [addOpen, setAddOpen] = useState(false);
-  const [editActual, setEditActual] = useState<AllocationActual | null>(null);
+  const viewPeriod = budget.period;
+  const [range, setRange] = useState(() => currentPeriodRange(viewPeriod, budget.startDate));
+  const [setTargetFor, setSetTargetFor] = useState<{ id: string; name: string } | null>(null);
+  const [editActual, setEditActual] = useState<FluidActual | null>(null);
 
   const { data: allTxns = [], isPending: txnsLoading } = useTransactions();
   const { data: categories = [], isPending: catsLoading } = useCategories();
-  const upsertMutation = useUpsertAllocation();
-  const removeMutation = useRemoveAllocation();
+  const setTargetMutation = useSetTarget();
+  const removeTargetMutation = useRemoveTarget();
 
   const actuals = useMemo(
-    () => computeActuals(budget, allTxns, categories, range),
-    [budget, allTxns, categories, range],
+    () => computeFluidActuals(allTxns, categories, budget.targets, range, viewPeriod, budget),
+    [allTxns, categories, budget, range, viewPeriod],
   );
-
-  const unbudgeted = useMemo(
-    () => computeUnbudgetedSpend(budget, allTxns, range),
-    [budget, allTxns, range],
-  );
-
-  const totals = useMemo(() => budgetTotals(actuals), [actuals]);
 
   const loading = txnsLoading || catsLoading;
-  const label = formatPeriodLabel(range, budget.period);
+  const label = formatPeriodLabel(range, viewPeriod);
 
   function prev() {
-    setRange((r) => shiftBudgetPeriod(budget.period, budget.startDate, r, -1));
+    setRange((r) => shiftBudgetPeriod(viewPeriod, budget.startDate, r, -1));
   }
   function next() {
-    setRange((r) => shiftBudgetPeriod(budget.period, budget.startDate, r, 1));
+    setRange((r) => shiftBudgetPeriod(viewPeriod, budget.startDate, r, 1));
   }
+
+  // Split targeted vs untargeted for display
+  const targetedIncome = actuals.income.filter((a) => a.hasTarget);
+  const untargetedIncome = actuals.income.filter((a) => !a.hasTarget);
+  const targetedExpense = actuals.expense.filter((a) => a.hasTarget);
+  const untargetedExpense = actuals.expense.filter((a) => !a.hasTarget);
+
+  const hasAnyData = actuals.income.length > 0 || actuals.expense.length > 0;
 
   return (
     <div className="flex flex-col gap-4">
       {/* Period navigation */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={prev}
-            aria-label="Previous period"
-            className="h-8 w-8"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="min-w-[160px] text-center text-sm font-medium">{label}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={next}
-            aria-label="Next period"
-            className="h-8 w-8"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+      <div className="flex items-center gap-2">
         <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setAddOpen(true)}
-          className="gap-1 text-xs"
+          variant="ghost"
+          size="icon"
+          onClick={prev}
+          aria-label="Previous period"
+          className="h-8 w-8"
         >
-          <Plus className="h-3.5 w-3.5" /> Add category
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="min-w-[160px] text-center text-sm font-medium">{label}</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={next}
+          aria-label="Next period"
+          className="h-8 w-8"
+        >
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* KPI summary */}
+      {/* KPI summary — actual vs projected */}
       <div className="grid grid-cols-3 gap-3">
         {(
           [
-            { label: "Budgeted", value: totals.allocated, cls: "text-foreground" },
             {
-              label: "Spent",
-              value: totals.spent,
-              cls: totals.spent > totals.allocated ? "text-expense" : "text-foreground",
+              label: "Income",
+              actual: actuals.totalActualIncome,
+              projected: actuals.totalProjectedIncome,
+              isPositive: true,
             },
             {
-              label: "Remaining",
-              value: totals.remaining,
-              cls: totals.remaining < 0 ? "text-expense" : "text-income",
+              label: "Expenses",
+              actual: actuals.totalActualExpense,
+              projected: actuals.totalProjectedExpense,
+              isPositive: false,
+            },
+            {
+              label: "Net",
+              actual: actuals.net,
+              projected: actuals.projectedNet,
+              isPositive: actuals.net >= 0,
             },
           ] as const
-        ).map(({ label: l, value, cls }) => (
+        ).map(({ label: l, actual, projected, isPositive }) => (
           <Card key={l} className="border-border/60 bg-surface/60 backdrop-blur-md">
             <CardContent className="py-4">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{l}</div>
               <Money
-                value={value}
-                className={cn("mt-0.5 text-xl font-semibold tabular-nums", cls)}
+                value={actual}
+                className={cn(
+                  "mt-0.5 text-xl font-semibold tabular-nums",
+                  isPositive ? "text-income" : "text-expense",
+                  l === "Net" && actual >= 0 && "text-income",
+                  l === "Net" && actual < 0 && "text-expense",
+                )}
               />
+              {projected > 0 && (
+                <div className="text-[10px] text-muted-foreground tabular-nums">
+                  <Money value={projected} className="text-[10px]" /> projected
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Allocations */}
+      {/* Main content card */}
       <Card className="border-border/60 bg-surface/60 backdrop-blur-md">
-        <CardContent className="flex flex-col gap-2 p-4">
+        <CardContent className="flex flex-col gap-3 p-4">
           {loading ? (
             <div className="flex flex-col gap-2">
               {["a", "b", "c"].map((k) => (
                 <Skeleton key={k} className="h-16 rounded-lg" />
               ))}
             </div>
-          ) : actuals.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-8 text-center">
-              <Wallet className="h-8 w-8 text-muted-foreground/40" />
-              <div>
-                <p className="font-medium">No allocations yet</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Add categories to start tracking spend against your budget.
-                </p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-                <Plus className="mr-1 h-3.5 w-3.5" /> Add first allocation
-              </Button>
-            </div>
+          ) : !hasAnyData ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No transactions this period yet. Add some transactions to see your cashflow here.
+            </p>
           ) : (
             <>
-              {actuals.map((actual) => (
-                <AllocationRow
-                  key={actual.categoryId}
-                  actual={actual}
-                  onEditAmount={setEditActual}
-                  onToggleRollover={(cid, current) =>
-                    upsertMutation.mutate({
-                      budgetId: budget.id,
-                      categoryId: cid,
-                      amount: actuals.find((a) => a.categoryId === cid)?.allocated ?? 0,
-                      rollover: !current,
-                    })
-                  }
-                  onRemove={(cid) =>
-                    removeMutation.mutate({ budgetId: budget.id, categoryId: cid })
-                  }
-                />
-              ))}
-
-              <Separator className="my-1" />
-
-              {/* Unbudgeted */}
-              {unbudgeted > 0 && (
-                <div className="flex items-center justify-between px-1 py-1 text-xs text-muted-foreground">
-                  <span>Unbudgeted spend</span>
-                  <Money value={unbudgeted as Cents} className="text-expense" />
-                </div>
+              {/* ── Income section ── */}
+              {(targetedIncome.length > 0 || untargetedIncome.length > 0) && (
+                <>
+                  <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Income
+                  </h3>
+                  {targetedIncome.map((actual) => (
+                    <TargetRow
+                      key={actual.categoryId}
+                      actual={actual}
+                      viewPeriod={viewPeriod}
+                      onEditTarget={setEditActual}
+                      onToggleRollover={(cid, current) =>
+                        setTargetMutation.mutate({
+                          budgetId: budget.id,
+                          categoryId: cid,
+                          amount: actual.projectedTarget ?? 0,
+                          frequency: actual.targetFrequency ?? (viewPeriod as BudgetFrequency),
+                          rollover: !current,
+                        })
+                      }
+                      onRemoveTarget={(cid) =>
+                        removeTargetMutation.mutate({ budgetId: budget.id, categoryId: cid })
+                      }
+                    />
+                  ))}
+                  <UntargetedSection
+                    label="Other income"
+                    actuals={untargetedIncome}
+                    onSetTarget={(id, name) => setSetTargetFor({ id, name })}
+                  />
+                  <Separator />
+                </>
               )}
 
-              {/* Totals row */}
-              <div className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-2 text-sm font-semibold">
-                <span>Total</span>
-                <div className="flex items-center gap-6 tabular-nums">
-                  <div className="text-right">
-                    <div className="text-[10px] text-muted-foreground">Spent</div>
-                    <Money value={totals.spent} />
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] text-muted-foreground">Budgeted</div>
-                    <Money value={totals.allocated} />
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] text-muted-foreground">Left</div>
-                    <Money
-                      value={totals.remaining}
-                      className={totals.remaining < 0 ? "text-expense" : "text-income"}
+              {/* ── Expense section ── */}
+              {(targetedExpense.length > 0 || untargetedExpense.length > 0) && (
+                <>
+                  <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Expenses
+                  </h3>
+                  {targetedExpense.map((actual) => (
+                    <TargetRow
+                      key={actual.categoryId}
+                      actual={actual}
+                      viewPeriod={viewPeriod}
+                      onEditTarget={setEditActual}
+                      onToggleRollover={(cid, current) =>
+                        setTargetMutation.mutate({
+                          budgetId: budget.id,
+                          categoryId: cid,
+                          amount: actual.projectedTarget ?? 0,
+                          frequency: actual.targetFrequency ?? (viewPeriod as BudgetFrequency),
+                          rollover: !current,
+                        })
+                      }
+                      onRemoveTarget={(cid) =>
+                        removeTargetMutation.mutate({ budgetId: budget.id, categoryId: cid })
+                      }
                     />
-                  </div>
-                </div>
-              </div>
+                  ))}
+                  <UntargetedSection
+                    label="Other spending"
+                    actuals={untargetedExpense}
+                    onSetTarget={(id, name) => setSetTargetFor({ id, name })}
+                  />
+                </>
+              )}
             </>
           )}
         </CardContent>
       </Card>
 
-      <AddAllocationDialog
-        open={addOpen}
-        budget={budget}
-        onClose={() => setAddOpen(false)}
-        onAdd={(cid, amount) =>
-          upsertMutation.mutate({ budgetId: budget.id, categoryId: cid, amount, rollover: false })
-        }
+      {/* Dialogs */}
+      <SetTargetDialog
+        open={!!setTargetFor}
+        categoryName={setTargetFor?.name ?? ""}
+        defaultFrequency={viewPeriod as BudgetFrequency}
+        viewPeriod={viewPeriod as BudgetPeriod}
+        onClose={() => setSetTargetFor(null)}
+        onSave={(amount, frequency, rollover) => {
+          if (!setTargetFor) return;
+          setTargetMutation.mutate({
+            budgetId: budget.id,
+            categoryId: setTargetFor.id,
+            amount,
+            frequency,
+            rollover,
+          });
+          setSetTargetFor(null);
+        }}
       />
 
-      <AllocationEditDialog
+      <TargetEditDialog
         actual={editActual}
+        viewPeriod={viewPeriod as BudgetPeriod}
         onClose={() => setEditActual(null)}
-        onSave={(cid, amount, rollover) =>
-          upsertMutation.mutate({ budgetId: budget.id, categoryId: cid, amount, rollover })
+        onSave={(categoryId, amount, frequency, rollover) =>
+          setTargetMutation.mutate({ budgetId: budget.id, categoryId, amount, frequency, rollover })
         }
       />
     </div>

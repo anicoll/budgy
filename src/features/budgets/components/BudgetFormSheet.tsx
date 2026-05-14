@@ -46,9 +46,10 @@ function defaultValues(editing?: Budget | null): BudgetFormValues {
       name: editing.name,
       period: editing.period,
       startDate: editing.startDate,
-      categoryAllocations: editing.categoryAllocations.map((a) => ({
+      targets: editing.targets.map((a) => ({
         categoryId: a.categoryId,
         amount: a.amount,
+        frequency: a.frequency ?? editing.period,
         rollover: a.rollover,
       })),
       notes: editing.notes ?? "",
@@ -58,7 +59,7 @@ function defaultValues(editing?: Budget | null): BudgetFormValues {
     name: "Monthly budget",
     period: "monthly",
     startDate: isoDateAU(),
-    categoryAllocations: [],
+    targets: [],
     notes: "",
   };
 }
@@ -84,7 +85,7 @@ export function BudgetFormSheet({ open, editing, onClose, onSubmit, submitting =
           <SheetDescription>
             {editing
               ? "Change the budget name, period, or start date."
-              : "Set the period for this budget. Add category allocations directly on the budget page."}
+              : "Set the period for this budget. Set targets directly on the budget page — they can have their own frequency."}
           </SheetDescription>
         </SheetHeader>
 
