@@ -488,10 +488,7 @@ export function SuperPageClient() {
         name: "Total",
         data: fundProjections[0].projection.years.map((y, idx) => ({
           x: String(y.age),
-          y: fundProjections.reduce(
-            (s, fp) => s + (fp.projection.years[idx].nominal as number),
-            0,
-          ),
+          y: fundProjections.reduce((s, fp) => s + (fp.projection.years[idx].nominal as number), 0),
         })),
         color: "hsl(210 20% 96%)",
       });
