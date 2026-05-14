@@ -82,6 +82,7 @@ export async function seedDefaultCategories(): Promise<void> {
       color: entry.color,
       archived: false,
       sortOrder: entry.sortOrder,
+      ...(entry.system ? { system: true } : {}),
     };
     await categoriesRepo().upsert(category);
   }

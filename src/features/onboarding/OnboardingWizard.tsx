@@ -30,14 +30,16 @@ import {
   ACCOUNT_TYPE_ORDER,
   type AccountType,
 } from "@/features/accounts/types";
+import { estimateFortnightlyNet } from "@/features/budgets/utils/au-tax";
 import { seedDefaultCategories } from "@/features/categories/repository";
 import { useCreateTransaction } from "@/features/transactions/hooks";
 import { isoDateAU } from "@/lib/date/au-locale";
+import type { Cents } from "@/lib/money/cents";
 import { parseAUDInput } from "@/lib/money/format";
 import { usePrefs } from "@/lib/state/prefs-store";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["Welcome", "Account", "Categories", "Done"] as const;
+const STEPS = ["Welcome", "Salary", "Account", "Categories", "Done"] as const;
 type Step = (typeof STEPS)[number];
 
 const VARIANTS = {
@@ -68,6 +70,12 @@ export function OnboardingWizard() {
 
   async function handleWelcomeNext() {
     await seedDefaultCategories();
+    setStep("Salary");
+  }
+
+  function handleSalaryNext(salary: Cents | null, hasPrivateHealth: boolean) {
+    if (salary && salary > 0) setPref("annualSalary", salary);
+    setPref("hasPrivateHealth", hasPrivateHealth);
     setStep("Account");
   }
 
@@ -152,6 +160,7 @@ export function OnboardingWizard() {
             {step === "Welcome" && (
               <WelcomeStep theme={theme ?? "dark"} onTheme={setTheme} onNext={handleWelcomeNext} />
             )}
+            {step === "Salary" && <SalaryStep onNext={handleSalaryNext} />}
             {step === "Account" && (
               <AccountStep acct={acct} onChange={setAcct} onNext={handleAccountNext} busy={busy} />
             )}
@@ -168,6 +177,96 @@ export function OnboardingWizard() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+function SalaryStep({
+  onNext,
+}: {
+  onNext: (salary: Cents | null, hasPrivateHealth: boolean) => void;
+}) {
+  const [raw, setRaw] = useState("");
+  const [privateHealth, setPrivateHealth] = useState(false);
+  const parsed = parseAUDInput(raw);
+  const netFn = parsed && parsed > 0 ? estimateFortnightlyNet(parsed, privateHealth) : null;
+
+  return (
+    <Card className="border-border/60 bg-surface/80 backdrop-blur-xl">
+      <CardHeader className="text-center">
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/20 text-3xl shadow-lg">
+          💼
+        </div>
+        <CardTitle>What&apos;s your annual salary?</CardTitle>
+        <CardDescription>
+          Used to pre-fill your super projector and income budget. You can update this any time in
+          Settings.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {/* Salary input */}
+        <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface px-4 py-3 focus-within:border-violet-500/70">
+          <span className="text-muted-foreground">$</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="e.g. 95000"
+            value={raw}
+            onChange={(e) => setRaw(e.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-lg tabular-nums outline-none"
+          />
+          <span className="text-sm text-muted-foreground">/yr gross</span>
+        </div>
+
+        {/* Private hospital cover */}
+        <button
+          type="button"
+          onClick={() => setPrivateHealth((v) => !v)}
+          className="flex items-center gap-3 rounded-xl border border-border/60 bg-surface px-4 py-3 text-left transition-colors hover:border-violet-500/50"
+        >
+          <div
+            className={cn(
+              "flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors",
+              privateHealth ? "border-violet-500 bg-violet-500 text-white" : "border-border",
+            )}
+          >
+            {privateHealth && <span className="text-[10px] leading-none">✓</span>}
+          </div>
+          <div>
+            <div className="text-sm font-medium">I have private hospital cover</div>
+            <div className="text-xs text-muted-foreground">
+              Avoids the Medicare Levy Surcharge (up to 1.5%)
+            </div>
+          </div>
+        </button>
+
+        {/* Live net estimate */}
+        {netFn && netFn > 0 && (
+          <div className="rounded-lg bg-muted/30 px-3 py-2 text-center text-xs text-muted-foreground">
+            Estimated take-home:{" "}
+            <strong className="text-foreground tabular-nums">
+              ${Math.round(netFn / 100).toLocaleString("en-AU")}/fn
+            </strong>{" "}
+            after tax (FY2024-25 estimate — adjust to your payslip)
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="flex flex-col gap-2">
+        <Button
+          onClick={() => onNext(parsed, privateHealth)}
+          disabled={!parsed || parsed <= 0}
+          className="w-full bg-gradient-accent text-primary-foreground hover:opacity-90"
+        >
+          Continue
+        </Button>
+        <button
+          type="button"
+          onClick={() => onNext(null, privateHealth)}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          Skip for now
+        </button>
+      </CardFooter>
+    </Card>
   );
 }
 
@@ -254,7 +353,6 @@ function AccountStep({
             value={acct.name}
             onChange={(e) => onChange((a) => ({ ...a, name: e.target.value }))}
             placeholder="Everyday account"
-            autoFocus
           />
         </div>
         <div className="grid grid-cols-2 gap-3">

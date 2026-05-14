@@ -6,6 +6,7 @@ import { AreaChart } from "@/components/charts/AreaChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Cents } from "@/lib/money/cents";
 import { formatAUDCompact } from "@/lib/money/format";
+import { usePrefs } from "@/lib/state/prefs-store";
 import { cn } from "@/lib/utils";
 import {
   useDeleteSuperPlan,
@@ -395,9 +396,20 @@ export function SuperPageClient() {
   const saveSettingsMutation = useSaveSuperSettings();
 
   const [openId, setOpenId] = useState<string | null>(null);
+  const [salaryBannerDismissed, setSalaryBannerDismissed] = useState(false);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefsSalary = usePrefs((s) => s.annualSalary);
 
   const isPending = settingsPending || plansPending;
+
+  // Show a banner if prefs.annualSalary is set but super settings still has the default ($100K)
+  const showSalaryBanner =
+    !salaryBannerDismissed &&
+    !!settings &&
+    !!prefsSalary &&
+    prefsSalary > 0 &&
+    settings.annualSalary === DEFAULT_SUPER_SETTINGS.annualSalary &&
+    prefsSalary !== settings.annualSalary;
 
   // ── settings helpers ──────────────────────────────────────────────────────
 
@@ -538,6 +550,35 @@ export function SuperPageClient() {
           <span className="ml-auto text-xs text-muted-foreground">Saving…</span>
         )}
       </div>
+
+      {/* Salary sync banner */}
+      {showSalaryBanner && prefsSalary && (
+        <div className="flex items-center gap-3 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-sm">
+          <span className="text-lg">💡</span>
+          <span className="flex-1 text-muted-foreground">
+            Your saved salary is{" "}
+            <strong className="text-foreground">{formatAUDCompact(prefsSalary)}/yr</strong>. Use it
+            in the super projector?
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (settings) saveSettingsMutation.mutate({ ...settings, annualSalary: prefsSalary });
+              setSalaryBannerDismissed(true);
+            }}
+            className="shrink-0 rounded-lg bg-violet-500/20 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-500/30"
+          >
+            Yes, update
+          </button>
+          <button
+            type="button"
+            onClick={() => setSalaryBannerDismissed(true)}
+            className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
         {/* ── Left panel ── */}

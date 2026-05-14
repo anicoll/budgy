@@ -12,6 +12,7 @@ export const DEFAULT_CATEGORIES: SeedEntry[] = [
     color: "#34d399",
     archived: false,
     sortOrder: 0,
+    system: true,
   },
   {
     seedId: "income-freelance",
@@ -68,6 +69,7 @@ export const DEFAULT_CATEGORIES: SeedEntry[] = [
     color: "#7c5cff",
     archived: false,
     sortOrder: 0,
+    system: true,
   },
   {
     seedId: "exp-utilities",

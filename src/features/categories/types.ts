@@ -9,6 +9,7 @@ export interface Category {
   color: string;
   archived: boolean;
   sortOrder: number;
+  system?: boolean; // true = cannot be archived, deleted, or removed from budget
 }
 
 export const CATEGORY_TYPE_LABEL: Record<CategoryType, string> = {

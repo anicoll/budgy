@@ -14,11 +14,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/features/categories/hooks";
 import type { Cents } from "@/lib/money/cents";
+import { usePrefs } from "@/lib/state/prefs-store";
 import { cn } from "@/lib/utils";
 import { useRemoveTarget, useSetBudgetViewPeriod, useSetTarget } from "../hooks";
 import type { Budget, BudgetFrequency, BudgetPeriod, CategoryTarget, PlannerItem } from "../types";
 import { BUDGET_PERIOD_LABEL } from "../types";
+import { estimateFortnightlyNet } from "../utils/au-tax";
 import { FREQUENCY_LABEL, normaliseToPeriod } from "../utils/normalise";
+import { HousingSetupDialog, isHousingCategory } from "./HousingSetupDialog";
 
 const PERIOD_TABS: { value: BudgetPeriod; label: string }[] = [
   { value: "weekly", label: "Week" },
@@ -34,7 +37,7 @@ function defaultFrequency(type: "income" | "expense"): BudgetFrequency {
 
 function computePlannerItems(
   targets: CategoryTarget[],
-  categoryMap: Map<string, { name: string; color: string; type: string }>,
+  categoryMap: Map<string, { name: string; color: string; type: string; system?: boolean }>,
   viewPeriod: BudgetPeriod,
 ): { income: PlannerItem[]; expense: PlannerItem[]; totalIncome: Cents; totalExpense: Cents } {
   const income: PlannerItem[] = [];
@@ -55,6 +58,7 @@ function computePlannerItems(
       categoryName: cat.name,
       categoryColor: cat.color,
       categoryType: cat.type as "income" | "expense",
+      categorySystem: cat.system,
       nativeAmount: target.amount,
       nativeFrequency: target.frequency,
       normalisedAmount,
@@ -76,13 +80,26 @@ interface Props {
 
 export function BudgetPlannerView({ budget }: Props) {
   const [viewPeriod, setViewPeriodLocal] = useState<BudgetPeriod>(budget.period);
+  const [housingDialogCat, setHousingDialogCat] = useState<{
+    id: string;
+    name: string;
+    color: string;
+  } | null>(null);
   const setTargetMutation = useSetTarget();
   const removeTargetMutation = useRemoveTarget();
   const setPeriodMutation = useSetBudgetViewPeriod();
   const { data: allCategories = [], isPending: catsLoading } = useCategories();
+  const annualSalary = usePrefs((s) => s.annualSalary);
+  const hasPrivateHealth = usePrefs((s) => s.hasPrivateHealth ?? false);
 
   const categoryMap = useMemo(
-    () => new Map(allCategories.map((c) => [c.id, { name: c.name, color: c.color, type: c.type }])),
+    () =>
+      new Map(
+        allCategories.map((c) => [
+          c.id,
+          { name: c.name, color: c.color, type: c.type, system: c.system },
+        ]),
+      ),
     [allCategories],
   );
 
@@ -109,11 +126,27 @@ export function BudgetPlannerView({ budget }: Props) {
   }
 
   function addCategory(categoryId: string, type: "income" | "expense") {
+    const cat = allCategories.find((c) => c.id === categoryId);
+    const catName = cat?.name ?? "";
+
+    // Intercept housing/rent/mortgage — open smart dialog instead
+    if (isHousingCategory(catName) && cat) {
+      setHousingDialogCat({ id: cat.id, name: cat.name, color: cat.color });
+      return;
+    }
+
+    // Smart salary default: pre-fill estimated net fortnightly (AU tax estimate)
+    const isSalary = /salary/i.test(catName);
+    const defaultAmount =
+      isSalary && annualSalary && annualSalary > 0
+        ? estimateFortnightlyNet(annualSalary, hasPrivateHealth)
+        : (0 as Cents);
+
     setTargetMutation.mutate({
       budgetId: budget.id,
       categoryId,
-      amount: 0,
-      frequency: defaultFrequency(type),
+      amount: defaultAmount,
+      frequency: isSalary ? "fortnightly" : defaultFrequency(type),
       rollover: false,
     });
   }
@@ -228,6 +261,14 @@ export function BudgetPlannerView({ budget }: Props) {
           loading={catsLoading}
         />
       </div>
+
+      {housingDialogCat && (
+        <HousingSetupDialog
+          category={housingDialogCat}
+          budgetId={budget.id}
+          onClose={() => setHousingDialogCat(null)}
+        />
+      )}
     </div>
   );
 }
@@ -418,15 +459,18 @@ function PlannerRow({ item, viewPeriod, periodLabel, onSave, onRemove }: RowProp
         </SelectContent>
       </Select>
 
-      {/* Remove */}
-      <button
-        type="button"
-        onClick={() => onRemove(item.categoryId)}
-        aria-label={`Remove ${item.categoryName}`}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/40 opacity-0 transition-all hover:text-destructive group-hover:opacity-100"
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
+      {/* Remove — hidden for system categories */}
+      {!item.categorySystem && (
+        <button
+          type="button"
+          onClick={() => onRemove(item.categoryId)}
+          aria-label={`Remove ${item.categoryName}`}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/40 opacity-0 transition-all hover:text-destructive group-hover:opacity-100"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {item.categorySystem && <div className="h-6 w-6 shrink-0" />}
     </div>
   );
 }

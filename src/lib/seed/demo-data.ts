@@ -191,7 +191,7 @@ export async function loadDemoData(): Promise<void> {
       period: "monthly",
       startDate: D(subMonths(NOW, 3)),
       targets: [
-        { categoryId: catId("Salary"), amount: 720000, frequency: "monthly", rollover: false },
+        { categoryId: catId("Salary"), amount: 277000, frequency: "fortnightly", rollover: false }, // $7,200/mo ≈ $2,770/fn
         { categoryId: catId("Groceries"), amount: 22500, frequency: "weekly", rollover: false },
         { categoryId: catId("Dining"), amount: 30000, frequency: "monthly", rollover: false },
         { categoryId: catId("Fuel"), amount: 15000, frequency: "monthly", rollover: true },

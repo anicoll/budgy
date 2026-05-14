@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { Cents } from "@/lib/money/cents";
 
 export interface Preferences {
   firstDayOfMonth: number;
@@ -9,6 +10,8 @@ export interface Preferences {
   hideArchived: boolean;
   lastBackupAt?: string;
   onboarded: boolean;
+  annualSalary?: Cents; // gross annual salary — set in onboarding, shared across modules
+  hasPrivateHealth?: boolean; // affects Medicare Levy Surcharge calculation
 }
 
 interface PrefsState extends Preferences {
@@ -22,6 +25,7 @@ const DEFAULTS: Preferences = {
   fortnightAnchor: "2024-01-01",
   hideArchived: false,
   onboarded: false,
+  annualSalary: undefined,
 };
 
 export const usePrefs = create<PrefsState>()(

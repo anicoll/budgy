@@ -38,6 +38,7 @@ export interface PlannerItem {
   categoryName: string;
   categoryColor: string;
   categoryType: "income" | "expense";
+  categorySystem?: boolean; // cannot be removed from budget
   nativeAmount: Cents;
   nativeFrequency: BudgetFrequency;
   normalisedAmount: Cents;

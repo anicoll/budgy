@@ -103,6 +103,11 @@ function CategoryNode({
         />
         <span className="flex-1 truncate text-sm">{category.name}</span>
 
+        {category.system && (
+          <span className="mr-1 rounded-full border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-violet-400">
+            System
+          </span>
+        )}
         <span className={cn("hidden items-center gap-0.5 group-hover:flex", menuOpen && "flex")}>
           <button
             type="button"
@@ -126,13 +131,17 @@ function CategoryNode({
               <DropdownMenuItem onClick={() => onEdit(category)}>
                 <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(category)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
-              </DropdownMenuItem>
+              {!category.system && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => onDelete(category)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </span>
@@ -166,6 +175,11 @@ function ChildNode({
         style={{ background: child.color }}
       />
       <span className="flex-1 truncate text-sm">{child.name}</span>
+      {child.system && (
+        <span className="mr-1 rounded-full border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-violet-400">
+          System
+        </span>
+      )}
       <span className={cn("hidden items-center group-hover:flex", menuOpen && "flex")}>
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
@@ -181,13 +195,17 @@ function ChildNode({
             <DropdownMenuItem onClick={() => onEdit(child)}>
               <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => onDelete(child)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
-            </DropdownMenuItem>
+            {!child.system && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(child)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </span>
