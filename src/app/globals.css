@@ -1,26 +1,168 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* surfaces & text (light) */
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.18 0.02 260);
+  --surface: oklch(0.985 0 0);
+  --surface-elevated: oklch(1 0 0);
+  --border: oklch(0.92 0.005 250);
+  --muted: oklch(0.96 0.005 250);
+  --muted-foreground: oklch(0.5 0.02 260);
+
+  /* accents */
+  --accent-from: oklch(0.62 0.22 295); /* violet */
+  --accent-to: oklch(0.78 0.16 215); /* cyan */
+  --primary: oklch(0.62 0.22 295);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* semantic finance colours */
+  --income: oklch(0.7 0.18 155);
+  --expense: oklch(0.65 0.22 25);
+  --transfer: oklch(0.7 0.18 250);
+  --warning: oklch(0.78 0.16 75);
+  --destructive: oklch(0.6 0.24 25);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  /* shadcn aliases */
+  --card: var(--surface-elevated);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface-elevated);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --input: var(--border);
+  --ring: var(--accent-from);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+
+  --shadow-card: 0 1px 0 rgb(0 0 0 / 0.02) inset, 0 20px 40px -25px rgb(15 23 42 / 0.25);
+}
+
+.dark {
+  --background: oklch(0.16 0.02 260);
+  --foreground: oklch(0.97 0.005 250);
+  --surface: oklch(0.2 0.02 260);
+  --surface-elevated: oklch(0.235 0.022 260);
+  --border: oklch(0.32 0.02 260);
+  --muted: oklch(0.24 0.02 260);
+  --muted-foreground: oklch(0.7 0.02 260);
+
+  --accent-from: oklch(0.72 0.2 295);
+  --accent-to: oklch(0.82 0.14 215);
+  --primary: oklch(0.72 0.2 295);
+  --primary-foreground: oklch(0.18 0.02 260);
+
+  --income: oklch(0.78 0.18 155);
+  --expense: oklch(0.72 0.22 25);
+  --transfer: oklch(0.78 0.16 250);
+  --warning: oklch(0.82 0.16 75);
+  --destructive: oklch(0.7 0.24 25);
+  --destructive-foreground: oklch(0.18 0.02 260);
+
+  --card: var(--surface-elevated);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface-elevated);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --input: var(--border);
+  --ring: var(--accent-from);
+
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 30px 60px -30px rgb(0 0 0 / 0.6);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent-from: var(--accent-from);
+  --color-accent-to: var(--accent-to);
+
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-transfer: var(--transfer);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "JetBrains Mono", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--border);
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    color-scheme: dark light;
+    background: var(--background);
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .tabular-nums,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bg-app-radial {
+    background:
+      radial-gradient(at 20% -10%, oklch(0.32 0.12 295 / 0.35), transparent 50%),
+      radial-gradient(at 90% 10%, oklch(0.32 0.12 215 / 0.25), transparent 55%), var(--background);
+  }
+
+  .text-gradient-accent {
+    background-image: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .bg-gradient-accent {
+    background-image: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+  }
 }
