@@ -79,6 +79,7 @@ function CategoryNode({
   onDelete: (cat: Category) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const hasSubs = subcategories.length > 0;
 
   return (
@@ -102,7 +103,7 @@ function CategoryNode({
         />
         <span className="flex-1 truncate text-sm">{category.name}</span>
 
-        <span className="hidden items-center gap-0.5 group-hover:flex">
+        <span className={cn("hidden items-center gap-0.5 group-hover:flex", menuOpen && "flex")}>
           <button
             type="button"
             onClick={() => onAdd(category.id, category.type)}
@@ -111,7 +112,7 @@ function CategoryNode({
           >
             <Plus className="h-3 w-3" />
           </button>
-          <DropdownMenu>
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
@@ -140,44 +141,61 @@ function CategoryNode({
       {expanded && subcategories.length > 0 && (
         <div className="ml-7 flex flex-col gap-0.5 border-l border-border/40 pl-3">
           {subcategories.map((child) => (
-            <div
+            <ChildNode
               key={child.id}
-              className="group flex items-center gap-1 rounded-lg border border-transparent px-2 py-1.5 hover:border-border/50 hover:bg-surface/60"
-            >
-              <span
-                className="mr-1 inline-block h-2 w-2 shrink-0 rounded-full"
-                style={{ background: child.color }}
-              />
-              <span className="flex-1 truncate text-sm">{child.name}</span>
-              <span className="hidden items-center group-hover:flex">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted"
-                      aria-label="Actions"
-                    >
-                      <MoreHorizontal className="h-3 w-3" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-36">
-                    <DropdownMenuItem onClick={() => onEdit(child)}>
-                      <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => onDelete(child)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </span>
-            </div>
+              child={child}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ChildNode({
+  child,
+  onEdit,
+  onDelete,
+}: {
+  child: Category;
+  onEdit: (cat: Category) => void;
+  onDelete: (cat: Category) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <div className="group flex items-center gap-1 rounded-lg border border-transparent px-2 py-1.5 hover:border-border/50 hover:bg-surface/60">
+      <span
+        className="mr-1 inline-block h-2 w-2 shrink-0 rounded-full"
+        style={{ background: child.color }}
+      />
+      <span className="flex-1 truncate text-sm">{child.name}</span>
+      <span className={cn("hidden items-center group-hover:flex", menuOpen && "flex")}>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted"
+              aria-label="Actions"
+            >
+              <MoreHorizontal className="h-3 w-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuItem onClick={() => onEdit(child)}>
+              <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => onDelete(child)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </span>
     </div>
   );
 }
