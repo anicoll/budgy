@@ -91,6 +91,7 @@ export function BudgetPlannerView({ budget }: Props) {
   const { data: allCategories = [], isPending: catsLoading } = useCategories();
   const annualSalary = usePrefs((s) => s.annualSalary);
   const hasPrivateHealth = usePrefs((s) => s.hasPrivateHealth ?? false);
+  const novatedLeases = usePrefs((s) => s.novatedLeases ?? []);
 
   const categoryMap = useMemo(
     () =>
@@ -139,7 +140,7 @@ export function BudgetPlannerView({ budget }: Props) {
     const isSalary = /salary/i.test(catName);
     const defaultAmount =
       isSalary && annualSalary && annualSalary > 0
-        ? estimateFortnightlyNet(annualSalary, hasPrivateHealth)
+        ? estimateFortnightlyNet(annualSalary, hasPrivateHealth, novatedLeases)
         : (0 as Cents);
 
     setTargetMutation.mutate({

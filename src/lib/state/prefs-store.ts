@@ -4,6 +4,13 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Cents } from "@/lib/money/cents";
 
+export interface NovatedLease {
+  id: string;
+  name: string; // "Tesla Model 3", "Work Car"
+  annualPreTaxAmount: Cents; // total annual salary sacrifice deducted pre-tax
+  fbtRate: number; // 0.0-1.0; after-tax FBT cost = preTax x fbtRate
+}
+
 export interface Preferences {
   firstDayOfMonth: number;
   fortnightAnchor: string;
@@ -12,6 +19,7 @@ export interface Preferences {
   onboarded: boolean;
   annualSalary?: Cents; // gross annual salary — set in onboarding, shared across modules
   hasPrivateHealth?: boolean; // affects Medicare Levy Surcharge calculation
+  novatedLeases?: NovatedLease[];
 }
 
 interface PrefsState extends Preferences {

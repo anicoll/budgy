@@ -188,7 +188,8 @@ function SalaryStep({
   const [raw, setRaw] = useState("");
   const [privateHealth, setPrivateHealth] = useState(false);
   const parsed = parseAUDInput(raw);
-  const netFn = parsed && parsed > 0 ? estimateFortnightlyNet(parsed, privateHealth) : null;
+  // Leases are always empty at onboarding — future-proofed for when user adds them later
+  const netFn = parsed && parsed > 0 ? estimateFortnightlyNet(parsed, privateHealth, []) : null;
 
   return (
     <Card className="border-border/60 bg-surface/80 backdrop-blur-xl">
