@@ -14,8 +14,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/features/categories/hooks";
 import type { Cents } from "@/lib/money/cents";
+import type { NovatedLease } from "@/lib/state/prefs-store";
 import { usePrefs } from "@/lib/state/prefs-store";
 import { cn } from "@/lib/utils";
+
+// Stable empty array — prevents Zustand selector infinite loop when novatedLeases is undefined
+const EMPTY_LEASES: NovatedLease[] = [];
+
 import { useRemoveTarget, useSetBudgetViewPeriod, useSetTarget } from "../hooks";
 import type { Budget, BudgetFrequency, BudgetPeriod, CategoryTarget, PlannerItem } from "../types";
 import { BUDGET_PERIOD_LABEL } from "../types";
@@ -91,7 +96,7 @@ export function BudgetPlannerView({ budget }: Props) {
   const { data: allCategories = [], isPending: catsLoading } = useCategories();
   const annualSalary = usePrefs((s) => s.annualSalary);
   const hasPrivateHealth = usePrefs((s) => s.hasPrivateHealth ?? false);
-  const novatedLeases = usePrefs((s) => s.novatedLeases ?? []);
+  const novatedLeases = usePrefs((s) => s.novatedLeases ?? EMPTY_LEASES);
 
   const categoryMap = useMemo(
     () =>
