@@ -17,4 +17,8 @@ export const queryKeys = {
     all: ["budgets"] as const,
     list: () => ["budgets", "list"] as const,
   },
+  super: {
+    all: ["super"] as const,
+    plan: () => ["super", "plan"] as const,
+  },
 } as const;

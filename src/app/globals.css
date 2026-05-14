@@ -173,4 +173,24 @@
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  .super-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent-from);
+    cursor: pointer;
+    border: 2px solid var(--background);
+    box-shadow: 0 0 0 1px var(--accent-from);
+  }
+  .super-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent-from);
+    cursor: pointer;
+    border: 2px solid var(--background);
+  }
 }

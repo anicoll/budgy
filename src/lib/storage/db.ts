@@ -2,13 +2,8 @@ import Dexie, { type Table } from "dexie";
 import type { Account } from "@/features/accounts/types";
 import type { Budget } from "@/features/budgets/types";
 import type { Category } from "@/features/categories/types";
+import type { SuperPlan } from "@/features/super/types";
 import type { Transaction } from "@/features/transactions/types";
-
-export interface SuperPlanRow {
-  id: string;
-  data: unknown;
-  updatedAt: string;
-}
 
 export interface MortgagePlanRow {
   id: string;
@@ -21,7 +16,7 @@ export class BudgyDB extends Dexie {
   categories!: Table<Category, string>;
   transactions!: Table<Transaction, string>;
   budgets!: Table<Budget, string>;
-  superPlans!: Table<SuperPlanRow, string>;
+  superPlans!: Table<SuperPlan, string>;
   mortgagePlans!: Table<MortgagePlanRow, string>;
 
   constructor() {
