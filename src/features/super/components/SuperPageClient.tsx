@@ -477,24 +477,16 @@ export function SuperPageClient() {
     }));
   }, [plans, resolvedSettings]);
 
-  const chartSeries = useMemo(() => {
-    const series = fundProjections.map((fp) => ({
-      name: fp.plan.name,
-      data: fp.projection.years.map((y) => ({ x: String(y.age), y: y.nominal as number })),
-      color: fp.color,
-    }));
-    if (fundProjections.length > 1) {
-      series.push({
-        name: "Total",
-        data: fundProjections[0].projection.years.map((y, idx) => ({
-          x: String(y.age),
-          y: fundProjections.reduce((s, fp) => s + (fp.projection.years[idx].nominal as number), 0),
-        })),
-        color: "hsl(210 20% 96%)",
-      });
-    }
-    return series;
-  }, [fundProjections]);
+  // Stacked area — each fund is a coloured band; the stack top = total. No explicit Total series needed.
+  const chartSeries = useMemo(
+    () =>
+      fundProjections.map((fp) => ({
+        name: fp.plan.name,
+        data: fp.projection.years.map((y) => ({ x: String(y.age), y: y.nominal as number })),
+        color: fp.color,
+      })),
+    [fundProjections],
+  );
 
   const totalNominal = fundProjections.reduce(
     (s, fp) => (s + fp.projection.retirementNominal) as Cents,
@@ -731,7 +723,7 @@ export function SuperPageClient() {
                   <span className="text-sm font-medium">Balance projection</span>
                   <span className="ml-auto text-xs text-muted-foreground">Age →</span>
                 </div>
-                <AreaChart series={chartSeries} height={280} gradient={false} />
+                <AreaChart series={chartSeries} height={280} stacked />
               </div>
 
               {/* Per-fund contribution summary */}
