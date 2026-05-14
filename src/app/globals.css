@@ -165,4 +165,12 @@
   .bg-gradient-accent {
     background-image: linear-gradient(135deg, var(--accent-from), var(--accent-to));
   }
+
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
