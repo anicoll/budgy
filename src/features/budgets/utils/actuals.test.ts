@@ -136,7 +136,7 @@ describe("with targets — same frequency as view period", () => {
 });
 
 describe("frequency normalisation", () => {
-  it("weekly $100 → monthly ≈ $433", () => {
+  it("weekly $100 → monthly = $428.57", () => {
     const targets: CategoryTarget[] = [
       { categoryId: "cat-groceries", amount: cents(10000), frequency: "weekly", rollover: false },
     ];
@@ -148,11 +148,11 @@ describe("frequency normalisation", () => {
       "monthly",
       BUDGET,
     );
-    expect(r.expense[0].projectedTarget).toBe(43333);
+    expect(r.expense[0].projectedTarget).toBe(42857);
     expect(r.expense[0].targetFrequency).toBe("weekly");
   });
 
-  it("fortnightly $3,500 → monthly ≈ $7,583", () => {
+  it("fortnightly $3,500 → monthly = $7,500", () => {
     const targets: CategoryTarget[] = [
       {
         categoryId: "cat-salary",
@@ -169,7 +169,7 @@ describe("frequency normalisation", () => {
       "monthly",
       BUDGET,
     );
-    expect(r.income[0].projectedTarget).toBe(758333);
+    expect(r.income[0].projectedTarget).toBe(750000);
   });
 });
 

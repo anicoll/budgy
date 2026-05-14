@@ -31,7 +31,19 @@ export interface Budget {
   updatedAt: string;
 }
 
-// ── Computed view model ────────────────────────────────────────────────────
+// ── Planner view model ─────────────────────────────────────────────────────
+
+export interface PlannerItem {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  categoryType: "income" | "expense";
+  nativeAmount: Cents;
+  nativeFrequency: BudgetFrequency;
+  normalisedAmount: Cents;
+}
+
+// ── Legacy actuals view model (kept for actuals.ts) ───────────────────────
 
 export interface FluidActual {
   categoryId: string;

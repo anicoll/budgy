@@ -56,7 +56,7 @@ function defaultValues(editing?: Budget | null): BudgetFormValues {
     };
   }
   return {
-    name: "Monthly budget",
+    name: "",
     period: "monthly",
     startDate: isoDateAU(),
     targets: [],
@@ -65,6 +65,8 @@ function defaultValues(editing?: Budget | null): BudgetFormValues {
 }
 
 export function BudgetFormSheet({ open, editing, onClose, onSubmit, submitting = false }: Props) {
+  const isEdit = !!editing;
+
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetFormSchema),
     defaultValues: defaultValues(editing),
@@ -81,11 +83,11 @@ export function BudgetFormSheet({ open, editing, onClose, onSubmit, submitting =
     <Sheet open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>{editing ? "Edit budget" : "Create budget"}</SheetTitle>
+          <SheetTitle>{isEdit ? "Edit budget" : "Create budget"}</SheetTitle>
           <SheetDescription>
-            {editing
-              ? "Change the budget name, period, or start date."
-              : "Set the period for this budget. Set targets directly on the budget page — they can have their own frequency."}
+            {isEdit
+              ? "Change the budget name, viewing period, or start date."
+              : "Give your budget a name. Transactions will show automatically — add targets on the budget page to set goals."}
           </SheetDescription>
         </SheetHeader>
 
@@ -98,51 +100,56 @@ export function BudgetFormSheet({ open, editing, onClose, onSubmit, submitting =
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Monthly budget" autoFocus {...field} />
+                    <Input placeholder="My budget" autoFocus {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="period"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Period</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.entries(BUDGET_PERIOD_LABEL).map(([v, l]) => (
-                        <SelectItem key={v} value={v}>
-                          {l}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Period and start date are only shown when editing — on create they default silently */}
+            {isEdit && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="period"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Viewing period</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Object.entries(BUDGET_PERIOD_LABEL).map(([v, l]) => (
+                            <SelectItem key={v} value={v}>
+                              {l}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Start date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
           </form>
         </Form>
 
@@ -155,7 +162,7 @@ export function BudgetFormSheet({ open, editing, onClose, onSubmit, submitting =
             disabled={submitting}
             className="bg-gradient-accent text-primary-foreground hover:opacity-90"
           >
-            {editing ? "Save changes" : "Create"}
+            {isEdit ? "Save changes" : "Create"}
           </Button>
         </SheetFooter>
       </SheetContent>

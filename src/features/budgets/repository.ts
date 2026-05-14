@@ -98,6 +98,12 @@ export async function deleteBudget(id: string): Promise<void> {
   return budgetsRepo().delete(id);
 }
 
+export async function setBudgetViewPeriod(id: string, period: Budget["period"]): Promise<void> {
+  const raw = await budgetsRepo().get(id);
+  if (!raw) return;
+  await budgetsRepo().upsert({ ...raw, period, updatedAt: new Date().toISOString() });
+}
+
 export async function setTarget(
   budgetId: string,
   categoryId: string,

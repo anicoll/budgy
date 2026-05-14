@@ -15,7 +15,7 @@ import { useActiveBudget, useCreateBudget, useDeleteBudget, useUpdateBudget } fr
 import type { BudgetFormValues } from "../schema";
 import type { Budget } from "../types";
 import { BudgetFormSheet } from "./BudgetFormSheet";
-import { BudgetPeriodView } from "./BudgetPeriodView";
+import { BudgetPlannerView } from "./BudgetPlannerView";
 
 export function BudgetsPageClient() {
   const { data: budget, isPending } = useActiveBudget();
@@ -102,7 +102,7 @@ export function BudgetsPageClient() {
       {!budget ? (
         <NoBudgetEmpty onCreate={() => setSheetOpen(true)} />
       ) : (
-        <BudgetPeriodView budget={budget} />
+        <BudgetPlannerView budget={budget} />
       )}
 
       <BudgetFormSheet

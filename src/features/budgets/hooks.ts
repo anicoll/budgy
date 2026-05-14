@@ -10,11 +10,12 @@ import {
   listBudgets,
   normaliseLegacyBudget,
   removeTarget,
+  setBudgetViewPeriod,
   setTarget,
   updateBudget,
 } from "./repository";
 import type { BudgetFormValues } from "./schema";
-import type { BudgetFrequency } from "./types";
+import type { BudgetFrequency, BudgetPeriod } from "./types";
 
 export function useBudgets() {
   return useQuery({
@@ -100,6 +101,17 @@ export function useRemoveTarget() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.budgets.all });
       toast.success("Target removed");
+    },
+  });
+}
+
+export function useSetBudgetViewPeriod() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, period }: { id: string; period: BudgetPeriod }) =>
+      setBudgetViewPeriod(id, period),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.budgets.all });
     },
   });
 }
