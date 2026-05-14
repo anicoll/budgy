@@ -1,19 +1,8 @@
 import Dexie, { type Table } from "dexie";
 import type { Account } from "@/features/accounts/types";
+import type { Budget } from "@/features/budgets/types";
 import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
-
-export interface BudgetRow {
-  id: string;
-  name: string;
-  period: "weekly" | "fortnightly" | "monthly" | "yearly";
-  startDate: string;
-  categoryAllocations: Array<{ categoryId: string; amount: number; rollover: boolean }>;
-  notes?: string;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export interface SuperPlanRow {
   id: string;
@@ -31,7 +20,7 @@ export class BudgyDB extends Dexie {
   accounts!: Table<Account, string>;
   categories!: Table<Category, string>;
   transactions!: Table<Transaction, string>;
-  budgets!: Table<BudgetRow, string>;
+  budgets!: Table<Budget, string>;
   superPlans!: Table<SuperPlanRow, string>;
   mortgagePlans!: Table<MortgagePlanRow, string>;
 

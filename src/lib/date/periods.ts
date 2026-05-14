@@ -8,6 +8,7 @@ import {
   endOfQuarter,
   endOfWeek,
   endOfYear,
+  format,
   startOfMonth,
   startOfQuarter,
   startOfWeek,
@@ -21,7 +22,7 @@ export interface DateRange {
   to: string;
 }
 
-const ISO = (d: Date) => d.toISOString().slice(0, 10);
+const ISO = (d: Date) => format(d, "yyyy-MM-dd");
 
 export function rangeForPeriod(
   period: PeriodKind,
