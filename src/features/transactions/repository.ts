@@ -168,6 +168,14 @@ export async function toggleCleared(id: string): Promise<Transaction> {
   return txnsRepo().upsert(updated);
 }
 
+export async function bulkImportTransactions(transactions: Transaction[]): Promise<number> {
+  if (transactions.length === 0) return 0;
+  await txnsRepo().bulkUpsert(transactions);
+  const accountIds = [...new Set(transactions.map((t) => t.accountId))];
+  await Promise.all(accountIds.map(recomputeAccountBalance));
+  return transactions.length;
+}
+
 export async function recomputeAccountBalance(accountId: string): Promise<Cents> {
   const repo = getRepositories();
   const account = await repo.accounts.get(accountId);

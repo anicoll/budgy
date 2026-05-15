@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { DateRange } from "@/lib/date/periods";
 import { queryKeys } from "@/lib/query/keys";
 import {
+  bulkImportTransactions,
   createTransaction,
   deleteTransaction,
   listTransactions,
@@ -12,6 +13,7 @@ import {
   updateTransaction,
 } from "./repository";
 import type { TxnFormValues } from "./schema";
+import type { Transaction } from "./types";
 
 interface ListOpts {
   accountId?: string;
@@ -74,5 +76,18 @@ export function useToggleCleared() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.transactions.all });
     },
+  });
+}
+
+export function useBulkImportTransactions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (txns: Transaction[]) => bulkImportTransactions(txns),
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: queryKeys.transactions.all });
+      qc.invalidateQueries({ queryKey: queryKeys.accounts.all });
+      toast.success(`Imported ${count} transactions`);
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "CSV import failed"),
   });
 }

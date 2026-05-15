@@ -32,19 +32,11 @@ export function TransactionRow({
   const isIncoming = signed > 0;
 
   return (
-    <button
-      type="button"
-      aria-label={`Edit transaction: ${txn.payee || txn.description || txn.type}`}
-      className="group flex w-full cursor-pointer items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors hover:border-border/50 hover:bg-surface/60"
-      onClick={() => onEdit(txn)}
-    >
+    <div className="group flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-colors hover:border-border/50 hover:bg-surface/60">
       <button
         type="button"
         aria-label={txn.cleared ? "Mark uncleared" : "Mark cleared"}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleCleared(txn);
-        }}
+        onClick={() => onToggleCleared(txn)}
         className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
       >
         {txn.cleared ? (
@@ -54,63 +46,67 @@ export function TransactionRow({
         )}
       </button>
 
-      <div className="min-w-[72px] shrink-0 text-xs tabular-nums text-muted-foreground">
-        {formatAUDateShort(txn.date)}
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium">
-            {txn.payee || txn.description || TXN_TYPE_LABEL[txn.type]}
-          </span>
-          {txn.tags.length > 0 && (
-            <span className="hidden gap-1 sm:flex">
-              {txn.tags.slice(0, 2).map((t) => (
-                <Badge key={t} variant="secondary" className="h-4 px-1 text-[10px]">
-                  {t}
-                </Badge>
-              ))}
-            </span>
-          )}
+      <button
+        type="button"
+        aria-label={`Edit transaction: ${txn.payee || txn.description || txn.type}`}
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+        onClick={() => onEdit(txn)}
+      >
+        <div className="min-w-[72px] shrink-0 text-xs tabular-nums text-muted-foreground">
+          {formatAUDateShort(txn.date)}
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          {category && (
-            <span className="flex items-center gap-1">
-              <span
-                className="inline-block h-2 w-2 rounded-full"
-                style={{ background: category.color }}
-              />
-              {category.name}
-            </span>
-          )}
-          {account && (
-            <>
-              {category && <span>·</span>}
-              <span>{account.name}</span>
-            </>
-          )}
-        </div>
-      </div>
 
-      <Money
-        value={signed}
-        className={cn(
-          "shrink-0 text-sm font-semibold tabular-nums",
-          isIncoming ? "text-income" : "text-foreground",
-        )}
-      />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-medium">
+              {txn.payee || txn.description || TXN_TYPE_LABEL[txn.type]}
+            </span>
+            {txn.tags.length > 0 && (
+              <span className="hidden gap-1 sm:flex">
+                {txn.tags.slice(0, 2).map((t) => (
+                  <Badge key={t} variant="secondary" className="h-4 px-1 text-[10px]">
+                    {t}
+                  </Badge>
+                ))}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            {category && (
+              <span className="flex items-center gap-1">
+                <span
+                  className="inline-block h-2 w-2 rounded-full"
+                  style={{ background: category.color }}
+                />
+                {category.name}
+              </span>
+            )}
+            {account && (
+              <>
+                {category && <span>·</span>}
+                <span>{account.name}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <Money
+          value={signed}
+          className={cn(
+            "shrink-0 text-sm font-semibold tabular-nums",
+            isIncoming ? "text-income" : "text-foreground",
+          )}
+        />
+      </button>
 
       <button
         type="button"
         aria-label="Delete transaction"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(txn);
-        }}
+        onClick={() => onDelete(txn)}
         className="ml-1 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
-    </button>
+    </div>
   );
 }

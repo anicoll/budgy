@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard } from "lucide-react";
+import { CreditCard, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   AlertDialog,
@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccounts } from "@/features/accounts/hooks";
@@ -25,6 +26,7 @@ import {
 } from "../hooks";
 import type { defaultTxnValues } from "../schema";
 import type { Transaction } from "../types";
+import { CsvImportSheet } from "./CsvImportSheet";
 import { FilterBar, INITIAL_FILTERS, type TxnFilters } from "./FilterBar";
 import { TransactionFormSheet } from "./TransactionFormSheet";
 import { TransactionRow } from "./TransactionRow";
@@ -33,6 +35,7 @@ export function TransactionsPageClient() {
   const [filters, setFilters] = useState<TxnFilters>(INITIAL_FILTERS);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
 
   const { data: accounts = [] } = useAccounts();
@@ -82,12 +85,23 @@ export function TransactionsPageClient() {
 
   return (
     <div className="flex flex-col gap-4">
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-        accounts={accounts}
-        categories={categories}
-      />
+      <div className="flex items-center justify-between gap-2">
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          accounts={accounts}
+          categories={categories}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setImportOpen(true)}
+          className="shrink-0 gap-1.5"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          Import CSV
+        </Button>
+      </div>
 
       <Card className="border-border/60 bg-surface/60 backdrop-blur-md">
         <CardContent className="p-0">
@@ -155,6 +169,8 @@ export function TransactionsPageClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CsvImportSheet open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );
 }
