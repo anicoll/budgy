@@ -13,6 +13,8 @@ interface Props {
   txn: Transaction;
   accounts: Account[];
   categories: Category[];
+  selected?: boolean;
+  onToggleSelected?: (txn: Transaction) => void;
   onEdit: (txn: Transaction) => void;
   onDelete: (txn: Transaction) => void;
   onToggleCleared: (txn: Transaction) => void;
@@ -22,6 +24,8 @@ export function TransactionRow({
   txn,
   accounts,
   categories,
+  selected = false,
+  onToggleSelected,
   onEdit,
   onDelete,
   onToggleCleared,
@@ -33,6 +37,18 @@ export function TransactionRow({
 
   return (
     <div className="group flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-colors hover:border-border/50 hover:bg-surface/60">
+      <button
+        type="button"
+        aria-label={selected ? "Deselect transaction" : "Select transaction"}
+        onClick={() => onToggleSelected?.(txn)}
+        className={cn(
+          "h-4 w-4 shrink-0 rounded border transition-colors",
+          selected
+            ? "border-foreground bg-foreground"
+            : "border-muted-foreground/50 hover:border-foreground/70",
+        )}
+      />
+
       <button
         type="button"
         aria-label={txn.cleared ? "Mark uncleared" : "Mark cleared"}

@@ -1,7 +1,7 @@
 "use client";
 
 import { CreditCard, Upload } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +18,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAccounts } from "@/features/accounts/hooks";
 import { useCategories } from "@/features/categories/hooks";
 import {
+  useBulkSetCategory,
+  useBulkSetCleared,
   useCreateTransaction,
   useDeleteTransaction,
   useToggleCleared,
@@ -32,11 +34,16 @@ import { TransactionFormSheet } from "./TransactionFormSheet";
 import { TransactionRow } from "./TransactionRow";
 
 export function TransactionsPageClient() {
+  const PAGE_SIZE_OPTIONS = [50, 100, 250];
   const [filters, setFilters] = useState<TxnFilters>(INITIAL_FILTERS);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(100);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCategoryId, setBulkCategoryId] = useState("none");
 
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
@@ -45,6 +52,8 @@ export function TransactionsPageClient() {
   const updateMutation = useUpdateTransaction();
   const deleteMutation = useDeleteTransaction();
   const toggleMutation = useToggleCleared();
+  const bulkSetCategoryMutation = useBulkSetCategory();
+  const bulkSetClearedMutation = useBulkSetCleared();
 
   const visible = useMemo(() => {
     let result = allTxns;
@@ -68,6 +77,30 @@ export function TransactionsPageClient() {
     return result;
   }, [allTxns, filters]);
 
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const paged = visible.slice(pageStart, pageStart + pageSize);
+  const allVisibleIds = useMemo(() => new Set(visible.map((t) => t.id)), [visible]);
+  const allFilteredSelected = visible.length > 0 && visible.every((t) => selectedIds.has(t.id));
+  const allPageSelected = paged.length > 0 && paged.every((t) => selectedIds.has(t.id));
+
+  useEffect(() => {
+    if (filters || pageSize) {
+      setPage(1);
+    }
+  }, [filters, pageSize]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (allVisibleIds.has(id)) next.add(id);
+      }
+      return next;
+    });
+  }, [allVisibleIds]);
+
   async function handleSubmit(values: ReturnType<typeof defaultTxnValues>) {
     if (editing) {
       await updateMutation.mutateAsync({ id: editing.id, values });
@@ -81,6 +114,53 @@ export function TransactionsPageClient() {
   function handleEdit(txn: Transaction) {
     setEditing(txn);
     setSheetOpen(true);
+  }
+
+  function toggleSelected(txn: Transaction) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(txn.id)) next.delete(txn.id);
+      else next.add(txn.id);
+      return next;
+    });
+  }
+
+  function toggleSelectPage() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        for (const txn of paged) next.delete(txn.id);
+      } else {
+        for (const txn of paged) next.add(txn.id);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectFiltered() {
+    setSelectedIds((prev) => {
+      if (allFilteredSelected) {
+        const next = new Set(prev);
+        for (const txn of visible) next.delete(txn.id);
+        return next;
+      }
+      return new Set(visible.map((t) => t.id));
+    });
+  }
+
+  async function applyBulkCategory() {
+    if (selectedIds.size === 0) return;
+    await bulkSetCategoryMutation.mutateAsync({
+      ids: [...selectedIds],
+      categoryId: bulkCategoryId === "none" ? null : bulkCategoryId,
+    });
+    setSelectedIds(new Set());
+  }
+
+  async function applyBulkCleared(cleared: boolean) {
+    if (selectedIds.size === 0) return;
+    await bulkSetClearedMutation.mutateAsync({ ids: [...selectedIds], cleared });
+    setSelectedIds(new Set());
   }
 
   return (
@@ -103,6 +183,74 @@ export function TransactionsPageClient() {
         </Button>
       </div>
 
+      <Card className="border-border/60 bg-surface/60">
+        <CardContent className="flex flex-wrap items-center gap-2 p-3">
+          <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleSelectPage}
+            disabled={paged.length === 0}
+          >
+            {allPageSelected ? "Deselect page" : "Select page"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleSelectFiltered}
+            disabled={visible.length === 0}
+          >
+            {allFilteredSelected ? "Deselect filtered" : "Select all filtered"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedIds(new Set())}
+            disabled={selectedIds.size === 0}
+          >
+            Clear selection
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyBulkCleared(true)}
+            disabled={selectedIds.size === 0 || bulkSetClearedMutation.isPending}
+          >
+            Mark cleared
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyBulkCleared(false)}
+            disabled={selectedIds.size === 0 || bulkSetClearedMutation.isPending}
+          >
+            Mark uncleared
+          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Set category</span>
+            <select
+              value={bulkCategoryId}
+              onChange={(e) => setBulkCategoryId(e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+            >
+              <option value="none">Uncategorised</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              onClick={applyBulkCategory}
+              disabled={selectedIds.size === 0 || bulkSetCategoryMutation.isPending}
+            >
+              Apply
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-border/60 bg-surface/60 backdrop-blur-md">
         <CardContent className="p-0">
           {isPending ? (
@@ -115,12 +263,14 @@ export function TransactionsPageClient() {
             <EmptyState hasFilters={Object.values(filters).some((v) => v !== "all" && v !== "")} />
           ) : (
             <div className="flex flex-col divide-y divide-border/40">
-              {visible.map((txn) => (
+              {paged.map((txn) => (
                 <TransactionRow
                   key={txn.id}
                   txn={txn}
                   accounts={accounts}
                   categories={categories}
+                  selected={selectedIds.has(txn.id)}
+                  onToggleSelected={toggleSelected}
                   onEdit={handleEdit}
                   onDelete={(t) => setPendingDelete(t)}
                   onToggleCleared={(t) => toggleMutation.mutate(t.id)}
@@ -130,6 +280,51 @@ export function TransactionsPageClient() {
           )}
         </CardContent>
       </Card>
+
+      {!isPending && visible.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-sm text-muted-foreground">
+            Showing {pageStart + 1}-{Math.min(pageStart + pageSize, visible.length)} of{" "}
+            {visible.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground" htmlFor="txn-page-size">
+              Rows
+            </label>
+            <select
+              id="txn-page-size"
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+            >
+              Prev
+            </Button>
+            <span className="w-20 text-center text-sm">
+              {currentPage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       <TransactionFormSheet
         open={sheetOpen}

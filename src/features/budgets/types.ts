@@ -42,6 +42,10 @@ export interface PlannerItem {
   nativeAmount: Cents;
   nativeFrequency: BudgetFrequency;
   normalisedAmount: Cents;
+  actualAmount: Cents;
+  projectedAmount: Cents;
+  varianceAmount: Cents;
+  progress: "safe" | "warning" | "over";
 }
 
 // ── Legacy actuals view model (kept for actuals.ts) ───────────────────────

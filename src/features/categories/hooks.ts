@@ -15,7 +15,7 @@ import type { CategoryType } from "./types";
 
 export function useCategories(opts?: { type?: CategoryType; includeArchived?: boolean }) {
   return useQuery({
-    queryKey: queryKeys.categories.list(),
+    queryKey: [...queryKeys.categories.list(), opts?.type ?? "all", !!opts?.includeArchived],
     queryFn: () => listCategories({ includeArchived: opts?.includeArchived }),
     select: opts?.type ? (data) => data.filter((c) => c.type === opts.type) : undefined,
   });

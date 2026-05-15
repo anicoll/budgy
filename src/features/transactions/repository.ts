@@ -176,6 +176,80 @@ export async function bulkImportTransactions(transactions: Transaction[]): Promi
   return transactions.length;
 }
 
+export async function bulkSetCategory(
+  ids: string[],
+  categoryId: string | null,
+): Promise<{ updated: number }> {
+  if (ids.length === 0) return { updated: 0 };
+
+  const byId = new Map<string, Transaction>();
+  for (const id of ids) {
+    const txn = await txnsRepo().get(id);
+    if (txn) byId.set(txn.id, txn);
+  }
+
+  // Keep transfer pairs in sync even if only one side is selected.
+  const expanded = new Set<string>(ids);
+  for (const txn of byId.values()) {
+    if (txn.type === "transfer" && txn.transferPairId) {
+      expanded.add(txn.transferPairId);
+    }
+  }
+
+  const updates: Transaction[] = [];
+  const now = new Date().toISOString();
+  for (const id of expanded) {
+    const txn = byId.get(id) ?? (await txnsRepo().get(id));
+    if (!txn) continue;
+    updates.push({
+      ...txn,
+      categoryId,
+      updatedAt: now,
+    });
+  }
+
+  if (updates.length === 0) return { updated: 0 };
+  await txnsRepo().bulkUpsert(updates);
+  return { updated: updates.length };
+}
+
+export async function bulkSetCleared(
+  ids: string[],
+  cleared: boolean,
+): Promise<{ updated: number }> {
+  if (ids.length === 0) return { updated: 0 };
+
+  const byId = new Map<string, Transaction>();
+  for (const id of ids) {
+    const txn = await txnsRepo().get(id);
+    if (txn) byId.set(txn.id, txn);
+  }
+
+  // Keep transfer pairs in sync even if only one side is selected.
+  const expanded = new Set<string>(ids);
+  for (const txn of byId.values()) {
+    if (txn.type === "transfer" && txn.transferPairId) {
+      expanded.add(txn.transferPairId);
+    }
+  }
+
+  const updates: Transaction[] = [];
+  const now = new Date().toISOString();
+  for (const id of expanded) {
+    const txn = byId.get(id) ?? (await txnsRepo().get(id));
+    if (!txn) continue;
+    updates.push({
+      ...txn,
+      cleared,
+      updatedAt: now,
+    });
+  }
+
+  if (updates.length === 0) return { updated: 0 };
+  await txnsRepo().bulkUpsert(updates);
+  return { updated: updates.length };
+}
+
 export async function recomputeAccountBalance(accountId: string): Promise<Cents> {
   const repo = getRepositories();
   const account = await repo.accounts.get(accountId);

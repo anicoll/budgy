@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/features/categories/hooks";
+import { useTransactions } from "@/features/transactions/hooks";
+import { signedAmount, type Transaction } from "@/features/transactions/types";
 import type { Cents } from "@/lib/money/cents";
 import { queryKeys } from "@/lib/query/keys";
 import type { NovatedLease } from "@/lib/state/prefs-store";
@@ -23,11 +25,18 @@ import { cn } from "@/lib/utils";
 // Stable empty array — prevents Zustand selector infinite loop when novatedLeases is undefined
 const EMPTY_LEASES: NovatedLease[] = [];
 
-import { useRemoveTarget, useSetBudgetViewPeriod, useSetTarget } from "../hooks";
+import {
+  useEnsureMissingTargets,
+  useRemoveTarget,
+  useSetBudgetViewPeriod,
+  useSetTarget,
+} from "../hooks";
 import type { Budget, BudgetFrequency, BudgetPeriod, CategoryTarget, PlannerItem } from "../types";
 import { BUDGET_PERIOD_LABEL } from "../types";
+import { computeFluidActuals, progressColor } from "../utils/actuals";
 import { estimateFortnightlyNet } from "../utils/au-tax";
 import { FREQUENCY_LABEL, normaliseToPeriod } from "../utils/normalise";
+import { currentPeriodRange } from "../utils/period";
 import { HousingSetupDialog, isHousingCategory } from "./HousingSetupDialog";
 
 const PERIOD_TABS: { value: BudgetPeriod; label: string }[] = [
@@ -45,6 +54,14 @@ function defaultFrequency(type: "income" | "expense"): BudgetFrequency {
 function computePlannerItems(
   targets: CategoryTarget[],
   categoryMap: Map<string, { name: string; color: string; type: string; system?: boolean }>,
+  actualByCategory: Map<
+    string,
+    {
+      actual: Cents;
+      effectiveProjected?: Cents;
+      variance?: Cents;
+    }
+  >,
   viewPeriod: BudgetPeriod,
 ): { income: PlannerItem[]; expense: PlannerItem[]; totalIncome: Cents; totalExpense: Cents } {
   const income: PlannerItem[] = [];
@@ -59,6 +76,16 @@ function computePlannerItems(
       target.frequency,
       viewPeriod as BudgetFrequency,
     );
+    const tracking = actualByCategory.get(target.categoryId);
+    const actualAmount = (tracking?.actual ?? (0 as Cents)) as Cents;
+    const projectedAmount = (tracking?.effectiveProjected ?? normalisedAmount) as Cents;
+    const varianceAmount = (tracking?.variance ?? projectedAmount - actualAmount) as Cents;
+    const progress =
+      cat.type === "expense"
+        ? progressColor(actualAmount, projectedAmount)
+        : actualAmount >= projectedAmount
+          ? "safe"
+          : "warning";
 
     const item: PlannerItem = {
       categoryId: target.categoryId,
@@ -69,6 +96,10 @@ function computePlannerItems(
       nativeAmount: target.amount,
       nativeFrequency: target.frequency,
       normalisedAmount,
+      actualAmount,
+      projectedAmount,
+      varianceAmount,
+      progress,
     };
 
     if (cat.type === "income") income.push(item);
@@ -85,8 +116,16 @@ interface Props {
   budget: Budget;
 }
 
+interface SankeyLink {
+  from: string;
+  to: string;
+  value: Cents;
+  color: string;
+}
+
 export function BudgetPlannerView({ budget }: Props) {
   const [viewPeriod, setViewPeriodLocal] = useState<BudgetPeriod>(budget.period);
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
   const [housingDialogCat, setHousingDialogCat] = useState<{
     id: string;
     name: string;
@@ -96,10 +135,16 @@ export function BudgetPlannerView({ budget }: Props) {
   const setTargetMutation = useSetTarget();
   const removeTargetMutation = useRemoveTarget();
   const setPeriodMutation = useSetBudgetViewPeriod();
-  const { data: allCategories = [], isPending: catsLoading } = useCategories();
+  const ensureMissingTargetsMutation = useEnsureMissingTargets();
+  const { data: allCategories = [], isPending: catsLoading } = useCategories({
+    includeArchived: true,
+  });
+  const { data: transactions = [] } = useTransactions();
   const annualSalary = usePrefs((s) => s.annualSalary);
   const hasPrivateHealth = usePrefs((s) => s.hasPrivateHealth ?? false);
   const novatedLeases = usePrefs((s) => s.novatedLeases ?? EMPTY_LEASES);
+  const autoEnsureInFlightRef = useRef<Set<string>>(new Set());
+  const autoEnsureFailedRef = useRef<string | null>(null);
 
   const categoryMap = useMemo(
     () =>
@@ -112,14 +157,106 @@ export function BudgetPlannerView({ budget }: Props) {
     [allCategories],
   );
 
+  const periodRange = useMemo(
+    () => currentPeriodRange(viewPeriod, budget.startDate, new Date()),
+    [viewPeriod, budget.startDate],
+  );
+
+  const fluidActuals = useMemo(
+    () =>
+      computeFluidActuals(
+        transactions,
+        allCategories,
+        budget.targets,
+        periodRange,
+        viewPeriod,
+        budget,
+      ),
+    [transactions, allCategories, budget.targets, periodRange, viewPeriod, budget],
+  );
+
+  const actualByCategory = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        actual: Cents;
+        effectiveProjected?: Cents;
+        variance?: Cents;
+      }
+    >();
+    for (const actual of [...fluidActuals.income, ...fluidActuals.expense]) {
+      map.set(actual.categoryId, {
+        actual: actual.actual,
+        effectiveProjected: actual.effectiveProjected,
+        variance: actual.variance,
+      });
+    }
+    return map;
+  }, [fluidActuals]);
+
+  const inPeriodTransactionsByCategory = useMemo(() => {
+    const map = new Map<string, typeof transactions>();
+    const inRange = transactions.filter(
+      (t) => t.date >= periodRange.from && t.date <= periodRange.to,
+    );
+    for (const txn of inRange) {
+      if (!txn.categoryId) continue;
+      const existing = map.get(txn.categoryId) ?? [];
+      existing.push(txn);
+      map.set(txn.categoryId, existing);
+    }
+    for (const rows of map.values()) {
+      rows.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
+    }
+    return map;
+  }, [transactions, periodRange]);
+
   const { income, expense, totalIncome, totalExpense } = useMemo(
-    () => computePlannerItems(budget.targets, categoryMap, viewPeriod),
-    [budget.targets, categoryMap, viewPeriod],
+    () => computePlannerItems(budget.targets, categoryMap, actualByCategory, viewPeriod),
+    [budget.targets, categoryMap, actualByCategory, viewPeriod],
   );
 
   const net = (totalIncome - totalExpense) as Cents;
   const allItems = [...income, ...expense];
-  const allocatedIds = new Set(budget.targets.map((t) => t.categoryId));
+  const allocatedIds = useMemo(
+    () => new Set(budget.targets.map((t) => t.categoryId)),
+    [budget.targets],
+  );
+
+  const missingExpenseTargetIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const txn of transactions) {
+      if (!txn.categoryId) continue;
+      const cat = categoryMap.get(txn.categoryId);
+      if (!cat || cat.type !== "expense") continue;
+      if (allocatedIds.has(txn.categoryId)) continue;
+      ids.add(txn.categoryId);
+    }
+    return [...ids];
+  }, [transactions, categoryMap, allocatedIds]);
+
+  useEffect(() => {
+    if (missingExpenseTargetIds.length === 0) return;
+    const signature = `${budget.id}:${[...missingExpenseTargetIds].sort().join(",")}`;
+    if (autoEnsureFailedRef.current === signature) return;
+    if (autoEnsureInFlightRef.current.has(signature)) return;
+
+    autoEnsureInFlightRef.current.add(signature);
+    ensureMissingTargetsMutation.mutate(
+      { budgetId: budget.id, categoryIds: missingExpenseTargetIds },
+      {
+        onSuccess: () => {
+          autoEnsureFailedRef.current = null;
+        },
+        onError: () => {
+          autoEnsureFailedRef.current = signature;
+        },
+        onSettled: () => {
+          autoEnsureInFlightRef.current.delete(signature);
+        },
+      },
+    );
+  }, [budget.id, ensureMissingTargetsMutation, missingExpenseTargetIds]);
 
   const availableIncome = allCategories.filter(
     (c) => c.type === "income" && !c.archived && !allocatedIds.has(c.id),
@@ -175,6 +312,49 @@ export function BudgetPlannerView({ budget }: Props) {
   }
 
   const periodLabel = BUDGET_PERIOD_LABEL[viewPeriod].toLowerCase();
+  const sankeyLinks = useMemo(() => {
+    const totalIncomeActual = fluidActuals.totalActualIncome;
+    const expenseActuals = [...fluidActuals.expense]
+      .filter((x) => x.actual > 0)
+      .sort((a, b) => b.actual - a.actual);
+    const top = expenseActuals.slice(0, 8);
+    const otherTotal = expenseActuals.slice(8).reduce((sum, item) => sum + item.actual, 0) as Cents;
+
+    const links: SankeyLink[] = top.map((item) => ({
+      from: "Income",
+      to: item.categoryName,
+      value: item.actual,
+      color: item.categoryColor,
+    }));
+
+    if (otherTotal > 0) {
+      links.push({
+        from: "Income",
+        to: "Other expenses",
+        value: otherTotal,
+        color: "#94a3b8",
+      });
+    }
+
+    const totalSpent = links.reduce((sum, l) => sum + l.value, 0) as Cents;
+    const remainder = (totalIncomeActual - totalSpent) as Cents;
+    if (remainder > 0) {
+      links.push({
+        from: "Income",
+        to: "Remaining",
+        value: remainder,
+        color: "#34d399",
+      });
+    } else if (remainder < 0) {
+      links.push({
+        from: "Income",
+        to: "Deficit",
+        value: Math.abs(remainder) as Cents,
+        color: "#ef4444",
+      });
+    }
+    return links;
+  }, [fluidActuals]);
 
   // Salary sync: detect when stored budget target differs from current take-home estimate
   const salaryEstimate =
@@ -309,6 +489,11 @@ export function BudgetPlannerView({ budget }: Props) {
           onAdd={(id) => addCategory(id, "income")}
           onSave={saveTarget}
           onRemove={removeTarget}
+          expandedCategoryId={expandedCategoryId}
+          onToggleExpand={(categoryId) =>
+            setExpandedCategoryId((prev) => (prev === categoryId ? null : categoryId))
+          }
+          txnsByCategory={inPeriodTransactionsByCategory}
           loading={catsLoading}
         />
 
@@ -322,6 +507,11 @@ export function BudgetPlannerView({ budget }: Props) {
           onAdd={(id) => addCategory(id, "expense")}
           onSave={saveTarget}
           onRemove={removeTarget}
+          expandedCategoryId={expandedCategoryId}
+          onToggleExpand={(categoryId) =>
+            setExpandedCategoryId((prev) => (prev === categoryId ? null : categoryId))
+          }
+          txnsByCategory={inPeriodTransactionsByCategory}
           loading={catsLoading}
         />
       </div>
@@ -333,6 +523,120 @@ export function BudgetPlannerView({ budget }: Props) {
           onClose={() => setHousingDialogCat(null)}
         />
       )}
+
+      <SankeyOverview links={sankeyLinks} periodLabel={periodLabel} />
+    </div>
+  );
+}
+
+function SankeyOverview({ links, periodLabel }: { links: SankeyLink[]; periodLabel: string }) {
+  const total = links.reduce((sum, l) => sum + l.value, 0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Build apexsankey-compatible data — unique node IDs from category names
+  const sankeyData = useMemo(() => {
+    const nodeIds = new Set<string>(["income"]);
+    const nodes: { id: string; title: string }[] = [{ id: "income", title: "Income" }];
+    const edges: { source: string; target: string; value: number; type: string }[] = [];
+
+    links.forEach((link, i) => {
+      // Ensure unique IDs even if two categories normalise to the same string
+      const base = link.to.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const targetId = nodeIds.has(base) ? `${base}-${i}` : base;
+      nodeIds.add(targetId);
+      nodes.push({ id: targetId, title: link.to });
+      edges.push({
+        source: "income",
+        target: targetId,
+        value: Math.round(link.value / 100),
+        type: "flow",
+      }); // whole dollars
+    });
+
+    return { nodes, edges };
+  }, [links]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || sankeyData.edges.length === 0) return;
+
+    let destroyed = false;
+    // Store only the destroy fn so render stays fully typed inside .then
+    let destroyFn: (() => void) | undefined;
+
+    // Lazy import — keeps apexsankey out of the SSR bundle
+    import("apexsankey").then(({ default: ApexSankeyLib }) => {
+      if (destroyed || !container) return;
+
+      const isDark = document.documentElement.classList.contains("dark");
+      const fmt = (v: number) =>
+        new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(v);
+
+      const instance = new ApexSankeyLib(container, {
+        width: "100%",
+        height: 280,
+        spacing: 60,
+        nodeWidth: 16,
+        edgeOpacity: 0.5,
+        edgeGradientFill: true,
+        enableToolbar: false,
+        canvasStyle: "background:transparent;border:none;",
+        fontColor: isDark ? "#cbd5e1" : "#374151",
+        tooltipTheme: isDark ? "dark" : "light",
+        tooltipTemplate: (content) => {
+          // TooltipContent.source/target are NodeData | null | undefined
+          const c = content as {
+            source?: { title?: string } | null;
+            target?: { title?: string } | null;
+            value?: number;
+          };
+          return `<div style="font-size:12px;padding:4px 8px;">${c.source?.title ?? ""} → ${c.target?.title ?? ""}: <strong>${fmt(Number(c.value ?? 0))}</strong></div>`;
+        },
+        a11y: { enabled: true, diagramLabel: `Cash flow for ${periodLabel}` },
+      });
+
+      instance.render({
+        nodes: sankeyData.nodes,
+        edges: sankeyData.edges,
+        options: instance.options,
+      });
+      destroyFn = () => instance.destroy();
+    });
+
+    return () => {
+      destroyed = true;
+      destroyFn?.();
+    };
+  }, [sankeyData, periodLabel]);
+
+  if (total <= 0) {
+    return (
+      <div className="mt-4 rounded-xl border border-border/60 bg-surface/30 p-4">
+        <p className="text-sm font-semibold">Cash flow</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          No transactions for this {periodLabel} yet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-border/60 bg-surface/30 p-4">
+      <p className="mb-1 text-sm font-semibold">Cash flow this {periodLabel}</p>
+      {/* apexsankey renders inside this div */}
+      <div ref={containerRef} className="min-h-[280px] w-full" />
+      {/* Legend */}
+      <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-3">
+        {links.map((link) => (
+          <div key={`legend-${link.to}`} className="flex items-center justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-1.5 truncate">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: link.color }} />
+              <span className="truncate text-muted-foreground">{link.to}</span>
+            </span>
+            <Money value={link.value} className="shrink-0 tabular-nums font-medium" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -348,6 +652,9 @@ interface SectionProps {
   onAdd: (categoryId: string) => void;
   onSave: (categoryId: string, amount: number, frequency: BudgetFrequency) => void;
   onRemove: (categoryId: string) => void;
+  expandedCategoryId: string | null;
+  onToggleExpand: (categoryId: string) => void;
+  txnsByCategory: Map<string, Transaction[]>;
   loading: boolean;
 }
 
@@ -360,6 +667,9 @@ function PlannerSection({
   onAdd,
   onSave,
   onRemove,
+  expandedCategoryId,
+  onToggleExpand,
+  txnsByCategory,
   loading,
 }: SectionProps) {
   const [addOpen, setAddOpen] = useState(false);
@@ -415,6 +725,9 @@ function PlannerSection({
               periodLabel={periodLabel}
               onSave={onSave}
               onRemove={onRemove}
+              expanded={expandedCategoryId === item.categoryId}
+              onToggleExpand={onToggleExpand}
+              transactions={txnsByCategory.get(item.categoryId) ?? []}
             />
           ))}
         </div>
@@ -431,9 +744,21 @@ interface RowProps {
   periodLabel: string;
   onSave: (categoryId: string, amount: number, frequency: BudgetFrequency) => void;
   onRemove: (categoryId: string) => void;
+  expanded: boolean;
+  onToggleExpand: (categoryId: string) => void;
+  transactions: Transaction[];
 }
 
-function PlannerRow({ item, viewPeriod, periodLabel, onSave, onRemove }: RowProps) {
+function PlannerRow({
+  item,
+  viewPeriod,
+  periodLabel,
+  onSave,
+  onRemove,
+  expanded,
+  onToggleExpand,
+  transactions,
+}: RowProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [rawAmount, setRawAmount] = useState(
     item.nativeAmount > 0 ? String(item.nativeAmount / 100) : "",
@@ -470,71 +795,137 @@ function PlannerRow({ item, viewPeriod, periodLabel, onSave, onRemove }: RowProp
   );
 
   const showNormalisedPreview = preview !== null && frequency !== viewPeriod;
+  const isExpense = item.categoryType === "expense";
+  const trackingTone = isExpense
+    ? item.progress === "over"
+      ? "text-destructive"
+      : item.progress === "warning"
+        ? "text-amber-600"
+        : "text-income"
+    : item.actualAmount >= item.projectedAmount
+      ? "text-income"
+      : "text-amber-600";
 
   return (
-    <div className="group flex items-center gap-3 px-4 py-2.5">
-      {/* Category avatar + name */}
-      <span
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white"
-        style={{ background: item.categoryColor }}
-      >
-        {item.categoryName.charAt(0).toUpperCase()}
-      </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.categoryName}</span>
-
-      {/* Normalised preview (when frequency differs from view) */}
-      {showNormalisedPreview && (
-        <div className="hidden text-right sm:block">
-          <div className="text-[10px] text-muted-foreground">/{periodLabel}</div>
-          <Money value={preview} className="text-sm font-semibold tabular-nums" />
-        </div>
+    <div
+      className={cn(
+        "group px-4 py-2.5",
+        isExpense && item.progress === "over" && "bg-destructive/5",
+        isExpense && item.progress === "warning" && "bg-amber-500/5",
       )}
-
-      {/* Amount input */}
-      <div className="relative w-28">
-        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-          $
+    >
+      <div className="flex items-center gap-3">
+        {/* Category avatar + name */}
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white"
+          style={{ background: item.categoryColor }}
+        >
+          {item.categoryName.charAt(0).toUpperCase()}
         </span>
-        <input
-          ref={inputRef}
-          type="text"
-          inputMode="decimal"
-          value={rawAmount}
-          onChange={(e) => setRawAmount(e.target.value)}
-          onBlur={handleBlur}
-          onKeyDown={(e) => e.key === "Enter" && inputRef.current?.blur()}
-          placeholder="0"
-          className="w-full rounded-md border border-border/60 bg-surface/60 py-1.5 pl-6 pr-2 text-right text-sm tabular-nums transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          aria-label={`Amount for ${item.categoryName}`}
-        />
-      </div>
-
-      {/* Frequency dropdown */}
-      <Select value={frequency} onValueChange={(v) => handleFrequencyChange(v as BudgetFrequency)}>
-        <SelectTrigger className="h-8 w-32 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {(Object.keys(FREQUENCY_LABEL) as BudgetFrequency[]).map((f) => (
-            <SelectItem key={f} value={f} className="text-xs">
-              {FREQUENCY_LABEL[f]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Remove — hidden for system categories */}
-      {!item.categorySystem && (
         <button
           type="button"
-          onClick={() => onRemove(item.categoryId)}
-          aria-label={`Remove ${item.categoryName}`}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/40 opacity-0 transition-all hover:text-destructive group-hover:opacity-100"
+          onClick={() => onToggleExpand(item.categoryId)}
+          className="min-w-0 flex-1 truncate text-left text-sm font-medium hover:underline"
         >
-          <X className="h-3.5 w-3.5" />
+          {item.categoryName}
         </button>
+
+        {/* Normalised preview (when frequency differs from view) */}
+        {showNormalisedPreview && (
+          <div className="hidden text-right sm:block">
+            <div className="text-[10px] text-muted-foreground">/{periodLabel}</div>
+            <Money value={preview} className="text-sm font-semibold tabular-nums" />
+          </div>
+        )}
+
+        <div className="hidden min-w-[220px] sm:block">
+          <div className="grid grid-cols-3 gap-2 text-right tabular-nums">
+            <div>
+              <div className="text-[10px] text-muted-foreground">Actual</div>
+              <Money value={item.actualAmount} className="text-xs font-semibold" />
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground">Budget</div>
+              <Money value={item.projectedAmount} className="text-xs font-semibold" />
+            </div>
+            <div className={trackingTone}>
+              <div className="text-[10px] text-muted-foreground">Variance</div>
+              <Money value={item.varianceAmount} className="text-xs font-semibold" />
+            </div>
+          </div>
+        </div>
+
+        {/* Amount input */}
+        <div className="relative w-28">
+          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+            $
+          </span>
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="decimal"
+            value={rawAmount}
+            onChange={(e) => setRawAmount(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={(e) => e.key === "Enter" && inputRef.current?.blur()}
+            placeholder="0"
+            className="w-full rounded-md border border-border/60 bg-surface/60 py-1.5 pl-6 pr-2 text-right text-sm tabular-nums transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            aria-label={`Amount for ${item.categoryName}`}
+          />
+        </div>
+
+        {/* Frequency dropdown */}
+        <Select
+          value={frequency}
+          onValueChange={(v) => handleFrequencyChange(v as BudgetFrequency)}
+        >
+          <SelectTrigger className="h-8 w-32 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(FREQUENCY_LABEL) as BudgetFrequency[]).map((f) => (
+              <SelectItem key={f} value={f} className="text-xs">
+                {FREQUENCY_LABEL[f]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Remove — hidden for system categories */}
+        {!item.categorySystem && (
+          <button
+            type="button"
+            onClick={() => onRemove(item.categoryId)}
+            aria-label={`Remove ${item.categoryName}`}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/40 opacity-0 transition-all hover:text-destructive group-hover:opacity-100"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {item.categorySystem && <div className="h-6 w-6 shrink-0" />}
+      </div>
+
+      {expanded && (
+        <div className="mt-2 rounded-lg border border-border/50 bg-surface/40 p-2.5 text-xs sm:ml-10">
+          {transactions.length === 0 ? (
+            <div className="text-muted-foreground">No transactions in this period.</div>
+          ) : (
+            <div className="space-y-1.5">
+              {transactions.map((txn) => (
+                <div key={txn.id} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">
+                      {txn.payee || txn.description || "Transaction"}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">{txn.date}</div>
+                  </div>
+                  <Money value={signedAmount(txn)} className="shrink-0 tabular-nums" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
-      {item.categorySystem && <div className="h-6 w-6 shrink-0" />}
     </div>
   );
 }

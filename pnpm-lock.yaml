@@ -32,6 +32,9 @@ importers:
       apexcharts:
         specifier: ^5.11.0
         version: 5.11.0
+      apexsankey:
+        specifier: ^1.7.1
+        version: 1.7.1
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1595,6 +1598,9 @@ packages:
 
   apexcharts@5.11.0:
     resolution: {integrity: sha512-iIXnZ1DhndVgY4G5fmAbyUtGBTR5j4LlMEb561eAd4+wkJB7wJXXKLMr9u+4V5aQEPXeVYWgkAbuw9Y1z6MIrg==}
+
+  apexsankey@1.7.1:
+    resolution: {integrity: sha512-K9G+HfQdLBMNGY0MnaT36WDBQzI5gN27paXkNMh/oB+9InAnGEymqQUSnCj3sF3eVIdolH4QzIqPspgnFTd9uQ==}
 
   aria-hidden@1.2.6:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
@@ -3660,6 +3666,8 @@ snapshots:
   ansi-styles@5.2.0: {}
 
   apexcharts@5.11.0: {}
+
+  apexsankey@1.7.1: {}
 
   aria-hidden@1.2.6:
     dependencies:

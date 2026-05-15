@@ -135,6 +135,43 @@ export async function removeTarget(budgetId: string, categoryId: string): Promis
   return budgetsRepo().upsert(updated);
 }
 
+export async function ensureMissingTargets(
+  budgetId: string,
+  categoryIds: string[],
+): Promise<Budget> {
+  const raw = await budgetsRepo().get(budgetId);
+  if (!raw) throw new Error(`Budget ${budgetId} not found`);
+  const budget = normaliseLegacyBudget(raw);
+
+  const existingIds = new Set(budget.targets.map((t) => t.categoryId));
+  const seen = new Set<string>();
+  const missing = categoryIds
+    .filter((id) => !!id)
+    .filter((id) => {
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return !existingIds.has(id);
+    });
+
+  if (missing.length === 0) return budget;
+
+  const updated: Budget = {
+    ...budget,
+    targets: [
+      ...budget.targets,
+      ...missing.map((categoryId) => ({
+        categoryId,
+        amount: cents(0),
+        frequency: budget.period as BudgetFrequency,
+        rollover: false,
+      })),
+    ],
+    updatedAt: new Date().toISOString(),
+  };
+
+  return budgetsRepo().upsert(updated);
+}
+
 export function defaultBudgetValues(): BudgetFormValues {
   return {
     name: "Monthly budget",

@@ -193,4 +193,9 @@
     cursor: pointer;
     border: 2px solid var(--background);
   }
+
+  /* Hide apexsankey watermark */
+  [data-apexcharts-watermark] {
+    display: none !important;
+  }
 }

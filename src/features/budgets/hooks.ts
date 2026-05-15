@@ -6,6 +6,7 @@ import { queryKeys } from "@/lib/query/keys";
 import {
   createBudget,
   deleteBudget,
+  ensureMissingTargets,
   getActiveBudgetNormalised,
   listBudgets,
   normaliseLegacyBudget,
@@ -113,5 +114,18 @@ export function useSetBudgetViewPeriod() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.budgets.all });
     },
+  });
+}
+
+export function useEnsureMissingTargets() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ budgetId, categoryIds }: { budgetId: string; categoryIds: string[] }) =>
+      ensureMissingTargets(budgetId, categoryIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.budgets.all });
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to sync budget categories"),
   });
 }
