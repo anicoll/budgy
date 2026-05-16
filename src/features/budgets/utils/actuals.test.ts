@@ -246,9 +246,101 @@ describe("income + expense split + sorting", () => {
   });
 });
 
+describe("subcategory rollup", () => {
+  const CAT_HOUSING: Category = {
+    id: "cat-housing",
+    name: "Housing",
+    type: "expense",
+    parentId: null,
+    color: "#7c5cff",
+    archived: false,
+    sortOrder: 0,
+  };
+  const CAT_RENT: Category = {
+    id: "cat-rent",
+    name: "Rent / Mortgage",
+    type: "expense",
+    parentId: "cat-housing",
+    color: "#a78bfa",
+    archived: false,
+    sortOrder: 0,
+  };
+  const CAT_UTILITIES: Category = {
+    id: "cat-utilities",
+    name: "Utilities",
+    type: "expense",
+    parentId: "cat-housing",
+    color: "#c4b5fd",
+    archived: false,
+    sortOrder: 1,
+  };
+
+  it("parent target aggregates subcategory actuals", () => {
+    const targets: CategoryTarget[] = [
+      { categoryId: "cat-housing", amount: cents(500000), frequency: "monthly", rollover: false },
+    ];
+    const r = computeFluidActuals(
+      [
+        makeTxn({ id: "t1", type: "debit", categoryId: "cat-rent", amount: cents(370000) }),
+        makeTxn({ id: "t2", type: "debit", categoryId: "cat-utilities", amount: cents(18000) }),
+      ],
+      [CAT_HOUSING, CAT_RENT, CAT_UTILITIES],
+      targets,
+      RANGE,
+      "monthly",
+      BUDGET,
+    );
+    // Only Housing appears — children are rolled up
+    expect(r.expense).toHaveLength(1);
+    expect(r.expense[0].categoryId).toBe("cat-housing");
+    expect(r.expense[0].actual).toBe(388000); // 370000 + 18000
+  });
+
+  it("subcategories with no parent target appear individually", () => {
+    const targets: CategoryTarget[] = [
+      { categoryId: "cat-rent", amount: cents(370000), frequency: "monthly", rollover: false },
+    ];
+    const r = computeFluidActuals(
+      [makeTxn({ id: "t1", type: "debit", categoryId: "cat-rent", amount: cents(370000) })],
+      [CAT_HOUSING, CAT_RENT, CAT_UTILITIES],
+      targets,
+      RANGE,
+      "monthly",
+      BUDGET,
+    );
+    // Housing has no target — Rent appears as its own targeted row
+    expect(r.expense.find((e) => e.categoryId === "cat-rent")?.actual).toBe(370000);
+    expect(r.expense.find((e) => e.categoryId === "cat-housing")).toBeUndefined();
+  });
+
+  it("subcategory transactions are excluded from missing-target surfacing when parent is targeted", () => {
+    // This is tested at the planner level; here we just verify the actuals output
+    // doesn't double-count when parent is in targets
+    const targets: CategoryTarget[] = [
+      { categoryId: "cat-housing", amount: cents(500000), frequency: "monthly", rollover: false },
+    ];
+    const r = computeFluidActuals(
+      [
+        makeTxn({ id: "t1", type: "debit", categoryId: "cat-rent", amount: cents(370000) }),
+        makeTxn({ id: "t2", type: "debit", categoryId: "cat-utilities", amount: cents(18000) }),
+      ],
+      [CAT_HOUSING, CAT_RENT, CAT_UTILITIES],
+      targets,
+      RANGE,
+      "monthly",
+      BUDGET,
+    );
+    // Total actual expense = 388000, not 388000 + 370000 + 18000 (no double-count)
+    expect(r.totalActualExpense).toBe(388000);
+  });
+});
+
 describe("progressColor", () => {
   it("safe below 75%", () => expect(progressColor(cents(700), cents(1000))).toBe("safe"));
   it("warning 75–99%", () => expect(progressColor(cents(800), cents(1000))).toBe("warning"));
-  it("over at 100%+", () => expect(progressColor(cents(1000), cents(1000))).toBe("over"));
+  it("warning at exactly 100% (not over)", () =>
+    expect(progressColor(cents(1000), cents(1000))).toBe("warning"));
+  it("over when exceeded (> 100%)", () =>
+    expect(progressColor(cents(1001), cents(1000))).toBe("over"));
   it("over when projected is 0", () => expect(progressColor(cents(100), cents(0))).toBe("over"));
 });

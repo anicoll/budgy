@@ -46,6 +46,8 @@ export interface PlannerItem {
   projectedAmount: Cents;
   varianceAmount: Cents;
   progress: "safe" | "warning" | "over";
+  parentCategoryId?: string;
+  parentCategoryName?: string;
 }
 
 // ── Legacy actuals view model (kept for actuals.ts) ───────────────────────

@@ -1,9 +1,8 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, TriangleAlert, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SparklineChart } from "@/components/charts/SparklineChart";
+import { ChevronLeft, ChevronRight, Plus, TriangleAlert, X } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +19,7 @@ import { calcMinRepayment } from "@/features/mortgage/utils/amortise";
 import { useTransactions } from "@/features/transactions/hooks";
 import { signedAmount, type Transaction } from "@/features/transactions/types";
 import type { Cents } from "@/lib/money/cents";
+import { formatAUDCompact } from "@/lib/money/format";
 import { queryKeys } from "@/lib/query/keys";
 import type { NovatedLease } from "@/lib/state/prefs-store";
 import { usePrefs } from "@/lib/state/prefs-store";
@@ -39,7 +39,7 @@ import { BUDGET_PERIOD_LABEL } from "../types";
 import { computeFluidActuals, progressColor } from "../utils/actuals";
 import { estimateFortnightlyNet } from "../utils/au-tax";
 import { FREQUENCY_LABEL, normaliseToPeriod } from "../utils/normalise";
-import { currentPeriodRange, shiftBudgetPeriod } from "../utils/period";
+import { currentPeriodRange, formatPeriodLabel, shiftBudgetPeriod } from "../utils/period";
 import { HousingSetupDialog, isHousingCategory } from "./HousingSetupDialog";
 
 const PERIOD_TABS: { value: BudgetPeriod; label: string }[] = [
@@ -56,7 +56,10 @@ function defaultFrequency(type: "income" | "expense"): BudgetFrequency {
 
 function computePlannerItems(
   targets: CategoryTarget[],
-  categoryMap: Map<string, { name: string; color: string; type: string; system?: boolean }>,
+  categoryMap: Map<
+    string,
+    { name: string; color: string; type: string; system?: boolean; parentId?: string | null }
+  >,
   actualByCategory: Map<
     string,
     {
@@ -90,6 +93,7 @@ function computePlannerItems(
           ? "safe"
           : "warning";
 
+    const parentCat = cat.parentId ? categoryMap.get(cat.parentId) : undefined;
     const item: PlannerItem = {
       categoryId: target.categoryId,
       categoryName: cat.name,
@@ -103,16 +107,91 @@ function computePlannerItems(
       projectedAmount,
       varianceAmount,
       progress,
+      parentCategoryId: cat.parentId ?? undefined,
+      parentCategoryName: parentCat?.name,
     };
 
     if (cat.type === "income") income.push(item);
     else expense.push(item);
   }
 
+  // Sort expenses so subcategories are grouped adjacent to their parent group
+  expense.sort((a, b) => {
+    const aGroup = a.parentCategoryId ?? a.categoryId;
+    const bGroup = b.parentCategoryId ?? b.categoryId;
+    if (aGroup !== bGroup) return aGroup.localeCompare(bGroup);
+    // Within same group: subcategories after root items
+    if (a.parentCategoryId && !b.parentCategoryId) return 1;
+    if (!a.parentCategoryId && b.parentCategoryId) return -1;
+    return 0;
+  });
+
   const totalIncome = income.reduce((s, i) => s + i.normalisedAmount, 0) as Cents;
   const totalExpense = expense.reduce((s, i) => s + i.normalisedAmount, 0) as Cents;
 
   return { income, expense, totalIncome, totalExpense };
+}
+
+// ── Budget allocation bar ─────────────────────────────────────────────────────
+
+function BudgetAllocationBar({ items, totalBudget }: { items: PlannerItem[]; totalBudget: Cents }) {
+  if (totalBudget <= 0 || items.length === 0) return null;
+
+  // Pre-compute left offsets for each segment
+  const segments = items
+    .filter((item) => item.normalisedAmount > 0)
+    .map((item) => ({
+      item,
+      widthPct: (item.normalisedAmount / totalBudget) * 100,
+      spentPct:
+        item.normalisedAmount > 0
+          ? Math.min(100, (item.actualAmount / item.normalisedAmount) * 100)
+          : 0,
+    }));
+
+  let accumulated = 0;
+  return (
+    <div className="flex flex-col gap-1.5">
+      {/* Stacked proportional bar */}
+      <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted/40">
+        {segments.map(({ item, widthPct, spentPct }) => {
+          const left = accumulated;
+          accumulated += widthPct;
+          return (
+            <div
+              key={item.categoryId}
+              title={`${item.categoryName}: ${(widthPct).toFixed(1)}% of budget`}
+              className="absolute top-0 h-full"
+              style={{ left: `${left}%`, width: `${widthPct}%`, background: item.categoryColor }}
+            >
+              {/* Darker fill showing actual spend progress */}
+              <div
+                className="absolute inset-y-0 left-0 bg-black/25"
+                style={{ width: `${spentPct}%` }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      {/* Legend: top-N category names */}
+      <div className="flex gap-2 overflow-x-auto hide-scrollbar">
+        {segments.slice(0, 8).map(({ item, widthPct }) => (
+          <div key={item.categoryId} className="flex shrink-0 items-center gap-1">
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ background: item.categoryColor }}
+            />
+            <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">
+              {item.categoryName}
+            </span>
+            <span className="text-[10px] tabular-nums text-muted-foreground/70">
+              {widthPct.toFixed(0)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 interface Props {
@@ -128,6 +207,7 @@ interface SankeyLink {
 
 export function BudgetPlannerView({ budget }: Props) {
   const [viewPeriod, setViewPeriodLocal] = useState<BudgetPeriod>(budget.period);
+  const [periodOffset, setPeriodOffset] = useState(0);
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
   const [housingDialogCat, setHousingDialogCat] = useState<{
     id: string;
@@ -155,16 +235,17 @@ export function BudgetPlannerView({ budget }: Props) {
       new Map(
         allCategories.map((c) => [
           c.id,
-          { name: c.name, color: c.color, type: c.type, system: c.system },
+          { name: c.name, color: c.color, type: c.type, system: c.system, parentId: c.parentId },
         ]),
       ),
     [allCategories],
   );
 
-  const periodRange = useMemo(
-    () => currentPeriodRange(viewPeriod, budget.startDate, new Date()),
-    [viewPeriod, budget.startDate],
-  );
+  const periodRange = useMemo(() => {
+    const current = currentPeriodRange(viewPeriod, budget.startDate, new Date());
+    if (periodOffset === 0) return current;
+    return shiftBudgetPeriod(viewPeriod, budget.startDate, current, periodOffset);
+  }, [viewPeriod, budget.startDate, periodOffset]);
 
   const fluidActuals = useMemo(
     () =>
@@ -221,7 +302,6 @@ export function BudgetPlannerView({ budget }: Props) {
   );
 
   const net = (totalIncome - totalExpense) as Cents;
-  const allItems = [...income, ...expense];
   const allocatedIds = useMemo(
     () => new Set(budget.targets.map((t) => t.categoryId)),
     [budget.targets],
@@ -234,6 +314,8 @@ export function BudgetPlannerView({ budget }: Props) {
       const cat = categoryMap.get(txn.categoryId);
       if (!cat || cat.type !== "expense") continue;
       if (allocatedIds.has(txn.categoryId)) continue;
+      // Skip subcategories whose parent is already in the budget — they roll up
+      if (cat.parentId && allocatedIds.has(cat.parentId)) continue;
       ids.add(txn.categoryId);
     }
     return [...ids];
@@ -272,6 +354,7 @@ export function BudgetPlannerView({ budget }: Props) {
   function switchPeriod(next: BudgetPeriod) {
     if (next === viewPeriod) return;
     setViewPeriodLocal(next);
+    setPeriodOffset(0);
     setPeriodMutation.mutate({ id: budget.id, period: next });
   }
 
@@ -314,38 +397,54 @@ export function BudgetPlannerView({ budget }: Props) {
 
   const periodLabel = BUDGET_PERIOD_LABEL[viewPeriod].toLowerCase();
   const sankeyLinks = useMemo(() => {
-    const totalIncomeActual = fluidActuals.totalActualIncome;
-    const expenseActuals = [...fluidActuals.expense]
-      .filter((x) => x.actual > 0)
-      .sort((a, b) => b.actual - a.actual);
-    const top = expenseActuals.slice(0, 8);
-    const otherTotal = expenseActuals.slice(8).reduce((sum, item) => sum + item.actual, 0) as Cents;
+    const expenseActuals = fluidActuals.expense.filter((x) => x.actual > 0);
 
-    const links: SankeyLink[] = top.map((item) => ({
+    // Group subcategories under their parent; root categories stay individual
+    const grouped = new Map<string, { name: string; color: string; total: Cents }>();
+    for (const item of expenseActuals) {
+      const cat = categoryMap.get(item.categoryId);
+      const parentId = cat?.parentId;
+      if (parentId) {
+        const parent = categoryMap.get(parentId);
+        if (parent) {
+          const existing = grouped.get(parentId) ?? {
+            name: parent.name,
+            color: parent.color,
+            total: 0 as Cents,
+          };
+          existing.total = (existing.total + item.actual) as Cents;
+          grouped.set(parentId, existing);
+          continue;
+        }
+      }
+      const existing = grouped.get(item.categoryId) ?? {
+        name: item.categoryName,
+        color: item.categoryColor,
+        total: 0 as Cents,
+      };
+      existing.total = (existing.total + item.actual) as Cents;
+      grouped.set(item.categoryId, existing);
+    }
+
+    const sorted = [...grouped.values()].sort((a, b) => b.total - a.total);
+    const top = sorted.slice(0, 8);
+    const otherTotal = sorted.slice(8).reduce((s, g) => s + g.total, 0) as Cents;
+
+    const links: SankeyLink[] = top.map((g) => ({
       from: "Income",
-      to: item.categoryName,
-      value: item.actual,
-      color: item.categoryColor,
+      to: g.name,
+      value: g.total,
+      color: g.color,
     }));
 
     if (otherTotal > 0) {
-      links.push({
-        from: "Income",
-        to: "Other expenses",
-        value: otherTotal,
-        color: "#94a3b8",
-      });
+      links.push({ from: "Income", to: "Other expenses", value: otherTotal, color: "#94a3b8" });
     }
 
-    const totalSpent = links.reduce((sum, l) => sum + l.value, 0) as Cents;
-    const remainder = (totalIncomeActual - totalSpent) as Cents;
+    const totalSpent = links.reduce((s, l) => s + l.value, 0) as Cents;
+    const remainder = (fluidActuals.totalActualIncome - totalSpent) as Cents;
     if (remainder > 0) {
-      links.push({
-        from: "Income",
-        to: "Remaining",
-        value: remainder,
-        color: "#34d399",
-      });
+      links.push({ from: "Income", to: "Remaining", value: remainder, color: "#34d399" });
     } else if (remainder < 0) {
       links.push({
         from: "Income",
@@ -355,14 +454,14 @@ export function BudgetPlannerView({ budget }: Props) {
       });
     }
     return links;
-  }, [fluidActuals]);
+  }, [fluidActuals, categoryMap]);
 
   // Mortgage ↔ budget mismatch: detect when the mortgage minimum repayment
   // diverges from the housing category's budget target by more than $1/month.
   const mortgageMismatch = useMemo(() => {
     if (!mortgagePlan) return null;
-    const housingItem = expense.find((e) => isHousingCategory(e.categoryName));
-    if (!housingItem) return null;
+    const housingItems = expense.filter((e) => isHousingCategory(e.categoryName));
+    if (housingItems.length === 0) return null;
     const minRepayment = calcMinRepayment(
       mortgagePlan.currentBalance,
       mortgagePlan.interestRate,
@@ -374,36 +473,17 @@ export function BudgetPlannerView({ budget }: Props) {
       mortgagePlan.repaymentFrequency as BudgetFrequency,
       "monthly",
     );
-    const budgetMonthly = normaliseToPeriod(
-      housingItem.nativeAmount,
-      housingItem.nativeFrequency,
-      "monthly",
-    );
-    if (Math.abs(mortgageMonthly - budgetMonthly) <= 100) return null;
-    return { categoryId: housingItem.categoryId, mortgageMonthly };
+    // If ANY housing item already has a budget close to the mortgage repayment, no hint needed
+    const alreadySynced = housingItems.some((item) => {
+      const budgetMonthly = normaliseToPeriod(item.nativeAmount, item.nativeFrequency, "monthly");
+      return Math.abs(mortgageMonthly - budgetMonthly) <= 100;
+    });
+    if (alreadySynced) return null;
+    // Target the most specific item (prefer "rent/mortgage" name) for the sync action
+    const targetItem =
+      housingItems.find((e) => /rent|mortgage/i.test(e.categoryName)) ?? housingItems[0];
+    return { categoryId: targetItem.categoryId, mortgageMonthly };
   }, [mortgagePlan, expense]);
-
-  // Spend history for each category across last 6 view periods (for sparklines)
-  const sparklinesByCategory = useMemo(() => {
-    const LOOK_BACK = 6;
-    const periods: { from: string; to: string }[] = [];
-    for (let i = LOOK_BACK - 1; i >= 0; i--) {
-      periods.push(shiftBudgetPeriod(viewPeriod, budget.startDate, periodRange, -i));
-    }
-    const map = new Map<string, number[]>();
-    for (const txn of transactions) {
-      if (!txn.categoryId || txn.type !== "debit") continue;
-      for (let p = 0; p < periods.length; p++) {
-        const r = periods[p];
-        if (txn.date >= r.from && txn.date <= r.to) {
-          const arr = map.get(txn.categoryId) ?? new Array<number>(LOOK_BACK).fill(0);
-          arr[p] = (arr[p] ?? 0) + txn.amount / 100;
-          map.set(txn.categoryId, arr);
-        }
-      }
-    }
-    return map;
-  }, [transactions, viewPeriod, budget.startDate, periodRange]);
 
   const salaryEstimate = useMemo(
     () =>
@@ -444,48 +524,76 @@ export function BudgetPlannerView({ budget }: Props) {
 
   return (
     <div className="flex flex-col gap-0">
-      {/* Period tabs + total */}
-      <div className="flex items-center justify-between border-b border-border/60 bg-surface/40 px-1 backdrop-blur-md">
-        <div className="flex items-center">
-          {PERIOD_TABS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => switchPeriod(value)}
-              className={cn(
-                "px-4 py-3 text-sm font-medium transition-colors relative",
-                viewPeriod === value
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {label}
-              {viewPeriod === value && (
-                <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-gradient-accent" />
-              )}
-            </button>
-          ))}
+      {/* Period header */}
+      <div className="border-b border-border/60 bg-surface/40 backdrop-blur-md">
+        {/* Row 1: period type tabs */}
+        <div className="flex items-center justify-between px-1 pt-1">
+          <div className="flex items-center">
+            {PERIOD_TABS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => switchPeriod(value)}
+                className={cn(
+                  "px-4 py-2 text-sm font-medium transition-colors relative",
+                  viewPeriod === value
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+                {viewPeriod === value && (
+                  <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-gradient-accent" />
+                )}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 pr-2 text-sm tabular-nums">
+            <div className="text-right">
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Income{" "}
+              </span>
+              <Money value={totalIncome} className="font-semibold text-income" />
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Expenses{" "}
+              </span>
+              <Money value={totalExpense} className="font-semibold text-expense" />
+            </div>
+            <div className="hidden text-right sm:block">
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Net{" "}
+              </span>
+              <Money
+                value={net}
+                className={cn("font-semibold", net >= 0 ? "text-income" : "text-expense")}
+              />
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-4 pr-2 text-sm tabular-nums">
-          <div className="text-right">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              Income{" "}
-            </span>
-            <Money value={totalIncome} className="font-semibold text-income" />
-          </div>
-          <div className="text-right">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              Expenses{" "}
-            </span>
-            <Money value={totalExpense} className="font-semibold text-expense" />
-          </div>
-          <div className="text-right hidden sm:block">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Net </span>
-            <Money
-              value={net}
-              className={cn("font-semibold", net >= 0 ? "text-income" : "text-expense")}
-            />
-          </div>
+        {/* Row 2: period navigator */}
+        <div className="flex items-center justify-center gap-2 pb-2">
+          <button
+            type="button"
+            onClick={() => setPeriodOffset((o) => o - 1)}
+            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Previous period"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="min-w-[160px] text-center text-sm font-medium tabular-nums">
+            {formatPeriodLabel(periodRange, viewPeriod)}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPeriodOffset((o) => Math.min(0, o + 1))}
+            disabled={periodOffset >= 0}
+            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+            aria-label="Next period"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -509,22 +617,10 @@ export function BudgetPlannerView({ budget }: Props) {
         </div>
       )}
 
-      {/* Category strip */}
-      {allItems.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto border-b border-border/60 bg-surface/30 px-4 py-2.5 hide-scrollbar">
-          {allItems.map((item) => (
-            <div
-              key={item.categoryId}
-              className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white"
-              style={{ background: item.categoryColor }}
-            >
-              <span>{item.categoryName}</span>
-              <Money
-                value={item.normalisedAmount}
-                className="text-xs font-semibold text-white/90 tabular-nums"
-              />
-            </div>
-          ))}
+      {/* Budget allocation bar */}
+      {totalExpense > 0 && (
+        <div className="border-b border-border/60 bg-surface/30 px-4 py-3">
+          <BudgetAllocationBar items={expense} totalBudget={totalExpense} />
         </div>
       )}
 
@@ -545,7 +641,6 @@ export function BudgetPlannerView({ budget }: Props) {
             setExpandedCategoryId((prev) => (prev === categoryId ? null : categoryId))
           }
           txnsByCategory={inPeriodTransactionsByCategory}
-          sparklinesByCategory={sparklinesByCategory}
           loading={catsLoading}
         />
 
@@ -583,7 +678,6 @@ export function BudgetPlannerView({ budget }: Props) {
             setExpandedCategoryId((prev) => (prev === categoryId ? null : categoryId))
           }
           txnsByCategory={inPeriodTransactionsByCategory}
-          sparklinesByCategory={sparklinesByCategory}
           loading={catsLoading}
         />
       </div>
@@ -727,7 +821,6 @@ interface SectionProps {
   expandedCategoryId: string | null;
   onToggleExpand: (categoryId: string) => void;
   txnsByCategory: Map<string, Transaction[]>;
-  sparklinesByCategory: Map<string, number[]>;
   loading: boolean;
 }
 
@@ -743,7 +836,6 @@ function PlannerSection({
   expandedCategoryId,
   onToggleExpand,
   txnsByCategory,
-  sparklinesByCategory,
   loading,
 }: SectionProps) {
   const [addOpen, setAddOpen] = useState(false);
@@ -791,20 +883,32 @@ function PlannerSection({
         </div>
       ) : (
         <div className="divide-y divide-border/20">
-          {items.map((item) => (
-            <PlannerRow
-              key={`${item.categoryId}-${item.nativeAmount}`}
-              item={item}
-              viewPeriod={viewPeriod}
-              periodLabel={periodLabel}
-              onSave={onSave}
-              onRemove={onRemove}
-              expanded={expandedCategoryId === item.categoryId}
-              onToggleExpand={onToggleExpand}
-              transactions={txnsByCategory.get(item.categoryId) ?? []}
-              sparklineData={sparklinesByCategory.get(item.categoryId)}
-            />
-          ))}
+          {items.map((item, i) => {
+            const prevParent = i > 0 ? items[i - 1].parentCategoryId : undefined;
+            const showGroupHeader = item.parentCategoryId && item.parentCategoryId !== prevParent;
+            return (
+              <Fragment key={item.categoryId}>
+                {showGroupHeader && (
+                  <div className="flex items-center gap-2 bg-muted/20 px-4 py-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {item.parentCategoryName}
+                    </span>
+                  </div>
+                )}
+                <PlannerRow
+                  key={`${item.categoryId}-${item.nativeAmount}`}
+                  item={item}
+                  viewPeriod={viewPeriod}
+                  periodLabel={periodLabel}
+                  onSave={onSave}
+                  onRemove={onRemove}
+                  expanded={expandedCategoryId === item.categoryId}
+                  onToggleExpand={onToggleExpand}
+                  transactions={txnsByCategory.get(item.categoryId) ?? []}
+                />
+              </Fragment>
+            );
+          })}
         </div>
       )}
     </div>
@@ -822,7 +926,6 @@ interface RowProps {
   expanded: boolean;
   onToggleExpand: (categoryId: string) => void;
   transactions: Transaction[];
-  sparklineData?: number[];
 }
 
 function PlannerRow({
@@ -834,7 +937,6 @@ function PlannerRow({
   expanded,
   onToggleExpand,
   transactions,
-  sparklineData,
 }: RowProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [rawAmount, setRawAmount] = useState(
@@ -871,116 +973,85 @@ function PlannerRow({
     [rawAmount, item.categoryId, onSave],
   );
 
-  const showNormalisedPreview = preview !== null && frequency !== viewPeriod;
   const isExpense = item.categoryType === "expense";
-  const trackingTone = isExpense
+
+  // Progress bar fill — capped at 100%, colour tracks progress state
+  const spentPct =
+    item.projectedAmount > 0 ? Math.min(100, (item.actualAmount / item.projectedAmount) * 100) : 0;
+  const barColor =
+    item.progress === "over"
+      ? "bg-destructive"
+      : item.progress === "warning"
+        ? "bg-amber-500"
+        : "bg-income";
+
+  // "$X left" / "$X over" framing
+  const absVariance = Math.abs(item.varianceAmount) as Cents;
+  const remainingLabel = isExpense
+    ? item.varianceAmount > 0
+      ? `${formatAUDCompact(absVariance)} left`
+      : item.varianceAmount < 0
+        ? `${formatAUDCompact(absVariance)} over`
+        : "On budget"
+    : item.varianceAmount >= 0
+      ? `${formatAUDCompact(absVariance)} ahead`
+      : `${formatAUDCompact(absVariance)} short`;
+
+  const remainingColor = isExpense
     ? item.progress === "over"
       ? "text-destructive"
       : item.progress === "warning"
-        ? "text-amber-600"
+        ? "text-amber-500"
         : "text-income"
     : item.actualAmount >= item.projectedAmount
       ? "text-income"
-      : "text-amber-600";
+      : "text-amber-500";
 
   return (
-    <div
-      className={cn(
-        "group px-4 py-2.5",
-        isExpense && item.progress === "over" && "bg-destructive/5",
-        isExpense && item.progress === "warning" && "bg-amber-500/5",
-      )}
-    >
+    <div className="group px-4 py-3">
+      {/* Main row */}
       <div className="flex items-center gap-3">
-        {/* Category avatar + name */}
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white"
           style={{ background: item.categoryColor }}
         >
           {item.categoryName.charAt(0).toUpperCase()}
         </span>
+
         <button
           type="button"
           onClick={() => onToggleExpand(item.categoryId)}
-          className="min-w-0 flex-1 truncate text-left text-sm font-medium hover:underline"
+          className="min-w-0 flex-1 truncate text-left text-sm font-medium hover:text-primary transition-colors"
         >
           {item.categoryName}
         </button>
 
-        {/* 6-period spend sparkline */}
-        {sparklineData && !expanded && (
-          <div className="hidden w-16 shrink-0 lg:block">
-            <SparklineChart
-              data={sparklineData}
-              color={item.categoryColor}
-              positive={item.categoryType === "income"}
-              height={28}
-            />
-          </div>
-        )}
-
-        {/* Normalised preview (when frequency differs from view) */}
-        {showNormalisedPreview && (
-          <div className="hidden text-right sm:block">
-            <div className="text-[10px] text-muted-foreground">/{periodLabel}</div>
-            <Money value={preview} className="text-sm font-semibold tabular-nums" />
-          </div>
-        )}
-
-        <div className="hidden min-w-[220px] sm:block">
-          <div className="grid grid-cols-3 gap-2 text-right tabular-nums">
-            <div>
-              <div className="text-[10px] text-muted-foreground">Actual</div>
-              <Money value={item.actualAmount} className="text-xs font-semibold" />
-            </div>
-            <div>
-              <div className="text-[10px] text-muted-foreground">Budget</div>
-              <Money value={item.projectedAmount} className="text-xs font-semibold" />
-            </div>
-            <div className={trackingTone}>
-              <div className="text-[10px] text-muted-foreground">Variance</div>
-              <Money value={item.varianceAmount} className="text-xs font-semibold" />
-            </div>
-          </div>
-        </div>
-
-        {/* Amount input */}
-        <div className="relative w-28">
-          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-            $
+        {/* Actual / Budget */}
+        <div className="hidden text-right tabular-nums sm:block">
+          <span className="text-xs text-muted-foreground">
+            {formatAUDCompact(item.actualAmount)}
           </span>
-          <input
-            ref={inputRef}
-            type="text"
-            inputMode="decimal"
-            value={rawAmount}
-            onChange={(e) => setRawAmount(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={(e) => e.key === "Enter" && inputRef.current?.blur()}
-            placeholder="0"
-            className="w-full rounded-md border border-border/60 bg-surface/60 py-1.5 pl-6 pr-2 text-right text-sm tabular-nums transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            aria-label={`Amount for ${item.categoryName}`}
-          />
+          {item.projectedAmount > 0 && (
+            <span className="text-xs text-muted-foreground/50">
+              {" "}
+              / {formatAUDCompact(item.projectedAmount)}
+            </span>
+          )}
         </div>
 
-        {/* Frequency dropdown */}
-        <Select
-          value={frequency}
-          onValueChange={(v) => handleFrequencyChange(v as BudgetFrequency)}
-        >
-          <SelectTrigger className="h-8 w-32 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {(Object.keys(FREQUENCY_LABEL) as BudgetFrequency[]).map((f) => (
-              <SelectItem key={f} value={f} className="text-xs">
-                {FREQUENCY_LABEL[f]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Remaining / over framing */}
+        {item.projectedAmount > 0 && (
+          <span
+            className={cn(
+              "w-24 text-right text-sm font-semibold tabular-nums shrink-0",
+              remainingColor,
+            )}
+          >
+            {remainingLabel}
+          </span>
+        )}
 
-        {/* Remove — hidden for system categories */}
+        {/* Remove — visible on hover, hidden for system */}
         {!item.categorySystem && (
           <button
             type="button"
@@ -994,25 +1065,82 @@ function PlannerRow({
         {item.categorySystem && <div className="h-6 w-6 shrink-0" />}
       </div>
 
+      {/* Progress bar */}
+      {item.projectedAmount > 0 && (
+        <div className="mt-2 sm:ml-10">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
+            <div
+              className={cn("h-full rounded-full transition-all duration-300", barColor)}
+              style={{ width: `${spentPct}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Expanded: edit controls + transactions */}
       {expanded && (
-        <div className="mt-2 rounded-lg border border-border/50 bg-surface/40 p-2.5 text-xs sm:ml-10">
-          {transactions.length === 0 ? (
-            <div className="text-muted-foreground">No transactions in this period.</div>
-          ) : (
-            <div className="space-y-1.5">
-              {transactions.map((txn) => (
-                <div key={txn.id} className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="truncate font-medium">
-                      {txn.payee || txn.description || "Transaction"}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">{txn.date}</div>
-                  </div>
-                  <Money value={signedAmount(txn)} className="shrink-0 tabular-nums" />
-                </div>
-              ))}
+        <div className="mt-3 sm:ml-10 flex flex-col gap-3">
+          {/* Inline budget edit */}
+          <div className="flex items-center gap-2">
+            <div className="relative w-28">
+              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                $
+              </span>
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="decimal"
+                value={rawAmount}
+                onChange={(e) => setRawAmount(e.target.value)}
+                onBlur={handleBlur}
+                onKeyDown={(e) => e.key === "Enter" && inputRef.current?.blur()}
+                placeholder="0"
+                className="w-full rounded-md border border-border/60 bg-surface/60 py-1.5 pl-6 pr-2 text-right text-sm tabular-nums transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                aria-label={`Budget amount for ${item.categoryName}`}
+              />
             </div>
-          )}
+            <Select
+              value={frequency}
+              onValueChange={(v) => handleFrequencyChange(v as BudgetFrequency)}
+            >
+              <SelectTrigger className="h-8 w-32 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(FREQUENCY_LABEL) as BudgetFrequency[]).map((f) => (
+                  <SelectItem key={f} value={f} className="text-xs">
+                    {FREQUENCY_LABEL[f]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {preview !== null && frequency !== viewPeriod && (
+              <span className="text-xs text-muted-foreground tabular-nums">
+                = {formatAUDCompact(preview)}/{periodLabel}
+              </span>
+            )}
+          </div>
+
+          {/* Transactions */}
+          <div className="rounded-lg border border-border/50 bg-surface/40 p-2.5 text-xs">
+            {transactions.length === 0 ? (
+              <div className="text-muted-foreground">No transactions in this period.</div>
+            ) : (
+              <div className="space-y-1.5">
+                {transactions.map((txn) => (
+                  <div key={txn.id} className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">
+                        {txn.payee || txn.description || "Transaction"}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">{txn.date}</div>
+                    </div>
+                    <Money value={signedAmount(txn)} className="shrink-0 tabular-nums" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

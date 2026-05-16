@@ -13,6 +13,34 @@ import type {
 import { normaliseToPeriod } from "./normalise";
 import { shiftBudgetPeriod } from "./period";
 
+// Returns true if any ancestor of this category has a budget target.
+// Used to suppress subcategories that roll up into a targeted parent.
+function hasTargetAncestor(
+  categoryId: string,
+  catMap: Map<string, Category>,
+  targetMap: Map<string, CategoryTarget>,
+): boolean {
+  const parentId = catMap.get(categoryId)?.parentId;
+  if (!parentId) return false;
+  if (targetMap.has(parentId)) return true;
+  return hasTargetAncestor(parentId, catMap, targetMap);
+}
+
+// Sum the actual for a category plus all its descendants recursively.
+function getDescendantActual(
+  categoryId: string,
+  catMap: Map<string, Category>,
+  actualMap: Map<string, number>,
+): number {
+  let total = actualMap.get(categoryId) ?? 0;
+  for (const cat of catMap.values()) {
+    if (cat.parentId === categoryId) {
+      total += getDescendantActual(cat.id, catMap, actualMap);
+    }
+  }
+  return total;
+}
+
 export function computeFluidActuals(
   transactions: Transaction[],
   categories: Category[],
@@ -77,11 +105,13 @@ export function computeFluidActuals(
   }
 
   // ── Step 3: Union of all category IDs to surface ──────────────────────
-  const allCategoryIds = new Set<string>([
-    ...receivedByCategory.keys(),
-    ...spentByCategory.keys(),
-    ...targetMap.keys(),
-  ]);
+  // Exclude non-targeted subcategories whose ancestor has a target — their
+  // actuals are aggregated into the ancestor row to avoid double-counting.
+  const allCategoryIds = new Set<string>(
+    [...receivedByCategory.keys(), ...spentByCategory.keys(), ...targetMap.keys()].filter(
+      (id) => !(!targetMap.has(id) && hasTargetAncestor(id, catMap, targetMap)),
+    ),
+  );
 
   // ── Step 4: Build FluidActual for each category ───────────────────────
   const incomeActuals: FluidActual[] = [];
@@ -93,8 +123,12 @@ export function computeFluidActuals(
 
     const target = targetMap.get(categoryId);
     const isIncome = cat.type === "income";
+
+    // For targeted categories, include descendant spend so parent shows
+    // the full roll-up of all its subcategories' transactions.
+    const rawMap = isIncome ? receivedByCategory : spentByCategory;
     const actual = (
-      isIncome ? (receivedByCategory.get(categoryId) ?? 0) : (spentByCategory.get(categoryId) ?? 0)
+      target ? getDescendantActual(categoryId, catMap, rawMap) : (rawMap.get(categoryId) ?? 0)
     ) as Cents;
 
     let projectedTarget: Cents | undefined;
@@ -106,10 +140,9 @@ export function computeFluidActuals(
       projectedTarget = normaliseToPeriod(target.amount, target.frequency, viewPeriod);
 
       if (target.rollover) {
+        const prevRawMap = isIncome ? prevReceivedByCategory : prevSpentByCategory;
         const prevProjected = (prevProjectedByCategory.get(categoryId) ?? 0) as Cents;
-        const prevActual = isIncome
-          ? ((prevReceivedByCategory.get(categoryId) ?? 0) as Cents)
-          : ((prevSpentByCategory.get(categoryId) ?? 0) as Cents);
+        const prevActual = getDescendantActual(categoryId, catMap, prevRawMap) as Cents;
         const prevSurplus = prevProjected - prevActual;
         rolloverAmount = Math.max(0, prevSurplus) as Cents;
       }
@@ -179,7 +212,7 @@ export function computeFluidActuals(
 export function progressColor(actual: Cents, projected: Cents): "safe" | "warning" | "over" {
   if (projected <= 0) return "over";
   const ratio = actual / projected;
-  if (ratio >= 1) return "over";
+  if (ratio > 1) return "over";
   if (ratio >= 0.75) return "warning";
   return "safe";
 }
