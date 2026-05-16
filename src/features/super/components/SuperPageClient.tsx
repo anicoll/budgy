@@ -3,6 +3,9 @@
 import { ChevronDown, PiggyBank, Plus, TrendingUp, X } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AreaChart } from "@/components/charts/AreaChart";
+import { MoneyInput } from "@/components/forms/MoneyInput";
+import { NumInput } from "@/components/forms/NumInput";
+import { SliderWithText } from "@/components/forms/SliderWithText";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Cents } from "@/lib/money/cents";
 import { formatAUDCompact } from "@/lib/money/format";
@@ -34,145 +37,6 @@ const FUND_COLORS = [
 
 function pctToDisplay(v: number) {
   return (v * 100).toFixed(2);
-}
-
-function centsToDisplay(c: Cents): string {
-  return String(Math.round(c / 100));
-}
-
-function displayToCents(s: string): Cents {
-  const n = Math.round(parseFloat(s.replace(/,/g, "")) * 100);
-  return (Number.isFinite(n) ? Math.max(0, n) : 0) as Cents;
-}
-
-// ─── shared input atoms ───────────────────────────────────────────────────────
-
-function MoneyInput({
-  label,
-  value,
-  onChange,
-  hint,
-}: {
-  label: string;
-  value: Cents;
-  onChange: (v: Cents) => void;
-  hint?: string;
-}) {
-  // Uncontrolled input — key={value} resets the field when the stored value changes externally
-  const localRef = useRef<HTMLInputElement>(null);
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-surface px-3 py-1.5 focus-within:border-violet-500/70">
-        <span className="text-sm text-muted-foreground">$</span>
-        <input
-          ref={localRef}
-          type="text"
-          inputMode="numeric"
-          key={value}
-          defaultValue={centsToDisplay(value)}
-          onBlur={() => onChange(displayToCents(localRef.current?.value ?? ""))}
-          className="min-w-0 flex-1 bg-transparent text-sm tabular-nums outline-none"
-        />
-      </div>
-      {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
-    </label>
-  );
-}
-
-function SliderWithText({
-  label,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-}) {
-  const [text, setText] = useState(pctToDisplay(value));
-  const prevValue = useRef(value);
-  if (prevValue.current !== value) {
-    prevValue.current = value;
-    setText(pctToDisplay(value));
-  }
-
-  function commitText(raw: string) {
-    const n = parseFloat(raw);
-    if (Number.isFinite(n) && n >= min && n <= max) {
-      onChange(Math.round(n * 1000) / 100000);
-    } else {
-      setText(pctToDisplay(value));
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <div className="flex items-center gap-1">
-          <input
-            type="text"
-            inputMode="decimal"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onBlur={(e) => commitText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && commitText(text)}
-            className="w-14 rounded border border-border/60 bg-surface px-1.5 py-0.5 text-right text-xs tabular-nums focus:border-violet-500/70 focus:outline-none"
-          />
-          <span className="text-xs text-muted-foreground">%</span>
-        </div>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={Math.min(max, Math.max(min, value * 100))}
-        onChange={(e) => onChange(parseFloat(e.target.value) / 100)}
-        className="super-slider h-1 w-full cursor-pointer appearance-none rounded-full bg-border"
-      />
-    </div>
-  );
-}
-
-function AgeInput({
-  label,
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-surface px-3 py-1.5 focus-within:border-violet-500/70">
-        <input
-          type="number"
-          min={min}
-          max={max}
-          value={value}
-          onChange={(e) => {
-            const n = parseInt(e.target.value, 10);
-            if (Number.isFinite(n) && n >= min && n <= max) onChange(n);
-          }}
-          className="min-w-0 flex-1 bg-transparent text-sm tabular-nums outline-none"
-        />
-        <span className="text-xs text-muted-foreground">yrs</span>
-      </div>
-    </label>
-  );
 }
 
 function KpiCard({
@@ -209,7 +73,8 @@ function FundCard({
   color,
   isOpen,
   isActive,
-  settings,
+  annualSalary,
+  employerContributionPct,
   onToggle,
   onUpdate,
   onSetActive,
@@ -219,13 +84,14 @@ function FundCard({
   color: string;
   isOpen: boolean;
   isActive: boolean;
-  settings: SuperSettings;
+  annualSalary: Cents;
+  employerContributionPct: number;
   onToggle: () => void;
   onUpdate: (patch: Partial<Omit<SuperPlan, "id" | "updatedAt">>) => void;
   onSetActive: () => void;
   onDelete: () => void;
 }) {
-  const sgPerYear = Math.round(settings.annualSalary * settings.employerContributionPct) as Cents;
+  const sgPerYear = Math.round(annualSalary * employerContributionPct) as Cents;
 
   return (
     <div className="rounded-xl border border-border/60 bg-surface/40 overflow-hidden">
@@ -267,7 +133,7 @@ function FundCard({
                 const v = e.target.value.trim();
                 if (v && v !== plan.name) onUpdate({ name: v });
               }}
-              className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-violet-500/70"
+              className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-ring"
             />
           </label>
 
@@ -282,7 +148,7 @@ function FundCard({
             <div className="rounded-lg bg-income/10 border border-income/30 px-3 py-2 text-xs text-income">
               Receiving employer SG: <strong>{formatAUDCompact(sgPerYear)}/yr</strong>
               <span className="text-muted-foreground ml-1">
-                ({pctToDisplay(settings.employerContributionPct)}% of salary)
+                ({pctToDisplay(employerContributionPct)}% of salary)
               </span>
             </div>
           ) : (
@@ -335,7 +201,7 @@ function FundCard({
                         voluntaryFrequency: e.target.value as SuperPlan["voluntaryFrequency"],
                       })
                     }
-                    className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-violet-500/70"
+                    className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-ring"
                   >
                     <option value="monthly">Monthly</option>
                     <option value="fortnightly">Fortnightly</option>
@@ -351,7 +217,7 @@ function FundCard({
                         voluntaryType: e.target.value as SuperPlan["voluntaryType"],
                       })
                     }
-                    className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-violet-500/70"
+                    className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-ring"
                   >
                     <option value="concessional">Concessional</option>
                     <option value="non-concessional">Non-concessional</option>
@@ -366,7 +232,7 @@ function FundCard({
               <button
                 type="button"
                 onClick={onSetActive}
-                className="text-xs text-violet-400 hover:text-violet-300 hover:underline"
+                className="text-xs text-primary hover:text-primary hover:underline"
               >
                 Set as active fund
               </button>
@@ -396,20 +262,10 @@ export function SuperPageClient() {
   const saveSettingsMutation = useSaveSuperSettings();
 
   const [openId, setOpenId] = useState<string | null>(null);
-  const [salaryBannerDismissed, setSalaryBannerDismissed] = useState(false);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefsSalary = usePrefs((s) => s.annualSalary);
 
   const isPending = settingsPending || plansPending;
-
-  // Show a banner if prefs.annualSalary is set but super settings still has the default ($100K)
-  const showSalaryBanner =
-    !salaryBannerDismissed &&
-    !!settings &&
-    !!prefsSalary &&
-    prefsSalary > 0 &&
-    settings.annualSalary === DEFAULT_SUPER_SETTINGS.annualSalary &&
-    prefsSalary !== settings.annualSalary;
 
   // ── settings helpers ──────────────────────────────────────────────────────
 
@@ -473,7 +329,7 @@ export function SuperPageClient() {
       projection: projectSuper({
         currentBalance: plan.currentBalance,
         annualSalary:
-          plan.id === resolvedSettings.activePlanId ? resolvedSettings.annualSalary : (0 as Cents),
+          plan.id === resolvedSettings.activePlanId ? ((prefsSalary ?? 0) as Cents) : (0 as Cents),
         employerContributionPct:
           plan.id === resolvedSettings.activePlanId ? resolvedSettings.employerContributionPct : 0,
         voluntaryContribution: plan.voluntaryContribution,
@@ -487,7 +343,7 @@ export function SuperPageClient() {
       }),
       color: FUND_COLORS[i % FUND_COLORS.length],
     }));
-  }, [plans, resolvedSettings]);
+  }, [plans, resolvedSettings, prefsSalary]);
 
   // Stacked area — each fund is a coloured band; the stack top = total. No explicit Total series needed.
   const chartSeries = useMemo(
@@ -537,8 +393,8 @@ export function SuperPageClient() {
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15">
-          <PiggyBank className="h-5 w-5 text-violet-400" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15">
+          <PiggyBank className="h-5 w-5 text-primary" />
         </div>
         <div>
           <h1 className="text-lg font-semibold">Super Projector</h1>
@@ -551,35 +407,6 @@ export function SuperPageClient() {
         )}
       </div>
 
-      {/* Salary sync banner */}
-      {showSalaryBanner && prefsSalary && (
-        <div className="flex items-center gap-3 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-sm">
-          <span className="text-lg">💡</span>
-          <span className="flex-1 text-muted-foreground">
-            Your saved salary is{" "}
-            <strong className="text-foreground">{formatAUDCompact(prefsSalary)}/yr</strong>. Use it
-            in the super projector?
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              if (settings) saveSettingsMutation.mutate({ ...settings, annualSalary: prefsSalary });
-              setSalaryBannerDismissed(true);
-            }}
-            className="shrink-0 rounded-lg bg-violet-500/20 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-500/30"
-          >
-            Yes, update
-          </button>
-          <button
-            type="button"
-            onClick={() => setSalaryBannerDismissed(true)}
-            className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
         {/* ── Left panel ── */}
         <div className="flex flex-col gap-0 rounded-xl border border-border/60 bg-surface/70 backdrop-blur-md overflow-hidden">
@@ -588,32 +415,27 @@ export function SuperPageClient() {
             <h2 className="text-sm font-semibold">Global settings</h2>
 
             <div className="grid grid-cols-2 gap-3">
-              <AgeInput
+              <NumInput
                 label="Current age"
                 value={resolvedSettings.currentAge}
                 min={18}
                 max={74}
-                onChange={(v) =>
+                suffix="yrs"
+                onChange={(v: number) =>
                   updateSettings({ currentAge: Math.min(v, resolvedSettings.retirementAge - 1) })
                 }
               />
-              <AgeInput
+              <NumInput
                 label="Retirement age"
                 value={resolvedSettings.retirementAge}
                 min={resolvedSettings.currentAge + 1}
                 max={80}
-                onChange={(v) =>
+                suffix="yrs"
+                onChange={(v: number) =>
                   updateSettings({ retirementAge: Math.max(v, resolvedSettings.currentAge + 1) })
                 }
               />
             </div>
-
-            <MoneyInput
-              label="Annual salary (gross)"
-              value={resolvedSettings.annualSalary}
-              onChange={(v) => updateSettings({ annualSalary: v })}
-              hint="Applied to your active fund"
-            />
 
             <SliderWithText
               label="Employer SG rate"
@@ -654,7 +476,8 @@ export function SuperPageClient() {
                   color={fp.color}
                   isOpen={openId === fp.plan.id}
                   isActive={resolvedSettings.activePlanId === fp.plan.id}
-                  settings={resolvedSettings}
+                  annualSalary={(prefsSalary ?? 0) as Cents}
+                  employerContributionPct={resolvedSettings.employerContributionPct}
                   onToggle={() => setOpenId(openId === fp.plan.id ? null : fp.plan.id)}
                   onUpdate={(patch) => updatePlan(fp.plan.id, patch)}
                   onSetActive={() => setActiveFund(fp.plan.id)}
@@ -666,7 +489,7 @@ export function SuperPageClient() {
             <button
               type="button"
               onClick={addFund}
-              className="mt-3 flex items-center gap-1.5 text-sm text-violet-400 hover:text-violet-300 transition-colors"
+              className="mt-3 flex items-center gap-1.5 text-sm text-primary hover:text-primary transition-colors"
             >
               <Plus className="h-4 w-4" />
               Add fund
@@ -686,7 +509,7 @@ export function SuperPageClient() {
               <button
                 type="button"
                 onClick={addFund}
-                className="mt-4 flex items-center gap-1.5 rounded-lg bg-violet-500/20 px-4 py-2 text-sm text-violet-300 hover:bg-violet-500/30 transition-colors"
+                className="mt-4 flex items-center gap-1.5 rounded-lg bg-primary/20 px-4 py-2 text-sm text-primary hover:bg-primary/30 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Add fund
@@ -760,7 +583,7 @@ export function SuperPageClient() {
               {/* Combined chart */}
               <div className="rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
                 <div className="mb-1 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-violet-400" />
+                  <TrendingUp className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">Balance projection</span>
                   <span className="ml-auto text-xs text-muted-foreground">Age →</span>
                 </div>
@@ -786,8 +609,7 @@ export function SuperPageClient() {
                         const employerAnnual =
                           resolvedSettings.activePlanId === fp.plan.id
                             ? (Math.round(
-                                resolvedSettings.annualSalary *
-                                  resolvedSettings.employerContributionPct,
+                                (prefsSalary ?? 0) * resolvedSettings.employerContributionPct,
                               ) as Cents)
                             : (0 as Cents);
                         const voluntaryAnnual = (fp.projection.annualConcessionalContrib +

@@ -53,6 +53,15 @@ export class BudgyDB extends Dexie {
           await tx.table("superPlans").put({ ...rest, name: "My Super" });
         }
       });
+    // v3: remove annualSalary from superSettings (now read from prefs store)
+    this.version(3).upgrade(async (tx) => {
+      await tx
+        .table("superSettings")
+        .toCollection()
+        .modify((record: Record<string, unknown>) => {
+          delete record.annualSalary;
+        });
+    });
   }
 }
 

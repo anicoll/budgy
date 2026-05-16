@@ -13,10 +13,12 @@ import {
   computeMonthlyCashflow,
   computeNetWorthHistory,
   computePeriodKpis,
+  computeSpendingInsights,
 } from "../selectors";
 import { AccountStrip } from "./AccountStrip";
 import { CashflowChart } from "./CashflowChart";
 import { CategorySpendDonut } from "./CategorySpendDonut";
+import { InsightsCard } from "./InsightsCard";
 import { KpiCards } from "./KpiCards";
 import { NetWorthChart } from "./NetWorthChart";
 import { RecentTransactions } from "./RecentTransactions";
@@ -34,16 +36,27 @@ export function DashboardPageClient() {
   const period = useUIStore((s) => s.period);
   const { fortnightAnchor } = usePrefs();
 
-  const { data: accounts = [], isPending: accsLoading } = useAccounts();
-  const { data: allTxns = [], isPending: txnsLoading } = useTransactions();
-  const { data: categories = [], isPending: catsLoading } = useCategories();
-
-  const isLoading = accsLoading || txnsLoading || catsLoading;
-
   const range = useMemo(
     () => rangeForPeriod(period, new Date(), { fortnightAnchor }),
     [period, fortnightAnchor],
   );
+
+  // Fetch a 12-month look-back window to cover KPIs, cashflow history and net worth trend.
+  const historyRange = useMemo(() => {
+    const to = new Date();
+    const from = new Date(to);
+    from.setFullYear(from.getFullYear() - 1);
+    return {
+      from: from.toISOString().slice(0, 10),
+      to: to.toISOString().slice(0, 10),
+    };
+  }, []);
+
+  const { data: accounts = [], isPending: accsLoading } = useAccounts();
+  const { data: allTxns = [], isPending: txnsLoading } = useTransactions({ range: historyRange });
+  const { data: categories = [], isPending: catsLoading } = useCategories();
+
+  const isLoading = accsLoading || txnsLoading || catsLoading;
 
   const kpis = useMemo(
     () => computePeriodKpis(accounts, allTxns, range),
@@ -67,6 +80,11 @@ export function DashboardPageClient() {
     [allTxns],
   );
 
+  const insights = useMemo(
+    () => computeSpendingInsights(allTxns, categories, range),
+    [allTxns, categories, range],
+  );
+
   if (isLoading) {
     return <DashboardSkeleton />;
   }
@@ -86,6 +104,8 @@ export function DashboardPageClient() {
         <CategorySpendDonut data={categorySpend} periodLabel={PERIOD_LABEL[period] ?? period} />
         <RecentTransactions transactions={recentTxns} accounts={accounts} categories={categories} />
       </div>
+
+      <InsightsCard insights={insights} periodLabel={PERIOD_LABEL[period] ?? period} />
     </div>
   );
 }

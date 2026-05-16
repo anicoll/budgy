@@ -9,7 +9,6 @@ export interface SuperSettings {
   inflationPct: number; // e.g. 0.025
   currentAge: number;
   retirementAge: number;
-  annualSalary: Cents; // applied to the active fund only
   employerContributionPct: number; // e.g. 0.12
   activePlanId: string | null; // which fund receives employer SG
   updatedAt: string;
@@ -32,7 +31,6 @@ export const DEFAULT_SUPER_SETTINGS: Omit<SuperSettings, "id" | "updatedAt"> = {
   inflationPct: 0.025,
   currentAge: 35,
   retirementAge: 67,
-  annualSalary: 10_000_000 as Cents, // $100,000
   employerContributionPct: 0.12,
   activePlanId: null,
 };

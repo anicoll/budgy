@@ -1,8 +1,9 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, X } from "lucide-react";
+import { Plus, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SparklineChart } from "@/components/charts/SparklineChart";
 import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,8 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/features/categories/hooks";
+import { useMortgagePlan } from "@/features/mortgage/hooks";
+import { calcMinRepayment } from "@/features/mortgage/utils/amortise";
 import { useTransactions } from "@/features/transactions/hooks";
 import { signedAmount, type Transaction } from "@/features/transactions/types";
 import type { Cents } from "@/lib/money/cents";
@@ -36,7 +39,7 @@ import { BUDGET_PERIOD_LABEL } from "../types";
 import { computeFluidActuals, progressColor } from "../utils/actuals";
 import { estimateFortnightlyNet } from "../utils/au-tax";
 import { FREQUENCY_LABEL, normaliseToPeriod } from "../utils/normalise";
-import { currentPeriodRange } from "../utils/period";
+import { currentPeriodRange, shiftBudgetPeriod } from "../utils/period";
 import { HousingSetupDialog, isHousingCategory } from "./HousingSetupDialog";
 
 const PERIOD_TABS: { value: BudgetPeriod; label: string }[] = [
@@ -140,6 +143,7 @@ export function BudgetPlannerView({ budget }: Props) {
     includeArchived: true,
   });
   const { data: transactions = [] } = useTransactions();
+  const { data: mortgagePlan } = useMortgagePlan();
   const annualSalary = usePrefs((s) => s.annualSalary);
   const hasPrivateHealth = usePrefs((s) => s.hasPrivateHealth ?? false);
   const novatedLeases = usePrefs((s) => s.novatedLeases ?? EMPTY_LEASES);
@@ -283,10 +287,7 @@ export function BudgetPlannerView({ budget }: Props) {
 
     // Smart salary default: pre-fill estimated net fortnightly (AU tax estimate)
     const isSalary = /salary/i.test(catName);
-    const defaultAmount =
-      isSalary && annualSalary && annualSalary > 0
-        ? estimateFortnightlyNet(annualSalary, hasPrivateHealth, novatedLeases)
-        : (0 as Cents);
+    const defaultAmount = isSalary && salaryEstimate ? salaryEstimate : (0 as Cents);
 
     setTargetMutation.mutate({
       budgetId: budget.id,
@@ -356,11 +357,61 @@ export function BudgetPlannerView({ budget }: Props) {
     return links;
   }, [fluidActuals]);
 
-  // Salary sync: detect when stored budget target differs from current take-home estimate
-  const salaryEstimate =
-    annualSalary && annualSalary > 0
-      ? estimateFortnightlyNet(annualSalary, hasPrivateHealth, novatedLeases)
-      : null;
+  // Mortgage ↔ budget mismatch: detect when the mortgage minimum repayment
+  // diverges from the housing category's budget target by more than $1/month.
+  const mortgageMismatch = useMemo(() => {
+    if (!mortgagePlan) return null;
+    const housingItem = expense.find((e) => isHousingCategory(e.categoryName));
+    if (!housingItem) return null;
+    const minRepayment = calcMinRepayment(
+      mortgagePlan.currentBalance,
+      mortgagePlan.interestRate,
+      mortgagePlan.termYears,
+      mortgagePlan.repaymentFrequency,
+    );
+    const mortgageMonthly = normaliseToPeriod(
+      minRepayment,
+      mortgagePlan.repaymentFrequency as BudgetFrequency,
+      "monthly",
+    );
+    const budgetMonthly = normaliseToPeriod(
+      housingItem.nativeAmount,
+      housingItem.nativeFrequency,
+      "monthly",
+    );
+    if (Math.abs(mortgageMonthly - budgetMonthly) <= 100) return null;
+    return { categoryId: housingItem.categoryId, mortgageMonthly };
+  }, [mortgagePlan, expense]);
+
+  // Spend history for each category across last 6 view periods (for sparklines)
+  const sparklinesByCategory = useMemo(() => {
+    const LOOK_BACK = 6;
+    const periods: { from: string; to: string }[] = [];
+    for (let i = LOOK_BACK - 1; i >= 0; i--) {
+      periods.push(shiftBudgetPeriod(viewPeriod, budget.startDate, periodRange, -i));
+    }
+    const map = new Map<string, number[]>();
+    for (const txn of transactions) {
+      if (!txn.categoryId || txn.type !== "debit") continue;
+      for (let p = 0; p < periods.length; p++) {
+        const r = periods[p];
+        if (txn.date >= r.from && txn.date <= r.to) {
+          const arr = map.get(txn.categoryId) ?? new Array<number>(LOOK_BACK).fill(0);
+          arr[p] = (arr[p] ?? 0) + txn.amount / 100;
+          map.set(txn.categoryId, arr);
+        }
+      }
+    }
+    return map;
+  }, [transactions, viewPeriod, budget.startDate, periodRange]);
+
+  const salaryEstimate = useMemo(
+    () =>
+      annualSalary && annualSalary > 0
+        ? estimateFortnightlyNet(annualSalary, hasPrivateHealth, novatedLeases)
+        : null,
+    [annualSalary, hasPrivateHealth, novatedLeases],
+  );
 
   const salaryIncomeItem = income.find((item) => /salary/i.test(item.categoryName));
   const salaryOutOfSync =
@@ -440,7 +491,7 @@ export function BudgetPlannerView({ budget }: Props) {
 
       {/* Salary sync banner */}
       {salaryOutOfSync && salaryEstimate && (
-        <div className="flex items-center gap-3 border-b border-violet-500/20 bg-violet-500/10 px-4 py-2.5 text-sm">
+        <div className="flex items-center gap-3 border-b border-primary/20 bg-primary/10 px-4 py-2.5 text-sm">
           <span className="flex-1 text-muted-foreground">
             Your salary settings changed — estimated take-home is now{" "}
             <strong className="text-foreground tabular-nums">
@@ -451,7 +502,7 @@ export function BudgetPlannerView({ budget }: Props) {
           <button
             type="button"
             onClick={syncSalaryTarget}
-            className="shrink-0 rounded-lg bg-violet-500/20 px-3 py-1 text-xs font-medium text-violet-300 hover:bg-violet-500/30 transition-colors"
+            className="shrink-0 rounded-lg bg-primary/20 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/30 transition-colors"
           >
             Update budget
           </button>
@@ -494,8 +545,28 @@ export function BudgetPlannerView({ budget }: Props) {
             setExpandedCategoryId((prev) => (prev === categoryId ? null : categoryId))
           }
           txnsByCategory={inPeriodTransactionsByCategory}
+          sparklinesByCategory={sparklinesByCategory}
           loading={catsLoading}
         />
+
+        {/* Mortgage/budget mismatch hint */}
+        {mortgageMismatch && (
+          <div className="flex items-center gap-3 border-border/30 bg-warning/5 px-4 py-2 text-xs">
+            <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-warning" />
+            <span className="flex-1 text-muted-foreground">
+              Your mortgage repayment may have changed — housing budget could be stale.
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                saveTarget(mortgageMismatch.categoryId, mortgageMismatch.mortgageMonthly, "monthly")
+              }
+              className="shrink-0 rounded px-2 py-0.5 text-xs bg-muted hover:bg-muted/80 transition-colors"
+            >
+              Sync ${(mortgageMismatch.mortgageMonthly / 100).toFixed(0)}/mo
+            </button>
+          </div>
+        )}
 
         {/* Expense section */}
         <PlannerSection
@@ -512,6 +583,7 @@ export function BudgetPlannerView({ budget }: Props) {
             setExpandedCategoryId((prev) => (prev === categoryId ? null : categoryId))
           }
           txnsByCategory={inPeriodTransactionsByCategory}
+          sparklinesByCategory={sparklinesByCategory}
           loading={catsLoading}
         />
       </div>
@@ -655,6 +727,7 @@ interface SectionProps {
   expandedCategoryId: string | null;
   onToggleExpand: (categoryId: string) => void;
   txnsByCategory: Map<string, Transaction[]>;
+  sparklinesByCategory: Map<string, number[]>;
   loading: boolean;
 }
 
@@ -670,6 +743,7 @@ function PlannerSection({
   expandedCategoryId,
   onToggleExpand,
   txnsByCategory,
+  sparklinesByCategory,
   loading,
 }: SectionProps) {
   const [addOpen, setAddOpen] = useState(false);
@@ -728,6 +802,7 @@ function PlannerSection({
               expanded={expandedCategoryId === item.categoryId}
               onToggleExpand={onToggleExpand}
               transactions={txnsByCategory.get(item.categoryId) ?? []}
+              sparklineData={sparklinesByCategory.get(item.categoryId)}
             />
           ))}
         </div>
@@ -747,6 +822,7 @@ interface RowProps {
   expanded: boolean;
   onToggleExpand: (categoryId: string) => void;
   transactions: Transaction[];
+  sparklineData?: number[];
 }
 
 function PlannerRow({
@@ -758,6 +834,7 @@ function PlannerRow({
   expanded,
   onToggleExpand,
   transactions,
+  sparklineData,
 }: RowProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [rawAmount, setRawAmount] = useState(
@@ -829,6 +906,18 @@ function PlannerRow({
         >
           {item.categoryName}
         </button>
+
+        {/* 6-period spend sparkline */}
+        {sparklineData && !expanded && (
+          <div className="hidden w-16 shrink-0 lg:block">
+            <SparklineChart
+              data={sparklineData}
+              color={item.categoryColor}
+              positive={item.categoryType === "income"}
+              height={28}
+            />
+          </div>
+        )}
 
         {/* Normalised preview (when frequency differs from view) */}
         {showNormalisedPreview && (

@@ -11,13 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  useCategories,
-  useCategoryTree,
-  useCreateCategory,
-  useDeleteCategory,
-  useUpdateCategory,
-} from "../hooks";
+import { useCategoryTree, useCreateCategory, useDeleteCategory, useUpdateCategory } from "../hooks";
 import { seedDefaultCategories } from "../repository";
 import type { CategoryFormValues } from "../schema";
 import type { Category, CategoryType } from "../types";
@@ -33,7 +27,6 @@ export function CategoriesPageClient() {
   const { data: incomeTree = [] } = useCategoryTree("income");
   const { data: expenseTree = [] } = useCategoryTree("expense");
   const { data: transferTree = [] } = useCategoryTree("transfer");
-  const { data: allCategories = [] } = useCategories();
 
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
@@ -121,7 +114,13 @@ export function CategoriesPageClient() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <p className="text-xs text-muted-foreground">{allCategories.length} categories total</p>
+      <p className="text-xs text-muted-foreground">
+        {[...incomeTree, ...expenseTree, ...transferTree].reduce(
+          (n, node) => n + 1 + ((node as { subcategories?: unknown[] }).subcategories?.length ?? 0),
+          0,
+        )}{" "}
+        categories total
+      </p>
     </div>
   );
 }

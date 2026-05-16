@@ -5,6 +5,8 @@ import { AlertTriangle, Landmark } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { baseApexOptions, getChartTheme } from "@/components/charts/chart-theme";
+import { MoneyInput } from "@/components/forms/MoneyInput";
+import { NumInput } from "@/components/forms/NumInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Cents } from "@/lib/money/cents";
 import { formatAUD, formatAUDCompact } from "@/lib/money/format";
@@ -18,87 +20,8 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false })
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function centsToDisplay(c: Cents): string {
-  return String(Math.round(c / 100));
-}
-
-function displayToCents(s: string): Cents {
-  const n = Math.round(parseFloat(s.replace(/,/g, "")) * 100);
-  return (Number.isFinite(n) ? Math.max(0, n) : 0) as Cents;
-}
-
 function pctToDisplay(v: number) {
   return (v * 100).toFixed(2);
-}
-
-// ─── shared input atoms ───────────────────────────────────────────────────────
-
-function MoneyInput({
-  label,
-  value,
-  onChange,
-  hint,
-}: {
-  label: string;
-  value: Cents;
-  onChange: (v: Cents) => void;
-  hint?: string;
-}) {
-  const [raw, setRaw] = useState(centsToDisplay(value));
-  useEffect(() => setRaw(centsToDisplay(value)), [value]);
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-surface px-3 py-1.5 focus-within:border-violet-500/70">
-        <span className="text-sm text-muted-foreground">$</span>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={raw}
-          onChange={(e) => setRaw(e.target.value)}
-          onBlur={() => onChange(displayToCents(raw))}
-          className="min-w-0 flex-1 bg-transparent text-sm tabular-nums outline-none"
-        />
-      </div>
-      {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
-    </label>
-  );
-}
-
-function NumInput({
-  label,
-  value,
-  min,
-  max,
-  suffix,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  suffix?: string;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-surface px-3 py-1.5 focus-within:border-violet-500/70">
-        <input
-          type="number"
-          min={min}
-          max={max}
-          value={value}
-          onChange={(e) => {
-            const n = parseInt(e.target.value, 10);
-            if (Number.isFinite(n) && n >= min && n <= max) onChange(n);
-          }}
-          className="min-w-0 flex-1 bg-transparent text-sm tabular-nums outline-none"
-        />
-        {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
-      </div>
-    </label>
-  );
 }
 
 // ─── KPI card ────────────────────────────────────────────────────────────────
@@ -339,7 +262,7 @@ function RateInput({ value, onChange }: { value: number; onChange: (v: number) =
             onChange={(e) => setText(e.target.value)}
             onBlur={(e) => commitText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && commitText(text)}
-            className="w-14 rounded border border-border/60 bg-surface px-1.5 py-0.5 text-right text-xs tabular-nums focus:border-violet-500/70 focus:outline-none"
+            className="w-14 rounded border border-border/60 bg-surface px-1.5 py-0.5 text-right text-xs tabular-nums focus:border-ring focus:outline-none"
           />
           <span className="text-xs text-muted-foreground">%</span>
         </div>
@@ -461,8 +384,8 @@ export function MortgagePageClient() {
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15">
-          <Landmark className="h-5 w-5 text-violet-400" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15">
+          <Landmark className="h-5 w-5 text-primary" />
         </div>
         <div>
           <h1 className="text-lg font-semibold">Mortgage Projector</h1>
@@ -503,7 +426,7 @@ export function MortgagePageClient() {
                   onChange={(e) =>
                     update({ repaymentFrequency: e.target.value as RepaymentFrequency })
                   }
-                  className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-violet-500/70"
+                  className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-ring"
                 >
                   <option value="monthly">Monthly</option>
                   <option value="fortnightly">Fortnightly</option>
@@ -520,7 +443,7 @@ export function MortgagePageClient() {
                 type="month"
                 value={form.startDate}
                 onChange={(e) => update({ startDate: e.target.value })}
-                className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-violet-500/70"
+                className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-ring"
               />
             </label>
           </div>

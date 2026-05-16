@@ -97,6 +97,8 @@ export function TransactionsPageClient() {
       for (const id of prev) {
         if (allVisibleIds.has(id)) next.add(id);
       }
+      // Return the same reference when nothing changed — prevents infinite re-render loop
+      if (next.size === prev.size) return prev;
       return next;
     });
   }, [allVisibleIds]);

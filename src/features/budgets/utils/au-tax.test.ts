@@ -129,7 +129,7 @@ describe("estimateAUNetAnnual — novated leases", () => {
   });
 
   it("standard car lease (20% FBT): after-tax FBT cost reduces net", () => {
-    const withEV = estimateAUNetAnnual(cents(20_500_000), true, [evLease]);
+    const _withEV = estimateAUNetAnnual(cents(20_500_000), true, [evLease]);
     const withStd = estimateAUNetAnnual(cents(20_500_000), true, [stdLease]);
     // Both reduce taxable by their respective amounts
     // Standard also adds: $20,000 × 0.20 = $4,000 after-tax FBT cost

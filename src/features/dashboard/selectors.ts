@@ -193,3 +193,72 @@ export function computeAccountSparkline(
 
   return result;
 }
+
+// ── Spending insights ─────────────────────────────────────────────────────
+
+export interface SpendingInsight {
+  categoryId: string;
+  label: string;
+  color: string;
+  currentSpend: Cents;
+  priorSpend: Cents;
+  changePct: number; // positive = up, negative = down
+}
+
+export function computeSpendingInsights(
+  transactions: Transaction[],
+  categories: Category[],
+  currentRange: DateRange,
+  topN = 3,
+): SpendingInsight[] {
+  const currentFrom = new Date(currentRange.from);
+  const currentTo = new Date(currentRange.to);
+  const periodDays = Math.round(
+    (currentTo.getTime() - currentFrom.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  const priorTo = new Date(currentFrom);
+  priorTo.setDate(priorTo.getDate() - 1);
+  const priorFrom = new Date(priorTo);
+  priorFrom.setDate(priorFrom.getDate() - periodDays);
+  const priorRange: DateRange = {
+    from: priorFrom.toISOString().slice(0, 10),
+    to: priorTo.toISOString().slice(0, 10),
+  };
+
+  const catMap = new Map(categories.map((c) => [c.id, c]));
+
+  function spendInRange(range: DateRange): Map<string, number> {
+    const map = new Map<string, number>();
+    for (const t of transactions) {
+      if (t.type !== "debit" || !t.categoryId) continue;
+      if (t.date < range.from || t.date > range.to) continue;
+      map.set(t.categoryId, (map.get(t.categoryId) ?? 0) + t.amount);
+    }
+    return map;
+  }
+
+  const current = spendInRange(currentRange);
+  const prior = spendInRange(priorRange);
+  const allCatIds = new Set([...current.keys(), ...prior.keys()]);
+  const insights: SpendingInsight[] = [];
+
+  for (const catId of allCatIds) {
+    const cat = catMap.get(catId);
+    if (!cat || cat.type !== "expense") continue;
+    const cur = current.get(catId) ?? 0;
+    const prv = prior.get(catId) ?? 0;
+    if (prv === 0 && cur === 0) continue;
+    const changePct = prv > 0 ? ((cur - prv) / prv) * 100 : 100;
+    if (Math.abs(changePct) < 10) continue;
+    insights.push({
+      categoryId: catId,
+      label: cat.name,
+      color: cat.color,
+      currentSpend: cur as Cents,
+      priorSpend: prv as Cents,
+      changePct,
+    });
+  }
+
+  return insights.sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct)).slice(0, topN);
+}
