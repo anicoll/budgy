@@ -10,6 +10,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
+import { useState } from "react";
 import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Cents } from "@/lib/money/cents";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_TYPE_LABEL, type Account, isLiability } from "../types";
 
