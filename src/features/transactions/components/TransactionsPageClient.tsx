@@ -34,14 +34,14 @@ import { TransactionFormSheet } from "./TransactionFormSheet";
 import { TransactionRow } from "./TransactionRow";
 
 export function TransactionsPageClient() {
-  const PAGE_SIZE_OPTIONS = [50, 100, 250];
+  const PAGE_SIZE_OPTIONS = [25, 50, 100, 250];
   const [filters, setFilters] = useState<TxnFilters>(INITIAL_FILTERS);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
+  const [pageSize, setPageSize] = useState(25);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkCategoryId, setBulkCategoryId] = useState("none");
 

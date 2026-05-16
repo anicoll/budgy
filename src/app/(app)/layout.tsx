@@ -7,11 +7,11 @@ import { QuickAddDialog } from "@/features/transactions/components/QuickAddDialo
 export default function AppShellLayout({ children }: { children: React.ReactNode }) {
   return (
     <OnboardingGuard>
-      <div className="flex min-h-screen bg-app-radial">
+      <div className="flex h-screen overflow-hidden bg-app-radial">
         <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <Topbar />
-          <main className="min-w-0 flex-1 px-4 pb-24 md:px-6 md:pb-8 pt-6">{children}</main>
+          <main className="min-w-0 flex-1 overflow-y-auto px-4 pb-24 md:px-6 md:pb-8 pt-6">{children}</main>
         </div>
         <BottomTabs />
         <QuickAddDialog />
