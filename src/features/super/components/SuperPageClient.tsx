@@ -21,7 +21,7 @@ import {
 import type { SuperPlan, SuperSettings } from "../types";
 import { DEFAULT_SUPER_PLAN, DEFAULT_SUPER_SETTINGS } from "../types";
 import { CONCESSIONAL_CAP, DRAWDOWN_YEARS, NON_CONCESSIONAL_CAP } from "../utils/au-rules";
-import { projectSuper } from "../utils/project";
+import { computeDrawdown, computeRequiredContribution, projectSuper } from "../utils/project";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -44,11 +44,13 @@ function KpiCard({
   value,
   sub,
   accent,
+  longevityColour,
 }: {
   label: string;
   value: string;
   sub?: string;
   accent?: boolean;
+  longevityColour?: string;
 }) {
   return (
     <div className="flex flex-col gap-1 rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
@@ -56,7 +58,11 @@ function KpiCard({
       <span
         className={cn(
           "text-xl font-bold tabular-nums leading-tight",
-          accent ? "bg-gradient-accent bg-clip-text text-transparent" : "text-foreground",
+          accent
+            ? "bg-gradient-accent bg-clip-text text-transparent"
+            : longevityColour
+              ? longevityColour
+              : "text-foreground",
         )}
       >
         {value}
@@ -377,6 +383,50 @@ export function SuperPageClient() {
     (fp) => fp.projection.concessionalCapBreached || fp.projection.nonConcessionalCapBreached,
   );
 
+  // ── Drawdown phase ───────────────────────────────────────────────────────────
+
+  const drawdownProjection = useMemo(() => {
+    if (totalNominal <= 0 || plans.length === 0) return null;
+    // Use the active fund's return rate as the portfolio drawdown rate
+    const activeFund = plans.find((p) => p.id === resolvedSettings.activePlanId) ?? plans[0];
+    return computeDrawdown({
+      retirementNominal: totalNominal,
+      expectedReturnPct: activeFund.expectedReturnPct,
+      inflationPct: resolvedSettings.inflationPct,
+      retirementAge: resolvedSettings.retirementAge,
+      monthlyDrawdownTarget: resolvedSettings.monthlyDrawdownTarget,
+      yearsToRetirement,
+    });
+  }, [totalNominal, plans, resolvedSettings, yearsToRetirement]);
+
+  // Longevity colour: green = lasts past 100, amber = 90-99, red = before 90
+  const depletionAge = drawdownProjection?.depletionAge ?? null;
+  const longevityColour =
+    depletionAge === null
+      ? "text-income"
+      : depletionAge >= 90
+        ? "text-warning"
+        : "text-destructive";
+
+  // Top-up needed: only shown when the simulation itself shows depletion before 100.
+  // If depletionAge is null the simulation confirms funds last — no contradiction.
+  const topUpFortnightly = useMemo(() => {
+    if (!resolvedSettings.monthlyDrawdownTarget || !drawdownProjection) return null;
+    // Simulation says on track — show "on track" (0 contribution needed)
+    if (depletionAge === null) return 0 as Cents;
+    // Funds deplete in simulation — compute how much more to contribute each fortnight
+    const activeFund = plans.find((p) => p.id === resolvedSettings.activePlanId) ?? plans[0];
+    if (!activeFund || yearsToRetirement <= 0) return null;
+    const realReturn = activeFund.expectedReturnPct - resolvedSettings.inflationPct;
+    if (realReturn <= 0) return null;
+    // Balance needed to sustain income using real-return perpetuity
+    const nominalMonthly = drawdownProjection.monthlyWithdrawal;
+    const balanceNeeded = Math.round((nominalMonthly * 12) / realReturn) as Cents;
+    const gap = Math.max(0, balanceNeeded - totalNominal) as Cents;
+    if (gap === 0) return 0 as Cents;
+    return computeRequiredContribution(gap, activeFund.expectedReturnPct, yearsToRetirement);
+  }, [resolvedSettings, drawdownProjection, depletionAge, plans, totalNominal, yearsToRetirement]);
+
   if (isPending) {
     return (
       <div className="flex flex-col gap-6 p-6">
@@ -453,6 +503,13 @@ export function SuperPageClient() {
               max={8}
               step={0.25}
               onChange={(v) => updateSettings({ inflationPct: v })}
+            />
+
+            <MoneyInput
+              label="Monthly income target (today's $)"
+              value={resolvedSettings.monthlyDrawdownTarget ?? (0 as Cents)}
+              onChange={(v) => updateSettings({ monthlyDrawdownTarget: v > 0 ? v : undefined })}
+              hint="How much you want per month in retirement"
             />
           </div>
 
@@ -532,15 +589,59 @@ export function SuperPageClient() {
                 />
                 <KpiCard
                   label="Monthly income"
-                  value={formatAUDCompact(totalDrawdown)}
-                  sub={`${DRAWDOWN_YEARS}yr drawdown (real)`}
+                  value={
+                    drawdownProjection
+                      ? formatAUDCompact(drawdownProjection.monthlyWithdrawal)
+                      : formatAUDCompact(totalDrawdown)
+                  }
+                  sub={
+                    drawdownProjection
+                      ? "Nominal at retirement"
+                      : `${DRAWDOWN_YEARS}yr estimate (real)`
+                  }
                 />
+                {/* Longevity — funds last to age X */}
                 <KpiCard
-                  label="Years to retirement"
-                  value={String(yearsToRetirement)}
-                  sub={`Age ${resolvedSettings.currentAge} → ${resolvedSettings.retirementAge}`}
+                  label="Funds last to age"
+                  value={depletionAge === null ? "100+" : String(depletionAge)}
+                  sub={
+                    depletionAge === null
+                      ? "Sustainable ✓"
+                      : depletionAge < 90
+                        ? "Consider increasing contributions"
+                        : "Good longevity"
+                  }
+                  longevityColour={longevityColour}
                 />
               </div>
+
+              {/* Top-up needed */}
+              {topUpFortnightly !== null && (
+                <div
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm",
+                    topUpFortnightly === 0
+                      ? "border-income/30 bg-income/10"
+                      : "border-warning/30 bg-warning/10",
+                  )}
+                >
+                  <div className="flex-1">
+                    {topUpFortnightly === 0 ? (
+                      <span className="font-medium text-income">
+                        On track ✓ — your balance covers your target income
+                      </span>
+                    ) : (
+                      <span className="font-medium text-warning">
+                        Add{" "}
+                        <strong className="tabular-nums">
+                          {formatAUDCompact(topUpFortnightly)}/fn
+                        </strong>{" "}
+                        more to reach your income target
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Cap warnings */}
               {capBreaches.length > 0 && (
@@ -580,15 +681,48 @@ export function SuperPageClient() {
                 </div>
               )}
 
-              {/* Combined chart */}
+              {/* Accumulation chart */}
               <div className="rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
                 <div className="mb-1 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Balance projection</span>
+                  <span className="text-sm font-medium">Balance projection (accumulation)</span>
                   <span className="ml-auto text-xs text-muted-foreground">Age →</span>
                 </div>
-                <AreaChart series={chartSeries} height={280} stacked />
+                <AreaChart series={chartSeries} height={260} stacked />
               </div>
+
+              {/* Drawdown chart */}
+              {drawdownProjection && drawdownProjection.drawdownYears.length > 1 && (
+                <div className="rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
+                  <div className="mb-1 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Retirement drawdown</span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {depletionAge === null
+                        ? "Funds last beyond age 100"
+                        : `Funds depleted at age ${depletionAge}`}
+                    </span>
+                  </div>
+                  <AreaChart
+                    series={[
+                      {
+                        name: "Portfolio balance",
+                        data: drawdownProjection.drawdownYears.map((y) => ({
+                          x: String(y.age),
+                          y: y.balance as number,
+                        })),
+                        color:
+                          depletionAge !== null && depletionAge < 90
+                            ? "hsl(0 72% 60%)"
+                            : depletionAge !== null
+                              ? "hsl(38 92% 55%)"
+                              : "hsl(152 65% 50%)",
+                      },
+                    ]}
+                    height={220}
+                  />
+                </div>
+              )}
 
               {/* Per-fund contribution summary */}
               <div className="rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">

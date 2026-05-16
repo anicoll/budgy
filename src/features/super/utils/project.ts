@@ -26,6 +26,111 @@ export interface SuperProjectionResult {
   nonConcessionalCapBreached: boolean;
 }
 
+// ── Drawdown phase ────────────────────────────────────────────────────────────
+
+export interface DrawdownYear {
+  age: number;
+  balance: Cents; // total portfolio balance (nominal)
+  withdrawal: Cents; // annual withdrawal that year (inflation-escalated)
+}
+
+export interface DrawdownResult {
+  drawdownYears: DrawdownYear[];
+  depletionAge: number | null; // age when balance hits 0; null if funds last past 100
+  monthlyWithdrawal: Cents; // nominal monthly withdrawal at start of retirement
+}
+
+export interface DrawdownInput {
+  retirementNominal: Cents;
+  expectedReturnPct: number;
+  inflationPct: number;
+  retirementAge: number;
+  monthlyDrawdownTarget?: Cents; // today's dollars; if omitted, auto-estimate
+  yearsToRetirement: number;
+}
+
+/** Compute the retirement drawdown phase on a combined portfolio balance. */
+export function computeDrawdown(input: DrawdownInput): DrawdownResult {
+  const {
+    retirementNominal,
+    expectedReturnPct,
+    inflationPct,
+    retirementAge,
+    monthlyDrawdownTarget,
+    yearsToRetirement,
+  } = input;
+
+  if (retirementNominal <= 0) {
+    return { drawdownYears: [], depletionAge: retirementAge, monthlyWithdrawal: 0 as Cents };
+  }
+
+  // Inflate today's-dollar target to nominal retirement dollars
+  const nominalMonthly: number =
+    monthlyDrawdownTarget && monthlyDrawdownTarget > 0
+      ? Math.round(monthlyDrawdownTarget * (1 + inflationPct) ** yearsToRetirement)
+      : Math.round(retirementNominal / (DRAWDOWN_YEARS * 12));
+
+  const monthlyWithdrawal = nominalMonthly as Cents;
+
+  const drawdownYears: DrawdownYear[] = [];
+  let balance: number = retirementNominal;
+  let depletionAge: number | null = null;
+  let currentMonthly: number = nominalMonthly;
+
+  // First data point: balance at retirement before any withdrawal
+  drawdownYears.push({
+    age: retirementAge,
+    balance: Math.round(balance) as Cents,
+    withdrawal: 0 as Cents,
+  });
+
+  for (let year = 1; year <= 100 - retirementAge; year++) {
+    const age = retirementAge + year;
+    const yearlyWithdrawal = Math.round(currentMonthly * 12);
+
+    for (let m = 0; m < 12; m++) {
+      balance = balance * (1 + expectedReturnPct / 12) - currentMonthly;
+      if (balance <= 0) {
+        balance = 0;
+        break;
+      }
+    }
+
+    drawdownYears.push({
+      age,
+      balance: Math.round(balance) as Cents,
+      withdrawal: yearlyWithdrawal as Cents,
+    });
+
+    if (balance <= 0) {
+      depletionAge = age;
+      break;
+    }
+
+    // Escalate withdrawal by inflation each year to maintain real purchasing power
+    currentMonthly = currentMonthly * (1 + inflationPct);
+  }
+
+  return { drawdownYears, depletionAge, monthlyWithdrawal };
+}
+
+/**
+ * Fortnightly contribution (PMT) needed to accumulate a target lump sum.
+ * Uses the future-value annuity formula: PMT = FV × r / ((1+r)^n − 1)
+ */
+export function computeRequiredContribution(
+  targetGap: Cents,
+  annualRate: number,
+  yearsToRetirement: number,
+): Cents {
+  if (targetGap <= 0 || yearsToRetirement <= 0) return 0 as Cents;
+  const n = yearsToRetirement * 26; // fortnightly periods
+  const r = annualRate / 26;
+  if (r <= 0) return Math.round(targetGap / Math.max(1, n)) as Cents;
+  const pmt = (targetGap * r) / ((1 + r) ** n - 1);
+  return Math.round(pmt) as Cents;
+}
+
 export interface SuperProjectionInput {
   currentBalance: Cents;
   annualSalary: Cents;

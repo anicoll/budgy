@@ -11,6 +11,7 @@ export interface SuperSettings {
   retirementAge: number;
   employerContributionPct: number; // e.g. 0.12
   activePlanId: string | null; // which fund receives employer SG
+  monthlyDrawdownTarget?: Cents; // desired monthly income in retirement (today's dollars)
   updatedAt: string;
 }
 
