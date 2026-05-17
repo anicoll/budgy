@@ -18,11 +18,11 @@ import {
   useSaveSuperSettings,
   useSuperSettings,
 } from "../hooks";
+import { useProjectionWorker } from "../hooks/useProjectionWorker";
 import type { SuperPlan, SuperSettings } from "../types";
 import { DEFAULT_SUPER_PLAN, DEFAULT_SUPER_SETTINGS } from "../types";
 import { CONCESSIONAL_CAP, DRAWDOWN_YEARS, NON_CONCESSIONAL_CAP } from "../utils/au-rules";
 import { FUND_COLORS } from "../utils/project.worker-types";
-import { useProjectionWorker } from "../hooks/useProjectionWorker";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -481,9 +481,7 @@ export function SuperPageClient() {
   // Stable input object for the worker — recreates when data or live patch changes.
   const superInput = useMemo(
     () =>
-      isPending
-        ? null
-        : { plans, settings: effectiveSettings, prefsSalary: prefsSalary ?? 0 },
+      isPending ? null : { plans, settings: effectiveSettings, prefsSalary: prefsSalary ?? 0 },
     [plans, effectiveSettings, prefsSalary, isPending],
   );
 

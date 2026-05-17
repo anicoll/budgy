@@ -14,9 +14,7 @@ export function useProjectionWorker(input: SuperWorkerInput | null) {
   const reqId = useRef(0);
 
   useEffect(() => {
-    const w = new Worker(
-      new URL("../utils/project.worker.ts", import.meta.url),
-    );
+    const w = new Worker(new URL("../utils/project.worker.ts", import.meta.url));
     w.onmessage = (e: MessageEvent<WorkerResponse>) => {
       // Drop stale responses — only accept the latest request
       if (e.data.id === reqId.current) {

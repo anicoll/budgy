@@ -103,10 +103,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
     (s, fp) => s + fp.projection.retirementNominal,
     0,
   ) as Cents;
-  const totalReal = fundProjections.reduce(
-    (s, fp) => s + fp.projection.retirementReal,
-    0,
-  ) as Cents;
+  const totalReal = fundProjections.reduce((s, fp) => s + fp.projection.retirementReal, 0) as Cents;
   const totalDrawdown = fundProjections.reduce(
     (s, fp) => s + fp.projection.monthlyDrawdown,
     0,
@@ -117,8 +114,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   );
   const hasMultipleOwners = fundProjections.some((fp) => fp.isIndependent);
   const capBreaches = fundProjections.filter(
-    (fp) =>
-      fp.projection.concessionalCapBreached || fp.projection.nonConcessionalCapBreached,
+    (fp) => fp.projection.concessionalCapBreached || fp.projection.nonConcessionalCapBreached,
   );
 
   // ── Drawdown phase ─────────────────────────────────────────────────────────
@@ -140,7 +136,11 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
 
   const depletionAge = drawdownProjection?.depletionAge ?? null;
   const longevityColour =
-    depletionAge === null ? "text-income" : depletionAge >= 90 ? "text-warning" : "text-destructive";
+    depletionAge === null
+      ? "text-income"
+      : depletionAge >= 90
+        ? "text-warning"
+        : "text-destructive";
 
   // ── Top-up contribution ────────────────────────────────────────────────────
 
