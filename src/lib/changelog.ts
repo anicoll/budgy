@@ -7,6 +7,36 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.11.0",
+    date: "2026-05-17",
+    title: "Categories redesign & UX polish",
+    changes: [
+      "Category management fully redesigned: tabbed card grid (Expense / Income / Transfer) with search, drag-to-reorder, and count badges",
+      "Quick-add subcategory inline inside each card — no sheet required; Enter saves, Escape cancels",
+      "Category form: live avatar preview, hex colour input, emoji icon field, archived toggle in edit mode",
+      "All category dropdowns sorted alphabetically across transactions, budgets and filter bars",
+      "Data reset now fully clears super plans, mortgage plans, novated leases and salary settings",
+      "Dexie schema simplified to a single version — no more incremental migrations",
+    ],
+  },
+  {
+    version: "0.10.0",
+    date: "2026-05-16",
+    title: "Super drawdown, budget planner uplift & CSV import",
+    changes: [
+      "Super projector: full retirement drawdown modelling — year-by-year simulation with investment returns and inflation-escalated withdrawals",
+      "\"Funds last to age\" KPI: green (100+), amber (90–99), red (<90); top-up banner shows fortnightly contribution needed to close a shortfall",
+      "Drawdown chart: second area chart showing portfolio declining post-retirement, coloured by longevity status",
+      "Budget planner: period navigator (← →) to browse past periods, PocketSmith-style rows with progress bar and \"$X left / over\" framing",
+      "Category hierarchy rollup: subcategories aggregate into their parent budget row — no double-counting",
+      "CSV import: upload ANZ or CommBank bank exports directly into transactions (drag-and-drop or click to upload)",
+      "Dashboard: Spending Insights card comparing current vs prior period spend by category",
+      "Sidebar is now fixed — stays visible while scrolling long pages like Transactions and Budgets",
+      "Budget mortgage/salary sync banners and row amount updates take effect immediately without a page refresh",
+      "Error boundary screens added across all main routes",
+    ],
+  },
+  {
     version: "0.9.0",
     date: "2026-05-15",
     title: "Holistic integration — salary, housing & novated leases",

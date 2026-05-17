@@ -291,7 +291,7 @@ export function SettingsPageClient() {
       {/* About */}
       <Section title="About">
         <Row label="Budgy" description="Personal finance app — local-first, no login required">
-          <span className="text-xs text-muted-foreground">v0.9.0</span>
+          <span className="text-xs text-muted-foreground">v0.11.0</span>
         </Row>
       </Section>
     </div>
