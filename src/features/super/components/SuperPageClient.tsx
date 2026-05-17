@@ -21,22 +21,8 @@ import {
 import type { SuperPlan, SuperSettings } from "../types";
 import { DEFAULT_SUPER_PLAN, DEFAULT_SUPER_SETTINGS } from "../types";
 import { CONCESSIONAL_CAP, DRAWDOWN_YEARS, NON_CONCESSIONAL_CAP } from "../utils/au-rules";
-import {
-  computeDrawdown,
-  computeMaxSustainableWithdrawal,
-  computeRequiredContribution,
-  projectSuper,
-} from "../utils/project";
-
-// ─── constants ────────────────────────────────────────────────────────────────
-
-const FUND_COLORS = [
-  "hsl(262 83% 65%)",
-  "hsl(190 95% 55%)",
-  "hsl(152 65% 50%)",
-  "hsl(38 92% 55%)",
-  "hsl(330 80% 65%)",
-];
+import { FUND_COLORS } from "../utils/project.worker-types";
+import { useProjectionWorker } from "../hooks/useProjectionWorker";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -405,14 +391,32 @@ export function SuperPageClient() {
 
   const isPending = settingsPending || plansPending;
 
-  // ── settings helpers ──────────────────────────────────────────────────────
+  // ── Settings: live-preview patch ─────────────────────────────────────────
+  // liveSettingsPatch holds in-flight changes so the worker re-runs immediately
+  // on every slider move without waiting for the 600ms DB debounce.
+  // pendingPatch is a ref (not state) so accumulating changes doesn't cause
+  // extra renders — only the merged liveSettingsPatch state does.
+  const [liveSettingsPatch, setLiveSettingsPatch] = useState<Partial<SuperSettings>>({});
+  const pendingPatch = useRef<Partial<SuperSettings>>({});
 
   const updateSettings = useCallback(
     (patch: Partial<Omit<SuperSettings, "id" | "updatedAt">>) => {
       if (!settings) return;
-      const next = { ...settings, ...patch };
+      // Accumulate into pending (ref — no re-render)
+      pendingPatch.current = { ...pendingPatch.current, ...patch };
+      // Trigger immediate worker re-run via state (one re-render)
+      setLiveSettingsPatch({ ...pendingPatch.current });
+      // Debounce the DB write
       if (settingsTimer.current) clearTimeout(settingsTimer.current);
-      settingsTimer.current = setTimeout(() => saveSettingsMutation.mutate(next), 600);
+      settingsTimer.current = setTimeout(() => {
+        const next = { ...settings, ...pendingPatch.current };
+        saveSettingsMutation.mutate(next, {
+          onSettled: () => {
+            pendingPatch.current = {};
+            setLiveSettingsPatch({});
+          },
+        });
+      }, 600);
     },
     [settings, saveSettingsMutation],
   );
@@ -457,156 +461,59 @@ export function SuperPageClient() {
     }
   }
 
-  // ── projections ───────────────────────────────────────────────────────────
+  // ── Worker-based projections ──────────────────────────────────────────────
 
-  const resolvedSettings = settings ?? { ...DEFAULT_SUPER_SETTINGS, id: "primary", updatedAt: "" };
-
-  const fundProjections = useMemo(() => {
-    return plans.map((plan, i) => {
-      const isIndependent = plan.ownerSalary !== undefined;
-      const isPrimary = !isIndependent && plan.id === resolvedSettings.activePlanId;
-
-      const effectiveSalary: Cents = isIndependent
-        ? (plan.ownerSalary as Cents)
-        : isPrimary
-          ? ((prefsSalary ?? 0) as Cents)
-          : (0 as Cents);
-
-      const effectiveCurrentAge = plan.ownerCurrentAge ?? resolvedSettings.currentAge;
-      const effectiveRetirementAge = plan.ownerRetirementAge ?? resolvedSettings.retirementAge;
-      const effectiveEmployerPct = isIndependent
-        ? (plan.ownerEmployerPct ?? resolvedSettings.employerContributionPct)
-        : isPrimary
-          ? resolvedSettings.employerContributionPct
-          : 0;
-
-      return {
-        plan,
-        isIndependent,
-        effectiveCurrentAge,
-        projection: projectSuper({
-          currentBalance: plan.currentBalance,
-          annualSalary: effectiveSalary,
-          employerContributionPct: effectiveEmployerPct,
-          voluntaryContribution: plan.voluntaryContribution,
-          voluntaryFrequency: plan.voluntaryFrequency,
-          voluntaryType: plan.voluntaryType,
-          expectedReturnPct: plan.expectedReturnPct,
-          feesPct: plan.feesPct,
-          inflationPct: resolvedSettings.inflationPct,
-          currentAge: effectiveCurrentAge,
-          retirementAge: effectiveRetirementAge,
-        }),
-        color: FUND_COLORS[i % FUND_COLORS.length],
-      };
-    });
-  }, [plans, resolvedSettings, prefsSalary]);
-
-  const hasMultipleOwners = fundProjections.some((fp) => fp.isIndependent);
-
-  // Stacked area — each fund is a coloured band; the stack top = total.
-  // X-axis uses calendar year so funds with different owner ages align on the same timeline.
-  // All series are padded to the same year range (union of all fund years) so ApexCharts
-  // stacked mode can align them correctly — missing years from shorter-horizon funds use 0.
-  const chartSeries = useMemo(() => {
-    const calYear = new Date().getFullYear();
-
-    // Map each fund's age-indexed years to calendar-year-indexed values
-    const fundData = fundProjections.map((fp) => {
-      const byYear = new Map<number, number>();
-      for (const y of fp.projection.years) {
-        byYear.set(calYear + (y.age - fp.effectiveCurrentAge), y.nominal as number);
-      }
-      return { fp, byYear };
-    });
-
-    // Collect the union of all calendar years across every fund, sorted ascending
-    const allYears = [...new Set(fundData.flatMap(({ byYear }) => [...byYear.keys()]))].sort(
-      (a, b) => a - b,
-    );
-
-    return fundData.map(({ fp, byYear }) => {
-      const retirementYear = Math.max(...byYear.keys());
-      const retirementBalance = fp.projection.retirementNominal as number;
-      return {
-        name: fp.plan.name,
-        // After retirement, hold the peak balance as a flat line so the stacked
-        // chart doesn't collapse — the money is still there, just in drawdown.
-        data: allYears.map((yr) => ({
-          x: String(yr),
-          y: byYear.get(yr) ?? (yr > retirementYear ? retirementBalance : 0),
-        })),
-        color: fp.color,
-      };
-    });
-  }, [fundProjections]);
-
-  const totalNominal = fundProjections.reduce(
-    (s, fp) => (s + fp.projection.retirementNominal) as Cents,
-    0 as Cents,
-  );
-  const totalReal = fundProjections.reduce(
-    (s, fp) => (s + fp.projection.retirementReal) as Cents,
-    0 as Cents,
-  );
-  const totalDrawdown = fundProjections.reduce(
-    (s, fp) => (s + fp.projection.monthlyDrawdown) as Cents,
-    0 as Cents,
-  );
-  const yearsToRetirement = Math.max(
-    0,
-    resolvedSettings.retirementAge - resolvedSettings.currentAge,
+  const resolvedSettings = useMemo(
+    () => settings ?? { ...DEFAULT_SUPER_SETTINGS, id: "primary", updatedAt: "" },
+    [settings],
   );
 
-  const capBreaches = fundProjections.filter(
-    (fp) => fp.projection.concessionalCapBreached || fp.projection.nonConcessionalCapBreached,
+  // Merge the live in-flight patch so the worker sees slider values immediately,
+  // without waiting for the 600ms DB debounce + React Query refetch cycle.
+  const effectiveSettings = useMemo(
+    () =>
+      Object.keys(liveSettingsPatch).length > 0
+        ? { ...resolvedSettings, ...liveSettingsPatch }
+        : resolvedSettings,
+    [resolvedSettings, liveSettingsPatch],
   );
 
-  // ── Drawdown phase ───────────────────────────────────────────────────────────
+  // Stable input object for the worker — recreates when data or live patch changes.
+  const superInput = useMemo(
+    () =>
+      isPending
+        ? null
+        : { plans, settings: effectiveSettings, prefsSalary: prefsSalary ?? 0 },
+    [plans, effectiveSettings, prefsSalary, isPending],
+  );
 
-  const drawdownProjection = useMemo(() => {
-    if (totalNominal <= 0 || plans.length === 0) return null;
-    // Use the active fund's return rate as the portfolio drawdown rate
-    const activeFund = plans.find((p) => p.id === resolvedSettings.activePlanId) ?? plans[0];
-    return computeDrawdown({
-      retirementNominal: totalNominal,
-      expectedReturnPct: activeFund.expectedReturnPct,
-      inflationPct: resolvedSettings.inflationPct,
-      retirementAge: resolvedSettings.retirementAge,
-      monthlyDrawdownTarget: resolvedSettings.monthlyDrawdownTarget,
-      yearsToRetirement,
-    });
-  }, [totalNominal, plans, resolvedSettings, yearsToRetirement]);
+  const { result, isComputing } = useProjectionWorker(superInput);
 
-  // Longevity colour: green = lasts past 100, amber = 90-99, red = before 90
-  const depletionAge = drawdownProjection?.depletionAge ?? null;
-  const longevityColour =
-    depletionAge === null
-      ? "text-income"
-      : depletionAge >= 90
-        ? "text-warning"
-        : "text-destructive";
+  // Colour map for the fund list — computed on the main thread so FundCards
+  // update instantly when a fund is added/removed without waiting for the worker.
+  const planColors = useMemo(
+    () => new Map(plans.map((p, i) => [p.id, FUND_COLORS[i % FUND_COLORS.length]])),
+    [plans],
+  );
 
-  // Top-up needed: only shown when the simulation itself shows depletion before 100.
-  // If depletionAge is null the simulation confirms funds last — no contradiction.
-  const topUpFortnightly = useMemo(() => {
-    if (!resolvedSettings.monthlyDrawdownTarget || !drawdownProjection) return null;
-    // Simulation says on track — show "on track" (0 contribution needed)
-    if (depletionAge === null) return 0 as Cents;
-    // Funds deplete in simulation — compute how much more to contribute each fortnight
-    const activeFund = plans.find((p) => p.id === resolvedSettings.activePlanId) ?? plans[0];
-    if (!activeFund || yearsToRetirement <= 0) return null;
-    const realReturn = activeFund.expectedReturnPct - resolvedSettings.inflationPct;
-    if (realReturn <= 0) return null;
-    // Balance needed to sustain income using real-return perpetuity
-    const nominalMonthly = drawdownProjection.monthlyWithdrawal;
-    const balanceNeeded = Math.round((nominalMonthly * 12) / realReturn) as Cents;
-    const gap = Math.max(0, balanceNeeded - totalNominal) as Cents;
-    if (gap === 0) return 0 as Cents;
-    return computeRequiredContribution(gap, activeFund.expectedReturnPct, yearsToRetirement);
-  }, [resolvedSettings, drawdownProjection, depletionAge, plans, totalNominal, yearsToRetirement]);
+  // Destructure worker output with safe fallbacks for the initial render
+  const {
+    fundProjections = [],
+    chartSeries = [],
+    totalNominal = 0 as Cents,
+    totalReal = 0 as Cents,
+    totalDrawdown = 0 as Cents,
+    yearsToRetirement = 0,
+    hasMultipleOwners = false,
+    capBreaches = [],
+    drawdownProjection = null,
+    depletionAge = null,
+    longevityColour = "text-income",
+    topUpFortnightly = null,
+    maxSustainableWithdrawal = 0,
+  } = result ?? {};
 
-  if (isPending) {
+  if (isPending || result === null) {
     return (
       <div className="flex flex-col gap-6 p-6">
         <Skeleton className="h-8 w-48" />
@@ -631,8 +538,10 @@ export function SuperPageClient() {
             Month-by-month growth across all your funds
           </p>
         </div>
-        {(saveSettingsMutation.isPending || savePlanMutation.isPending) && (
-          <span className="ml-auto text-xs text-muted-foreground">Saving…</span>
+        {(saveSettingsMutation.isPending || savePlanMutation.isPending || isComputing) && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            {isComputing ? "Recalculating…" : "Saving…"}
+          </span>
         )}
       </div>
 
@@ -646,29 +555,29 @@ export function SuperPageClient() {
             <div className="grid grid-cols-2 gap-3">
               <NumInput
                 label="Current age"
-                value={resolvedSettings.currentAge}
+                value={effectiveSettings.currentAge}
                 min={18}
                 max={74}
                 suffix="yrs"
                 onChange={(v: number) =>
-                  updateSettings({ currentAge: Math.min(v, resolvedSettings.retirementAge - 1) })
+                  updateSettings({ currentAge: Math.min(v, effectiveSettings.retirementAge - 1) })
                 }
               />
               <NumInput
                 label="Retirement age"
-                value={resolvedSettings.retirementAge}
-                min={resolvedSettings.currentAge + 1}
+                value={effectiveSettings.retirementAge}
+                min={effectiveSettings.currentAge + 1}
                 max={80}
                 suffix="yrs"
                 onChange={(v: number) =>
-                  updateSettings({ retirementAge: Math.max(v, resolvedSettings.currentAge + 1) })
+                  updateSettings({ retirementAge: Math.max(v, effectiveSettings.currentAge + 1) })
                 }
               />
             </div>
 
             <SliderWithText
               label="Employer SG rate"
-              value={resolvedSettings.employerContributionPct}
+              value={effectiveSettings.employerContributionPct}
               min={9}
               max={15}
               step={0.5}
@@ -677,7 +586,7 @@ export function SuperPageClient() {
 
             <SliderWithText
               label="Inflation (p.a.)"
-              value={resolvedSettings.inflationPct}
+              value={effectiveSettings.inflationPct}
               min={0}
               max={8}
               step={0.25}
@@ -687,32 +596,21 @@ export function SuperPageClient() {
             <div className="flex flex-col gap-1">
               <MoneyInput
                 label="Monthly income target (today's $)"
-                value={resolvedSettings.monthlyDrawdownTarget ?? (0 as Cents)}
+                value={effectiveSettings.monthlyDrawdownTarget ?? (0 as Cents)}
                 onChange={(v) => updateSettings({ monthlyDrawdownTarget: v > 0 ? v : undefined })}
                 hint="How much you want per month in retirement"
               />
-              {totalNominal > 0 &&
-                plans.length > 0 &&
-                (() => {
-                  const activeFund =
-                    plans.find((p) => p.id === resolvedSettings.activePlanId) ?? plans[0];
-                  const max = computeMaxSustainableWithdrawal({
-                    retirementNominal: totalNominal,
-                    expectedReturnPct: activeFund.expectedReturnPct,
-                    inflationPct: resolvedSettings.inflationPct,
-                    retirementAge: resolvedSettings.retirementAge,
-                    yearsToRetirement,
-                  });
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => updateSettings({ monthlyDrawdownTarget: max })}
-                      className="self-start text-[11px] text-primary hover:underline tabular-nums"
-                    >
-                      Maximise to age 100 → {formatAUDCompact(max)}/mo
-                    </button>
-                  );
-                })()}
+              {maxSustainableWithdrawal > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateSettings({ monthlyDrawdownTarget: maxSustainableWithdrawal as Cents })
+                  }
+                  className="self-start text-[11px] text-primary hover:underline tabular-nums"
+                >
+                  Maximise to age 100 → {formatAUDCompact(maxSustainableWithdrawal as Cents)}/mo
+                </button>
+              )}
             </div>
           </div>
 
@@ -729,21 +627,21 @@ export function SuperPageClient() {
             )}
 
             <div className="flex flex-col gap-2">
-              {fundProjections.map((fp) => (
+              {plans.map((plan) => (
                 <FundCard
-                  key={fp.plan.id}
-                  plan={fp.plan}
-                  color={fp.color}
-                  isOpen={openId === fp.plan.id}
-                  isActive={resolvedSettings.activePlanId === fp.plan.id}
+                  key={plan.id}
+                  plan={plan}
+                  color={planColors.get(plan.id) ?? FUND_COLORS[0]}
+                  isOpen={openId === plan.id}
+                  isActive={resolvedSettings.activePlanId === plan.id}
                   annualSalary={(prefsSalary ?? 0) as Cents}
-                  employerContributionPct={resolvedSettings.employerContributionPct}
-                  globalCurrentAge={resolvedSettings.currentAge}
-                  globalRetirementAge={resolvedSettings.retirementAge}
-                  onToggle={() => setOpenId(openId === fp.plan.id ? null : fp.plan.id)}
-                  onUpdate={(patch) => updatePlan(fp.plan.id, patch)}
-                  onSetActive={() => setActiveFund(fp.plan.id)}
-                  onDelete={() => deleteFund(fp.plan.id)}
+                  employerContributionPct={effectiveSettings.employerContributionPct}
+                  globalCurrentAge={effectiveSettings.currentAge}
+                  globalRetirementAge={effectiveSettings.retirementAge}
+                  onToggle={() => setOpenId(openId === plan.id ? null : plan.id)}
+                  onUpdate={(patch) => updatePlan(plan.id, patch)}
+                  onSetActive={() => setActiveFund(plan.id)}
+                  onDelete={() => deleteFund(plan.id)}
                 />
               ))}
             </div>
@@ -957,9 +855,9 @@ export function SuperPageClient() {
                             ? (prefsSalary ?? 0)
                             : 0;
                         const sgPctForTable = isIndep
-                          ? (fp.plan.ownerEmployerPct ?? resolvedSettings.employerContributionPct)
+                          ? (fp.plan.ownerEmployerPct ?? effectiveSettings.employerContributionPct)
                           : isPrim
-                            ? resolvedSettings.employerContributionPct
+                            ? effectiveSettings.employerContributionPct
                             : 0;
                         const employerAnnual = Math.round(salaryForTable * sgPctForTable) as Cents;
                         const voluntaryAnnual = (fp.projection.annualConcessionalContrib +
