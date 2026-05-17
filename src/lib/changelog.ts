@@ -7,6 +7,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.13.0",
+    date: "2026-05-17",
+    title: "Transactions UX overhaul + projection perf",
+    changes: [
+      "Transactions: sticky toolbar — filter bar (search, account, type, category) stays visible while scrolling",
+      "Transactions: clickable sort headers — Date / Payee / Amount with active indicator and direction arrow",
+      "Transactions: unified bulk actions row appears in the toolbar on selection (count, select-page / all-filtered / clear, mark cleared, set category) — no more scrolling back to the top",
+      "Budget planner: uncategorised transactions now surface as an expandable row instead of being silently excluded; expense and income totals include them",
+      "Super & Mortgage: FieldHint tooltips on rate, inflation, fees, SG rate, contribution type, interest rate, offset, and redraw inputs",
+      "Super projector: all projection calculations moved to a Web Worker — slider drags no longer hitch the main thread",
+      "Super worker: live preview fires on every slider move; the DB save stays debounced (600ms)",
+    ],
+  },
+  {
     version: "0.12.0",
     date: "2026-05-17",
     title: "Household super — spouse funds, maximise target & bug fixes",
