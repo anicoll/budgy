@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { baseApexOptions, getChartTheme } from "@/components/charts/chart-theme";
 import { MoneyInput } from "@/components/forms/MoneyInput";
 import { NumInput } from "@/components/forms/NumInput";
+import { FieldHint } from "@/components/ui/field-hint";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Cents } from "@/lib/money/cents";
 import { formatAUD, formatAUDCompact } from "@/lib/money/format";
@@ -253,7 +254,10 @@ function RateInput({ value, onChange }: { value: number; onChange: (v: number) =
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">Interest rate (p.a.)</span>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">Interest rate (p.a.)</span>
+          <FieldHint text="Your annual interest rate. Even a 0.25% reduction saves tens of thousands over a 25–30 year loan. Variable rates move with the RBA cash rate; fixed rates are locked for a set period." />
+        </div>
         <div className="flex items-center gap-1">
           <input
             type="text"
@@ -465,12 +469,14 @@ export function MortgagePageClient() {
                 value={form.offsetBalance}
                 onChange={(v) => update({ offsetBalance: v })}
                 hint="Reduces interest-bearing balance each period"
+                tooltip="A savings account linked to your mortgage. Interest is charged only on (loan balance − offset balance), effectively earning your mortgage rate on your savings — tax-free. Funds remain fully accessible at any time."
               />
               <MoneyInput
                 label="Redraw available"
                 value={form.redrawBalance}
                 onChange={(v) => update({ redrawBalance: v })}
                 hint="Extra principal already paid. Baseline comparison uses current balance + redraw to show your total savings."
+                tooltip="Extra principal you've already paid above the minimum. This reduces your loan balance (lowering interest charged), and can be re-borrowed. Unlike offset, redraw approval speed and conditions vary by lender."
               />
             </div>
           </div>

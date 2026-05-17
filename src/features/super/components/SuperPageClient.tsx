@@ -6,6 +6,7 @@ import { AreaChart } from "@/components/charts/AreaChart";
 import { MoneyInput } from "@/components/forms/MoneyInput";
 import { NumInput } from "@/components/forms/NumInput";
 import { SliderWithText } from "@/components/forms/SliderWithText";
+import { FieldHint } from "@/components/ui/field-hint";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Cents } from "@/lib/money/cents";
 import { formatAUDCompact } from "@/lib/money/format";
@@ -276,6 +277,7 @@ function FundCard({
                   max={15}
                   step={0.5}
                   onChange={(v) => onUpdate({ ownerEmployerPct: v })}
+                  tooltip="The Superannuation Guarantee is the minimum % your employer must contribute. Currently 11.5% (FY2024–25), rising to 12% from 1 July 2025. Check your payslip or contract if your employer pays more."
                 />
               </div>
             )}
@@ -293,6 +295,7 @@ function FundCard({
                 max={14}
                 step={0.25}
                 onChange={(v) => onUpdate({ expectedReturnPct: v })}
+                tooltip="Average annual investment return before fees. A diversified balanced fund has historically returned 6–8% p.a. Higher assumptions represent a more growth-oriented (higher risk) investment mix."
               />
               <SliderWithText
                 label="Annual fees"
@@ -301,6 +304,7 @@ function FundCard({
                 max={3}
                 step={0.05}
                 onChange={(v) => onUpdate({ feesPct: v })}
+                tooltip="Annual management fee as a % of balance. Fees compound — an extra 0.5% on $300k costs ~$1,500/yr and reduces your retirement balance by tens of thousands over 30 years. Check your fund's PDS."
               />
             </div>
           </div>
@@ -333,7 +337,10 @@ function FundCard({
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Type</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">Type</span>
+                    <FieldHint text="Concessional (pre-tax): taxed at 15% in the fund instead of your marginal rate — worthwhile if your rate exceeds 19%. Annual cap: $30,000 including employer SG. Non-concessional (after-tax): no extra tax, higher cap of $120,000/yr." />
+                  </div>
                   <select
                     value={plan.voluntaryType}
                     onChange={(e) =>
@@ -580,6 +587,7 @@ export function SuperPageClient() {
               max={15}
               step={0.5}
               onChange={(v) => updateSettings({ employerContributionPct: v })}
+              tooltip="The Superannuation Guarantee is the minimum % your employer must contribute. Currently 11.5% (FY2024–25), rising to 12% from 1 July 2025. Check your payslip or contract if your employer pays more."
             />
 
             <SliderWithText
@@ -589,6 +597,7 @@ export function SuperPageClient() {
               max={8}
               step={0.25}
               onChange={(v) => updateSettings({ inflationPct: v })}
+              tooltip="Used to convert projected balances into today's purchasing power. The 'real' balance shown is what your projected super would be worth in today's dollars. RBA targets 2–3%; the long-run AU average is ~2.5%."
             />
 
             <div className="flex flex-col gap-1">

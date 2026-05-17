@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { FieldHint } from "@/components/ui/field-hint";
 
 function pctToDisplay(v: number): string {
   return (v * 100).toFixed(2);
@@ -13,9 +14,18 @@ interface SliderWithTextProps {
   max: number; // percent (e.g. 100)
   step: number; // percent (e.g. 0.05)
   onChange: (v: number) => void; // fraction
+  tooltip?: string;
 }
 
-export function SliderWithText({ label, value, min, max, step, onChange }: SliderWithTextProps) {
+export function SliderWithText({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  tooltip,
+}: SliderWithTextProps) {
   const [text, setText] = useState(pctToDisplay(value));
   const prevValue = useRef(value);
   if (prevValue.current !== value) {
@@ -35,7 +45,10 @@ export function SliderWithText({ label, value, min, max, step, onChange }: Slide
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          {tooltip && <FieldHint text={tooltip} />}
+        </div>
         <div className="flex items-center gap-1">
           <input
             type="text"

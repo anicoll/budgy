@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { FieldHint } from "@/components/ui/field-hint";
 import type { Cents } from "@/lib/money/cents";
 
 function centsToDisplay(c: Cents): string {
@@ -17,14 +18,18 @@ interface MoneyInputProps {
   value: Cents;
   onChange: (v: Cents) => void;
   hint?: string;
+  tooltip?: string;
   className?: string;
 }
 
-export function MoneyInput({ label, value, onChange, hint, className }: MoneyInputProps) {
+export function MoneyInput({ label, value, onChange, hint, tooltip, className }: MoneyInputProps) {
   const localRef = useRef<HTMLInputElement>(null);
   return (
     <label className={`flex flex-col gap-1 ${className ?? ""}`}>
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        {tooltip && <FieldHint text={tooltip} />}
+      </div>
       <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-surface px-3 py-1.5 focus-within:border-ring">
         <span className="text-sm text-muted-foreground">$</span>
         <input

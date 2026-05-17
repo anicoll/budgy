@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { FieldHint } from "@/components/ui/field-hint";
 
 interface NumInputProps {
   label: string;
@@ -8,10 +9,11 @@ interface NumInputProps {
   min: number;
   max: number;
   suffix?: string;
+  tooltip?: string;
   onChange: (v: number) => void;
 }
 
-export function NumInput({ label, value, min, max, suffix, onChange }: NumInputProps) {
+export function NumInput({ label, value, min, max, suffix, tooltip, onChange }: NumInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   function commit() {
@@ -26,7 +28,10 @@ export function NumInput({ label, value, min, max, suffix, onChange }: NumInputP
 
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        {tooltip && <FieldHint text={tooltip} />}
+      </div>
       <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-surface px-3 py-1.5 focus-within:border-ring">
         <input
           ref={inputRef}
