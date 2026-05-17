@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccounts } from "@/features/accounts/hooks";
 import { useCategories } from "@/features/categories/hooks";
+import { cn } from "@/lib/utils";
 import {
   useBulkSetCategory,
   useBulkSetCleared,
@@ -32,7 +33,6 @@ import { CsvImportSheet } from "./CsvImportSheet";
 import { FilterBar, INITIAL_FILTERS, type TxnFilters } from "./FilterBar";
 import { TransactionFormSheet } from "./TransactionFormSheet";
 import { TransactionRow } from "./TransactionRow";
-import { cn } from "@/lib/utils";
 
 type SortField = "date" | "amount" | "payee";
 
@@ -112,6 +112,7 @@ export function TransactionsPageClient() {
       setSortField(field);
       setSortDir("desc");
     }
+    setPage(1);
   }
 
   // Filter then sort — kept as two useMemos so sort changes are cheap
@@ -161,11 +162,6 @@ export function TransactionsPageClient() {
   useEffect(() => {
     if (filters || pageSize) setPage(1);
   }, [filters, pageSize]);
-
-  // Reset sort also resets page
-  useEffect(() => {
-    setPage(1);
-  }, [sortField, sortDir]);
 
   useEffect(() => {
     setSelectedIds((prev) => {
