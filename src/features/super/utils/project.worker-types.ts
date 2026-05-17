@@ -1,3 +1,4 @@
+import type { Cents } from "@/lib/money/cents";
 import type { SuperPlan, SuperSettings } from "../types";
 import type { DrawdownResult, SuperProjectionResult } from "./project";
 
@@ -26,17 +27,17 @@ export interface FundProjectionResult {
 export interface SuperWorkerOutput {
   fundProjections: FundProjectionResult[];
   chartSeries: { name: string; data: { x: string; y: number }[]; color: string }[];
-  totalNominal: number;
-  totalReal: number;
-  totalDrawdown: number;
+  totalNominal: Cents;
+  totalReal: Cents;
+  totalDrawdown: Cents;
   yearsToRetirement: number;
   hasMultipleOwners: boolean;
   capBreaches: FundProjectionResult[];
   drawdownProjection: DrawdownResult | null;
   depletionAge: number | null;
   longevityColour: string;
-  topUpFortnightly: number | null;
-  maxSustainableWithdrawal: number;
+  topUpFortnightly: Cents | null;
+  maxSustainableWithdrawal: Cents;
 }
 
 export interface WorkerMessage {

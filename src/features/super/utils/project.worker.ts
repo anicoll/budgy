@@ -22,7 +22,8 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
     payload: { plans, settings, prefsSalary },
   } = e.data;
 
-  const resolvedSettings = { ...DEFAULT_SUPER_SETTINGS, id: "primary", updatedAt: "", ...settings };
+  // settings always includes id + updatedAt (required SuperSettings fields)
+  const resolvedSettings = { ...DEFAULT_SUPER_SETTINGS, ...settings };
 
   // ── Per-fund projections ───────────────────────────────────────────────────
 
@@ -190,17 +191,17 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
     payload: {
       fundProjections,
       chartSeries,
-      totalNominal,
-      totalReal,
-      totalDrawdown,
+      totalNominal: totalNominal as Cents,
+      totalReal: totalReal as Cents,
+      totalDrawdown: totalDrawdown as Cents,
       yearsToRetirement,
       hasMultipleOwners,
       capBreaches,
       drawdownProjection,
       depletionAge,
       longevityColour,
-      topUpFortnightly,
-      maxSustainableWithdrawal,
+      topUpFortnightly: topUpFortnightly as Cents | null,
+      maxSustainableWithdrawal: maxSustainableWithdrawal as Cents,
     } satisfies SuperWorkerOutput,
   };
 
