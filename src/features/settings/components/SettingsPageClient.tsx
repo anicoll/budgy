@@ -249,7 +249,7 @@ export function SettingsPageClient() {
       <Section title="Danger zone">
         <Row
           label="Reset all data"
-          description="Permanently delete all accounts, transactions, categories and budgets. This cannot be undone."
+          description="Permanently delete all accounts, transactions, categories, budgets, super plans, mortgage plans, novated leases and salary settings. This cannot be undone."
           danger
         >
           <AlertDialog>
@@ -262,8 +262,9 @@ export function SettingsPageClient() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Reset all data?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will delete every account, transaction, category and budget. Your exported
-                  JSON files will still work for re-import. This cannot be undone.
+                  This will delete every account, transaction, category, budget, super plan,
+                  mortgage plan, novated lease and salary setting. Your exported JSON files will
+                  still work for re-import. This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

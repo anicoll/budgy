@@ -8,6 +8,7 @@ import {
   deleteCategory,
   listCategories,
   listCategoriesTree,
+  reorderCategories,
   updateCategory,
 } from "./repository";
 import type { CategoryFormValues } from "./schema";
@@ -61,5 +62,17 @@ export function useDeleteCategory() {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all });
       toast.success("Category deleted");
     },
+  });
+}
+
+export function useReorderCategories() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => reorderCategories(ids),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.categories.all });
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to reorder categories"),
   });
 }

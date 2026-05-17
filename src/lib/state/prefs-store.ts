@@ -33,7 +33,10 @@ const DEFAULTS: Preferences = {
   fortnightAnchor: "2024-01-01",
   hideArchived: false,
   onboarded: false,
+  lastBackupAt: undefined,
   annualSalary: undefined,
+  hasPrivateHealth: undefined,
+  novatedLeases: undefined,
 };
 
 export const usePrefs = create<PrefsState>()(

@@ -65,6 +65,23 @@ export async function deleteCategory(id: string): Promise<void> {
   await categoriesRepo().delete(id);
 }
 
+/**
+ * Reorders a set of sibling categories by writing sequential sortOrder values.
+ * Pass the new ordered list of IDs (all sharing the same parentId + type).
+ */
+export async function reorderCategories(ids: string[]): Promise<void> {
+  const repo = categoriesRepo();
+  const updates: Category[] = [];
+  for (let i = 0; i < ids.length; i++) {
+    const cat = await repo.get(ids[i]);
+    if (!cat) continue;
+    if (cat.sortOrder === i) continue;
+    updates.push({ ...cat, sortOrder: i });
+  }
+  if (updates.length === 0) return;
+  await repo.bulkUpsert(updates);
+}
+
 export async function seedDefaultCategories(): Promise<void> {
   const existing = await categoriesRepo().count();
   if (existing > 0) return;

@@ -106,16 +106,22 @@ export async function importData(
 
 export async function resetAllData(): Promise<void> {
   const repos = getRepositories();
-  const [accs, cats, txns, buds] = await Promise.all([
+  const [accs, cats, txns, buds, superPlans, superSettings, mortgagePlans] = await Promise.all([
     repos.accounts.list(),
     repos.categories.list(),
     repos.transactions.list(),
     repos.budgets.list(),
+    repos.superPlans.list(),
+    repos.superSettings.list(),
+    repos.mortgagePlans.list(),
   ]);
   await Promise.all([
     ...accs.map((r) => repos.accounts.delete(r.id)),
     ...cats.map((r) => repos.categories.delete(r.id)),
     ...txns.map((r) => repos.transactions.delete(r.id)),
     ...buds.map((r) => repos.budgets.delete(r.id)),
+    ...superPlans.map((r) => repos.superPlans.delete(r.id)),
+    ...superSettings.map((r) => repos.superSettings.delete(r.id)),
+    ...mortgagePlans.map((r) => repos.mortgagePlans.delete(r.id)),
   ]);
 }
