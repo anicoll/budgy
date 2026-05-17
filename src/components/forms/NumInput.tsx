@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+
 interface NumInputProps {
   label: string;
   value: number;
@@ -10,19 +12,31 @@ interface NumInputProps {
 }
 
 export function NumInput({ label, value, min, max, suffix, onChange }: NumInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function commit() {
+    const n = parseInt(inputRef.current?.value ?? "", 10);
+    if (Number.isFinite(n) && n >= min && n <= max) {
+      onChange(n);
+    } else if (inputRef.current) {
+      // Revert display to last valid value
+      inputRef.current.value = String(value);
+    }
+  }
+
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-surface px-3 py-1.5 focus-within:border-ring">
         <input
+          ref={inputRef}
           type="number"
           min={min}
           max={max}
-          value={value}
-          onChange={(e) => {
-            const n = parseInt(e.target.value, 10);
-            if (Number.isFinite(n) && n >= min && n <= max) onChange(n);
-          }}
+          key={value}
+          defaultValue={value}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
           className="min-w-0 flex-1 bg-transparent text-sm tabular-nums outline-none"
         />
         {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}

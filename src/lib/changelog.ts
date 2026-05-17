@@ -7,6 +7,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.12.0",
+    date: "2026-05-17",
+    title: "Household super — spouse funds, maximise target & bug fixes",
+    changes: [
+      "Any super fund can now be marked as belonging to a different person (e.g. spouse) with their own salary, current age, retirement age and SG rate",
+      "Spouse / independent funds show an amber badge in the fund list and display their own employer SG note",
+      "Accumulation chart switched to calendar year axis — funds with different owner ages now align correctly on the same timeline",
+      "Post-retirement balance held as a flat line in the stacked chart instead of collapsing to zero",
+      '"Maximise to age 100" button next to monthly income target — computes the highest sustainable monthly withdrawal via binary search of the drawdown simulation',
+      "Super drawdown maximise and projection: 9 new unit tests covering real/nominal precision, inflation-factor formula, and the new maximise function",
+      "Toggle inputs (switch component) fixed — data selectors now correctly match Radix UI's data-state attribute; all colour rules previously had no effect",
+      "Age/number inputs fixed — now uncontrolled (blur-to-commit) so intermediate keystrokes are not rejected by the min/max guard",
+    ],
+  },
+  {
     version: "0.11.0",
     date: "2026-05-17",
     title: "Categories redesign & UX polish",
@@ -25,9 +40,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Super drawdown, budget planner uplift & CSV import",
     changes: [
       "Super projector: full retirement drawdown modelling — year-by-year simulation with investment returns and inflation-escalated withdrawals",
-      "\"Funds last to age\" KPI: green (100+), amber (90–99), red (<90); top-up banner shows fortnightly contribution needed to close a shortfall",
+      '"Funds last to age" KPI: green (100+), amber (90–99), red (<90); top-up banner shows fortnightly contribution needed to close a shortfall',
       "Drawdown chart: second area chart showing portfolio declining post-retirement, coloured by longevity status",
-      "Budget planner: period navigator (← →) to browse past periods, PocketSmith-style rows with progress bar and \"$X left / over\" framing",
+      'Budget planner: period navigator (← →) to browse past periods, PocketSmith-style rows with progress bar and "$X left / over" framing',
       "Category hierarchy rollup: subcategories aggregate into their parent budget row — no double-counting",
       "CSV import: upload ANZ or CommBank bank exports directly into transactions (drag-and-drop or click to upload)",
       "Dashboard: Spending Insights card comparing current vs prior period spend by category",

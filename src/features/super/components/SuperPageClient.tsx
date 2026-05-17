@@ -21,7 +21,12 @@ import {
 import type { SuperPlan, SuperSettings } from "../types";
 import { DEFAULT_SUPER_PLAN, DEFAULT_SUPER_SETTINGS } from "../types";
 import { CONCESSIONAL_CAP, DRAWDOWN_YEARS, NON_CONCESSIONAL_CAP } from "../utils/au-rules";
-import { computeDrawdown, computeRequiredContribution, projectSuper } from "../utils/project";
+import {
+  computeDrawdown,
+  computeMaxSustainableWithdrawal,
+  computeRequiredContribution,
+  projectSuper,
+} from "../utils/project";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -81,6 +86,8 @@ function FundCard({
   isActive,
   annualSalary,
   employerContributionPct,
+  globalCurrentAge,
+  globalRetirementAge,
   onToggle,
   onUpdate,
   onSetActive,
@@ -92,12 +99,19 @@ function FundCard({
   isActive: boolean;
   annualSalary: Cents;
   employerContributionPct: number;
+  globalCurrentAge: number;
+  globalRetirementAge: number;
   onToggle: () => void;
   onUpdate: (patch: Partial<Omit<SuperPlan, "id" | "updatedAt">>) => void;
   onSetActive: () => void;
   onDelete: () => void;
 }) {
-  const sgPerYear = Math.round(annualSalary * employerContributionPct) as Cents;
+  const isIndependent = plan.ownerSalary !== undefined;
+  const effectiveSalary = isIndependent ? plan.ownerSalary : annualSalary;
+  const effectiveSgPct = isIndependent
+    ? (plan.ownerEmployerPct ?? employerContributionPct)
+    : employerContributionPct;
+  const sgPerYear = Math.round((effectiveSalary ?? 0) * effectiveSgPct) as Cents;
 
   return (
     <div className="rounded-xl border border-border/60 bg-surface/40 overflow-hidden">
@@ -109,7 +123,12 @@ function FundCard({
       >
         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
         <span className="flex-1 text-sm font-medium truncate">{plan.name}</span>
-        {isActive && (
+        {isIndependent && (
+          <span className="shrink-0 rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warning">
+            {plan.ownerLabel ?? "Spouse"}
+          </span>
+        )}
+        {!isIndependent && isActive && (
           <span className="shrink-0 rounded-full bg-income/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-income">
             Active
           </span>
@@ -150,11 +169,11 @@ function FundCard({
           />
 
           {/* Employer SG note */}
-          {isActive ? (
+          {isActive || isIndependent ? (
             <div className="rounded-lg bg-income/10 border border-income/30 px-3 py-2 text-xs text-income">
               Receiving employer SG: <strong>{formatAUDCompact(sgPerYear)}/yr</strong>
               <span className="text-muted-foreground ml-1">
-                ({pctToDisplay(employerContributionPct)}% of salary)
+                ({pctToDisplay(effectiveSgPct)}% of salary)
               </span>
             </div>
           ) : (
@@ -162,6 +181,119 @@ function FundCard({
               No employer contributions — returns only
             </div>
           )}
+
+          {/* Independent owner section */}
+          <div className="border-t border-border/30 pt-2">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Owner
+              </h4>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isIndependent) {
+                    onUpdate({
+                      ownerSalary: undefined,
+                      ownerLabel: undefined,
+                      ownerCurrentAge: undefined,
+                      ownerRetirementAge: undefined,
+                      ownerEmployerPct: undefined,
+                    });
+                  } else {
+                    onUpdate({ ownerSalary: 0 as Cents });
+                  }
+                }}
+                className={cn(
+                  "text-[11px] rounded-md border px-2 py-0.5 transition-colors",
+                  isIndependent
+                    ? "border-warning/50 bg-warning/10 text-warning hover:bg-warning/20"
+                    : "border-border/60 text-muted-foreground hover:border-border hover:text-foreground",
+                )}
+              >
+                {isIndependent ? "Remove owner override" : "Different owner (e.g. spouse)"}
+              </button>
+            </div>
+
+            {isIndependent && (
+              <div className="flex flex-col gap-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Owner label</span>
+                  <input
+                    type="text"
+                    key={plan.id + (plan.ownerLabel ?? "")}
+                    defaultValue={plan.ownerLabel ?? ""}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      onUpdate({ ownerLabel: v || undefined });
+                    }}
+                    placeholder="e.g. Spouse"
+                    className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-ring"
+                  />
+                </label>
+                <MoneyInput
+                  label="Annual salary"
+                  value={plan.ownerSalary ?? (0 as Cents)}
+                  onChange={(v) => onUpdate({ ownerSalary: v })}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <NumInput
+                    label="Current age"
+                    value={
+                      Number.isFinite(plan.ownerCurrentAge)
+                        ? (plan.ownerCurrentAge as number)
+                        : globalCurrentAge
+                    }
+                    min={18}
+                    max={74}
+                    suffix="yrs"
+                    onChange={(v) =>
+                      onUpdate({
+                        ownerCurrentAge: Math.min(
+                          v,
+                          (Number.isFinite(plan.ownerRetirementAge)
+                            ? (plan.ownerRetirementAge as number)
+                            : globalRetirementAge) - 1,
+                        ),
+                      })
+                    }
+                  />
+                  <NumInput
+                    label="Retirement age"
+                    value={
+                      Number.isFinite(plan.ownerRetirementAge)
+                        ? (plan.ownerRetirementAge as number)
+                        : globalRetirementAge
+                    }
+                    min={
+                      (Number.isFinite(plan.ownerCurrentAge)
+                        ? (plan.ownerCurrentAge as number)
+                        : globalCurrentAge) + 1
+                    }
+                    max={80}
+                    suffix="yrs"
+                    onChange={(v) =>
+                      onUpdate({
+                        ownerRetirementAge: Math.max(
+                          v,
+                          (Number.isFinite(plan.ownerCurrentAge)
+                            ? (plan.ownerCurrentAge as number)
+                            : globalCurrentAge) + 1,
+                        ),
+                      })
+                    }
+                  />
+                </div>
+                <SliderWithText
+                  label="Employer SG rate"
+                  value={plan.ownerEmployerPct ?? employerContributionPct}
+                  min={9}
+                  max={15}
+                  step={0.5}
+                  onChange={(v) => onUpdate({ ownerEmployerPct: v })}
+                />
+              </div>
+            )}
+          </div>
 
           <div className="border-t border-border/30 pt-2">
             <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -234,7 +366,7 @@ function FundCard({
           </div>
 
           <div className="flex items-center justify-between pt-1">
-            {!isActive && (
+            {!isActive && !isIndependent && (
               <button
                 type="button"
                 onClick={onSetActive}
@@ -330,37 +462,84 @@ export function SuperPageClient() {
   const resolvedSettings = settings ?? { ...DEFAULT_SUPER_SETTINGS, id: "primary", updatedAt: "" };
 
   const fundProjections = useMemo(() => {
-    return plans.map((plan, i) => ({
-      plan,
-      projection: projectSuper({
-        currentBalance: plan.currentBalance,
-        annualSalary:
-          plan.id === resolvedSettings.activePlanId ? ((prefsSalary ?? 0) as Cents) : (0 as Cents),
-        employerContributionPct:
-          plan.id === resolvedSettings.activePlanId ? resolvedSettings.employerContributionPct : 0,
-        voluntaryContribution: plan.voluntaryContribution,
-        voluntaryFrequency: plan.voluntaryFrequency,
-        voluntaryType: plan.voluntaryType,
-        expectedReturnPct: plan.expectedReturnPct,
-        feesPct: plan.feesPct,
-        inflationPct: resolvedSettings.inflationPct,
-        currentAge: resolvedSettings.currentAge,
-        retirementAge: resolvedSettings.retirementAge,
-      }),
-      color: FUND_COLORS[i % FUND_COLORS.length],
-    }));
+    return plans.map((plan, i) => {
+      const isIndependent = plan.ownerSalary !== undefined;
+      const isPrimary = !isIndependent && plan.id === resolvedSettings.activePlanId;
+
+      const effectiveSalary: Cents = isIndependent
+        ? (plan.ownerSalary as Cents)
+        : isPrimary
+          ? ((prefsSalary ?? 0) as Cents)
+          : (0 as Cents);
+
+      const effectiveCurrentAge = plan.ownerCurrentAge ?? resolvedSettings.currentAge;
+      const effectiveRetirementAge = plan.ownerRetirementAge ?? resolvedSettings.retirementAge;
+      const effectiveEmployerPct = isIndependent
+        ? (plan.ownerEmployerPct ?? resolvedSettings.employerContributionPct)
+        : isPrimary
+          ? resolvedSettings.employerContributionPct
+          : 0;
+
+      return {
+        plan,
+        isIndependent,
+        effectiveCurrentAge,
+        projection: projectSuper({
+          currentBalance: plan.currentBalance,
+          annualSalary: effectiveSalary,
+          employerContributionPct: effectiveEmployerPct,
+          voluntaryContribution: plan.voluntaryContribution,
+          voluntaryFrequency: plan.voluntaryFrequency,
+          voluntaryType: plan.voluntaryType,
+          expectedReturnPct: plan.expectedReturnPct,
+          feesPct: plan.feesPct,
+          inflationPct: resolvedSettings.inflationPct,
+          currentAge: effectiveCurrentAge,
+          retirementAge: effectiveRetirementAge,
+        }),
+        color: FUND_COLORS[i % FUND_COLORS.length],
+      };
+    });
   }, [plans, resolvedSettings, prefsSalary]);
 
-  // Stacked area — each fund is a coloured band; the stack top = total. No explicit Total series needed.
-  const chartSeries = useMemo(
-    () =>
-      fundProjections.map((fp) => ({
+  const hasMultipleOwners = fundProjections.some((fp) => fp.isIndependent);
+
+  // Stacked area — each fund is a coloured band; the stack top = total.
+  // X-axis uses calendar year so funds with different owner ages align on the same timeline.
+  // All series are padded to the same year range (union of all fund years) so ApexCharts
+  // stacked mode can align them correctly — missing years from shorter-horizon funds use 0.
+  const chartSeries = useMemo(() => {
+    const calYear = new Date().getFullYear();
+
+    // Map each fund's age-indexed years to calendar-year-indexed values
+    const fundData = fundProjections.map((fp) => {
+      const byYear = new Map<number, number>();
+      for (const y of fp.projection.years) {
+        byYear.set(calYear + (y.age - fp.effectiveCurrentAge), y.nominal as number);
+      }
+      return { fp, byYear };
+    });
+
+    // Collect the union of all calendar years across every fund, sorted ascending
+    const allYears = [...new Set(fundData.flatMap(({ byYear }) => [...byYear.keys()]))].sort(
+      (a, b) => a - b,
+    );
+
+    return fundData.map(({ fp, byYear }) => {
+      const retirementYear = Math.max(...byYear.keys());
+      const retirementBalance = fp.projection.retirementNominal as number;
+      return {
         name: fp.plan.name,
-        data: fp.projection.years.map((y) => ({ x: String(y.age), y: y.nominal as number })),
+        // After retirement, hold the peak balance as a flat line so the stacked
+        // chart doesn't collapse — the money is still there, just in drawdown.
+        data: allYears.map((yr) => ({
+          x: String(yr),
+          y: byYear.get(yr) ?? (yr > retirementYear ? retirementBalance : 0),
+        })),
         color: fp.color,
-      })),
-    [fundProjections],
-  );
+      };
+    });
+  }, [fundProjections]);
 
   const totalNominal = fundProjections.reduce(
     (s, fp) => (s + fp.projection.retirementNominal) as Cents,
@@ -460,9 +639,9 @@ export function SuperPageClient() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
         {/* ── Left panel ── */}
         <div className="flex flex-col gap-0 rounded-xl border border-border/60 bg-surface/70 backdrop-blur-md overflow-hidden">
-          {/* Global settings */}
+          {/* Primary settings */}
           <div className="flex flex-col gap-4 p-5 border-b border-border/40">
-            <h2 className="text-sm font-semibold">Global settings</h2>
+            <h2 className="text-sm font-semibold">Primary settings</h2>
 
             <div className="grid grid-cols-2 gap-3">
               <NumInput
@@ -505,12 +684,36 @@ export function SuperPageClient() {
               onChange={(v) => updateSettings({ inflationPct: v })}
             />
 
-            <MoneyInput
-              label="Monthly income target (today's $)"
-              value={resolvedSettings.monthlyDrawdownTarget ?? (0 as Cents)}
-              onChange={(v) => updateSettings({ monthlyDrawdownTarget: v > 0 ? v : undefined })}
-              hint="How much you want per month in retirement"
-            />
+            <div className="flex flex-col gap-1">
+              <MoneyInput
+                label="Monthly income target (today's $)"
+                value={resolvedSettings.monthlyDrawdownTarget ?? (0 as Cents)}
+                onChange={(v) => updateSettings({ monthlyDrawdownTarget: v > 0 ? v : undefined })}
+                hint="How much you want per month in retirement"
+              />
+              {totalNominal > 0 &&
+                plans.length > 0 &&
+                (() => {
+                  const activeFund =
+                    plans.find((p) => p.id === resolvedSettings.activePlanId) ?? plans[0];
+                  const max = computeMaxSustainableWithdrawal({
+                    retirementNominal: totalNominal,
+                    expectedReturnPct: activeFund.expectedReturnPct,
+                    inflationPct: resolvedSettings.inflationPct,
+                    retirementAge: resolvedSettings.retirementAge,
+                    yearsToRetirement,
+                  });
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ monthlyDrawdownTarget: max })}
+                      className="self-start text-[11px] text-primary hover:underline tabular-nums"
+                    >
+                      Maximise to age 100 → {formatAUDCompact(max)}/mo
+                    </button>
+                  );
+                })()}
+            </div>
           </div>
 
           {/* Fund list */}
@@ -535,6 +738,8 @@ export function SuperPageClient() {
                   isActive={resolvedSettings.activePlanId === fp.plan.id}
                   annualSalary={(prefsSalary ?? 0) as Cents}
                   employerContributionPct={resolvedSettings.employerContributionPct}
+                  globalCurrentAge={resolvedSettings.currentAge}
+                  globalRetirementAge={resolvedSettings.retirementAge}
                   onToggle={() => setOpenId(openId === fp.plan.id ? null : fp.plan.id)}
                   onUpdate={(patch) => updatePlan(fp.plan.id, patch)}
                   onSetActive={() => setActiveFund(fp.plan.id)}
@@ -579,7 +784,11 @@ export function SuperPageClient() {
                 <KpiCard
                   label="At retirement (nominal)"
                   value={formatAUDCompact(totalNominal)}
-                  sub={`In ${yearsToRetirement} years`}
+                  sub={
+                    hasMultipleOwners
+                      ? "Combined across all funds"
+                      : `In ${yearsToRetirement} years`
+                  }
                   accent
                 />
                 <KpiCard
@@ -686,7 +895,7 @@ export function SuperPageClient() {
                 <div className="mb-1 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">Balance projection (accumulation)</span>
-                  <span className="ml-auto text-xs text-muted-foreground">Age →</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Year →</span>
                 </div>
                 <AreaChart series={chartSeries} height={260} stacked />
               </div>
@@ -740,12 +949,19 @@ export function SuperPageClient() {
                     </thead>
                     <tbody className="divide-y divide-border/20">
                       {fundProjections.map((fp) => {
-                        const employerAnnual =
-                          resolvedSettings.activePlanId === fp.plan.id
-                            ? (Math.round(
-                                (prefsSalary ?? 0) * resolvedSettings.employerContributionPct,
-                              ) as Cents)
-                            : (0 as Cents);
+                        const isIndep = fp.plan.ownerSalary !== undefined;
+                        const isPrim = !isIndep && resolvedSettings.activePlanId === fp.plan.id;
+                        const salaryForTable = isIndep
+                          ? (fp.plan.ownerSalary ?? 0)
+                          : isPrim
+                            ? (prefsSalary ?? 0)
+                            : 0;
+                        const sgPctForTable = isIndep
+                          ? (fp.plan.ownerEmployerPct ?? resolvedSettings.employerContributionPct)
+                          : isPrim
+                            ? resolvedSettings.employerContributionPct
+                            : 0;
+                        const employerAnnual = Math.round(salaryForTable * sgPctForTable) as Cents;
                         const voluntaryAnnual = (fp.projection.annualConcessionalContrib +
                           fp.projection.annualNonConcessionalContrib -
                           employerAnnual) as Cents;

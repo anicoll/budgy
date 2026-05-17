@@ -115,6 +115,47 @@ export function computeDrawdown(input: DrawdownInput): DrawdownResult {
 }
 
 /**
+ * Maximum monthly income (today's dollars) that a portfolio can sustain to age 100.
+ *
+ * Uses binary search over the existing computeDrawdown simulation so the result
+ * is exact for the same discrete model — no separate closed-form approximation needed.
+ * Converges to within $1/month (1 cent) after 50 iterations.
+ */
+export function computeMaxSustainableWithdrawal(params: {
+  retirementNominal: Cents;
+  expectedReturnPct: number;
+  inflationPct: number;
+  retirementAge: number;
+  yearsToRetirement: number;
+}): Cents {
+  const { retirementNominal, expectedReturnPct, inflationPct, retirementAge, yearsToRetirement } =
+    params;
+  if (retirementNominal <= 0 || retirementAge >= 100) return 0 as Cents;
+
+  let lo = 0;
+  let hi = retirementNominal; // upper bound: one-month everything (unreachably high)
+
+  for (let i = 0; i < 50; i++) {
+    const mid = Math.round((lo + hi) / 2) as Cents;
+    const { depletionAge } = computeDrawdown({
+      retirementNominal,
+      expectedReturnPct,
+      inflationPct,
+      retirementAge,
+      monthlyDrawdownTarget: mid,
+      yearsToRetirement,
+    });
+    if (depletionAge === null) {
+      lo = mid; // sustainable — try higher
+    } else {
+      hi = mid; // depletes — try lower
+    }
+  }
+
+  return Math.round(lo) as Cents;
+}
+
+/**
  * Fortnightly contribution (PMT) needed to accumulate a target lump sum.
  * Uses the future-value annuity formula: PMT = FV × r / ((1+r)^n − 1)
  */

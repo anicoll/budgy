@@ -26,6 +26,14 @@ export interface SuperPlan {
   expectedReturnPct: number; // 0.07 = 7% p.a.
   feesPct: number; // 0.005 = 0.5% p.a.
   updatedAt: string;
+  // Per-fund owner overrides. When ownerSalary is defined this fund is
+  // "independently active" and receives its own employer SG contributions
+  // using these values instead of the global SuperSettings.
+  ownerLabel?: string; // e.g. "Spouse"
+  ownerSalary?: Cents; // gross annual salary (presence makes fund independently active)
+  ownerCurrentAge?: number; // overrides SuperSettings.currentAge for this fund
+  ownerRetirementAge?: number; // overrides SuperSettings.retirementAge for this fund
+  ownerEmployerPct?: number; // overrides SuperSettings.employerContributionPct for this fund
 }
 
 export const DEFAULT_SUPER_SETTINGS: Omit<SuperSettings, "id" | "updatedAt"> = {
