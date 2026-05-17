@@ -3,7 +3,7 @@ import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
 import { cents } from "@/lib/money/cents";
 import type { Budget, CategoryTarget } from "../types";
-import { computeFluidActuals, progressColor } from "./actuals";
+import { computeFluidActuals, progressColor, UNCATEGORISED_ID } from "./actuals";
 
 const RANGE = { from: "2024-02-01", to: "2024-02-29" };
 const BUDGET: Budget = {
@@ -94,16 +94,43 @@ describe("actuals from transactions (no targets)", () => {
     expect(r.expense).toHaveLength(0);
   });
 
-  it("ignores uncategorised transactions", () => {
+  it("surfaces uncategorised expense transactions as a sentinel row", () => {
     const r = computeFluidActuals(
-      [makeTxn({ categoryId: null })],
+      [makeTxn({ categoryId: null, type: "debit", amount: cents(5000) })],
       [CAT_GROCERIES],
       [],
       RANGE,
       "monthly",
       BUDGET,
     );
-    expect(r.expense).toHaveLength(0);
+    expect(r.expense).toHaveLength(1);
+    expect(r.expense[0].categoryId).toBe(UNCATEGORISED_ID);
+    expect(r.expense[0].actual).toBe(5000);
+    expect(r.expense[0].hasTarget).toBe(false);
+    expect(r.expense[0].effectiveProjected).toBeUndefined();
+  });
+
+  it("uncategorised and categorised transactions coexist without double-counting", () => {
+    const r = computeFluidActuals(
+      [
+        makeTxn({ id: "t1", categoryId: "cat-groceries", type: "debit", amount: cents(42000) }),
+        makeTxn({ id: "t2", categoryId: null, type: "debit", amount: cents(8000) }),
+      ],
+      [CAT_GROCERIES],
+      [],
+      RANGE,
+      "monthly",
+      BUDGET,
+    );
+    expect(r.expense).toHaveLength(2);
+    const groceries = r.expense.find((e) => e.categoryId === "cat-groceries");
+    const uncat = r.expense.find((e) => e.categoryId === UNCATEGORISED_ID);
+    expect(groceries?.actual).toBe(42000);
+    expect(uncat?.actual).toBe(8000);
+    // Uncategorised row sorts last (no target, checked after sorted rows)
+    expect(r.expense[r.expense.length - 1].categoryId).toBe(UNCATEGORISED_ID);
+    // Totals include both
+    expect(r.totalActualExpense).toBe(50000);
   });
 });
 

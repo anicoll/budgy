@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Plus, TriangleAlert, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, TriangleAlert, X } from "lucide-react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ import {
 } from "../hooks";
 import type { Budget, BudgetFrequency, BudgetPeriod, CategoryTarget, PlannerItem } from "../types";
 import { BUDGET_PERIOD_LABEL } from "../types";
-import { computeFluidActuals, progressColor } from "../utils/actuals";
+import { computeFluidActuals, progressColor, UNCATEGORISED_ID } from "../utils/actuals";
 import { estimateFortnightlyNet } from "../utils/au-tax";
 import { FREQUENCY_LABEL, normaliseToPeriod } from "../utils/normalise";
 import { currentPeriodRange, formatPeriodLabel, shiftBudgetPeriod } from "../utils/period";
@@ -296,6 +296,22 @@ export function BudgetPlannerView({ budget }: Props) {
     return map;
   }, [transactions, periodRange]);
 
+  const uncatTransactions = useMemo(
+    () =>
+      transactions
+        .filter(
+          (t) =>
+            !t.categoryId &&
+            t.date >= periodRange.from &&
+            t.date <= periodRange.to &&
+            (t.type === "debit" ||
+              t.type === "credit" ||
+              (t.type === "transfer" && t.transferDirection === "out")),
+        )
+        .sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0)),
+    [transactions, periodRange],
+  );
+
   const { income, expense, totalIncome, totalExpense } = useMemo(
     () => computePlannerItems(budget.targets, categoryMap, actualByCategory, viewPeriod),
     [budget.targets, categoryMap, actualByCategory, viewPeriod],
@@ -398,7 +414,9 @@ export function BudgetPlannerView({ budget }: Props) {
 
   const periodLabel = BUDGET_PERIOD_LABEL[viewPeriod].toLowerCase();
   const sankeyLinks = useMemo(() => {
-    const expenseActuals = fluidActuals.expense.filter((x) => x.actual > 0);
+    const expenseActuals = fluidActuals.expense.filter(
+      (x) => x.actual > 0 && x.categoryId !== UNCATEGORISED_ID,
+    );
 
     // Group subcategories under their parent; root categories stay individual
     const grouped = new Map<string, { name: string; color: string; total: Cents }>();
@@ -681,6 +699,9 @@ export function BudgetPlannerView({ budget }: Props) {
           txnsByCategory={inPeriodTransactionsByCategory}
           loading={catsLoading}
         />
+
+        {/* Uncategorised row — shown when any in-period transactions have no category */}
+        {uncatTransactions.length > 0 && <UncategorisedRow transactions={uncatTransactions} />}
       </div>
 
       {housingDialogCat && (
@@ -804,6 +825,75 @@ function SankeyOverview({ links, periodLabel }: { links: SankeyLink[]; periodLab
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── UncategorisedRow ─────────────────────────────────────────────────────
+
+function UncategorisedRow({ transactions }: { transactions: Transaction[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const totalSpent = transactions
+    .filter((t) => t.type === "debit" || (t.type === "transfer" && t.transferDirection === "out"))
+    .reduce((s, t) => s + Math.abs(signedAmount(t)), 0) as Cents;
+
+  const totalReceived = transactions
+    .filter((t) => t.type === "credit")
+    .reduce((s, t) => s + t.amount, 0) as Cents;
+
+  return (
+    <div className="border-t border-border/30 bg-muted/10">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="group flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+      >
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/40 text-xs font-bold text-muted-foreground">
+          ?
+        </span>
+        <span className="flex-1 text-sm italic text-muted-foreground">Uncategorised</span>
+        <span className="text-[11px] text-muted-foreground/60 hidden sm:block">
+          {transactions.length} transaction{transactions.length !== 1 ? "s" : ""} — assign
+          categories to include in budget
+        </span>
+        <div className="flex items-center gap-3 shrink-0">
+          {totalSpent > 0 && (
+            <span className="text-sm tabular-nums font-semibold text-destructive">
+              −{formatAUDCompact(totalSpent)}
+            </span>
+          )}
+          {totalReceived > 0 && (
+            <span className="text-sm tabular-nums font-semibold text-income">
+              +{formatAUDCompact(totalReceived)}
+            </span>
+          )}
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground/50 transition-transform",
+              expanded && "rotate-180",
+            )}
+          />
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="mx-4 mb-3 rounded-lg border border-border/50 bg-surface/40 p-2.5 text-xs">
+          <div className="space-y-1.5">
+            {transactions.map((txn) => (
+              <div key={txn.id} className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate font-medium">
+                    {txn.payee || txn.description || "Transaction"}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">{txn.date}</div>
+                </div>
+                <Money value={signedAmount(txn)} className="shrink-0 tabular-nums" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

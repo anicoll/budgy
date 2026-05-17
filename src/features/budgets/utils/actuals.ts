@@ -1,3 +1,7 @@
+// Sentinel ID for transactions with no category — used to surface uncategorised
+// spend as a read-only row in the budget planner without touching real category data.
+export const UNCATEGORISED_ID = "__uncategorised__";
+
 import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
 import { signedAmount } from "@/features/transactions/types";
@@ -59,14 +63,11 @@ export function computeFluidActuals(
   const spentByCategory = new Map<string, number>();
 
   for (const t of inRange) {
-    if (!t.categoryId) continue;
+    const bucket = t.categoryId ?? UNCATEGORISED_ID;
     if (t.type === "credit") {
-      receivedByCategory.set(t.categoryId, (receivedByCategory.get(t.categoryId) ?? 0) + t.amount);
+      receivedByCategory.set(bucket, (receivedByCategory.get(bucket) ?? 0) + t.amount);
     } else if (t.type === "debit" || (t.type === "transfer" && t.transferDirection === "out")) {
-      spentByCategory.set(
-        t.categoryId,
-        (spentByCategory.get(t.categoryId) ?? 0) + Math.abs(signedAmount(t)),
-      );
+      spentByCategory.set(bucket, (spentByCategory.get(bucket) ?? 0) + Math.abs(signedAmount(t)));
     }
   }
 
@@ -182,6 +183,45 @@ export function computeFluidActuals(
 
   sort(incomeActuals);
   sort(expenseActuals);
+
+  // ── Uncategorised rows — appended last so they always appear at the end ──
+  // The sentinel key may be in the spend maps if any in-range transactions
+  // had no category. The main loop skips them (catMap has no entry for the
+  // sentinel), so we handle them here with no target, no rollover.
+  const uncatSpent = spentByCategory.get(UNCATEGORISED_ID) ?? 0;
+  const uncatReceived = receivedByCategory.get(UNCATEGORISED_ID) ?? 0;
+  if (uncatSpent > 0) {
+    expenseActuals.push({
+      categoryId: UNCATEGORISED_ID,
+      categoryName: "Uncategorised",
+      categoryColor: "",
+      categoryType: "expense",
+      actual: uncatSpent as Cents,
+      projectedTarget: undefined,
+      rolloverAmount: 0 as Cents,
+      effectiveProjected: undefined,
+      variance: undefined,
+      rollover: false,
+      hasTarget: false,
+      targetFrequency: undefined,
+    });
+  }
+  if (uncatReceived > 0) {
+    incomeActuals.push({
+      categoryId: UNCATEGORISED_ID,
+      categoryName: "Uncategorised",
+      categoryColor: "",
+      categoryType: "income",
+      actual: uncatReceived as Cents,
+      projectedTarget: undefined,
+      rolloverAmount: 0 as Cents,
+      effectiveProjected: undefined,
+      variance: undefined,
+      rollover: false,
+      hasTarget: false,
+      targetFrequency: undefined,
+    });
+  }
 
   // ── Step 6: Totals ────────────────────────────────────────────────────
   const totalActualIncome = incomeActuals.reduce((s, a) => s + a.actual, 0) as Cents;
