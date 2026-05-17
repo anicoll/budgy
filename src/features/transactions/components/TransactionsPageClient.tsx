@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CreditCard, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertDialog,
@@ -27,15 +27,65 @@ import {
   useUpdateTransaction,
 } from "../hooks";
 import type { defaultTxnValues } from "../schema";
-import type { Transaction } from "../types";
+import { signedAmount, type Transaction } from "../types";
 import { CsvImportSheet } from "./CsvImportSheet";
 import { FilterBar, INITIAL_FILTERS, type TxnFilters } from "./FilterBar";
 import { TransactionFormSheet } from "./TransactionFormSheet";
 import { TransactionRow } from "./TransactionRow";
+import { cn } from "@/lib/utils";
+
+type SortField = "date" | "amount" | "payee";
+
+// ── Sort header button ────────────────────────────────────────────────────────
+
+function SortHeader({
+  field,
+  label,
+  sortField,
+  sortDir,
+  onCycle,
+  className,
+}: {
+  field: SortField;
+  label: string;
+  sortField: SortField;
+  sortDir: "asc" | "desc";
+  onCycle: (f: SortField) => void;
+  className?: string;
+}) {
+  const isActive = sortField === field;
+  return (
+    <button
+      type="button"
+      onClick={() => onCycle(field)}
+      className={cn(
+        "flex items-center gap-0.5 text-[11px] font-medium uppercase tracking-wide transition-colors",
+        isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+        className,
+      )}
+    >
+      {label}
+      {isActive ? (
+        sortDir === "asc" ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : (
+          <ArrowDown className="h-3 w-3" />
+        )
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-40" />
+      )}
+    </button>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export function TransactionsPageClient() {
   const PAGE_SIZE_OPTIONS = [25, 50, 100, 250];
+
   const [filters, setFilters] = useState<TxnFilters>(INITIAL_FILTERS);
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -55,19 +105,24 @@ export function TransactionsPageClient() {
   const bulkSetCategoryMutation = useBulkSetCategory();
   const bulkSetClearedMutation = useBulkSetCleared();
 
-  const visible = useMemo(() => {
+  function cycleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  }
+
+  // Filter then sort — kept as two useMemos so sort changes are cheap
+  const filtered = useMemo(() => {
     let result = allTxns;
-    if (filters.accountId !== "all") {
+    if (filters.accountId !== "all")
       result = result.filter((t) => t.accountId === filters.accountId);
-    }
-    if (filters.type !== "all") {
-      result = result.filter((t) => t.type === filters.type);
-    }
-    if (filters.categoryId === "none") {
-      result = result.filter((t) => !t.categoryId);
-    } else if (filters.categoryId !== "all") {
+    if (filters.type !== "all") result = result.filter((t) => t.type === filters.type);
+    if (filters.categoryId === "none") result = result.filter((t) => !t.categoryId);
+    else if (filters.categoryId !== "all")
       result = result.filter((t) => t.categoryId === filters.categoryId);
-    }
     if (filters.search) {
       const q = filters.search.toLowerCase();
       result = result.filter(
@@ -76,6 +131,24 @@ export function TransactionsPageClient() {
     }
     return result;
   }, [allTxns, filters]);
+
+  const visible = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "date") {
+        cmp = a.date.localeCompare(b.date);
+      } else if (sortField === "amount") {
+        cmp = Math.abs(signedAmount(a)) - Math.abs(signedAmount(b));
+      } else {
+        const aKey = (a.payee || a.description || "").toLowerCase();
+        const bKey = (b.payee || b.description || "").toLowerCase();
+        cmp = aKey.localeCompare(bKey);
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -86,18 +159,18 @@ export function TransactionsPageClient() {
   const allPageSelected = paged.length > 0 && paged.every((t) => selectedIds.has(t.id));
 
   useEffect(() => {
-    if (filters || pageSize) {
-      setPage(1);
-    }
+    if (filters || pageSize) setPage(1);
   }, [filters, pageSize]);
+
+  // Reset sort also resets page
+  useEffect(() => {
+    setPage(1);
+  }, [sortField, sortDir]);
 
   useEffect(() => {
     setSelectedIds((prev) => {
       const next = new Set<string>();
-      for (const id of prev) {
-        if (allVisibleIds.has(id)) next.add(id);
-      }
-      // Return the same reference when nothing changed — prevents infinite re-render loop
+      for (const id of prev) if (allVisibleIds.has(id)) next.add(id);
       if (next.size === prev.size) return prev;
       return next;
     });
@@ -165,96 +238,140 @@ export function TransactionsPageClient() {
     setSelectedIds(new Set());
   }
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <FilterBar
-          filters={filters}
-          onChange={setFilters}
-          accounts={accounts}
-          categories={categories}
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setImportOpen(true)}
-          className="shrink-0 gap-1.5"
-        >
-          <Upload className="h-3.5 w-3.5" />
-          Import CSV
-        </Button>
-      </div>
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.name.localeCompare(b.name)),
+    [categories],
+  );
 
-      <Card className="border-border/60 bg-surface/60">
-        <CardContent className="flex flex-wrap items-center gap-2 p-3">
-          <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleSelectPage}
-            disabled={paged.length === 0}
-          >
-            {allPageSelected ? "Deselect page" : "Select page"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleSelectFiltered}
-            disabled={visible.length === 0}
-          >
-            {allFilteredSelected ? "Deselect filtered" : "Select all filtered"}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedIds(new Set())}
-            disabled={selectedIds.size === 0}
-          >
-            Clear selection
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => applyBulkCleared(true)}
-            disabled={selectedIds.size === 0 || bulkSetClearedMutation.isPending}
-          >
-            Mark cleared
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => applyBulkCleared(false)}
-            disabled={selectedIds.size === 0 || bulkSetClearedMutation.isPending}
-          >
-            Mark uncleared
-          </Button>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Set category</span>
-            <select
-              value={bulkCategoryId}
-              onChange={(e) => setBulkCategoryId(e.target.value)}
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-            >
-              <option value="none">Uncategorised</option>
-              {[...categories]
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-            </select>
+  return (
+    <div className="flex flex-col gap-3">
+      {/* ── Sticky toolbar ── */}
+      <div className="sticky top-0 z-20">
+        <div className="rounded-xl border border-border/60 bg-surface/95 backdrop-blur-md">
+          {/* Row 1: filters + import */}
+          <div className="flex items-start gap-2 p-3 pb-2">
+            <div className="min-w-0 flex-1">
+              <FilterBar
+                filters={filters}
+                onChange={setFilters}
+                accounts={accounts}
+                categories={categories}
+              />
+            </div>
             <Button
+              variant="outline"
               size="sm"
-              onClick={applyBulkCategory}
-              disabled={selectedIds.size === 0 || bulkSetCategoryMutation.isPending}
+              onClick={() => setImportOpen(true)}
+              className="shrink-0 gap-1.5"
             >
-              Apply
+              <Upload className="h-3.5 w-3.5" />
+              Import CSV
             </Button>
           </div>
-        </CardContent>
-      </Card>
 
+          {/* Row 2: bulk actions — only when items are selected */}
+          {selectedIds.size > 0 && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-border/40 px-3 py-2.5">
+              <span className="text-sm font-medium text-muted-foreground">
+                {selectedIds.size} selected
+              </span>
+              <Button variant="outline" size="sm" onClick={toggleSelectPage}>
+                {allPageSelected ? "Deselect page" : "Select page"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={toggleSelectFiltered}>
+                {allFilteredSelected ? "Deselect all" : "Select all filtered"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-muted-foreground"
+              >
+                Clear
+              </Button>
+              <div className="h-4 w-px bg-border/60" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => applyBulkCleared(true)}
+                disabled={bulkSetClearedMutation.isPending}
+              >
+                Mark cleared
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => applyBulkCleared(false)}
+                disabled={bulkSetClearedMutation.isPending}
+              >
+                Mark uncleared
+              </Button>
+              <div className="ml-auto flex items-center gap-2">
+                <span className="shrink-0 text-sm text-muted-foreground">Category</span>
+                <select
+                  value={bulkCategoryId}
+                  onChange={(e) => setBulkCategoryId(e.target.value)}
+                  className="h-8 rounded-md border border-input bg-transparent px-2 text-sm"
+                >
+                  <option value="none">Uncategorised</option>
+                  {sortedCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  onClick={applyBulkCategory}
+                  disabled={bulkSetCategoryMutation.isPending}
+                >
+                  Apply
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Row 3: column sort headers */}
+          <div className="flex items-center gap-2 border-t border-border/40 px-3 py-2">
+            {/* spacers to roughly match TransactionRow layout */}
+            <div className="w-4 shrink-0" />
+            <div className="w-4 shrink-0" />
+            <SortHeader
+              field="date"
+              label="Date"
+              sortField={sortField}
+              sortDir={sortDir}
+              onCycle={cycleSort}
+              className="w-20 shrink-0"
+            />
+            <SortHeader
+              field="payee"
+              label="Payee"
+              sortField={sortField}
+              sortDir={sortDir}
+              onCycle={cycleSort}
+              className="min-w-0 flex-1"
+            />
+            <span className="hidden w-28 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:block">
+              Category
+            </span>
+            <span className="hidden w-24 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground md:block">
+              Account
+            </span>
+            <SortHeader
+              field="amount"
+              label="Amount"
+              sortField={sortField}
+              sortDir={sortDir}
+              onCycle={cycleSort}
+              className="w-20 shrink-0 justify-end"
+            />
+            <div className="w-7 shrink-0" />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Transaction rows ── */}
       <Card className="border-border/60 bg-surface/60 backdrop-blur-md">
         <CardContent className="p-0">
           {isPending ? (
@@ -285,10 +402,11 @@ export function TransactionsPageClient() {
         </CardContent>
       </Card>
 
+      {/* ── Pagination ── */}
       {!isPending && visible.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-sm text-muted-foreground">
-            Showing {pageStart + 1}-{Math.min(pageStart + pageSize, visible.length)} of{" "}
+            Showing {pageStart + 1}–{Math.min(pageStart + pageSize, visible.length)} of{" "}
             {visible.length}
           </div>
           <div className="flex items-center gap-2">
@@ -330,6 +448,7 @@ export function TransactionsPageClient() {
         </div>
       )}
 
+      {/* ── Modals ── */}
       <TransactionFormSheet
         open={sheetOpen}
         onClose={() => {
