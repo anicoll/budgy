@@ -53,7 +53,9 @@ export function QuickAddDialog() {
     setOpen(false);
   });
 
-  const expenseCategories = categories.filter((c) => c.type !== "transfer");
+  const expenseCategories = categories
+    .filter((c) => c.type !== "transfer")
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

@@ -94,11 +94,13 @@ export function FilterBar({ filters, onChange, accounts, categories }: Props) {
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
             <SelectItem value="none">Uncategorised</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
+            {[...categories]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
 

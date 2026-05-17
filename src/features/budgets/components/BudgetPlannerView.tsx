@@ -344,12 +344,13 @@ export function BudgetPlannerView({ budget }: Props) {
     );
   }, [budget.id, ensureMissingTargetsMutation, missingExpenseTargetIds]);
 
-  const availableIncome = allCategories.filter(
-    (c) => c.type === "income" && !c.archived && !allocatedIds.has(c.id),
-  );
-  const availableExpense = allCategories.filter(
-    (c) => c.type === "expense" && !c.archived && !allocatedIds.has(c.id),
-  );
+  const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
+  const availableIncome = allCategories
+    .filter((c) => c.type === "income" && !c.archived && !allocatedIds.has(c.id))
+    .sort(byName);
+  const availableExpense = allCategories
+    .filter((c) => c.type === "expense" && !c.archived && !allocatedIds.has(c.id))
+    .sort(byName);
 
   function switchPeriod(next: BudgetPeriod) {
     if (next === viewPeriod) return;

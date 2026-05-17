@@ -236,11 +236,13 @@ export function TransactionsPageClient() {
               className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
             >
               <option value="none">Uncategorised</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
+              {[...categories]
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
             </select>
             <Button
               size="sm"

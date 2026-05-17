@@ -87,10 +87,11 @@ export function TransactionFormSheet({
     await onSubmit(values);
   });
 
-  const incomeExpenseCategories = categories.filter(
-    (c) => c.type === "income" || c.type === "expense",
-  );
-  const transferCategories = categories.filter((c) => c.type === "transfer");
+  const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
+  const incomeExpenseCategories = categories
+    .filter((c) => c.type === "income" || c.type === "expense")
+    .sort(byName);
+  const transferCategories = categories.filter((c) => c.type === "transfer").sort(byName);
   const relevantCategories =
     watchType === "transfer" ? transferCategories : incomeExpenseCategories;
 
