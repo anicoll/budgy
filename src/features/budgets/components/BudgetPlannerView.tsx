@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/features/categories/hooks";
+import type { Category } from "@/features/categories/types";
 import { useTransactions } from "@/features/transactions/hooks";
 import type { Transaction } from "@/features/transactions/types";
 import { signedAmount } from "@/features/transactions/types";
@@ -20,6 +21,7 @@ import { EnvelopeDetailSheet } from "./EnvelopeDetailSheet";
 import { HousingSetupDialog, isHousingCategory } from "./HousingSetupDialog";
 import { PeriodView } from "./PeriodView";
 import { PlannerHeader, type PlannerViewMode } from "./PlannerHeader";
+import { UncategorisedTxnItem } from "./shared/UncategorisedTxnItem";
 
 interface Props {
   budget: Budget;
@@ -174,10 +176,18 @@ export function BudgetPlannerView({ budget }: Props) {
           availableCategories={availableCategories}
           onAddCategory={addCategory}
           uncategorisedTxns={uncategorisedTxns}
+          allTxns={transactions}
+          categories={allCategories}
         />
       )}
       {bundle && viewMode === "period" && (
-        <PeriodView bundle={bundle} onOpen={setOpenState} uncategorisedTxns={uncategorisedTxns} />
+        <PeriodView
+          bundle={bundle}
+          onOpen={setOpenState}
+          uncategorisedTxns={uncategorisedTxns}
+          allTxns={transactions}
+          categories={allCategories}
+        />
       )}
 
       <EnvelopeDetailSheet
@@ -208,6 +218,8 @@ function EnvelopesView({
   availableCategories,
   onAddCategory,
   uncategorisedTxns,
+  allTxns,
+  categories,
 }: {
   bundle: import("../types").EnvelopeBundle;
   onOpen: (state: EnvelopeState) => void;
@@ -216,6 +228,8 @@ function EnvelopesView({
   availableCategories: { id: string; name: string; color: string }[];
   onAddCategory: (id: string) => void;
   uncategorisedTxns: Transaction[];
+  allTxns: Transaction[];
+  categories: Category[];
 }) {
   const sinkingFunds = [...bundle.income, ...bundle.expense].filter((r) => r.mode === "envelope");
   const periodRows = [...bundle.income, ...bundle.expense].filter((r) => r.mode === "period");
@@ -276,7 +290,9 @@ function EnvelopesView({
         )}
       </section>
 
-      {uncategorisedTxns.length > 0 && <UncategorisedSection txns={uncategorisedTxns} />}
+      {uncategorisedTxns.length > 0 && (
+        <UncategorisedSection txns={uncategorisedTxns} allTxns={allTxns} categories={categories} />
+      )}
     </div>
   );
 }
@@ -352,7 +368,15 @@ function AddDropdown({
   );
 }
 
-function UncategorisedSection({ txns }: { txns: Transaction[] }) {
+function UncategorisedSection({
+  txns,
+  allTxns,
+  categories,
+}: {
+  txns: Transaction[];
+  allTxns: Transaction[];
+  categories: Category[];
+}) {
   const [open, setOpen] = useState(false);
   const expense = txns.filter((t) => t.type === "debit");
   const income = txns.filter((t) => t.type === "credit");
@@ -388,16 +412,7 @@ function UncategorisedSection({ txns }: { txns: Transaction[] }) {
         {open && (
           <ul className="border-t border-amber-500/20 px-4 pb-3 pt-2 flex flex-col gap-1">
             {txns.map((t) => (
-              <li key={t.id} className="flex items-center gap-3 py-1 text-xs">
-                <span className="text-muted-foreground tabular-nums">{t.date}</span>
-                <span className="flex-1 truncate">{t.payee || t.description || "—"}</span>
-                <Money
-                  value={signedAmount(t)}
-                  variant="signed"
-                  signColor
-                  className="tabular-nums"
-                />
-              </li>
+              <UncategorisedTxnItem key={t.id} txn={t} allTxns={allTxns} categories={categories} />
             ))}
           </ul>
         )}

@@ -4,25 +4,31 @@ import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { Money } from "@/components/money/money";
 import { Card, CardContent } from "@/components/ui/card";
+import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
 import { signedAmount } from "@/features/transactions/types";
 import type { Cents } from "@/lib/money/cents";
 import { cn } from "@/lib/utils";
 import type { EnvelopeBundle, EnvelopeState } from "../types";
 import { EnvelopeProgress, STATUS_TEXT_COLOR } from "./shared/EnvelopeProgress";
+import { UncategorisedTxnItem } from "./shared/UncategorisedTxnItem";
 
 interface Props {
   bundle: EnvelopeBundle;
   onOpen: (state: EnvelopeState) => void;
   uncategorisedTxns: Transaction[];
+  allTxns: Transaction[];
+  categories: Category[];
 }
 
-export function PeriodView({ bundle, onOpen, uncategorisedTxns }: Props) {
+export function PeriodView({ bundle, onOpen, uncategorisedTxns, allTxns, categories }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <PeriodSection title="Income" rows={bundle.income} type="income" onOpen={onOpen} />
       <PeriodSection title="Expenses" rows={bundle.expense} type="expense" onOpen={onOpen} />
-      {uncategorisedTxns.length > 0 && <UncategorisedRow txns={uncategorisedTxns} />}
+      {uncategorisedTxns.length > 0 && (
+        <UncategorisedRow txns={uncategorisedTxns} allTxns={allTxns} categories={categories} />
+      )}
       <Totals bundle={bundle} />
     </div>
   );
@@ -134,7 +140,15 @@ function PeriodRow({
   );
 }
 
-function UncategorisedRow({ txns }: { txns: Transaction[] }) {
+function UncategorisedRow({
+  txns,
+  allTxns,
+  categories,
+}: {
+  txns: Transaction[];
+  allTxns: Transaction[];
+  categories: Category[];
+}) {
   const [open, setOpen] = useState(false);
   const totalExpense = txns
     .filter((t) => t.type === "debit")
@@ -172,16 +186,12 @@ function UncategorisedRow({ txns }: { txns: Transaction[] }) {
           {open && (
             <ul className="border-t border-border/40 px-4 pb-3 pt-2 flex flex-col gap-1">
               {txns.map((t) => (
-                <li key={t.id} className="flex items-center gap-3 py-1 text-xs">
-                  <span className="text-muted-foreground tabular-nums">{t.date}</span>
-                  <span className="flex-1 truncate">{t.payee || t.description || "—"}</span>
-                  <Money
-                    value={signedAmount(t)}
-                    variant="signed"
-                    signColor
-                    className="tabular-nums"
-                  />
-                </li>
+                <UncategorisedTxnItem
+                  key={t.id}
+                  txn={t}
+                  allTxns={allTxns}
+                  categories={categories}
+                />
               ))}
             </ul>
           )}
