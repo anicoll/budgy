@@ -16,8 +16,8 @@ import { useBudgetComputeWorker } from "../hooks/useBudgetComputeWorker";
 import type { Budget, EnvelopeState } from "../types";
 import { defaultModeFor } from "../utils/envelope";
 import { currentPeriodRange, formatPeriodLabel, shiftBudgetPeriod } from "../utils/period";
-import { EnvelopeCard } from "./EnvelopeCard";
 import { EnvelopeDetailSheet } from "./EnvelopeDetailSheet";
+import { FundDragLayer } from "./FundDragLayer";
 import { HousingSetupDialog, isHousingCategory } from "./HousingSetupDialog";
 import { PeriodView } from "./PeriodView";
 import { PlannerHeader, type PlannerViewMode } from "./PlannerHeader";
@@ -170,6 +170,7 @@ export function BudgetPlannerView({ budget }: Props) {
       {bundle && viewMode === "envelopes" && (
         <EnvelopesView
           bundle={bundle}
+          budgetId={budget.id}
           onOpen={setOpenState}
           onAddClick={() => setAddOpen((v) => !v)}
           addOpen={addOpen}
@@ -212,6 +213,7 @@ export function BudgetPlannerView({ budget }: Props) {
 
 function EnvelopesView({
   bundle,
+  budgetId,
   onOpen,
   onAddClick,
   addOpen,
@@ -222,6 +224,7 @@ function EnvelopesView({
   categories,
 }: {
   bundle: import("../types").EnvelopeBundle;
+  budgetId: string;
   onOpen: (state: EnvelopeState) => void;
   onAddClick: () => void;
   addOpen: boolean;
@@ -233,6 +236,7 @@ function EnvelopesView({
 }) {
   const sinkingFunds = [...bundle.income, ...bundle.expense].filter((r) => r.mode === "envelope");
   const periodRows = [...bundle.income, ...bundle.expense].filter((r) => r.mode === "period");
+  const allEnvelopes = [...sinkingFunds, ...periodRows];
 
   return (
     <div className="flex flex-col gap-6">
@@ -266,11 +270,12 @@ function EnvelopesView({
             body="Add a quarterly or yearly category — like council rates or insurance — to start setting money aside."
           />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {sinkingFunds.map((s) => (
-              <EnvelopeCard key={s.categoryId} state={s} onOpen={onOpen} />
-            ))}
-          </div>
+          <FundDragLayer
+            envelopes={sinkingFunds}
+            allEnvelopes={allEnvelopes}
+            budgetId={budgetId}
+            onOpen={onOpen}
+          />
         )}
       </section>
 
@@ -282,11 +287,12 @@ function EnvelopesView({
             body="Add a weekly or monthly category — like groceries — to track period-level spending."
           />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {periodRows.map((s) => (
-              <EnvelopeCard key={s.categoryId} state={s} onOpen={onOpen} />
-            ))}
-          </div>
+          <FundDragLayer
+            envelopes={periodRows}
+            allEnvelopes={allEnvelopes}
+            budgetId={budgetId}
+            onOpen={onOpen}
+          />
         )}
       </section>
 
