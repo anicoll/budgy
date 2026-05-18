@@ -1,6 +1,13 @@
 "use client";
 
-import { CalendarRange, ChevronLeft, ChevronRight, LayoutGrid, List } from "lucide-react";
+import {
+  CalendarDays,
+  CalendarRange,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  List,
+} from "lucide-react";
 import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
 import type { Cents } from "@/lib/money/cents";
@@ -8,7 +15,7 @@ import { cn } from "@/lib/utils";
 import type { BudgetPeriod, EnvelopeBundle } from "../types";
 import { BUDGET_PERIOD_LABEL } from "../types";
 
-export type PlannerViewMode = "envelopes" | "period";
+export type PlannerViewMode = "envelopes" | "period" | "calendar";
 
 interface Props {
   budgetName: string;
@@ -32,6 +39,7 @@ const PERIOD_TABS: { value: BudgetPeriod; label: string }[] = [
 const VIEW_MODES: { value: PlannerViewMode; label: string; icon: typeof LayoutGrid }[] = [
   { value: "envelopes", label: "Envelopes", icon: LayoutGrid },
   { value: "period", label: "This period", icon: List },
+  { value: "calendar", label: "Calendar", icon: CalendarDays },
 ];
 
 export function PlannerHeader({
@@ -54,7 +62,9 @@ export function PlannerHeader({
           <p className="text-[11px] text-muted-foreground">
             {viewMode === "envelopes"
               ? "Money set aside for each category. Quarterly and yearly bills accumulate over time."
-              : `Showing ${BUDGET_PERIOD_LABEL[viewPeriod].toLowerCase()} period totals.`}
+              : viewMode === "period"
+                ? `Showing ${BUDGET_PERIOD_LABEL[viewPeriod].toLowerCase()} period totals.`
+                : "Upcoming bills for envelope-mode categories."}
           </p>
         </div>
 
