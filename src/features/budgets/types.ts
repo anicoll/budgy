@@ -70,9 +70,13 @@ export interface EnvelopeState {
 
   status: EnvelopeStatus;
 
-  // Phase 2 — populated later by forecast.ts:
+  // Phase 2 — populated by forecast.ts (envelope mode only):
   nextDueOn?: string;
   fundedByNextDue?: Cents;
+  forecastConfidence?: "high" | "low";
+
+  // Phase 2 — populated by history.ts (envelope mode only):
+  balanceHistory?: { periodStart: string; periodEnd: string; balance: Cents }[];
 }
 
 export interface EnvelopeBundle {

@@ -1,8 +1,11 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
+import { useState } from "react";
 import { Money } from "@/components/money/money";
 import { Card, CardContent } from "@/components/ui/card";
+import type { Transaction } from "@/features/transactions/types";
+import { signedAmount } from "@/features/transactions/types";
 import type { Cents } from "@/lib/money/cents";
 import { cn } from "@/lib/utils";
 import type { EnvelopeBundle, EnvelopeState } from "../types";
@@ -11,19 +14,15 @@ import { EnvelopeProgress, STATUS_TEXT_COLOR } from "./shared/EnvelopeProgress";
 interface Props {
   bundle: EnvelopeBundle;
   onOpen: (state: EnvelopeState) => void;
+  uncategorisedTxns: Transaction[];
 }
 
-export function PeriodView({ bundle, onOpen }: Props) {
+export function PeriodView({ bundle, onOpen, uncategorisedTxns }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <PeriodSection title="Income" rows={bundle.income} type="income" onOpen={onOpen} />
       <PeriodSection title="Expenses" rows={bundle.expense} type="expense" onOpen={onOpen} />
-      {(bundle.uncategorisedExpense > 0 || bundle.uncategorisedIncome > 0) && (
-        <UncategorisedRow
-          income={bundle.uncategorisedIncome}
-          expense={bundle.uncategorisedExpense}
-        />
-      )}
+      {uncategorisedTxns.length > 0 && <UncategorisedRow txns={uncategorisedTxns} />}
       <Totals bundle={bundle} />
     </div>
   );
@@ -135,31 +134,57 @@ function PeriodRow({
   );
 }
 
-function UncategorisedRow({ income, expense }: { income: Cents; expense: Cents }) {
+function UncategorisedRow({ txns }: { txns: Transaction[] }) {
+  const [open, setOpen] = useState(false);
+  const totalExpense = txns
+    .filter((t) => t.type === "debit")
+    .reduce((s, t) => s + Math.abs(signedAmount(t)), 0) as Cents;
+  const totalIncome = txns
+    .filter((t) => t.type === "credit")
+    .reduce((s, t) => s + t.amount, 0) as Cents;
+
   return (
     <section className="flex flex-col gap-2">
       <h3 className="text-xs uppercase tracking-wider text-muted-foreground">Uncategorised</h3>
       <Card className="border-border/60 bg-surface/60 backdrop-blur-md">
-        <CardContent className="flex items-center gap-4 px-4 py-3">
-          {income > 0 && (
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Income
-              </span>
-              <Money value={income} className="text-sm font-medium text-emerald-400" />
-            </div>
+        <CardContent className="p-0">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+          >
+            <span className="flex-1 text-sm font-medium">Uncategorised</span>
+            {totalExpense > 0 && (
+              <Money value={totalExpense} className="text-sm tabular-nums text-rose-300" />
+            )}
+            {totalIncome > 0 && (
+              <Money value={totalIncome} className="text-sm tabular-nums text-emerald-300" />
+            )}
+            <span className="text-[11px] text-muted-foreground">
+              {txns.length} txn{txns.length !== 1 ? "s" : ""}
+            </span>
+            {open ? (
+              <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            )}
+          </button>
+          {open && (
+            <ul className="border-t border-border/40 px-4 pb-3 pt-2 flex flex-col gap-1">
+              {txns.map((t) => (
+                <li key={t.id} className="flex items-center gap-3 py-1 text-xs">
+                  <span className="text-muted-foreground tabular-nums">{t.date}</span>
+                  <span className="flex-1 truncate">{t.payee || t.description || "—"}</span>
+                  <Money
+                    value={signedAmount(t)}
+                    variant="signed"
+                    signColor
+                    className="tabular-nums"
+                  />
+                </li>
+              ))}
+            </ul>
           )}
-          {expense > 0 && (
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Expense
-              </span>
-              <Money value={expense} className="text-sm font-medium text-rose-300" />
-            </div>
-          )}
-          <span className="ml-auto text-[10px] text-muted-foreground">
-            Categorise these from the Transactions page.
-          </span>
         </CardContent>
       </Card>
     </section>

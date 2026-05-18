@@ -1,12 +1,14 @@
 "use client";
 
-import { ChevronRight, PiggyBank, Repeat } from "lucide-react";
+import { format } from "date-fns";
+import { CalendarClock, ChevronRight, PiggyBank, Repeat } from "lucide-react";
 import { Money } from "@/components/money/money";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Cents } from "@/lib/money/cents";
 import { cn } from "@/lib/utils";
-import type { EnvelopeState } from "../types";
+import type { EnvelopeState, EnvelopeStatus } from "../types";
 import { FREQUENCY_SHORT_LABEL } from "../utils/normalise";
+import { BalanceSparkline } from "./shared/BalanceSparkline";
 import {
   EnvelopeProgress,
   STATUS_BORDER_COLOR,
@@ -39,7 +41,8 @@ export function EnvelopeCard({ state, onOpen }: Props) {
 
   const subText = isEnvelope ? (
     <span>
-      of <Money value={target.amount} className="text-foreground/80" /> next bill
+      of <Money value={target.amount} className="text-foreground/80" /> per{" "}
+      {FREQUENCY_SHORT_LABEL[target.frequency]}
     </span>
   ) : (
     <span>
@@ -47,6 +50,8 @@ export function EnvelopeCard({ state, onOpen }: Props) {
       {FREQUENCY_SHORT_LABEL[target.frequency]}
     </span>
   );
+
+  const showSparkline = isEnvelope && (state.balanceHistory?.length ?? 0) >= 2;
 
   return (
     <Card
@@ -99,6 +104,25 @@ export function EnvelopeCard({ state, onOpen }: Props) {
           {/* Progress bar */}
           <EnvelopeProgress ratio={ratio} status={state.status} />
 
+          {/* Next-due tag (envelope mode only, when forecast available) */}
+          {isEnvelope && state.nextDueOn && (
+            <NextDueTag
+              nextDueOn={state.nextDueOn}
+              fundedByNextDue={state.fundedByNextDue}
+              targetAmount={target.amount}
+              confidence={state.forecastConfidence}
+              status={state.status}
+            />
+          )}
+
+          {/* Balance trajectory sparkline (envelope mode only) */}
+          {showSparkline && state.balanceHistory && (
+            <BalanceSparkline
+              points={state.balanceHistory.map((p) => ({ balance: p.balance }))}
+              color={sparklineColor(state.status)}
+            />
+          )}
+
           {/* Footer: status + period figures (when envelope) */}
           <div className="flex items-center justify-between text-[10px]">
             <span
@@ -127,6 +151,71 @@ export function EnvelopeCard({ state, onOpen }: Props) {
       </CardContent>
     </Card>
   );
+}
+
+function NextDueTag({
+  nextDueOn,
+  fundedByNextDue,
+  targetAmount,
+  confidence,
+  status,
+}: {
+  nextDueOn: string;
+  fundedByNextDue?: Cents;
+  targetAmount: Cents;
+  confidence?: "high" | "low";
+  status: EnvelopeStatus;
+}) {
+  const due = new Date(`${nextDueOn}T00:00:00Z`);
+  const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+  const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  const dateLabel = format(due, "d MMM");
+  const dayLabel = days <= 0 ? "today" : days === 1 ? "tomorrow" : `${days}d`;
+  const fundedPct =
+    targetAmount > 0 && fundedByNextDue !== undefined
+      ? Math.round((fundedByNextDue / targetAmount) * 100)
+      : null;
+
+  return (
+    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+      <CalendarClock className="h-3 w-3 shrink-0" />
+      <span>
+        Next bill{" "}
+        <span className={cn(confidence === "low" && "italic")}>
+          {confidence === "low" && "~"}
+          {dateLabel}
+        </span>
+        <span className="text-muted-foreground/60"> · {dayLabel}</span>
+      </span>
+      {fundedPct !== null && (
+        <span
+          className={cn(
+            "ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-medium",
+            status === "overspent"
+              ? "bg-rose-500/15 text-rose-300"
+              : fundedPct >= 100
+                ? "bg-emerald-500/15 text-emerald-300"
+                : fundedPct >= 60
+                  ? "bg-amber-500/15 text-amber-300"
+                  : "bg-muted/40 text-muted-foreground",
+          )}
+        >
+          {fundedPct}% by then
+        </span>
+      )}
+    </div>
+  );
+}
+
+function sparklineColor(status: EnvelopeStatus): string {
+  switch (status) {
+    case "overspent":
+      return "rgb(251 113 133)"; // rose-400
+    case "watch":
+      return "rgb(251 191 36)"; // amber-400
+    default:
+      return "rgb(167 139 250)"; // violet-400 (healthy)
+  }
 }
 
 function ModeBadge({ mode }: { mode: "envelope" | "period" }) {

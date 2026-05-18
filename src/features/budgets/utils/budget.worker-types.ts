@@ -14,9 +14,6 @@ export interface BudgetWorkerInput {
 
 export interface BudgetWorkerOutput {
   bundle: EnvelopeBundle;
-  // Phase 2 placeholders — populated when forecast/history modules are wired in.
-  forecasts: Record<string, null>;
-  balanceHistory: Record<string, null>;
 }
 
 export interface WorkerMessage {

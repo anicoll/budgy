@@ -1,6 +1,7 @@
 "use client";
 
-import { Archive, PiggyBank, Repeat, Trash2 } from "lucide-react";
+import { format } from "date-fns";
+import { Archive, CalendarClock, PiggyBank, Repeat, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money/money";
@@ -22,11 +23,13 @@ import {
 import { Switch } from "@/components/ui/switch";
 import type { Transaction } from "@/features/transactions/types";
 import { signedAmount } from "@/features/transactions/types";
+import type { Cents } from "@/lib/money/cents";
 import { cn } from "@/lib/utils";
 import { useRemoveTarget, useSetTarget } from "../hooks";
 import type { BudgetFrequency, BudgetMode, EnvelopeState } from "../types";
 import { defaultModeFor } from "../utils/envelope";
 import { FREQUENCY_LABEL } from "../utils/normalise";
+import { BalanceSparkline } from "./shared/BalanceSparkline";
 import { STATUS_LABEL, STATUS_TEXT_COLOR } from "./shared/EnvelopeProgress";
 
 interface Props {
@@ -137,6 +140,29 @@ export function EnvelopeDetailSheet({ state, budgetId, transactions, onClose }: 
             <SnapshotCell label="Period actual" value={state.periodActual} />
             <SnapshotCell label="Period left" value={state.periodVariance} signed />
           </div>
+
+          {/* Forecast (envelope mode only, when prediction available) */}
+          {state.mode === "envelope" && state.nextDueOn && <ForecastPanel state={state} />}
+
+          {/* Balance trend (envelope mode only) */}
+          {state.mode === "envelope" &&
+            state.balanceHistory &&
+            state.balanceHistory.length >= 2 && (
+              <div className="flex flex-col gap-1.5 rounded-xl border border-border/40 bg-surface/40 px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Balance trend
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Last {state.balanceHistory.length} periods
+                  </span>
+                </div>
+                <BalanceSparkline
+                  points={state.balanceHistory.map((p) => ({ balance: p.balance }))}
+                  className="h-10"
+                />
+              </div>
+            )}
 
           {/* Edit form */}
           <div className="flex flex-col gap-3">
@@ -282,6 +308,54 @@ function SnapshotCell({
         muted={muted}
         className="text-sm font-medium"
       />
+    </div>
+  );
+}
+
+function ForecastPanel({ state }: { state: EnvelopeState }) {
+  if (!state.nextDueOn) return null;
+  const due = new Date(`${state.nextDueOn}T00:00:00Z`);
+  const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+  const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  const dateLabel = format(due, "EEE d MMM yyyy");
+  const dayLabel = days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+  const target = state.target.amount;
+  const projected = state.fundedByNextDue ?? state.balance;
+  const pct = target > 0 ? Math.round((projected / target) * 100) : 0;
+  const shortfall = (target - projected) as Cents;
+
+  let summary: string;
+  if (shortfall <= 0) {
+    summary = "On track to cover the next bill in full.";
+  } else if (pct >= 75) {
+    summary = "Close — a small top-up will fully cover the next bill.";
+  } else {
+    summary = "Funding is behind. Consider raising the target or topping up.";
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-violet-500/30 bg-violet-500/5 px-3 py-3">
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-violet-300">
+        <CalendarClock className="h-3.5 w-3.5" />
+        Forecast
+        {state.forecastConfidence === "low" && (
+          <span className="ml-auto rounded-full bg-muted/40 px-1.5 py-0.5 text-[9px] font-normal normal-case tracking-normal text-muted-foreground">
+            Estimate
+          </span>
+        )}
+      </div>
+      <div className="flex items-baseline gap-2 text-sm">
+        <span className="font-medium">Next bill</span>
+        <span className="text-foreground/80">{dateLabel}</span>
+        <span className="text-[11px] text-muted-foreground">· {dayLabel}</span>
+      </div>
+      <div className="text-[11px] text-muted-foreground">
+        Projected balance on that date:{" "}
+        <Money value={projected} className="text-sm font-medium text-foreground" /> of{" "}
+        <Money value={target} className="text-foreground/70" />{" "}
+        <span className="tabular-nums">({pct}%)</span>
+      </div>
+      <div className="text-[11px] text-muted-foreground">{summary}</div>
     </div>
   );
 }
