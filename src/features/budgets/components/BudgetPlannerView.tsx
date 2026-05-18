@@ -1,12 +1,15 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/features/categories/hooks";
 import { useTransactions } from "@/features/transactions/hooks";
+import type { Transaction } from "@/features/transactions/types";
+import { signedAmount } from "@/features/transactions/types";
 import { useEnsureMissingTargets, useSetTarget } from "../hooks";
 import { useBudgetComputeWorker } from "../hooks/useBudgetComputeWorker";
 import type { Budget, EnvelopeState } from "../types";
@@ -100,6 +103,18 @@ export function BudgetPlannerView({ budget }: Props) {
     ensureMissingTargets.mutate({ budgetId: budget.id, categoryIds: missing });
   }, [bundle?.income.length, bundle?.expense.length]);
 
+  const uncategorisedTxns = useMemo(
+    () =>
+      transactions.filter(
+        (t) =>
+          !t.categoryId &&
+          t.type !== "transfer" &&
+          t.date >= viewRange.from &&
+          t.date <= viewRange.to,
+      ),
+    [transactions, viewRange],
+  );
+
   const allocatedIds = useMemo(
     () => new Set(budget.targets.map((t) => t.categoryId)),
     [budget.targets],
@@ -158,9 +173,12 @@ export function BudgetPlannerView({ budget }: Props) {
           addOpen={addOpen}
           availableCategories={availableCategories}
           onAddCategory={addCategory}
+          uncategorisedTxns={uncategorisedTxns}
         />
       )}
-      {bundle && viewMode === "period" && <PeriodView bundle={bundle} onOpen={setOpenState} />}
+      {bundle && viewMode === "period" && (
+        <PeriodView bundle={bundle} onOpen={setOpenState} uncategorisedTxns={uncategorisedTxns} />
+      )}
 
       <EnvelopeDetailSheet
         state={openState}
@@ -189,6 +207,7 @@ function EnvelopesView({
   addOpen,
   availableCategories,
   onAddCategory,
+  uncategorisedTxns,
 }: {
   bundle: import("../types").EnvelopeBundle;
   onOpen: (state: EnvelopeState) => void;
@@ -196,6 +215,7 @@ function EnvelopesView({
   addOpen: boolean;
   availableCategories: { id: string; name: string; color: string }[];
   onAddCategory: (id: string) => void;
+  uncategorisedTxns: Transaction[];
 }) {
   const sinkingFunds = [...bundle.income, ...bundle.expense].filter((r) => r.mode === "envelope");
   const periodRows = [...bundle.income, ...bundle.expense].filter((r) => r.mode === "period");
@@ -256,16 +276,7 @@ function EnvelopesView({
         )}
       </section>
 
-      {(bundle.uncategorisedExpense > 0 || bundle.uncategorisedIncome > 0) && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="flex items-center gap-3 px-4 py-3 text-xs">
-            <span className="font-medium text-amber-300">Uncategorised in this period</span>
-            <span className="text-muted-foreground">
-              Categorise these from the Transactions page to give them a home.
-            </span>
-          </CardContent>
-        </Card>
-      )}
+      {uncategorisedTxns.length > 0 && <UncategorisedSection txns={uncategorisedTxns} />}
     </div>
   );
 }
@@ -338,6 +349,60 @@ function AddDropdown({
         ))}
       </div>
     </>
+  );
+}
+
+function UncategorisedSection({ txns }: { txns: Transaction[] }) {
+  const [open, setOpen] = useState(false);
+  const expense = txns.filter((t) => t.type === "debit");
+  const income = txns.filter((t) => t.type === "credit");
+  const totalExpense = expense.reduce((s, t) => s + Math.abs(signedAmount(t)), 0);
+  const totalIncome = income.reduce((s, t) => s + t.amount, 0);
+
+  return (
+    <Card className="border-amber-500/30 bg-amber-500/5">
+      <CardContent className="p-0">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center gap-3 px-4 py-3 text-left"
+        >
+          <span className="flex-1 text-xs font-medium text-amber-300">
+            Uncategorised this period
+          </span>
+          {totalExpense > 0 && (
+            <Money value={totalExpense as never} className="text-xs text-rose-300 tabular-nums" />
+          )}
+          {totalIncome > 0 && (
+            <Money value={totalIncome as never} className="text-xs text-emerald-300 tabular-nums" />
+          )}
+          <span className="text-[11px] text-muted-foreground">
+            {txns.length} txn{txns.length !== 1 ? "s" : ""}
+          </span>
+          {open ? (
+            <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          )}
+        </button>
+        {open && (
+          <ul className="border-t border-amber-500/20 px-4 pb-3 pt-2 flex flex-col gap-1">
+            {txns.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 py-1 text-xs">
+                <span className="text-muted-foreground tabular-nums">{t.date}</span>
+                <span className="flex-1 truncate">{t.payee || t.description || "—"}</span>
+                <Money
+                  value={signedAmount(t)}
+                  variant="signed"
+                  signColor
+                  className="tabular-nums"
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
