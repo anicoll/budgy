@@ -26,6 +26,13 @@ export class BudgyDB extends Dexie {
       superSettings: "&id, updatedAt",
       mortgagePlans: "&id, updatedAt",
     });
+    // v5: budget model redesigned around envelopes. Schema unchanged but the
+    // shape of CategoryTarget gained `mode` + `openedAt` and dropped `rollover`.
+    // Old budgets can't be reliably migrated, so wipe the table on upgrade —
+    // user re-runs the setup wizard.
+    this.version(5).upgrade(async (tx) => {
+      await tx.table("budgets").clear();
+    });
   }
 }
 

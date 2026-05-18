@@ -50,7 +50,8 @@ function defaultValues(editing?: Budget | null): BudgetFormValues {
         categoryId: a.categoryId,
         amount: a.amount,
         frequency: a.frequency ?? editing.period,
-        rollover: a.rollover,
+        mode: a.mode,
+        openedAt: a.openedAt,
       })),
       notes: editing.notes ?? "",
     };
