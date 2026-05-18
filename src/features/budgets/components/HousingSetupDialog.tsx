@@ -53,7 +53,7 @@ export function HousingSetupDialog({ category, budgetId, onClose }: Props) {
       categoryId: category.id,
       amount: repaymentCents,
       frequency: "monthly",
-      rollover: false,
+      mode: "period",
     });
     setBusy(false);
     onClose();
@@ -68,7 +68,7 @@ export function HousingSetupDialog({ category, budgetId, onClose }: Props) {
         categoryId: category.id,
         amount: repaymentCents,
         frequency: "monthly",
-        rollover: false,
+        mode: "period",
       });
       if (setupMortgage && estimatedBalance > 0) {
         await saveMortgage.mutateAsync({

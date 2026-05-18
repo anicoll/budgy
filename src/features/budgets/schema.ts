@@ -4,12 +4,14 @@ import { centsSchema } from "@/lib/zod/money";
 // Quarterly is valid for targets (e.g. rates, insurance) but not for budget viewing periods
 const FREQUENCY_ENUM = z.enum(["weekly", "fortnightly", "monthly", "quarterly", "yearly"]);
 const PERIOD_ENUM = z.enum(["weekly", "fortnightly", "monthly", "yearly"]);
+const MODE_ENUM = z.enum(["envelope", "period"]);
 
 export const targetSchema = z.object({
   categoryId: z.string().min(1, "Category required"),
   amount: centsSchema.refine((n) => n >= 0, { message: "Must be zero or positive" }),
   frequency: FREQUENCY_ENUM,
-  rollover: z.boolean(),
+  mode: MODE_ENUM.optional(),
+  openedAt: z.string().optional(),
 });
 
 export const budgetFormSchema = z.object({

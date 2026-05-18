@@ -18,6 +18,7 @@ import {
 import { AccountStrip } from "./AccountStrip";
 import { CashflowChart } from "./CashflowChart";
 import { CategorySpendDonut } from "./CategorySpendDonut";
+import { EnvelopeHealthCard } from "./EnvelopeHealthCard";
 import { InsightsCard } from "./InsightsCard";
 import { KpiCards } from "./KpiCards";
 import { NetWorthChart } from "./NetWorthChart";
@@ -102,8 +103,10 @@ export function DashboardPageClient() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <CategorySpendDonut data={categorySpend} periodLabel={PERIOD_LABEL[period] ?? period} />
-        <RecentTransactions transactions={recentTxns} accounts={accounts} categories={categories} />
+        <EnvelopeHealthCard />
       </div>
+
+      <RecentTransactions transactions={recentTxns} accounts={accounts} categories={categories} />
 
       <InsightsCard insights={insights} periodLabel={PERIOD_LABEL[period] ?? period} />
     </div>

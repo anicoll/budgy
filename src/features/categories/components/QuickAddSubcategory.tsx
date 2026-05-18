@@ -17,6 +17,7 @@ export function QuickAddSubcategory({ parentId, type, parentColor }: Props) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(parentColor);
   const inputRef = useRef<HTMLInputElement>(null);
+  const committingRef = useRef(false);
   const createMutation = useCreateCategory();
 
   useEffect(() => {
@@ -30,8 +31,11 @@ export function QuickAddSubcategory({ parentId, type, parentColor }: Props) {
   }
 
   async function commit() {
+    if (committingRef.current) return;
+    committingRef.current = true;
     const trimmed = name.trim();
     if (!trimmed) {
+      committingRef.current = false;
       reset();
       return;
     }
@@ -47,6 +51,8 @@ export function QuickAddSubcategory({ parentId, type, parentColor }: Props) {
       reset();
     } catch {
       // toast handled by hook; keep composer open so the user can retry
+    } finally {
+      committingRef.current = false;
     }
   }
 

@@ -7,6 +7,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.14.0",
+    date: "2026-05-18",
+    title: "Envelope budgeting — sinking funds for lumpy bills",
+    changes: [
+      "Budget planner rebuilt around envelope/sinking-fund model: quarterly and yearly categories accumulate a running balance instead of showing '300% over budget' the month a bill lands",
+      "Every category is now either Envelope (balance carries across periods — best for rates, rego, insurance) or Period (resets each period — best for groceries, fuel, subscriptions)",
+      "Envelope cards show current balance, funding progress toward the next bill, and status (healthy / watch / overspent)",
+      "Period view toggle gives the traditional 'this period vs. target' rows for categories that need a hard per-period limit",
+      "All envelope compute runs in a Web Worker — main thread stays responsive while scanning transaction history",
+      "Detail sheet: edit target amount, frequency, mode, and the date funding started; toggle between envelope and period mode at any time",
+      "KPI strip on the planner: total set aside across all envelopes, period income/spend vs. target, and count of categories needing attention",
+      "Dashboard: new Envelope Health card showing total set aside and top envelopes — links to the planner",
+      "Setup wizard appears on first load after the data model upgrade (Dexie v5 wipes pre-envelope budget data)",
+      "Demo data updated: Insurance, Health, and Clothing seeded as quarterly envelopes to show the model in action",
+      "Bug fixes: Add Category dropdown now anchors correctly (was appearing top-left of page); subcategory quick-add no longer creates two entries when Enter is pressed",
+    ],
+  },
+  {
     version: "0.13.0",
     date: "2026-05-17",
     title: "Transactions UX overhaul + projection perf",

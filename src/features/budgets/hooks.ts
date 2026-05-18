@@ -7,31 +7,28 @@ import {
   createBudget,
   deleteBudget,
   ensureMissingTargets,
-  getActiveBudgetNormalised,
+  getActiveBudget,
   listBudgets,
-  normaliseLegacyBudget,
   removeTarget,
+  type SetTargetInput,
   setBudgetViewPeriod,
   setTarget,
   updateBudget,
 } from "./repository";
 import type { BudgetFormValues } from "./schema";
-import type { BudgetFrequency, BudgetPeriod } from "./types";
+import type { BudgetPeriod } from "./types";
 
 export function useBudgets() {
   return useQuery({
     queryKey: queryKeys.budgets.list(),
-    queryFn: async () => {
-      const all = await listBudgets();
-      return all.map(normaliseLegacyBudget);
-    },
+    queryFn: listBudgets,
   });
 }
 
 export function useActiveBudget() {
   return useQuery({
     queryKey: [...queryKeys.budgets.list(), "active"],
-    queryFn: getActiveBudgetNormalised,
+    queryFn: getActiveBudget,
   });
 }
 
@@ -74,19 +71,7 @@ export function useDeleteBudget() {
 export function useSetTarget() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      budgetId,
-      categoryId,
-      amount,
-      frequency,
-      rollover,
-    }: {
-      budgetId: string;
-      categoryId: string;
-      amount: number;
-      frequency: BudgetFrequency;
-      rollover: boolean;
-    }) => setTarget(budgetId, categoryId, amount, frequency, rollover),
+    mutationFn: (input: SetTargetInput) => setTarget(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.budgets.all });
     },

@@ -12,11 +12,21 @@ export const BUDGET_PERIOD_LABEL: Record<BudgetPeriod, string> = {
   yearly: "Yearly",
 };
 
+/** Envelope = balance accumulates across periods (sinking fund). Period = resets each period. */
+export type BudgetMode = "envelope" | "period";
+
+export const BUDGET_MODE_LABEL: Record<BudgetMode, string> = {
+  envelope: "Envelope",
+  period: "Period",
+};
+
 export interface CategoryTarget {
   categoryId: string;
   amount: Cents;
   frequency: BudgetFrequency;
-  rollover: boolean;
+  mode: BudgetMode;
+  /** ISO date — when this envelope started funding. Defaults to budget startDate at creation. */
+  openedAt: string;
 }
 
 export interface Budget {
@@ -31,49 +41,52 @@ export interface Budget {
   updatedAt: string;
 }
 
-// ── Planner view model ─────────────────────────────────────────────────────
+// ── Envelope view model ──────────────────────────────────────────────────────
 
-export interface PlannerItem {
+export type EnvelopeStatus = "healthy" | "watch" | "overspent";
+
+export interface EnvelopeState {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
   categoryType: "income" | "expense";
-  categorySystem?: boolean; // cannot be removed from budget
-  nativeAmount: Cents;
-  nativeFrequency: BudgetFrequency;
-  normalisedAmount: Cents;
-  actualAmount: Cents;
-  projectedAmount: Cents;
-  varianceAmount: Cents;
-  progress: "safe" | "warning" | "over";
+  categorySystem?: boolean;
   parentCategoryId?: string;
   parentCategoryName?: string;
+
+  mode: BudgetMode;
+  target: CategoryTarget;
+
+  // Envelope figures — populated for envelope mode (mode === "envelope"):
+  funded: Cents; // cumulative target funding since openedAt
+  spent: Cents; // cumulative spend since openedAt
+  balance: Cents; // funded - spent (can be negative)
+  expectedBalance: Cents; // what balance "should" be at this moment given the funding cadence
+
+  // Period figures — populated for both modes (used by Period view):
+  periodTarget: Cents; // target normalised to current view period
+  periodActual: Cents; // actual spend (or receipt) in current view period
+  periodVariance: Cents; // periodTarget - periodActual
+
+  status: EnvelopeStatus;
+
+  // Phase 2 — populated later by forecast.ts:
+  nextDueOn?: string;
+  fundedByNextDue?: Cents;
 }
 
-// ── Legacy actuals view model (kept for actuals.ts) ───────────────────────
-
-export interface FluidActual {
-  categoryId: string;
-  categoryName: string;
-  categoryColor: string;
-  categoryType: "income" | "expense";
-  actual: Cents;
-  projectedTarget?: Cents;
-  rolloverAmount: Cents;
-  effectiveProjected?: Cents;
-  variance?: Cents;
-  rollover: boolean;
-  hasTarget: boolean;
-  targetFrequency?: BudgetFrequency;
-}
-
-export interface FluidBudgetActuals {
-  income: FluidActual[];
-  expense: FluidActual[];
-  totalActualIncome: Cents;
-  totalActualExpense: Cents;
-  totalProjectedIncome: Cents;
-  totalProjectedExpense: Cents;
-  net: Cents;
-  projectedNet: Cents;
+export interface EnvelopeBundle {
+  income: EnvelopeState[];
+  expense: EnvelopeState[];
+  uncategorisedIncome: Cents;
+  uncategorisedExpense: Cents;
+  totals: {
+    funded: Cents;
+    spent: Cents;
+    balance: Cents;
+    periodTargetIncome: Cents;
+    periodActualIncome: Cents;
+    periodTargetExpense: Cents;
+    periodActualExpense: Cents;
+  };
 }
