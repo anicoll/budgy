@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/query/keys";
 import {
+  type CoverOverspendingInput,
+  coverOverspending,
   createBudget,
   deleteBudget,
   ensureMissingTargets,
@@ -99,6 +101,28 @@ export function useSetBudgetViewPeriod() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.budgets.all });
     },
+  });
+}
+
+export interface CoverOverspendingCallInput extends CoverOverspendingInput {
+  fromCategoryName?: string;
+  toCategoryName?: string;
+}
+
+export function useCoverOverspending() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CoverOverspendingCallInput) => coverOverspending(input),
+    onSuccess: (_, { amount, fromCategoryName, toCategoryName }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.transactions.all });
+      qc.invalidateQueries({ queryKey: queryKeys.budgets.all });
+      const dollars = (amount / 100).toFixed(2);
+      const from = fromCategoryName ?? "source";
+      const to = toCategoryName ?? "destination";
+      toast.success(`Moved $${dollars} from ${from} to ${to}`);
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to cover overspending"),
   });
 }
 

@@ -139,6 +139,14 @@ export function computeEnvelopeStates(input: ComputeInput): EnvelopeBundle {
       periodReceived.set(bucket, (periodReceived.get(bucket) ?? 0) + t.amount);
     } else if (t.type === "debit" || (t.type === "transfer" && t.transferDirection === "out")) {
       periodSpent.set(bucket, (periodSpent.get(bucket) ?? 0) + Math.abs(signedAmount(t)));
+    } else if (
+      t.type === "transfer" &&
+      t.transferDirection === "in" &&
+      t.transferGroupId &&
+      t.categoryId
+    ) {
+      // Envelope cover credit: reduces period spend on the receiving envelope
+      periodSpent.set(bucket, (periodSpent.get(bucket) ?? 0) - t.amount);
     }
   }
 
@@ -159,6 +167,9 @@ export function computeEnvelopeStates(input: ComputeInput): EnvelopeBundle {
         received.set(t.categoryId, (received.get(t.categoryId) ?? 0) + t.amount);
       } else if (t.type === "debit" || (t.type === "transfer" && t.transferDirection === "out")) {
         spent.set(t.categoryId, (spent.get(t.categoryId) ?? 0) + Math.abs(signedAmount(t)));
+      } else if (t.type === "transfer" && t.transferDirection === "in" && t.transferGroupId) {
+        // Envelope cover credit: reduces cumulative spend on the receiving envelope
+        spent.set(t.categoryId, (spent.get(t.categoryId) ?? 0) - t.amount);
       }
     }
     cumulativeReceived.set(target.categoryId, received);

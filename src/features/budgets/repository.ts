@@ -1,10 +1,14 @@
 import { isoDateAU } from "@/lib/date/au-locale";
 import { ulid } from "@/lib/id/ulid";
-import { cents } from "@/lib/money/cents";
+import { type Cents, cents } from "@/lib/money/cents";
 import { getRepositories } from "@/lib/storage";
+import type { Transaction } from "../transactions/types";
 import type { BudgetFormValues } from "./schema";
 import type { Budget, BudgetFrequency, BudgetMode, CategoryTarget } from "./types";
 import { defaultModeFor } from "./utils/envelope";
+
+/** Sentinel account ID for internal envelope-cover transfers (no real bank account). */
+const ENVELOPE_COVER_ACCOUNT = "__envelope_cover__";
 
 export function budgetsRepo() {
   return getRepositories().budgets;
@@ -167,4 +171,76 @@ export function defaultBudgetValues(): BudgetFormValues {
     targets: [],
     notes: "",
   };
+}
+
+export interface CoverOverspendingInput {
+  budgetId: string;
+  fromCategoryId: string;
+  toCategoryId: string;
+  amount: Cents;
+  dateISO: string;
+}
+
+/**
+ * Moves funds between envelopes by creating a synthetic linked transfer pair.
+ * The "out" leg increases spend on the source envelope (reducing its balance).
+ * The "in" leg reduces spend on the destination envelope (increasing its balance).
+ */
+export async function coverOverspending({
+  budgetId,
+  fromCategoryId,
+  toCategoryId,
+  amount,
+  dateISO,
+}: CoverOverspendingInput): Promise<void> {
+  if (amount <= 0) throw new Error("Amount must be positive");
+
+  const budget = await budgetsRepo().get(budgetId);
+  if (!budget) throw new Error(`Budget ${budgetId} not found`);
+
+  const hasFrom = budget.targets.some((t) => t.categoryId === fromCategoryId);
+  const hasTo = budget.targets.some((t) => t.categoryId === toCategoryId);
+  if (!hasFrom) throw new Error(`Category ${fromCategoryId} not found in budget`);
+  if (!hasTo) throw new Error(`Category ${toCategoryId} not found in budget`);
+
+  const now = new Date().toISOString();
+  const transferGroupId = crypto.randomUUID();
+  const outId = ulid();
+  const inId = ulid();
+
+  const outTxn: Transaction = {
+    id: outId,
+    accountId: ENVELOPE_COVER_ACCOUNT,
+    date: dateISO,
+    amount,
+    type: "transfer",
+    transferDirection: "out",
+    categoryId: fromCategoryId,
+    transferPairId: inId,
+    transferGroupId,
+    payee: "Envelope cover",
+    tags: [],
+    cleared: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const inTxn: Transaction = {
+    id: inId,
+    accountId: ENVELOPE_COVER_ACCOUNT,
+    date: dateISO,
+    amount,
+    type: "transfer",
+    transferDirection: "in",
+    categoryId: toCategoryId,
+    transferPairId: outId,
+    transferGroupId,
+    payee: "Envelope cover",
+    tags: [],
+    cleared: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await getRepositories().transactions.bulkUpsert([outTxn, inTxn]);
 }
