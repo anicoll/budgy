@@ -24,6 +24,7 @@ function debit(date: string, amount: number): Transaction {
     cleared: true,
     createdAt: "",
     updatedAt: "",
+    tags: [],
   };
 }
 
@@ -69,12 +70,13 @@ describe("computeBalanceHistory", () => {
         accountId: "acc1",
         date: "2024-04-05",
         type: "credit",
-        amount: cents(60_000),
+        amount: cents(60000),
         categoryId: "cat-rates",
         payee: "Council refund",
         cleared: true,
         createdAt: "",
         updatedAt: "",
+        tags: [],
       },
     ];
     const pointsWithRefund = computeBalanceHistory(TARGET, txns, "2024-05-15", 4, "monthly");

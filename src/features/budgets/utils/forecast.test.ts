@@ -24,6 +24,7 @@ function txn(id: string, date: string, amount: number, categoryId = "cat-rates")
     cleared: true,
     createdAt: "",
     updatedAt: "",
+    tags: [],
   };
 }
 
@@ -78,6 +79,7 @@ describe("computeForecast", () => {
         cleared: true,
         createdAt: "",
         updatedAt: "",
+        tags: [],
       },
       {
         id: "r2",
@@ -90,6 +92,7 @@ describe("computeForecast", () => {
         cleared: true,
         createdAt: "",
         updatedAt: "",
+        tags: [],
       },
     ];
     const result = computeForecast(TARGET, credits, cents(30_000), "2024-08-01");
@@ -136,6 +139,8 @@ describe("computeForecast", () => {
     // History stops 200 days ago — median predicts a date in the past
     const txns = [txn("a", "2024-01-01", 120_000), txn("b", "2024-04-01", 120_000)];
     const result = computeForecast(TARGET, txns, cents(30_000), "2024-12-01");
-    expect(result?.nextDueOn >= "2024-12-01").toBe(true);
+    expect(result).not.toBeNull();
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(result!.nextDueOn >= "2024-12-01").toBe(true);
   });
 });

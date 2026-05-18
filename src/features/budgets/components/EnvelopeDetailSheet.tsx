@@ -30,6 +30,7 @@ import { defaultModeFor } from "../utils/envelope";
 import { FREQUENCY_LABEL } from "../utils/normalise";
 import { BalanceSparkline } from "./shared/BalanceSparkline";
 import { STATUS_LABEL, STATUS_TEXT_COLOR } from "./shared/EnvelopeProgress";
+import { Cents } from "@/lib/money/cents";
 
 interface Props {
   state: EnvelopeState | null;
