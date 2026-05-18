@@ -140,7 +140,9 @@ describe("computeForecast", () => {
     const txns = [txn("a", "2024-01-01", 120_000), txn("b", "2024-04-01", 120_000)];
     const result = computeForecast(TARGET, txns, cents(30_000), "2024-12-01");
     expect(result).not.toBeNull();
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    expect(result!.nextDueOn >= "2024-12-01").toBe(true);
+    if (!result) {
+      throw new Error("Expected forecast result");
+    }
+    expect(result.nextDueOn >= "2024-12-01").toBe(true);
   });
 });

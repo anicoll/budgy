@@ -23,6 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import type { Transaction } from "@/features/transactions/types";
 import { signedAmount } from "@/features/transactions/types";
+import type { Cents } from "@/lib/money/cents";
 import { cn } from "@/lib/utils";
 import { useRemoveTarget, useSetTarget } from "../hooks";
 import type { BudgetFrequency, BudgetMode, EnvelopeState } from "../types";
@@ -30,7 +31,6 @@ import { defaultModeFor } from "../utils/envelope";
 import { FREQUENCY_LABEL } from "../utils/normalise";
 import { BalanceSparkline } from "./shared/BalanceSparkline";
 import { STATUS_LABEL, STATUS_TEXT_COLOR } from "./shared/EnvelopeProgress";
-import { Cents } from "@/lib/money/cents";
 
 interface Props {
   state: EnvelopeState | null;
