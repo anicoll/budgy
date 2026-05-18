@@ -16,6 +16,7 @@ import { useBudgetComputeWorker } from "../hooks/useBudgetComputeWorker";
 import type { Budget, EnvelopeState } from "../types";
 import { defaultModeFor } from "../utils/envelope";
 import { currentPeriodRange, formatPeriodLabel, shiftBudgetPeriod } from "../utils/period";
+import { BillCalendar } from "./BillCalendar";
 import { EnvelopeDetailSheet } from "./EnvelopeDetailSheet";
 import { FundDragLayer } from "./FundDragLayer";
 import { HousingSetupDialog, isHousingCategory } from "./HousingSetupDialog";
@@ -190,6 +191,7 @@ export function BudgetPlannerView({ budget }: Props) {
           categories={allCategories}
         />
       )}
+      {bundle && viewMode === "calendar" && <BillCalendar bundle={bundle} onOpen={setOpenState} />}
 
       <EnvelopeDetailSheet
         state={openState}
