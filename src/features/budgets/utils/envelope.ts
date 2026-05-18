@@ -146,16 +146,21 @@ export function computeEnvelopeStates(input: ComputeInput): EnvelopeBundle {
   // Per-target buckets because openedAt varies. Keyed by categoryId.
   const cumulativeReceived = new Map<string, Map<string, number>>(); // categoryId → bucket map
   const cumulativeSpent = new Map<string, Map<string, number>>();
+  // Envelope-cover transfer-ins tracked separately so they only offset expense spend.
+  const cumulativeCovers = new Map<string, Map<string, number>>();
 
   for (const target of budget.targets) {
     const from = target.openedAt;
     if (from > nowISO) continue; // future-dated envelope: zero cumulative
     const received = new Map<string, number>();
     const spent = new Map<string, number>();
+    const covers = new Map<string, number>();
     for (const t of transactions) {
       if (t.date < from || t.date > nowISO) continue;
       if (!t.categoryId) continue;
-      if (t.type === "credit") {
+      if (t.type === "transfer" && t.transferDirection === "in") {
+        covers.set(t.categoryId, (covers.get(t.categoryId) ?? 0) + t.amount);
+      } else if (t.type === "credit") {
         received.set(t.categoryId, (received.get(t.categoryId) ?? 0) + t.amount);
       } else if (t.type === "debit" || (t.type === "transfer" && t.transferDirection === "out")) {
         spent.set(t.categoryId, (spent.get(t.categoryId) ?? 0) + Math.abs(signedAmount(t)));
@@ -163,6 +168,7 @@ export function computeEnvelopeStates(input: ComputeInput): EnvelopeBundle {
     }
     cumulativeReceived.set(target.categoryId, received);
     cumulativeSpent.set(target.categoryId, spent);
+    cumulativeCovers.set(target.categoryId, covers);
   }
 
   // ── 3. Build EnvelopeState rows for each targeted category ────────────────
@@ -186,10 +192,14 @@ export function computeEnvelopeStates(input: ComputeInput): EnvelopeBundle {
     const periodVariance = (periodTarget - periodActual) as Cents;
 
     // Envelope figures
-    const cumRaw = isIncome
-      ? (cumulativeReceived.get(target.categoryId) ?? new Map())
-      : (cumulativeSpent.get(target.categoryId) ?? new Map());
-    const spent = getDescendantSum(target.categoryId, catMap, cumRaw) as Cents;
+    const cumReceivedRaw = cumulativeReceived.get(target.categoryId) ?? new Map();
+    const cumSpentRaw = cumulativeSpent.get(target.categoryId) ?? new Map();
+    const cumCoversRaw = cumulativeCovers.get(target.categoryId) ?? new Map();
+    // For income: spent = credits received. For expense: net debits after covers.
+    const spent = isIncome
+      ? (getDescendantSum(target.categoryId, catMap, cumReceivedRaw) as Cents)
+      : ((getDescendantSum(target.categoryId, catMap, cumSpentRaw) -
+          getDescendantSum(target.categoryId, catMap, cumCoversRaw)) as Cents);
     const fundedAtNow = fundedBetween(target, target.openedAt, nowISO);
     // Expected balance = funded so far (in a healthy envelope these track each other)
     const expectedBalance = fundedAtNow;

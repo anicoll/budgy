@@ -16,6 +16,8 @@ export interface Transaction {
   tags: string[];
   transferAccountId?: string;
   transferPairId?: string;
+  /** Links the two sides of an envelope-cover pair. */
+  transferGroupId?: string;
   cleared: boolean;
   createdAt: string;
   updatedAt: string;

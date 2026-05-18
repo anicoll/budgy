@@ -11,13 +11,15 @@ import type { Category } from "@/features/categories/types";
 import { useTransactions } from "@/features/transactions/hooks";
 import type { Transaction } from "@/features/transactions/types";
 import { signedAmount } from "@/features/transactions/types";
-import { useEnsureMissingTargets, useSetTarget } from "../hooks";
+import { useCoverOverspending, useEnsureMissingTargets, useSetTarget } from "../hooks";
 import { useBudgetComputeWorker } from "../hooks/useBudgetComputeWorker";
+import type { CoverOverspendingInput } from "../repository";
 import type { Budget, EnvelopeState } from "../types";
 import { defaultModeFor } from "../utils/envelope";
 import { currentPeriodRange, formatPeriodLabel, shiftBudgetPeriod } from "../utils/period";
 import { EnvelopeCard } from "./EnvelopeCard";
 import { EnvelopeDetailSheet } from "./EnvelopeDetailSheet";
+import { FundDragLayer } from "./FundDragLayer";
 import { HousingSetupDialog, isHousingCategory } from "./HousingSetupDialog";
 import { PeriodView } from "./PeriodView";
 import { PlannerHeader, type PlannerViewMode } from "./PlannerHeader";
@@ -32,6 +34,7 @@ export function BudgetPlannerView({ budget }: Props) {
   const { data: transactions = [] } = useTransactions();
   const ensureMissingTargets = useEnsureMissingTargets();
   const setTarget = useSetTarget();
+  const coverOverspending = useCoverOverspending();
 
   const [viewMode, setViewMode] = useState<PlannerViewMode>("envelopes");
   const [viewPeriod, setViewPeriod] = useState(budget.period);
@@ -178,6 +181,9 @@ export function BudgetPlannerView({ budget }: Props) {
           uncategorisedTxns={uncategorisedTxns}
           allTxns={transactions}
           categories={allCategories}
+          budgetId={budget.id}
+          onCoverOverspending={coverOverspending.mutate}
+          isCoverPending={coverOverspending.isPending}
         />
       )}
       {bundle && viewMode === "period" && (
@@ -220,6 +226,9 @@ function EnvelopesView({
   uncategorisedTxns,
   allTxns,
   categories,
+  budgetId,
+  onCoverOverspending,
+  isCoverPending,
 }: {
   bundle: import("../types").EnvelopeBundle;
   onOpen: (state: EnvelopeState) => void;
@@ -230,9 +239,15 @@ function EnvelopesView({
   uncategorisedTxns: Transaction[];
   allTxns: Transaction[];
   categories: Category[];
+  budgetId: string;
+  onCoverOverspending: (
+    input: CoverOverspendingInput & { fromName?: string; toName?: string },
+  ) => void;
+  isCoverPending: boolean;
 }) {
   const sinkingFunds = [...bundle.income, ...bundle.expense].filter((r) => r.mode === "envelope");
   const periodRows = [...bundle.income, ...bundle.expense].filter((r) => r.mode === "period");
+  const todayISO = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="flex flex-col gap-6">
@@ -266,11 +281,14 @@ function EnvelopesView({
             body="Add a quarterly or yearly category — like council rates or insurance — to start setting money aside."
           />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {sinkingFunds.map((s) => (
-              <EnvelopeCard key={s.categoryId} state={s} onOpen={onOpen} />
-            ))}
-          </div>
+          <FundDragLayer
+            envelopes={sinkingFunds}
+            onOpen={onOpen}
+            budgetId={budgetId}
+            dateISO={todayISO}
+            onCoverOverspending={onCoverOverspending}
+            isPending={isCoverPending}
+          />
         )}
       </section>
 

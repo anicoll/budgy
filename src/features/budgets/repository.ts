@@ -1,6 +1,7 @@
+import type { Transaction } from "@/features/transactions/types";
 import { isoDateAU } from "@/lib/date/au-locale";
 import { ulid } from "@/lib/id/ulid";
-import { cents } from "@/lib/money/cents";
+import { type Cents, cents } from "@/lib/money/cents";
 import { getRepositories } from "@/lib/storage";
 import type { BudgetFormValues } from "./schema";
 import type { Budget, BudgetFrequency, BudgetMode, CategoryTarget } from "./types";
@@ -157,6 +158,82 @@ export async function ensureMissingTargets(
   };
 
   return budgetsRepo().upsert(updated);
+}
+
+export interface CoverOverspendingInput {
+  budgetId: string;
+  fromCategoryId: string;
+  toCategoryId: string;
+  amount: Cents;
+  dateISO: string;
+}
+
+/** Moves `amount` from one envelope to another via a synthetic transfer pair. */
+export async function coverOverspending({
+  budgetId,
+  fromCategoryId,
+  toCategoryId,
+  amount,
+  dateISO,
+}: CoverOverspendingInput): Promise<void> {
+  if (amount <= 0) throw new Error("Amount must be positive");
+
+  const budget = await budgetsRepo().get(budgetId);
+  if (!budget) throw new Error(`Budget ${budgetId} not found`);
+
+  const fromTarget = budget.targets.find((t) => t.categoryId === fromCategoryId);
+  const toTarget = budget.targets.find((t) => t.categoryId === toCategoryId);
+  if (!fromTarget) throw new Error(`Category ${fromCategoryId} not found in budget`);
+  if (!toTarget) throw new Error(`Category ${toCategoryId} not found in budget`);
+
+  const repo = getRepositories();
+  const fromCat = await repo.categories.get(fromCategoryId);
+  const toCat = await repo.categories.get(toCategoryId);
+  const fromName = fromCat?.name ?? fromCategoryId;
+  const toName = toCat?.name ?? toCategoryId;
+
+  const transferGroupId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const sourceId = ulid();
+  const destId = ulid();
+
+  const source: Transaction = {
+    id: sourceId,
+    accountId: "__budget__",
+    date: dateISO,
+    amount,
+    type: "transfer",
+    transferDirection: "out",
+    categoryId: fromCategoryId,
+    payee: "Envelope cover",
+    description: `Cover from ${fromName} to ${toName}`,
+    tags: [],
+    transferPairId: destId,
+    transferGroupId,
+    cleared: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const dest: Transaction = {
+    id: destId,
+    accountId: "__budget__",
+    date: dateISO,
+    amount,
+    type: "transfer",
+    transferDirection: "in",
+    categoryId: toCategoryId,
+    payee: "Envelope cover",
+    description: `Cover from ${fromName} to ${toName}`,
+    tags: [],
+    transferPairId: sourceId,
+    transferGroupId,
+    cleared: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await repo.transactions.bulkUpsert([source, dest]);
 }
 
 export function defaultBudgetValues(): BudgetFormValues {
