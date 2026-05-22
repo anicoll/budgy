@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Budgy 🐧
+
+Budgy is a modern, elegant, and **offline-first** personal finance and budgeting application. Built with Next.js and TailwindCSS, it is designed for privacy-by-default, storing all user financial data locally in the browser using IndexedDB. No servers, no tracking, and no external APIs mean your financial records never leave your device.
+
+## Key Features
+
+- 📊 **Dynamic Dashboard**: Gain a bird's-eye view of your net worth, cash flow, and spending distributions with interactive charts (powered by ApexCharts).
+- ✉️ **Envelope Budgeting**: Plan your finances with a flexible budgeting system supporting both period-resets and cumulative envelope modes (sinking funds) for irregular expenses.
+- 📅 **Interactive Bill Calendar**: Visualize upcoming bills, expected payouts, and budget-health forecasts over the month.
+- 💳 **Account Management**: Track everyday checking, savings, credit cards, investments, loans, cash, and superannuation (retirement) accounts in one consolidated Net Worth ledger.
+- 📝 **Transaction Ledger & CSV Import**: View, filter, and search transaction histories, quick-add transactions, and import statements via an interactive CSV mapper.
+- 🏡 **Mortgage Simulator**: Forecast your mortgage trajectory by factoring in current interest rates, offset accounts, redraws, and extra repayments.
+- 🇦🇺 **Superannuation Projection**: Model employer SG contributions, voluntary concessional/non-concessional savings, fees, and expected returns, with inflation-adjusted retirement drawing forecasts.
+- 🔒 **Privacy First & Local Backups**: Secure client-side storage via Dexie.js (IndexedDB). Easily export or import your entire financial state as a JSON file.
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router) & React 19
+- **Styling & Components**: TailwindCSS v4, Radix UI Primitives, Lucide Icons
+- **Database & Sync**: Dexie.js (IndexedDB wrapper) & TanStack React Query
+- **State Management**: Zustand (for light persistent app state)
+- **Quality & Testing**: Biome (linting/formatting), Vitest (testing)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+Ensure you have [Node.js](https://nodejs.org) (v18+) and [pnpm](https://pnpm.io) installed.
+
+### Installation
 
 ```bash
-npm run dev
+make install
 # or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Running Locally
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+To start the development server with Turbopack:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+make dev
+# or
+pnpm dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-To learn more about Next.js, take a look at the following resources:
+### Running Quality Checks
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Budgy is configured with standard checks to guarantee code health:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Typecheck**: `make typecheck`
+- **Linter & Formatter**: `make lint` (or auto-fix with `make lint-fix`)
+- **Unit Tests**: `make test` (uses Vitest with mocked IndexedDB)
+- **All-in-one check**: `make check` (runs typecheck + lint + tests)
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is private and proprietary.
