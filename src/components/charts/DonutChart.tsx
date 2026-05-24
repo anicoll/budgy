@@ -46,6 +46,26 @@ export function DonutChart({ slices, height = 220, showLegend = true }: Props) {
             size: "68%",
             labels: {
               show: true,
+              name: {
+                show: true,
+                color: theme.muted,
+                fontSize: "11px",
+              },
+              value: {
+                show: true,
+                color: theme.foreground,
+                fontSize: "16px",
+                fontWeight: "600",
+                formatter: (val) => {
+                  const num = typeof val === "string" ? parseFloat(val) : val;
+                  return new Intl.NumberFormat("en-AU", {
+                    style: "currency",
+                    currency: "AUD",
+                    notation: "compact",
+                    maximumFractionDigits: 1,
+                  }).format(num / 100);
+                },
+              },
               total: {
                 show: true,
                 label: "Total",
