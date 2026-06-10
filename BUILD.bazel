@@ -1,0 +1,8 @@
+load("@gazelle//:def.bzl", "gazelle")
+
+# gazelle:exclude node_modules
+# gazelle:exclude src
+# gazelle:exclude public
+# gazelle:exclude .bin
+# gazelle:exclude .github
+gazelle(name = "gazelle")
