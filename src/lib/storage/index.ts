@@ -4,6 +4,12 @@ import type { Category } from "@/features/categories/types";
 import type { MortgagePlan } from "@/features/mortgage/types";
 import type { SuperPlan, SuperSettings } from "@/features/super/types";
 import type { Transaction } from "@/features/transactions/types";
+import {
+  ApiAccountRepository,
+  ApiBudgetRepository,
+  ApiCategoryRepository,
+  ApiTransactionRepository,
+} from "@/lib/api/api-repository";
 import { getDB } from "./db";
 import { LocalRepository } from "./local-repository";
 import type { Repository } from "./repository";
@@ -24,15 +30,28 @@ let registry: Repositories | null = null;
 
 export function getRepositories(): Repositories {
   if (!registry) {
-    registry = {
-      accounts: new LocalRepository<Account>(() => getDB().accounts),
-      categories: new LocalRepository<Category>(() => getDB().categories),
-      transactions: new LocalRepository<Transaction>(() => getDB().transactions),
-      budgets: new LocalRepository<Budget>(() => getDB().budgets),
-      superPlans: new LocalRepository<SuperPlan>(() => getDB().superPlans),
-      superSettings: new LocalRepository<SuperSettings>(() => getDB().superSettings),
-      mortgagePlans: new LocalRepository<MortgagePlan>(() => getDB().mortgagePlans),
-    };
+    const useBackend = process.env.NEXT_PUBLIC_USE_BACKEND === "true";
+    if (useBackend) {
+      registry = {
+        accounts: new ApiAccountRepository(),
+        categories: new ApiCategoryRepository(),
+        transactions: new ApiTransactionRepository(),
+        budgets: new ApiBudgetRepository(),
+        superPlans: new LocalRepository<SuperPlan>(() => getDB().superPlans),
+        superSettings: new LocalRepository<SuperSettings>(() => getDB().superSettings),
+        mortgagePlans: new LocalRepository<MortgagePlan>(() => getDB().mortgagePlans),
+      };
+    } else {
+      registry = {
+        accounts: new LocalRepository<Account>(() => getDB().accounts),
+        categories: new LocalRepository<Category>(() => getDB().categories),
+        transactions: new LocalRepository<Transaction>(() => getDB().transactions),
+        budgets: new LocalRepository<Budget>(() => getDB().budgets),
+        superPlans: new LocalRepository<SuperPlan>(() => getDB().superPlans),
+        superSettings: new LocalRepository<SuperSettings>(() => getDB().superSettings),
+        mortgagePlans: new LocalRepository<MortgagePlan>(() => getDB().mortgagePlans),
+      };
+    }
   }
   return registry;
 }
