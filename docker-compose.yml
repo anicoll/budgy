@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  backend:
+    image: budgeting_system_backend:latest
+    container_name: budgeting-system-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DATABASE_URL=/app/data/budget.db
+      - ALLOWED_ORIGINS=http://localhost:3000
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
