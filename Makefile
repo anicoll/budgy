@@ -11,6 +11,9 @@ install: ## Install dependencies
 dev: ## Start the Next.js dev server (Turbopack) on :3000
 	$(PNPM) dev
 
+dev-api: ## Start Next.js dev server with backend API integration enabled
+	$(PNPM) dev:api
+
 build: ## Production build
 	$(PNPM) build
 
@@ -48,3 +51,15 @@ clean: ## Remove build artefacts
 reset: clean ## Nuke node_modules + lockfile cache then reinstall
 	rm -rf node_modules
 	$(PNPM) install
+
+backend-build: ## Build the Go backend Docker container via Bazel rules_oci
+	$(PNPM) backend:build
+
+backend-up: ## Start the Go backend container via Docker Compose
+	$(PNPM) backend:up
+
+backend-down: ## Stop the Go backend container via Docker Compose
+	$(PNPM) backend:down
+
+backend-logs: ## Follow logs for the Go backend container via Docker Compose
+	$(PNPM) backend:logs

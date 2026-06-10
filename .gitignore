@@ -43,3 +43,8 @@ next-env.d.ts
 # Bazel
 /bazel-*
 /.bin/
+
+# Local SQLite data
+/data/
+/*.db
+/*.db-journal
