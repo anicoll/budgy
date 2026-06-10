@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "domain",
+    srcs = [
+        "budget.go",
+        "envelope.go",
+        "zerosum.go",
+    ],
+    importpath = "budgeting_system/internal/domain",
+    visibility = ["//backend:__subpackages__"],
+)
+
+go_test(
+    name = "domain_test",
+    srcs = [
+        "envelope_test.go",
+        "zerosum_test.go",
+    ],
+    embed = [":domain"],
+)
