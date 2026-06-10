@@ -30,3 +30,21 @@ jobs:
       - run: pnpm test
 
       - run: pnpm build
+
+  backend-ci:
+    name: Backend Build & Test (Bazel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Mount Bazel Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bazel
+          key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel') }}
+          restore-keys: |
+            ${{ runner.os }}-bazel-
+
+      - name: Build & Test
+        run: bazel test //...
