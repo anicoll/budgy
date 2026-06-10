@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "api",
+    srcs = [
+        "handlers.go",
+        "server.go",
+    ],
+    importpath = "budgeting_system/internal/api",
+    visibility = ["//backend:__subpackages__"],
+    deps = [
+        "//backend/internal/domain",
+        "//backend/internal/storage",
+    ],
+)
+
+go_test(
+    name = "api_test",
+    srcs = ["handlers_test.go"],
+    embed = [":api"],
+    deps = [
+        "//backend/internal/domain",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//mock",
+    ],
+)
