@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "storage",
+    srcs = [
+        "db.go",
+        "sqlite.go",
+    ],
+    embedsrcs = ["migrations/0001_init.sql"],
+    importpath = "budgeting_system/internal/storage",
+    visibility = ["//backend:__subpackages__"],
+    deps = [
+        "//backend/internal/domain",
+        "@com_github_ncruces_go_sqlite3//driver",
+        "@com_github_pressly_goose_v3//:goose",
+    ],
+)
+
+go_test(
+    name = "storage_test",
+    srcs = ["sqlite_test.go"],
+    embed = [":storage"],
+    deps = [
+        "//backend/internal/domain",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)
