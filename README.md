@@ -47,6 +47,47 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
+## Running with Go Backend API (Local Testing)
+
+Budgy includes an optional containerized Go REST/JSON backend for centralizing data persistence. You can toggle between IndexedDB (default) and the Go backend on the fly using environment flags.
+
+### 1. Build and Start the Go Backend
+Ensure Docker is installed and running, then:
+
+```bash
+# 1. Build the backend Docker image using Bazel (OCI image)
+make backend-build
+# or: pnpm backend:build
+
+# 2. Run the backend container in the background (uses SQLite on host at ./data/budget.db)
+make backend-up
+# or: pnpm backend:up
+```
+
+Verify that the backend is running and listening on port `8080` by following the logs:
+```bash
+make backend-logs
+# or: pnpm backend:logs
+```
+
+### 2. Start Frontend with Backend Integration
+To run the Next.js development server with the backend API toggled ON:
+
+```bash
+make dev-api
+# or: pnpm dev:api
+```
+
+This starts the dev server and configures `NEXT_PUBLIC_USE_BACKEND=true` to transparently route Budget, Account, Category, and Transaction records to `http://localhost:8080`.
+
+### 3. Stop the Backend
+To clean up and stop the backend container:
+
+```bash
+make backend-down
+# or: pnpm backend:down
+```
+
 ### Running Quality Checks
 
 Budgy is configured with standard checks to guarantee code health:
