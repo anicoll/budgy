@@ -1,0 +1,40 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
+
+go_library(
+    name = "budgetd_lib",
+    srcs = ["main.go"],
+    importpath = "budgeting_system/cmd/budgetd",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//backend/internal/api",
+        "//backend/internal/storage",
+        "@com_github_ncruces_go_sqlite3//driver",
+        "@com_github_ncruces_go_sqlite3//embed",
+    ],
+)
+
+go_binary(
+    name = "budgetd",
+    embed = [":budgetd_lib"],
+    visibility = ["//visibility:public"],
+)
+
+pkg_tar(
+    name = "budgetd_tar",
+    srcs = [":budgetd"],
+)
+
+oci_image(
+    name = "image",
+    base = "@distroless_base",
+    tars = [":budgetd_tar"],
+    entrypoint = ["/budgetd"],
+)
+
+oci_load(
+    name = "tarball",
+    image = ":image",
+    repo_tags = ["budgeting_system_backend:latest"],
+)
