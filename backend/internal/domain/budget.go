@@ -49,13 +49,20 @@ const (
 
 // Account represents a physical or digital account holding money.
 type Account struct {
-	ID        string      `json:"id"`
-	BudgetID  string      `json:"budget_id"`
-	Name      string      `json:"name"`
-	Type      AccountType `json:"type"`
-	Balance   int64       `json:"balance"` // Stored in minor units (e.g. cents) to avoid float issues
-	CreatedAt time.Time   `json:"created_at"`
-	UpdatedAt time.Time   `json:"updated_at"`
+	ID             string      `json:"id"`
+	BudgetID       string      `json:"budget_id"`
+	Name           string      `json:"name"`
+	Type           AccountType `json:"type"`
+	Balance        int64       `json:"balance"` // Stored in minor units (e.g. cents) to avoid float issues
+	CreatedAt      time.Time   `json:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at"`
+	Class          string      `json:"class,omitempty"`
+	AccountNo      string      `json:"account_no,omitempty"`
+	AvailableFunds *int64      `json:"available_funds,omitempty"`
+	Product        string      `json:"product,omitempty"`
+	InstitutionID  string      `json:"institution_id,omitempty"`
+	ConnectionID   string      `json:"connection_id,omitempty"`
+	LastUpdated    *time.Time  `json:"last_updated,omitempty"`
 }
 
 // Validate validates the Account fields.
@@ -106,15 +113,22 @@ func (c *Category) Validate() error {
 
 // Transaction represents a financial flow (inflow or outflow) affecting accounts and categories.
 type Transaction struct {
-	ID          string    `json:"id"`
-	BudgetID    string    `json:"budget_id"`
-	AccountID   string    `json:"account_id"`
-	CategoryID  string    `json:"category_id"` // Can be empty for unassigned inflows or transfers
-	Amount      int64     `json:"amount"`      // positive = inflow (income), negative = outflow (expense)
-	Description string    `json:"description"`
-	Date        time.Time `json:"date"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID             string     `json:"id"`
+	BudgetID       string     `json:"budget_id"`
+	AccountID      string     `json:"account_id"`
+	CategoryID     string     `json:"category_id"` // Can be empty for unassigned inflows or transfers
+	Amount         int64      `json:"amount"`      // positive = inflow (income), negative = outflow (expense)
+	Description    string     `json:"description"`
+	Date           time.Time  `json:"date"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	Direction      string     `json:"direction,omitempty"`
+	Status         string     `json:"status,omitempty"`
+	Class          string     `json:"class,omitempty"`
+	PostDate       *time.Time `json:"post_date,omitempty"`
+	SubClass       string     `json:"sub_class,omitempty"`
+	RawDescription string     `json:"raw_description,omitempty"`
+	MerchantName   string     `json:"merchant_name,omitempty"`
 }
 
 // Validate validates the Transaction fields.

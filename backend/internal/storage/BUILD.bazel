@@ -6,7 +6,10 @@ go_library(
         "db.go",
         "sqlite.go",
     ],
-    embedsrcs = ["migrations/0001_init.sql"],
+    embedsrcs = [
+        "migrations/0001_init.sql",
+        "migrations/0002_basiq_alignment.sql",
+    ],
     importpath = "budgeting_system/internal/storage",
     visibility = ["//backend:__subpackages__"],
     deps = [

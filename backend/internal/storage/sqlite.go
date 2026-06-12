@@ -102,19 +102,24 @@ func (s *SQLiteStorage) Accounts() AccountRepository {
 }
 
 func (r *accountRepository) Create(ctx context.Context, acc *domain.Account) error {
-	query := `INSERT INTO accounts (id, budget_id, name, type, balance, created_at, updated_at)
-	          VALUES (?, ?, ?, ?, ?, ?, ?)`
-	_, err := r.db.ExecContext(ctx, query, acc.ID, acc.BudgetID, acc.Name, string(acc.Type), acc.Balance, acc.CreatedAt, acc.UpdatedAt)
+	query := `INSERT INTO accounts (id, budget_id, name, type, balance, created_at, updated_at, class, account_no, available_funds, product, institution_id, connection_id, last_updated)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	var budgetID interface{} = acc.BudgetID
+	if acc.BudgetID == "" {
+		budgetID = nil
+	}
+	_, err := r.db.ExecContext(ctx, query, acc.ID, budgetID, acc.Name, string(acc.Type), acc.Balance, acc.CreatedAt, acc.UpdatedAt, acc.Class, acc.AccountNo, acc.AvailableFunds, acc.Product, acc.InstitutionID, acc.ConnectionID, acc.LastUpdated)
 	return err
 }
 
 func (r *accountRepository) GetByID(ctx context.Context, id string) (*domain.Account, error) {
-	query := `SELECT id, budget_id, name, type, balance, created_at, updated_at FROM accounts WHERE id = ?`
+	query := `SELECT id, budget_id, name, type, balance, created_at, updated_at, class, account_no, available_funds, product, institution_id, connection_id, last_updated FROM accounts WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var acc domain.Account
 	var typeStr string
-	err := row.Scan(&acc.ID, &acc.BudgetID, &acc.Name, &typeStr, &acc.Balance, &acc.CreatedAt, &acc.UpdatedAt)
+	var budgetIDNull sql.NullString
+	err := row.Scan(&acc.ID, &budgetIDNull, &acc.Name, &typeStr, &acc.Balance, &acc.CreatedAt, &acc.UpdatedAt, &acc.Class, &acc.AccountNo, &acc.AvailableFunds, &acc.Product, &acc.InstitutionID, &acc.ConnectionID, &acc.LastUpdated)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("account not found")
@@ -122,11 +127,12 @@ func (r *accountRepository) GetByID(ctx context.Context, id string) (*domain.Acc
 		return nil, err
 	}
 	acc.Type = domain.AccountType(typeStr)
+	acc.BudgetID = budgetIDNull.String
 	return &acc, nil
 }
 
 func (r *accountRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Account, error) {
-	query := `SELECT id, budget_id, name, type, balance, created_at, updated_at FROM accounts WHERE budget_id = ?`
+	query := `SELECT id, budget_id, name, type, balance, created_at, updated_at, class, account_no, available_funds, product, institution_id, connection_id, last_updated FROM accounts WHERE budget_id = ?`
 	rows, err := r.db.QueryContext(ctx, query, budgetID)
 	if err != nil {
 		return nil, err
@@ -137,11 +143,13 @@ func (r *accountRepository) ListByBudget(ctx context.Context, budgetID string) (
 	for rows.Next() {
 		var acc domain.Account
 		var typeStr string
-		err := rows.Scan(&acc.ID, &acc.BudgetID, &acc.Name, &typeStr, &acc.Balance, &acc.CreatedAt, &acc.UpdatedAt)
+		var budgetIDNull sql.NullString
+		err := rows.Scan(&acc.ID, &budgetIDNull, &acc.Name, &typeStr, &acc.Balance, &acc.CreatedAt, &acc.UpdatedAt, &acc.Class, &acc.AccountNo, &acc.AvailableFunds, &acc.Product, &acc.InstitutionID, &acc.ConnectionID, &acc.LastUpdated)
 		if err != nil {
 			return nil, err
 		}
 		acc.Type = domain.AccountType(typeStr)
+		acc.BudgetID = budgetIDNull.String
 		list = append(list, &acc)
 	}
 	return list, nil
@@ -175,13 +183,15 @@ func (r *categoryRepository) GetByID(ctx context.Context, id string) (*domain.Ca
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var c domain.Category
-	err := row.Scan(&c.ID, &c.BudgetID, &c.Name, &c.Budgeted, &c.Balance, &c.TargetLimit, &c.CreatedAt, &c.UpdatedAt)
+	var budgetIDNull sql.NullString
+	err := row.Scan(&c.ID, &budgetIDNull, &c.Name, &c.Budgeted, &c.Balance, &c.TargetLimit, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("category not found")
 		}
 		return nil, err
 	}
+	c.BudgetID = budgetIDNull.String
 	return &c, nil
 }
 
@@ -196,10 +206,12 @@ func (r *categoryRepository) ListByBudget(ctx context.Context, budgetID string) 
 	var list []*domain.Category
 	for rows.Next() {
 		var c domain.Category
-		err := rows.Scan(&c.ID, &c.BudgetID, &c.Name, &c.Budgeted, &c.Balance, &c.TargetLimit, &c.CreatedAt, &c.UpdatedAt)
+		var budgetIDNull sql.NullString
+		err := rows.Scan(&c.ID, &budgetIDNull, &c.Name, &c.Budgeted, &c.Balance, &c.TargetLimit, &c.CreatedAt, &c.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
+		c.BudgetID = budgetIDNull.String
 		list = append(list, &c)
 	}
 	return list, nil
@@ -222,23 +234,28 @@ func (s *SQLiteStorage) Transactions() TransactionRepository {
 }
 
 func (r *transactionRepository) Create(ctx context.Context, tx *domain.Transaction) error {
-	query := `INSERT INTO transactions (id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO transactions (id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	var catID interface{} = tx.CategoryID
 	if tx.CategoryID == "" {
 		catID = nil
 	}
-	_, err := r.db.ExecContext(ctx, query, tx.ID, tx.BudgetID, tx.AccountID, catID, tx.Amount, tx.Description, tx.Date, tx.CreatedAt, tx.UpdatedAt)
+	var budgetID interface{} = tx.BudgetID
+	if tx.BudgetID == "" {
+		budgetID = nil
+	}
+	_, err := r.db.ExecContext(ctx, query, tx.ID, budgetID, tx.AccountID, catID, tx.Amount, tx.Description, tx.Date, tx.CreatedAt, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName)
 	return err
 }
 
 func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain.Transaction, error) {
-	query := `SELECT id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at FROM transactions WHERE id = ?`
+	query := `SELECT id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name FROM transactions WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var tx domain.Transaction
 	var catID sql.NullString
-	err := row.Scan(&tx.ID, &tx.BudgetID, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt)
+	var budgetIDNull sql.NullString
+	err := row.Scan(&tx.ID, &budgetIDNull, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt, &tx.Direction, &tx.Status, &tx.Class, &tx.PostDate, &tx.SubClass, &tx.RawDescription, &tx.MerchantName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("transaction not found")
@@ -248,21 +265,22 @@ func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain
 	if catID.Valid {
 		tx.CategoryID = catID.String
 	}
+	tx.BudgetID = budgetIDNull.String
 	return &tx, nil
 }
 
 func (r *transactionRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Transaction, error) {
-	query := `SELECT id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at FROM transactions WHERE budget_id = ?`
+	query := `SELECT id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name FROM transactions WHERE budget_id = ?`
 	return r.listQuery(ctx, query, budgetID)
 }
 
 func (r *transactionRepository) ListByAccount(ctx context.Context, accountID string) ([]*domain.Transaction, error) {
-	query := `SELECT id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at FROM transactions WHERE account_id = ?`
+	query := `SELECT id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name FROM transactions WHERE account_id = ?`
 	return r.listQuery(ctx, query, accountID)
 }
 
 func (r *transactionRepository) ListByCategory(ctx context.Context, categoryID string) ([]*domain.Transaction, error) {
-	query := `SELECT id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at FROM transactions WHERE category_id = ?`
+	query := `SELECT id, budget_id, account_id, category_id, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name FROM transactions WHERE category_id = ?`
 	return r.listQuery(ctx, query, categoryID)
 }
 
@@ -277,13 +295,15 @@ func (r *transactionRepository) listQuery(ctx context.Context, query string, arg
 	for rows.Next() {
 		var tx domain.Transaction
 		var catID sql.NullString
-		err := rows.Scan(&tx.ID, &tx.BudgetID, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt)
+		var budgetIDNull sql.NullString
+		err := rows.Scan(&tx.ID, &budgetIDNull, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt, &tx.Direction, &tx.Status, &tx.Class, &tx.PostDate, &tx.SubClass, &tx.RawDescription, &tx.MerchantName)
 		if err != nil {
 			return nil, err
 		}
 		if catID.Valid {
 			tx.CategoryID = catID.String
 		}
+		tx.BudgetID = budgetIDNull.String
 		list = append(list, &tx)
 	}
 	return list, nil
