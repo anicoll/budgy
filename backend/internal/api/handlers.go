@@ -456,3 +456,384 @@ func (s *APIServer) handleListTransactions(w http.ResponseWriter, r *http.Reques
 	}
 	s.respondJSON(w, http.StatusOK, list)
 }
+
+func (s *APIServer) handleUpdateBudget(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	b, err := s.budgets.GetByID(r.Context(), id)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "budget not found")
+		return
+	}
+
+	var req struct {
+		Name     string              `json:"name"`
+		Method   domain.BudgetMethod `json:"method"`
+		Currency string              `json:"currency"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Name != "" {
+		b.Name = req.Name
+	}
+	if req.Method != "" {
+		b.Method = req.Method
+	}
+	if req.Currency != "" {
+		b.Currency = req.Currency
+	}
+	b.UpdatedAt = time.Now()
+
+	if err := b.Validate(); err != nil {
+		s.respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := s.budgets.Update(r.Context(), b); err != nil {
+		s.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	s.respondJSON(w, http.StatusOK, b)
+}
+
+func (s *APIServer) handleDeleteBudget(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := s.budgets.Delete(r.Context(), id); err != nil {
+		s.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.respondJSON(w, http.StatusOK, map[string]string{"message": "budget deleted successfully"})
+}
+
+func (s *APIServer) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
+	accID := r.PathValue("acc_id")
+	acc, err := s.accounts.GetByID(r.Context(), accID)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "account not found")
+		return
+	}
+
+	var req struct {
+		Name           *string             `json:"name"`
+		Type           *domain.AccountType `json:"type"`
+		Balance        *int64              `json:"balance"`
+		Class          *string             `json:"class"`
+		AccountNo      *string             `json:"account_no"`
+		AvailableFunds *int64              `json:"available_funds"`
+		Product        *string             `json:"product"`
+		InstitutionID  *string             `json:"institution_id"`
+		ConnectionID   *string             `json:"connection_id"`
+		LastUpdated    *time.Time          `json:"last_updated"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Name != nil {
+		acc.Name = *req.Name
+	}
+	if req.Type != nil {
+		acc.Type = *req.Type
+	}
+	if req.Balance != nil {
+		acc.Balance = *req.Balance
+	}
+	if req.Class != nil {
+		acc.Class = *req.Class
+	}
+	if req.AccountNo != nil {
+		acc.AccountNo = *req.AccountNo
+	}
+	if req.AvailableFunds != nil {
+		acc.AvailableFunds = req.AvailableFunds
+	}
+	if req.Product != nil {
+		acc.Product = *req.Product
+	}
+	if req.InstitutionID != nil {
+		acc.InstitutionID = *req.InstitutionID
+	}
+	if req.ConnectionID != nil {
+		acc.ConnectionID = *req.ConnectionID
+	}
+	if req.LastUpdated != nil {
+		acc.LastUpdated = req.LastUpdated
+	}
+	acc.UpdatedAt = time.Now()
+
+	if err := acc.Validate(); err != nil {
+		s.respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := s.accounts.Update(r.Context(), acc); err != nil {
+		s.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	s.respondJSON(w, http.StatusOK, acc)
+}
+
+func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
+	accID := r.PathValue("acc_id")
+	if err := s.accounts.Delete(r.Context(), accID); err != nil {
+		s.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.respondJSON(w, http.StatusOK, map[string]string{"message": "account deleted successfully"})
+}
+
+func (s *APIServer) handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
+	catID := r.PathValue("cat_id")
+	c, err := s.categories.GetByID(r.Context(), catID)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "category not found")
+		return
+	}
+
+	var req struct {
+		Name        *string `json:"name"`
+		Budgeted    *int64  `json:"budgeted"`
+		Balance     *int64  `json:"balance"`
+		TargetLimit *int64  `json:"target_limit"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Name != nil {
+		c.Name = *req.Name
+	}
+	if req.Budgeted != nil {
+		c.Budgeted = *req.Budgeted
+	}
+	if req.Balance != nil {
+		c.Balance = *req.Balance
+	}
+	if req.TargetLimit != nil {
+		c.TargetLimit = *req.TargetLimit
+	}
+	c.UpdatedAt = time.Now()
+
+	if err := c.Validate(); err != nil {
+		s.respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := s.categories.Update(r.Context(), c); err != nil {
+		s.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	s.respondJSON(w, http.StatusOK, c)
+}
+
+func (s *APIServer) handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
+	catID := r.PathValue("cat_id")
+	if err := s.categories.Delete(r.Context(), catID); err != nil {
+		s.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.respondJSON(w, http.StatusOK, map[string]string{"message": "category deleted successfully"})
+}
+
+func (s *APIServer) handleUpdateTransaction(w http.ResponseWriter, r *http.Request) {
+	txID := r.PathValue("tx_id")
+	oldTx, err := s.transactions.GetByID(r.Context(), txID)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "transaction not found")
+		return
+	}
+
+	var req struct {
+		AccountID      *string    `json:"account_id"`
+		CategoryID     *string    `json:"category_id"`
+		Amount         *int64     `json:"amount"`
+		Description    *string    `json:"description"`
+		Date           *string    `json:"date"`
+		Direction      *string    `json:"direction"`
+		Status         *string    `json:"status"`
+		Class          *string    `json:"class"`
+		PostDate       *time.Time `json:"post_date"`
+		SubClass       *string    `json:"sub_class"`
+		RawDescription *string    `json:"raw_description"`
+		MerchantName   *string    `json:"merchant_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	// Prepare updated values
+	newAccountID := oldTx.AccountID
+	if req.AccountID != nil {
+		newAccountID = *req.AccountID
+	}
+	newCategoryID := oldTx.CategoryID
+	if req.CategoryID != nil {
+		newCategoryID = *req.CategoryID
+	}
+	newAmount := oldTx.Amount
+	if req.Amount != nil {
+		newAmount = *req.Amount
+	}
+
+	// Calculate changes to account and category balances
+	accountChanges := make(map[string]int64)
+	categoryChanges := make(map[string]int64)
+
+	accountChanges[oldTx.AccountID] -= oldTx.Amount
+	if oldTx.CategoryID != "" {
+		categoryChanges[oldTx.CategoryID] -= oldTx.Amount
+	}
+
+	accountChanges[newAccountID] += newAmount
+	if newCategoryID != "" {
+		categoryChanges[newCategoryID] += newAmount
+	}
+
+	// Update the transaction object
+	tx := *oldTx
+	tx.AccountID = newAccountID
+	tx.CategoryID = newCategoryID
+	tx.Amount = newAmount
+	if req.Description != nil {
+		tx.Description = *req.Description
+	}
+	if req.Date != nil {
+		if parsedDate, err := time.Parse(time.RFC3339, *req.Date); err == nil {
+			tx.Date = parsedDate
+		}
+	}
+	if req.Direction != nil {
+		tx.Direction = *req.Direction
+	}
+	if req.Status != nil {
+		tx.Status = *req.Status
+	}
+	if req.Class != nil {
+		tx.Class = *req.Class
+	}
+	if req.PostDate != nil {
+		tx.PostDate = req.PostDate
+	}
+	if req.SubClass != nil {
+		tx.SubClass = *req.SubClass
+	}
+	if req.RawDescription != nil {
+		tx.RawDescription = *req.RawDescription
+	}
+	if req.MerchantName != nil {
+		tx.MerchantName = *req.MerchantName
+	}
+	tx.UpdatedAt = time.Now()
+
+	if err := tx.Validate(); err != nil {
+		s.respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Update the transaction in database first
+	if err := s.transactions.Update(r.Context(), &tx); err != nil {
+		s.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Persist account balance adjustments
+	for accID, delta := range accountChanges {
+		if delta != 0 {
+			acc, err := s.accounts.GetByID(r.Context(), accID)
+			if err != nil {
+				s.respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get account %s: %s", accID, err.Error()))
+				return
+			}
+			acc.Balance += delta
+			if err := s.accounts.UpdateBalance(r.Context(), acc.ID, acc.Balance); err != nil {
+				s.respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to update account balance %s: %s", accID, err.Error()))
+				return
+			}
+		}
+	}
+
+	// Persist category balance adjustments
+	for catID, delta := range categoryChanges {
+		if delta != 0 {
+			c, err := s.categories.GetByID(r.Context(), catID)
+			if err != nil {
+				s.respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get category %s: %s", catID, err.Error()))
+				return
+			}
+			c.Balance += delta
+			if err := s.categories.UpdateBudgetedAndBalance(r.Context(), c.ID, c.Budgeted, c.Balance); err != nil {
+				s.respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to update category balance %s: %s", catID, err.Error()))
+				return
+			}
+		}
+	}
+
+	s.respondJSON(w, http.StatusOK, tx)
+}
+
+func (s *APIServer) handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
+	txID := r.PathValue("tx_id")
+	tx, err := s.transactions.GetByID(r.Context(), txID)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "transaction not found")
+		return
+	}
+
+	// Calculate changes to account and category balances
+	accountChanges := make(map[string]int64)
+	categoryChanges := make(map[string]int64)
+
+	accountChanges[tx.AccountID] -= tx.Amount
+	if tx.CategoryID != "" {
+		categoryChanges[tx.CategoryID] -= tx.Amount
+	}
+
+	// Delete transaction
+	if err := s.transactions.Delete(r.Context(), txID); err != nil {
+		s.respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Persist account balance adjustments
+	for accID, delta := range accountChanges {
+		if delta != 0 {
+			acc, err := s.accounts.GetByID(r.Context(), accID)
+			if err != nil {
+				s.respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get account %s: %s", accID, err.Error()))
+				return
+			}
+			acc.Balance += delta
+			if err := s.accounts.UpdateBalance(r.Context(), acc.ID, acc.Balance); err != nil {
+				s.respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to update account balance %s: %s", accID, err.Error()))
+				return
+			}
+		}
+	}
+
+	// Persist category balance adjustments
+	for catID, delta := range categoryChanges {
+		if delta != 0 {
+			c, err := s.categories.GetByID(r.Context(), catID)
+			if err != nil {
+				s.respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get category %s: %s", catID, err.Error()))
+				return
+			}
+			c.Balance += delta
+			if err := s.categories.UpdateBudgetedAndBalance(r.Context(), c.ID, c.Budgeted, c.Balance); err != nil {
+				s.respondError(w, http.StatusInternalServerError, fmt.Sprintf("failed to update category balance %s: %s", catID, err.Error()))
+				return
+			}
+		}
+	}
+
+	s.respondJSON(w, http.StatusOK, map[string]string{"message": "transaction deleted successfully"})
+}
+

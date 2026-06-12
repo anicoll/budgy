@@ -39,20 +39,28 @@ func (s *APIServer) Routes() *http.ServeMux {
 	mux.HandleFunc("GET /api/budgets", s.handleListBudgets)
 	mux.HandleFunc("GET /api/budgets/{id}", s.handleGetBudget)
 	mux.HandleFunc("GET /api/budgets/{id}/summary", s.handleGetBudgetSummary)
+	mux.HandleFunc("PUT /api/budgets/{id}", s.handleUpdateBudget)
+	mux.HandleFunc("DELETE /api/budgets/{id}", s.handleDeleteBudget)
 
 	// Account handlers
 	mux.HandleFunc("POST /api/budgets/{id}/accounts", s.handleCreateAccount)
 	mux.HandleFunc("GET /api/budgets/{id}/accounts", s.handleListAccounts)
+	mux.HandleFunc("PUT /api/budgets/{id}/accounts/{acc_id}", s.handleUpdateAccount)
+	mux.HandleFunc("DELETE /api/budgets/{id}/accounts/{acc_id}", s.handleDeleteAccount)
 
 	// Category/Envelope handlers
 	mux.HandleFunc("POST /api/budgets/{id}/categories", s.handleCreateCategory)
 	mux.HandleFunc("GET /api/budgets/{id}/categories", s.handleListCategories)
 	mux.HandleFunc("POST /api/budgets/{id}/categories/{cat_id}/assign", s.handleAssignCategoryFunds)
 	mux.HandleFunc("POST /api/budgets/{id}/categories/{cat_id}/fund", s.handleFundEnvelope)
+	mux.HandleFunc("PUT /api/budgets/{id}/categories/{cat_id}", s.handleUpdateCategory)
+	mux.HandleFunc("DELETE /api/budgets/{id}/categories/{cat_id}", s.handleDeleteCategory)
 
 	// Transaction handlers
 	mux.HandleFunc("POST /api/budgets/{id}/transactions", s.handleCreateTransaction)
 	mux.HandleFunc("GET /api/budgets/{id}/transactions", s.handleListTransactions)
+	mux.HandleFunc("PUT /api/budgets/{id}/transactions/{tx_id}", s.handleUpdateTransaction)
+	mux.HandleFunc("DELETE /api/budgets/{id}/transactions/{tx_id}", s.handleDeleteTransaction)
 
 	return mux
 }

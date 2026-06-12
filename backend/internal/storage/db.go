@@ -10,6 +10,8 @@ type BudgetRepository interface {
 	Create(ctx context.Context, b *domain.Budget) error
 	GetByID(ctx context.Context, id string) (*domain.Budget, error)
 	List(ctx context.Context) ([]*domain.Budget, error)
+	Update(ctx context.Context, b *domain.Budget) error
+	Delete(ctx context.Context, id string) error
 }
 
 // AccountRepository defines storage operations for accounts.
@@ -18,6 +20,8 @@ type AccountRepository interface {
 	GetByID(ctx context.Context, id string) (*domain.Account, error)
 	ListByBudget(ctx context.Context, budgetID string) ([]*domain.Account, error)
 	UpdateBalance(ctx context.Context, id string, balance int64) error
+	Update(ctx context.Context, acc *domain.Account) error
+	Delete(ctx context.Context, id string) error
 }
 
 // CategoryRepository defines storage operations for categories/envelopes.
@@ -26,6 +30,8 @@ type CategoryRepository interface {
 	GetByID(ctx context.Context, id string) (*domain.Category, error)
 	ListByBudget(ctx context.Context, budgetID string) ([]*domain.Category, error)
 	UpdateBudgetedAndBalance(ctx context.Context, id string, budgeted int64, balance int64) error
+	Update(ctx context.Context, c *domain.Category) error
+	Delete(ctx context.Context, id string) error
 }
 
 // TransactionRepository defines storage operations for transactions.
@@ -35,4 +41,6 @@ type TransactionRepository interface {
 	ListByBudget(ctx context.Context, budgetID string) ([]*domain.Transaction, error)
 	ListByAccount(ctx context.Context, accountID string) ([]*domain.Transaction, error)
 	ListByCategory(ctx context.Context, categoryID string) ([]*domain.Transaction, error)
+	Update(ctx context.Context, tx *domain.Transaction) error
+	Delete(ctx context.Context, id string) error
 }

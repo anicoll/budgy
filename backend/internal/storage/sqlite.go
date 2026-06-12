@@ -91,6 +91,18 @@ func (r *budgetRepository) List(ctx context.Context) ([]*domain.Budget, error) {
 	return list, nil
 }
 
+func (r *budgetRepository) Update(ctx context.Context, b *domain.Budget) error {
+	query := `UPDATE budgets SET name = ?, method = ?, currency = ?, updated_at = ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, b.Name, string(b.Method), b.Currency, b.UpdatedAt, b.ID)
+	return err
+}
+
+func (r *budgetRepository) Delete(ctx context.Context, id string) error {
+	query := `DELETE FROM budgets WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, id)
+	return err
+}
+
 // Account Repository Implementation
 
 type accountRepository struct {
@@ -161,6 +173,22 @@ func (r *accountRepository) UpdateBalance(ctx context.Context, id string, balanc
 	return err
 }
 
+func (r *accountRepository) Update(ctx context.Context, acc *domain.Account) error {
+	query := `UPDATE accounts SET budget_id = ?, name = ?, type = ?, balance = ?, updated_at = ?, class = ?, account_no = ?, available_funds = ?, product = ?, institution_id = ?, connection_id = ?, last_updated = ? WHERE id = ?`
+	var budgetID interface{} = acc.BudgetID
+	if acc.BudgetID == "" {
+		budgetID = nil
+	}
+	_, err := r.db.ExecContext(ctx, query, budgetID, acc.Name, string(acc.Type), acc.Balance, acc.UpdatedAt, acc.Class, acc.AccountNo, acc.AvailableFunds, acc.Product, acc.InstitutionID, acc.ConnectionID, acc.LastUpdated, acc.ID)
+	return err
+}
+
+func (r *accountRepository) Delete(ctx context.Context, id string) error {
+	query := `DELETE FROM accounts WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, id)
+	return err
+}
+
 // Category Repository Implementation
 
 type categoryRepository struct {
@@ -220,6 +248,22 @@ func (r *categoryRepository) ListByBudget(ctx context.Context, budgetID string) 
 func (r *categoryRepository) UpdateBudgetedAndBalance(ctx context.Context, id string, budgeted int64, balance int64) error {
 	query := `UPDATE categories SET budgeted = ?, balance = ?, updated_at = ? WHERE id = ?`
 	_, err := r.db.ExecContext(ctx, query, budgeted, balance, time.Now(), id)
+	return err
+}
+
+func (r *categoryRepository) Update(ctx context.Context, c *domain.Category) error {
+	query := `UPDATE categories SET budget_id = ?, name = ?, budgeted = ?, balance = ?, target_limit = ?, updated_at = ? WHERE id = ?`
+	var budgetID interface{} = c.BudgetID
+	if c.BudgetID == "" {
+		budgetID = nil
+	}
+	_, err := r.db.ExecContext(ctx, query, budgetID, c.Name, c.Budgeted, c.Balance, c.TargetLimit, c.UpdatedAt, c.ID)
+	return err
+}
+
+func (r *categoryRepository) Delete(ctx context.Context, id string) error {
+	query := `DELETE FROM categories WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, id)
 	return err
 }
 
@@ -308,3 +352,24 @@ func (r *transactionRepository) listQuery(ctx context.Context, query string, arg
 	}
 	return list, nil
 }
+
+func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transaction) error {
+	query := `UPDATE transactions SET budget_id = ?, account_id = ?, category_id = ?, amount = ?, description = ?, date = ?, updated_at = ?, direction = ?, status = ?, class = ?, post_date = ?, sub_class = ?, raw_description = ?, merchant_name = ? WHERE id = ?`
+	var catID interface{} = tx.CategoryID
+	if tx.CategoryID == "" {
+		catID = nil
+	}
+	var budgetID interface{} = tx.BudgetID
+	if tx.BudgetID == "" {
+		budgetID = nil
+	}
+	_, err := r.db.ExecContext(ctx, query, budgetID, tx.AccountID, catID, tx.Amount, tx.Description, tx.Date, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName, tx.ID)
+	return err
+}
+
+func (r *transactionRepository) Delete(ctx context.Context, id string) error {
+	query := `DELETE FROM transactions WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, id)
+	return err
+}
+

@@ -40,6 +40,17 @@ func (m *MockBudgetRepository) List(ctx context.Context) ([]*domain.Budget, erro
 	return args.Get(0).([]*domain.Budget), args.Error(1)
 }
 
+func (m *MockBudgetRepository) Update(ctx context.Context, b *domain.Budget) error {
+	args := m.Called(ctx, b)
+	return args.Error(0)
+}
+
+func (m *MockBudgetRepository) Delete(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+
 // Mock AccountRepository
 type MockAccountRepository struct {
 	mock.Mock
@@ -71,6 +82,17 @@ func (m *MockAccountRepository) UpdateBalance(ctx context.Context, id string, ba
 	return args.Error(0)
 }
 
+func (m *MockAccountRepository) Update(ctx context.Context, acc *domain.Account) error {
+	args := m.Called(ctx, acc)
+	return args.Error(0)
+}
+
+func (m *MockAccountRepository) Delete(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+
 // Mock CategoryRepository
 type MockCategoryRepository struct {
 	mock.Mock
@@ -101,6 +123,17 @@ func (m *MockCategoryRepository) UpdateBudgetedAndBalance(ctx context.Context, i
 	args := m.Called(ctx, id, budgeted, balance)
 	return args.Error(0)
 }
+
+func (m *MockCategoryRepository) Update(ctx context.Context, c *domain.Category) error {
+	args := m.Called(ctx, c)
+	return args.Error(0)
+}
+
+func (m *MockCategoryRepository) Delete(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 
 // Mock TransactionRepository
 type MockTransactionRepository struct {
@@ -143,6 +176,17 @@ func (m *MockTransactionRepository) ListByCategory(ctx context.Context, category
 	}
 	return args.Get(0).([]*domain.Transaction), args.Error(1)
 }
+
+func (m *MockTransactionRepository) Update(ctx context.Context, tx *domain.Transaction) error {
+	args := m.Called(ctx, tx)
+	return args.Error(0)
+}
+
+func (m *MockTransactionRepository) Delete(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 
 func TestHandleCreateBudget(t *testing.T) {
 	mockBudgetRepo := new(MockBudgetRepository)
