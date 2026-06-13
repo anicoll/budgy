@@ -40,6 +40,7 @@ func (s *APIServer) Routes() *http.ServeMux {
 	// Public Auth handlers
 	mux.HandleFunc("POST /api/auth/register", s.handleRegister)
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
+	mux.HandleFunc("POST /api/webhooks/basiq", s.handleBasiqWebhook)
 
 	// Secure Auth handlers
 	s.handleSecure(mux, "GET /api/auth/me", s.handleMe)
