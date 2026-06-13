@@ -9,6 +9,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//backend/internal/api",
+        "//backend/internal/basiq",
         "//backend/internal/storage",
         "@com_github_ncruces_go_sqlite3//driver",
         "@com_github_ncruces_go_sqlite3//embed",

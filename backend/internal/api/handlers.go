@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"budgeting_system/internal/domain"
@@ -950,5 +952,165 @@ func (s *APIServer) handleDeleteTransaction(w http.ResponseWriter, r *http.Reque
 	}
 
 	s.respondJSON(w, http.StatusOK, map[string]string{"message": "transaction deleted successfully"})
+}
+
+func (s *APIServer) handleBasiqAuthLink(w http.ResponseWriter, r *http.Request) {
+	if s.basiqService == nil {
+		s.respondError(w, http.StatusServiceUnavailable, "Basiq service is not configured")
+		return
+	}
+
+	userID := getUserID(r)
+	if userID == "" {
+		s.respondError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	user, err := s.users.GetByID(r.Context(), userID)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	basiqUserID := user.BasiqUserID
+	if basiqUserID == "" {
+		id, err := s.basiqService.CreateBasiqUser(r.Context(), user.Email, user.FirstName, user.LastName)
+		if err != nil {
+			s.respondError(w, http.StatusInternalServerError, "failed to create Basiq user: "+err.Error())
+			return
+		}
+		basiqUserID = id
+		if err := s.users.UpdateBasiqUserID(r.Context(), user.ID, basiqUserID); err != nil {
+			s.respondError(w, http.StatusInternalServerError, "failed to save Basiq User ID: "+err.Error())
+			return
+		}
+	}
+
+	token, err := s.basiqService.GetClientToken(r.Context(), basiqUserID)
+	if err != nil {
+		s.respondError(w, http.StatusInternalServerError, "failed to generate client token: "+err.Error())
+		return
+	}
+
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:3000"
+	}
+	connectURL := fmt.Sprintf("https://connect.basiq.io/login?code=%s&redirect_url=%s/accounts", token, frontendURL)
+
+	s.respondJSON(w, http.StatusOK, map[string]string{
+		"token":       token,
+		"connect_url": connectURL,
+	})
+}
+
+func (s *APIServer) handleBasiqSync(w http.ResponseWriter, r *http.Request) {
+	if s.basiqService == nil {
+		s.respondError(w, http.StatusServiceUnavailable, "Basiq service is not configured")
+		return
+	}
+
+	userID := getUserID(r)
+	if userID == "" {
+		s.respondError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	user, err := s.users.GetByID(r.Context(), userID)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	if user.BasiqUserID == "" {
+		s.respondError(w, http.StatusBadRequest, "no connected Basiq account found")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	if err := s.syncBasiqUser(ctx, user.ID, user.BasiqUserID); err != nil {
+		s.respondError(w, http.StatusInternalServerError, "sync failed: "+err.Error())
+		return
+	}
+
+	s.respondJSON(w, http.StatusOK, map[string]string{"message": "Sync completed successfully"})
+}
+
+func (s *APIServer) syncBasiqUser(ctx context.Context, userID, basiqUserID string) error {
+	if s.basiqService == nil {
+		return fmt.Errorf("Basiq service is not configured")
+	}
+
+	budgets, err := s.budgets.List(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to list budgets: %w", err)
+	}
+
+	var budgetID string
+	if len(budgets) == 0 {
+		defaultBudget := &domain.Budget{
+			ID:        generateID(),
+			UserID:    userID,
+			Name:      "Default Budget",
+			Method:    domain.MethodZeroSum,
+			Currency:  "AUD",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		if err := s.budgets.Create(ctx, defaultBudget); err != nil {
+			return fmt.Errorf("failed to create default budget: %w", err)
+		}
+		budgetID = defaultBudget.ID
+	} else {
+		budgetID = budgets[0].ID
+	}
+
+	accounts, transactions, err := s.basiqService.FetchAccountsAndTransactions(ctx, basiqUserID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch bank data: %w", err)
+	}
+
+	for _, acc := range accounts {
+		acc.BudgetID = budgetID
+		existing, err := s.accounts.GetByID(ctx, acc.ID)
+		if err != nil {
+			if err := s.accounts.Create(ctx, acc); err != nil {
+				return fmt.Errorf("failed to create account %s: %w", acc.ID, err)
+			}
+		} else {
+			existing.Name = acc.Name
+			existing.Balance = acc.Balance
+			existing.AvailableFunds = acc.AvailableFunds
+			existing.Class = acc.Class
+			existing.AccountNo = acc.AccountNo
+			existing.Product = acc.Product
+			existing.InstitutionID = acc.InstitutionID
+			existing.ConnectionID = acc.ConnectionID
+			existing.LastUpdated = acc.LastUpdated
+			existing.UpdatedAt = time.Now()
+			if err := s.accounts.Update(ctx, existing); err != nil {
+				return fmt.Errorf("failed to update account %s: %w", acc.ID, err)
+			}
+		}
+	}
+
+	for _, tx := range transactions {
+		tx.BudgetID = budgetID
+		_, err := s.transactions.GetByID(ctx, tx.ID)
+		if err != nil {
+			if err := s.transactions.Create(ctx, tx); err != nil {
+				return fmt.Errorf("failed to create transaction %s: %w", tx.ID, err)
+			}
+		} else {
+			tx.UpdatedAt = time.Now()
+			if err := s.transactions.Update(ctx, tx); err != nil {
+				return fmt.Errorf("failed to update transaction %s: %w", tx.ID, err)
+			}
+		}
+	}
+
+	return nil
 }
 

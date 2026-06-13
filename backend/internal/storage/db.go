@@ -50,6 +50,7 @@ type UserRepository interface {
 	Create(ctx context.Context, u *domain.User) error
 	GetByID(ctx context.Context, id string) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetByBasiqUserID(ctx context.Context, basiqID string) (*domain.User, error)
 	UpdateBasiqUserID(ctx context.Context, id string, basiqID string) error
 }
 

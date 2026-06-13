@@ -61,7 +61,7 @@ func TestHandleBasiqWebhook(t *testing.T) {
 	os.Setenv("BASIQ_WEBHOOK_SECRET", secret)
 	defer os.Unsetenv("BASIQ_WEBHOOK_SECRET")
 
-	server := NewAPIServer(nil, nil, nil, nil, nil)
+	server := NewAPIServer(nil, nil, nil, nil, nil, nil)
 
 	body := []byte(`{
 		"id": "11a85f64-5717-4562-b3fc-2c963f66af11",

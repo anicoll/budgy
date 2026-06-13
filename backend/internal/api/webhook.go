@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -126,6 +127,33 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 	// Log receipt
 	log.Printf("Basiq Webhook Event Received and Verified: id=%s, event=%s, type=%s", msg.ID, msg.Event, msg.EventTypeID)
 
-	// For now, respond 200 OK to acknowledge receipt
+	var basiqUserID string
+	if userLink, ok := msg.Payload.Links["user"]; ok && userLink != "" {
+		parts := strings.Split(userLink, "/users/")
+		if len(parts) > 1 {
+			basiqUserID = parts[1]
+		}
+	}
+
+	if basiqUserID != "" {
+		localUser, err := s.users.GetByBasiqUserID(r.Context(), basiqUserID)
+		if err != nil {
+			log.Printf("Basiq Webhook: failed to find user for basiq_user_id %s: %v", basiqUserID, err)
+		} else {
+			log.Printf("Basiq Webhook: Triggering background sync for user %s (%s)", localUser.ID, basiqUserID)
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+				defer cancel()
+				if err := s.syncBasiqUser(ctx, localUser.ID, basiqUserID); err != nil {
+					log.Printf("Basiq Webhook: failed to sync user %s: %v", localUser.ID, err)
+				} else {
+					log.Printf("Basiq Webhook: successfully synced user %s", localUser.ID)
+				}
+			}()
+		}
+	} else {
+		log.Println("Basiq Webhook: missing user link in payload")
+	}
+
 	s.respondJSON(w, http.StatusOK, map[string]string{"status": "received"})
 }

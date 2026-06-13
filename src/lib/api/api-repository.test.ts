@@ -229,7 +229,7 @@ describe("ApiTransactionRepository", () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("t1");
     expect(result[0].accountId).toBe("a1");
-    expect(result[0].amount).toBe(-5000);
+    expect(result[0].amount).toBe(5000);
     expect(result[0].type).toBe("debit");
     expect(result[0].categoryId).toBe("c1");
     expect(result[0].payee).toBe("Woolworths");
@@ -282,7 +282,7 @@ describe("ApiTransactionRepository", () => {
       id: "temp-id",
       accountId: "a1",
       date: "2024-02-01T00:00:00Z",
-      amount: -3000 as Cents,
+      amount: 3000 as Cents,
       type: "debit",
       categoryId: "c1",
       payee: "Test",
@@ -293,7 +293,7 @@ describe("ApiTransactionRepository", () => {
     });
 
     expect(result.id).toBe("new-t1");
-    expect(result.amount).toBe(-3000);
+    expect(result.amount).toBe(3000);
     expect(result.type).toBe("debit");
   });
 });

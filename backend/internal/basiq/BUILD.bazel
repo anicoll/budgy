@@ -5,10 +5,12 @@ go_library(
     srcs = [
         "client.gen.go",
         "generate.go",
+        "service.go",
     ],
     importpath = "budgeting_system/internal/basiq",
     visibility = ["//backend:__subpackages__"],
     deps = [
+        "//backend/internal/domain",
         "@com_github_oapi_codegen_runtime//:runtime",
         "@com_github_oapi_codegen_runtime//types",
     ],

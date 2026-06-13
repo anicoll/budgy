@@ -215,6 +215,14 @@ func (m *MockUserRepository) UpdateBasiqUserID(ctx context.Context, id string, b
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) GetByBasiqUserID(ctx context.Context, basiqID string) (*domain.User, error) {
+	args := m.Called(ctx, basiqID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
+}
+
 func addAuth(req *http.Request, userID string) {
 	token, _ := GenerateJWT(userID)
 	req.AddCookie(&http.Cookie{
@@ -226,7 +234,7 @@ func addAuth(req *http.Request, userID string) {
 func TestHandleCreateBudget(t *testing.T) {
 	mockBudgetRepo := new(MockBudgetRepository)
 	mockUserRepo := new(MockUserRepository)
-	server := NewAPIServer(mockBudgetRepo, nil, nil, nil, mockUserRepo)
+	server := NewAPIServer(mockBudgetRepo, nil, nil, nil, mockUserRepo, nil)
 	mux := server.Routes()
 
 	reqBody := `{"name":"Personal","method":"ZERO_SUM","currency":"USD"}`
@@ -257,7 +265,7 @@ func TestHandleCreateAccount(t *testing.T) {
 	mockBudgetRepo := new(MockBudgetRepository)
 	mockAccRepo := new(MockAccountRepository)
 	mockUserRepo := new(MockUserRepository)
-	server := NewAPIServer(mockBudgetRepo, mockAccRepo, nil, nil, mockUserRepo)
+	server := NewAPIServer(mockBudgetRepo, mockAccRepo, nil, nil, mockUserRepo, nil)
 	mux := server.Routes()
 
 	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodZeroSum}
@@ -282,7 +290,7 @@ func TestHandleCreateTransaction_ZeroSum(t *testing.T) {
 	mockCatRepo := new(MockCategoryRepository)
 	mockTxRepo := new(MockTransactionRepository)
 	mockUserRepo := new(MockUserRepository)
-	server := NewAPIServer(mockBudgetRepo, mockAccRepo, mockCatRepo, mockTxRepo, mockUserRepo)
+	server := NewAPIServer(mockBudgetRepo, mockAccRepo, mockCatRepo, mockTxRepo, mockUserRepo, nil)
 	mux := server.Routes()
 
 	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodZeroSum}
@@ -317,7 +325,7 @@ func TestHandleFundEnvelope_Envelope(t *testing.T) {
 	mockAccRepo := new(MockAccountRepository)
 	mockCatRepo := new(MockCategoryRepository)
 	mockUserRepo := new(MockUserRepository)
-	server := NewAPIServer(mockBudgetRepo, mockAccRepo, mockCatRepo, nil, mockUserRepo)
+	server := NewAPIServer(mockBudgetRepo, mockAccRepo, mockCatRepo, nil, mockUserRepo, nil)
 	mux := server.Routes()
 
 	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodEnvelope}

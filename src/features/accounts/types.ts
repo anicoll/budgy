@@ -23,6 +23,9 @@ export interface Account {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+  connectionId?: string;
+  institutionId?: string;
+  lastUpdated?: string;
 }
 
 export const ACCOUNT_TYPE_LABEL: Record<AccountType, string> = {

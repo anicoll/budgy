@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"budgeting_system/internal/basiq"
 	"budgeting_system/internal/storage"
 )
 
@@ -14,6 +15,7 @@ type APIServer struct {
 	categories   storage.CategoryRepository
 	transactions storage.TransactionRepository
 	users        storage.UserRepository
+	basiqService *basiq.Service
 }
 
 // NewAPIServer creates a new APIServer with repository dependencies.
@@ -23,6 +25,7 @@ func NewAPIServer(
 	categories storage.CategoryRepository,
 	transactions storage.TransactionRepository,
 	users storage.UserRepository,
+	basiqService *basiq.Service,
 ) *APIServer {
 	return &APIServer{
 		budgets:      budgets,
@@ -30,6 +33,7 @@ func NewAPIServer(
 		categories:   categories,
 		transactions: transactions,
 		users:        users,
+		basiqService: basiqService,
 	}
 }
 
@@ -45,6 +49,10 @@ func (s *APIServer) Routes() *http.ServeMux {
 	// Secure Auth handlers
 	s.handleSecure(mux, "GET /api/auth/me", s.handleMe)
 	s.handleSecure(mux, "POST /api/auth/logout", s.handleLogout)
+
+	// Basiq bank connection handlers
+	s.handleSecure(mux, "GET /api/basiq/auth-link", s.handleBasiqAuthLink)
+	s.handleSecure(mux, "POST /api/basiq/sync", s.handleBasiqSync)
 
 	// Budget handlers
 	s.handleSecure(mux, "POST /api/budgets", s.handleCreateBudget)

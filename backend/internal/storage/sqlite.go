@@ -445,6 +445,23 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return &u, nil
 }
 
+func (r *userRepository) GetByBasiqUserID(ctx context.Context, basiqID string) (*domain.User, error) {
+	query := `SELECT id, email, password_hash, first_name, last_name, basiq_user_id, created_at, updated_at FROM users WHERE basiq_user_id = ?`
+	row := r.db.QueryRowContext(ctx, query, basiqID)
+
+	var u domain.User
+	var basiqIDNull sql.NullString
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &basiqIDNull, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+	u.BasiqUserID = basiqIDNull.String
+	return &u, nil
+}
+
 func (r *userRepository) UpdateBasiqUserID(ctx context.Context, id string, basiqID string) error {
 	query := `UPDATE users SET basiq_user_id = ?, updated_at = ? WHERE id = ?`
 	_, err := r.db.ExecContext(ctx, query, basiqID, time.Now(), id)
