@@ -11,6 +11,7 @@ go_library(
     importpath = "budgeting_system/internal/api",
     visibility = ["//backend:__subpackages__"],
     deps = [
+        "//backend/internal/basiq",
         "//backend/internal/domain",
         "//backend/internal/storage",
         "@com_github_golang_jwt_jwt_v5//:jwt",

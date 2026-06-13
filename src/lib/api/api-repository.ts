@@ -33,6 +33,13 @@ interface GoAccountResponse {
   balance: number;
   created_at: string;
   updated_at: string;
+  class?: string;
+  account_no?: string;
+  available_funds?: number;
+  product?: string;
+  institution_id?: string;
+  connection_id?: string;
+  last_updated?: string;
 }
 
 interface GoCategoryResponse {
@@ -336,6 +343,9 @@ export class ApiAccountRepository implements Repository<Account> {
       sortOrder: 0,
       createdAt: a.created_at || new Date().toISOString(),
       updatedAt: a.updated_at || new Date().toISOString(),
+      connectionId: a.connection_id,
+      institutionId: a.institution_id,
+      lastUpdated: a.last_updated,
     }));
   }
 
@@ -518,7 +528,7 @@ export class ApiTransactionRepository implements Repository<Transaction> {
       id: t.id,
       accountId: t.account_id,
       date: t.date,
-      amount: t.amount as Cents,
+      amount: Math.abs(t.amount) as Cents,
       type: t.amount > 0 ? "credit" : "debit",
       categoryId: t.category_id || null,
       payee: t.description,
@@ -546,7 +556,7 @@ export class ApiTransactionRepository implements Repository<Transaction> {
         body: JSON.stringify({
           account_id: entity.accountId,
           category_id: entity.categoryId || "",
-          amount: entity.amount,
+          amount: entity.type === "debit" ? -entity.amount : entity.amount,
           description: entity.payee || "Transaction",
           date: entity.date,
         }),
@@ -560,7 +570,7 @@ export class ApiTransactionRepository implements Repository<Transaction> {
         body: JSON.stringify({
           account_id: entity.accountId,
           category_id: entity.categoryId || "",
-          amount: entity.amount,
+          amount: entity.type === "debit" ? -entity.amount : entity.amount,
           description: entity.payee || "Transaction",
           date: entity.date,
         }),
@@ -573,7 +583,7 @@ export class ApiTransactionRepository implements Repository<Transaction> {
       id: t.id,
       accountId: t.account_id,
       date: t.date,
-      amount: t.amount as Cents,
+      amount: Math.abs(t.amount) as Cents,
       type: t.amount > 0 ? "credit" : "debit",
       categoryId: t.category_id || null,
       payee: t.description,

@@ -1,7 +1,9 @@
 "use client";
 
-import { EyeOff, Plus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { EyeOff, Link as LinkIcon, Plus, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +17,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { getBasiqAuthLink, syncBasiq } from "@/lib/api/basiq";
+import { queryKeys } from "@/lib/query/keys";
 import {
   useAccounts,
   useCreateAccount,
@@ -32,9 +36,12 @@ import { AccountsSummary } from "./AccountsSummary";
 type SheetMode = { kind: "create" } | { kind: "edit"; account: Account } | null;
 
 export function AccountsPageClient() {
+  const qc = useQueryClient();
   const [showArchived, setShowArchived] = useState(false);
   const [sheetMode, setSheetMode] = useState<SheetMode>(null);
   const [pendingDelete, setPendingDelete] = useState<Account | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const accountsQuery = useAccounts({ includeArchived: showArchived });
   const createMutation = useCreateAccount();
@@ -46,6 +53,36 @@ export function AccountsPageClient() {
   const submitting = createMutation.isPending || updateMutation.isPending;
   const accounts = accountsQuery.data ?? [];
   const hasAny = accounts.length > 0;
+  const hasConnectedBank = accounts.some((a) => !!a.connectionId);
+
+  async function handleConnectBank() {
+    setIsConnecting(true);
+    try {
+      const { connect_url } = await getBasiqAuthLink();
+      toast.success("Redirecting to bank authorization...");
+      window.location.href = connect_url;
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to connect to bank");
+    } finally {
+      setIsConnecting(false);
+    }
+  }
+
+  async function handleSyncBank() {
+    setIsSyncing(true);
+    try {
+      await syncBasiq();
+      toast.success("Bank accounts synced successfully!");
+      qc.invalidateQueries({ queryKey: queryKeys.accounts.all });
+      qc.invalidateQueries({ queryKey: queryKeys.transactions.all });
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to sync bank accounts");
+    } finally {
+      setIsSyncing(false);
+    }
+  }
 
   async function handleSubmit(
     values: Parameters<typeof createMutation.mutateAsync>[0],
@@ -76,12 +113,33 @@ export function AccountsPageClient() {
             <EyeOff className="h-3.5 w-3.5" /> Show archived
           </label>
         </div>
-        <Button
-          onClick={() => setSheetMode({ kind: "create" })}
-          className="bg-gradient-accent text-primary-foreground hover:opacity-90"
-        >
-          <Plus className="mr-1 h-4 w-4" /> Add account
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasConnectedBank && (
+            <Button
+              onClick={handleSyncBank}
+              disabled={isSyncing || accountsQuery.isPending}
+              variant="outline"
+              className="border-violet-500/30 text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 font-medium"
+            >
+              <RefreshCw className={`mr-1.5 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+              Sync Bank
+            </Button>
+          )}
+          <Button
+            onClick={handleConnectBank}
+            disabled={isConnecting}
+            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10 transition-all"
+          >
+            <LinkIcon className={`mr-1.5 h-4 w-4 ${isConnecting ? "animate-pulse" : ""}`} />
+            Connect Bank
+          </Button>
+          <Button
+            onClick={() => setSheetMode({ kind: "create" })}
+            className="bg-gradient-accent text-primary-foreground hover:opacity-90 font-medium"
+          >
+            <Plus className="mr-1 h-4 w-4" /> Add account
+          </Button>
+        </div>
       </div>
 
       {accountsQuery.isPending ? (
