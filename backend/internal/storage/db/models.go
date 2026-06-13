@@ -47,6 +47,15 @@ type Category struct {
 	UpdatedAt   time.Time
 }
 
+type EnvelopeAllocation struct {
+	BudgetID   string
+	AccountID  string
+	CategoryID string
+	Amount     int64
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
 type GooseDbVersion struct {
 	ID        int32
 	VersionID int64
@@ -56,7 +65,6 @@ type GooseDbVersion struct {
 
 type Transaction struct {
 	ID             string
-	BudgetID       sql.NullString
 	AccountID      string
 	CategoryID     sql.NullString
 	Amount         int64

@@ -246,11 +246,24 @@ func (s *budgetService) GetSummary(ctx context.Context, id string) (interface{},
 }
 
 type accountService struct {
-	accounts domain.AccountRepository
+	accounts     domain.AccountRepository
+	budgets      domain.BudgetRepository
+	allocations  domain.AllocationRepository
+	transactions domain.TransactionRepository
 }
 
-func NewAccountService(accounts domain.AccountRepository) AccountService {
-	return &accountService{accounts: accounts}
+func NewAccountService(
+	accounts domain.AccountRepository,
+	budgets domain.BudgetRepository,
+	allocations domain.AllocationRepository,
+	transactions domain.TransactionRepository,
+) AccountService {
+	return &accountService{
+		accounts:     accounts,
+		budgets:      budgets,
+		allocations:  allocations,
+		transactions: transactions,
+	}
 }
 
 func (s *accountService) Create(ctx context.Context, budgetID, name string, accType domain.AccountType, balance int64) (*domain.Account, error) {
@@ -273,7 +286,27 @@ func (s *accountService) Create(ctx context.Context, budgetID, name string, accT
 }
 
 func (s *accountService) List(ctx context.Context, budgetID string) ([]*domain.Account, error) {
-	return s.accounts.ListByBudget(ctx, budgetID)
+	accounts, err := s.accounts.ListByBudget(ctx, budgetID)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := s.budgets.GetByID(ctx, budgetID)
+	if err != nil {
+		return nil, err
+	}
+
+	if b.Method != domain.MethodEnvelope {
+		return accounts, nil
+	}
+
+	for _, acc := range accounts {
+		unallocated, err := s.calculateUnallocated(ctx, budgetID, acc)
+		if err == nil {
+			acc.Balance = unallocated
+		}
+	}
+	return accounts, nil
 }
 
 func (s *accountService) GetByID(ctx context.Context, id string) (*domain.Account, error) {
@@ -281,7 +314,41 @@ func (s *accountService) GetByID(ctx context.Context, id string) (*domain.Accoun
 	if err != nil {
 		return nil, fmt.Errorf("%w: account not found", ErrNotFound)
 	}
+
+	b, err := s.budgets.GetByID(ctx, acc.BudgetID)
+	if err == nil && b.Method == domain.MethodEnvelope {
+		unallocated, err := s.calculateUnallocated(ctx, acc.BudgetID, acc)
+		if err == nil {
+			acc.Balance = unallocated
+		}
+	}
 	return acc, nil
+}
+
+func (s *accountService) calculateUnallocated(ctx context.Context, budgetID string, acc *domain.Account) (int64, error) {
+	allocs, err := s.allocations.ListByAccount(ctx, budgetID, acc.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	var totalAllocated int64
+	for _, a := range allocs {
+		totalAllocated += a.Amount
+	}
+
+	txs, err := s.transactions.ListByAccount(ctx, acc.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	var totalSpent int64
+	for _, tx := range txs {
+		if tx.CategoryID != "" {
+			totalSpent += tx.Amount
+		}
+	}
+
+	return acc.Balance - totalAllocated - totalSpent, nil
 }
 
 func (s *accountService) Update(ctx context.Context, acc *domain.Account) (*domain.Account, error) {
@@ -304,12 +371,24 @@ func (s *accountService) Delete(ctx context.Context, id string) error {
 }
 
 type categoryService struct {
-	categories domain.CategoryRepository
-	accounts   domain.AccountRepository
+	categories   domain.CategoryRepository
+	accounts     domain.AccountRepository
+	allocations  domain.AllocationRepository
+	transactions domain.TransactionRepository
 }
 
-func NewCategoryService(categories domain.CategoryRepository, accounts domain.AccountRepository) CategoryService {
-	return &categoryService{categories: categories, accounts: accounts}
+func NewCategoryService(
+	categories domain.CategoryRepository,
+	accounts domain.AccountRepository,
+	allocations domain.AllocationRepository,
+	transactions domain.TransactionRepository,
+) CategoryService {
+	return &categoryService{
+		categories:   categories,
+		accounts:     accounts,
+		allocations:  allocations,
+		transactions: transactions,
+	}
 }
 
 func (s *categoryService) Create(ctx context.Context, budgetID, name string, targetLimit int64) (*domain.Category, error) {
@@ -395,6 +474,32 @@ func (s *categoryService) AssignFunds(ctx context.Context, budgetID, catID strin
 	return updatedCat, nil
 }
 
+func (s *categoryService) calculateUnallocated(ctx context.Context, budgetID string, acc *domain.Account) (int64, error) {
+	allocs, err := s.allocations.ListByAccount(ctx, budgetID, acc.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	var totalAllocated int64
+	for _, a := range allocs {
+		totalAllocated += a.Amount
+	}
+
+	txs, err := s.transactions.ListByAccount(ctx, acc.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	var totalSpent int64
+	for _, tx := range txs {
+		if tx.CategoryID != "" {
+			totalSpent += tx.Amount
+		}
+	}
+
+	return acc.Balance - totalAllocated - totalSpent, nil
+}
+
 func (s *categoryService) FundEnvelope(ctx context.Context, budgetID, catID, accountID string, amount int64) (*domain.Account, *domain.Category, error) {
 	acc, err := s.accounts.GetByID(ctx, accountID)
 	if err != nil {
@@ -412,22 +517,47 @@ func (s *categoryService) FundEnvelope(ctx context.Context, budgetID, catID, acc
 		return nil, nil, fmt.Errorf("%w: envelope does not belong to budget", ErrBadRequest)
 	}
 
-	updatedAcc, updatedEnv, err := domain.FundEnvelope(acc, cat, amount)
-	if err != nil {
-		return nil, nil, fmt.Errorf("%w: %s", ErrBadRequest, err.Error())
-	}
-
-	err = s.accounts.UpdateBalance(ctx, acc.ID, updatedAcc.Balance)
+	unallocated, err := s.calculateUnallocated(ctx, budgetID, acc)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	if unallocated < amount {
+		return nil, nil, fmt.Errorf("%w: insufficient funds in the account to fund the envelope", ErrBadRequest)
+	}
+
+	alloc, err := s.allocations.Get(ctx, budgetID, accountID, catID)
+	if err != nil {
+		alloc = &domain.EnvelopeAllocation{
+			BudgetID:   budgetID,
+			AccountID:  accountID,
+			CategoryID: catID,
+			Amount:     amount,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		}
+	} else {
+		alloc.Amount += amount
+		alloc.UpdatedAt = time.Now()
+	}
+
+	if err := s.allocations.Upsert(ctx, alloc); err != nil {
+		return nil, nil, err
+	}
+
+	updatedEnv := *cat
+	updatedEnv.Balance += amount
+	updatedEnv.UpdatedAt = time.Now()
 
 	err = s.categories.UpdateBudgetedAndBalance(ctx, cat.ID, updatedEnv.Budgeted, updatedEnv.Balance)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return updatedAcc, updatedEnv, nil
+	updatedAcc := *acc
+	updatedAcc.Balance = unallocated - amount
+
+	return &updatedAcc, &updatedEnv, nil
 }
 
 type transactionService struct {

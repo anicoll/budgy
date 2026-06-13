@@ -74,6 +74,19 @@ src/
 - **Do not use ESLint or Prettier.** This project strictly uses **Biome**.
 - Run `make lint-fix` to resolve imports, formatting, and linting rules.
 
+### 🗄️ Database & Mock Generation (Do Not Hand-Craft)
+- **Do not manually update or write database models, DTOs, or mock repository files.**
+- **Go Mock Generation**: The repository uses `vektra/mockery` to generate test mocks. If you add or modify any repository or service interface, regenerate all Go mocks automatically by running:
+  ```bash
+  go generate ./...
+  ```
+  from the `backend` directory.
+- **SQLC Model Generation**: Database DTOs and queries can be compiled from SQL schemas using:
+  ```bash
+  make db-generate
+  ```
+  which runs the `schema-dump` generator and compiles the schema using `sqlc`.
+
 ---
 
 ## 5. Development & Testing Commands
