@@ -1,39 +1,37 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
-	"budgeting_system/internal/basiq"
-	"budgeting_system/internal/storage"
+	"budgeting_system/internal/service"
 )
 
-// APIServer coordinates request routing and data storage handlers.
+// APIServer coordinates request routing and application service execution.
 type APIServer struct {
-	budgets      storage.BudgetRepository
-	accounts     storage.AccountRepository
-	categories   storage.CategoryRepository
-	transactions storage.TransactionRepository
-	users        storage.UserRepository
-	basiqService *basiq.Service
+	auth         service.AuthService
+	budgets      service.BudgetService
+	accounts     service.AccountService
+	categories   service.CategoryService
+	transactions service.TransactionService
+	bankSync     service.BankSyncService
 }
 
-// NewAPIServer creates a new APIServer with repository dependencies.
+// NewAPIServer creates a new APIServer with injected services.
 func NewAPIServer(
-	budgets storage.BudgetRepository,
-	accounts storage.AccountRepository,
-	categories storage.CategoryRepository,
-	transactions storage.TransactionRepository,
-	users storage.UserRepository,
-	basiqService *basiq.Service,
+	auth service.AuthService,
+	budgets service.BudgetService,
+	accounts service.AccountService,
+	categories service.CategoryService,
+	transactions service.TransactionService,
+	bankSync service.BankSyncService,
 ) *APIServer {
 	return &APIServer{
+		auth:         auth,
 		budgets:      budgets,
 		accounts:     accounts,
 		categories:   categories,
 		transactions: transactions,
-		users:        users,
-		basiqService: basiqService,
+		bankSync:     bankSync,
 	}
 }
 
@@ -42,59 +40,45 @@ func (s *APIServer) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Public Auth handlers
-	mux.HandleFunc("POST /api/auth/register", s.handleRegister)
-	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
-	mux.HandleFunc("POST /api/webhooks/basiq", s.handleBasiqWebhook)
+	mux.HandleFunc("POST /api/auth/register", MakeHandler(s.handleRegister))
+	mux.HandleFunc("POST /api/auth/login", MakeHandler(s.handleLogin))
+	mux.HandleFunc("POST /api/webhooks/basiq", s.handleBasiqWebhook) // Webhooks verify signatures customly
 
 	// Secure Auth handlers
-	s.handleSecure(mux, "GET /api/auth/me", s.handleMe)
-	s.handleSecure(mux, "POST /api/auth/logout", s.handleLogout)
+	s.handleSecure(mux, "GET /api/auth/me", MakeHandler(s.handleMe))
+	s.handleSecure(mux, "POST /api/auth/logout", s.handleLogout) // Sets cookies directly
 
 	// Basiq bank connection handlers
-	s.handleSecure(mux, "GET /api/basiq/auth-link", s.handleBasiqAuthLink)
-	s.handleSecure(mux, "POST /api/basiq/sync", s.handleBasiqSync)
+	s.handleSecure(mux, "GET /api/basiq/auth-link", MakeHandler(s.handleBasiqAuthLink))
+	s.handleSecure(mux, "POST /api/basiq/sync", MakeHandler(s.handleBasiqSync))
 
 	// Budget handlers
-	s.handleSecure(mux, "POST /api/budgets", s.handleCreateBudget)
-	s.handleSecure(mux, "GET /api/budgets", s.handleListBudgets)
-	s.handleSecure(mux, "GET /api/budgets/{id}", s.handleGetBudget)
-	s.handleSecure(mux, "GET /api/budgets/{id}/summary", s.handleGetBudgetSummary)
-	s.handleSecure(mux, "PUT /api/budgets/{id}", s.handleUpdateBudget)
-	s.handleSecure(mux, "DELETE /api/budgets/{id}", s.handleDeleteBudget)
+	s.handleSecure(mux, "POST /api/budgets", MakeHandler(s.handleCreateBudget))
+	s.handleSecure(mux, "GET /api/budgets", MakeHandler(s.handleListBudgets))
+	s.handleBudgetSecure(mux, "GET /api/budgets/{id}", MakeHandler(s.handleGetBudget))
+	s.handleBudgetSecure(mux, "GET /api/budgets/{id}/summary", MakeHandler(s.handleGetBudgetSummary))
+	s.handleBudgetSecure(mux, "PUT /api/budgets/{id}", MakeHandler(s.handleUpdateBudget))
+	s.handleBudgetSecure(mux, "DELETE /api/budgets/{id}", MakeHandler(s.handleDeleteBudget))
 
 	// Account handlers
-	s.handleSecure(mux, "POST /api/budgets/{id}/accounts", s.handleCreateAccount)
-	s.handleSecure(mux, "GET /api/budgets/{id}/accounts", s.handleListAccounts)
-	s.handleSecure(mux, "PUT /api/budgets/{id}/accounts/{acc_id}", s.handleUpdateAccount)
-	s.handleSecure(mux, "DELETE /api/budgets/{id}/accounts/{acc_id}", s.handleDeleteAccount)
+	s.handleBudgetSecure(mux, "POST /api/budgets/{id}/accounts", MakeHandler(s.handleCreateAccount))
+	s.handleBudgetSecure(mux, "GET /api/budgets/{id}/accounts", MakeHandler(s.handleListAccounts))
+	s.handleBudgetSecure(mux, "PUT /api/budgets/{id}/accounts/{acc_id}", MakeHandler(s.handleUpdateAccount))
+	s.handleBudgetSecure(mux, "DELETE /api/budgets/{id}/accounts/{acc_id}", MakeHandler(s.handleDeleteAccount))
 
 	// Category/Envelope handlers
-	s.handleSecure(mux, "POST /api/budgets/{id}/categories", s.handleCreateCategory)
-	s.handleSecure(mux, "GET /api/budgets/{id}/categories", s.handleListCategories)
-	s.handleSecure(mux, "POST /api/budgets/{id}/categories/{cat_id}/assign", s.handleAssignCategoryFunds)
-	s.handleSecure(mux, "POST /api/budgets/{id}/categories/{cat_id}/fund", s.handleFundEnvelope)
-	s.handleSecure(mux, "PUT /api/budgets/{id}/categories/{cat_id}", s.handleUpdateCategory)
-	s.handleSecure(mux, "DELETE /api/budgets/{id}/categories/{cat_id}", s.handleDeleteCategory)
+	s.handleBudgetSecure(mux, "POST /api/budgets/{id}/categories", MakeHandler(s.handleCreateCategory))
+	s.handleBudgetSecure(mux, "GET /api/budgets/{id}/categories", MakeHandler(s.handleListCategories))
+	s.handleBudgetSecure(mux, "POST /api/budgets/{id}/categories/{cat_id}/assign", MakeHandler(s.handleAssignCategoryFunds))
+	s.handleBudgetSecure(mux, "POST /api/budgets/{id}/categories/{cat_id}/fund", MakeHandler(s.handleFundEnvelope))
+	s.handleBudgetSecure(mux, "PUT /api/budgets/{id}/categories/{cat_id}", MakeHandler(s.handleUpdateCategory))
+	s.handleBudgetSecure(mux, "DELETE /api/budgets/{id}/categories/{cat_id}", MakeHandler(s.handleDeleteCategory))
 
 	// Transaction handlers
-	s.handleSecure(mux, "POST /api/budgets/{id}/transactions", s.handleCreateTransaction)
-	s.handleSecure(mux, "GET /api/budgets/{id}/transactions", s.handleListTransactions)
-	s.handleSecure(mux, "PUT /api/budgets/{id}/transactions/{tx_id}", s.handleUpdateTransaction)
-	s.handleSecure(mux, "DELETE /api/budgets/{id}/transactions/{tx_id}", s.handleDeleteTransaction)
+	s.handleBudgetSecure(mux, "POST /api/budgets/{id}/transactions", MakeHandler(s.handleCreateTransaction))
+	s.handleBudgetSecure(mux, "GET /api/budgets/{id}/transactions", MakeHandler(s.handleListTransactions))
+	s.handleBudgetSecure(mux, "PUT /api/budgets/{id}/transactions/{tx_id}", MakeHandler(s.handleUpdateTransaction))
+	s.handleBudgetSecure(mux, "DELETE /api/budgets/{id}/transactions/{tx_id}", MakeHandler(s.handleDeleteTransaction))
 
 	return mux
-}
-
-// JSON utilities for REST responses
-
-func (s *APIServer) respondJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if data != nil {
-		_ = json.NewEncoder(w).Encode(data)
-	}
-}
-
-func (s *APIServer) respondError(w http.ResponseWriter, status int, message string) {
-	s.respondJSON(w, status, map[string]string{"error": message})
 }

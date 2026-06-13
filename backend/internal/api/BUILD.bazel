@@ -4,18 +4,19 @@ go_library(
     name = "api",
     srcs = [
         "auth.go",
+        "dto.go",
         "handlers.go",
+        "middleware.go",
         "server.go",
         "webhook.go",
+        "wrapper.go",
     ],
     importpath = "budgeting_system/internal/api",
     visibility = ["//backend:__subpackages__"],
     deps = [
-        "//backend/internal/basiq",
         "//backend/internal/domain",
-        "//backend/internal/storage",
+        "//backend/internal/service",
         "@com_github_golang_jwt_jwt_v5//:jwt",
-        "@org_golang_x_crypto//bcrypt",
         "@org_uber_go_zap//:zap",
     ],
 )
@@ -29,6 +30,7 @@ go_test(
     embed = [":api"],
     deps = [
         "//backend/internal/domain",
+        "//backend/internal/service/mocks",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//mock",
     ],

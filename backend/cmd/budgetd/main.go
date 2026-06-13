@@ -10,6 +10,7 @@ import (
 
 	"budgeting_system/internal/api"
 	"budgeting_system/internal/basiq"
+	"budgeting_system/internal/service"
 	"budgeting_system/internal/storage"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
@@ -63,11 +64,11 @@ func main() {
 
 	// Create storage and repositories
 	store := storage.NewSQLiteStorage(db)
-	budgets := store.Budgets()
-	accounts := store.Accounts()
-	categories := store.Categories()
-	transactions := store.Transactions()
-	users := store.Users()
+	budgetsRepo := store.Budgets()
+	accountsRepo := store.Accounts()
+	categoriesRepo := store.Categories()
+	transactionsRepo := store.Transactions()
+	usersRepo := store.Users()
 
 	var basiqService *basiq.Service
 	basiqAPIKey := os.Getenv("BASIQ_API_KEY")
@@ -78,7 +79,18 @@ func main() {
 		zap.S().Warn("Warning: BASIQ_API_KEY is not configured. Basiq service will be disabled.")
 	}
 
-	apiServer := api.NewAPIServer(budgets, accounts, categories, transactions, users, basiqService)
+	authSvc := service.NewAuthService(usersRepo)
+	budgetSvc := service.NewBudgetService(budgetsRepo, accountsRepo, categoriesRepo)
+	accountSvc := service.NewAccountService(accountsRepo)
+	categorySvc := service.NewCategoryService(categoriesRepo, accountsRepo)
+	txSvc := service.NewTransactionService(transactionsRepo, accountsRepo, categoriesRepo, budgetsRepo)
+
+	var bankSyncSvc service.BankSyncService
+	if basiqService != nil {
+		bankSyncSvc = service.NewBankSyncService(usersRepo, budgetsRepo, accountsRepo, transactionsRepo, basiqService)
+	}
+
+	apiServer := api.NewAPIServer(authSvc, budgetSvc, accountSvc, categorySvc, txSvc, bankSyncSvc)
 
 	appWebhookURL := os.Getenv("APP_WEBHOOK_URL")
 	if basiqService != nil && appWebhookURL != "" {

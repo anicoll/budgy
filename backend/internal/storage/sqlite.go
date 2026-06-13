@@ -46,11 +46,11 @@ type budgetRepository struct {
 	db *sql.DB
 }
 
-func (s *SQLiteStorage) Budgets() BudgetRepository {
+func (s *SQLiteStorage) Budgets() domain.BudgetRepository {
 	return &budgetRepository{db: s.db}
 }
 
-func (s *SQLiteStorage) Users() UserRepository {
+func (s *SQLiteStorage) Users() domain.UserRepository {
 	return &userRepository{db: s.db}
 }
 
@@ -130,7 +130,7 @@ type accountRepository struct {
 	db *sql.DB
 }
 
-func (s *SQLiteStorage) Accounts() AccountRepository {
+func (s *SQLiteStorage) Accounts() domain.AccountRepository {
 	return &accountRepository{db: s.db}
 }
 
@@ -216,7 +216,7 @@ type categoryRepository struct {
 	db *sql.DB
 }
 
-func (s *SQLiteStorage) Categories() CategoryRepository {
+func (s *SQLiteStorage) Categories() domain.CategoryRepository {
 	return &categoryRepository{db: s.db}
 }
 
@@ -294,7 +294,7 @@ type transactionRepository struct {
 	db *sql.DB
 }
 
-func (s *SQLiteStorage) Transactions() TransactionRepository {
+func (s *SQLiteStorage) Transactions() domain.TransactionRepository {
 	return &transactionRepository{db: s.db}
 }
 

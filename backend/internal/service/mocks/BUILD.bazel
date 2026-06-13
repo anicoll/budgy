@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mocks",
+    srcs = ["mocks.go"],
+    importpath = "budgeting_system/internal/service/mocks",
+    visibility = ["//backend:__subpackages__"],
+    deps = [
+        "//backend/internal/domain",
+        "@com_github_stretchr_testify//mock",
+    ],
+)
