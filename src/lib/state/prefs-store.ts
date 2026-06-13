@@ -20,6 +20,7 @@ export interface Preferences {
   annualSalary?: Cents; // gross annual salary — set in onboarding, shared across modules
   hasPrivateHealth?: boolean; // affects Medicare Levy Surcharge calculation
   novatedLeases?: NovatedLease[];
+  storageMode?: "offline" | "online";
 }
 
 interface PrefsState extends Preferences {
@@ -37,6 +38,7 @@ const DEFAULTS: Preferences = {
   annualSalary: undefined,
   hasPrivateHealth: undefined,
   novatedLeases: undefined,
+  storageMode: undefined,
 };
 
 export const usePrefs = create<PrefsState>()(

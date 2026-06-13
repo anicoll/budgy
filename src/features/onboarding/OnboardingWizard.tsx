@@ -280,6 +280,8 @@ function WelcomeStep({
   onTheme: (t: string) => void;
   onNext: () => void;
 }) {
+  const storageMode = usePrefs((s) => s.storageMode) || "online";
+
   return (
     <Card className="border-border/60 bg-surface/80 backdrop-blur-xl">
       <CardHeader className="text-center">
@@ -288,8 +290,10 @@ function WelcomeStep({
         </div>
         <CardTitle className="text-2xl">Welcome to Budgy</CardTitle>
         <CardDescription>
-          Local-first budgeting — your data never leaves your device. Let&apos;s get you set up in
-          under a minute.
+          {storageMode === "online"
+            ? "Cloud budgeting — core accounts, transactions and budgets synced, super & mortgage stored locally."
+            : "Local-first budgeting — your data never leaves your device."}{" "}
+          Let&apos;s get you set up in under a minute.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

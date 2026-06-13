@@ -1,6 +1,6 @@
 # Budgy 🐧
 
-Budgy is a modern, elegant, and **offline-first** personal finance and budgeting application. Built with Next.js and TailwindCSS, it is designed for privacy-by-default, storing all user financial data locally in the browser using IndexedDB. No servers, no tracking, and no external APIs mean your financial records never leave your device.
+Budgy is a modern, elegant personal finance and budgeting application supporting both **Online (Cloud Synced)** and **Offline (Local Only)** storage modes. Built with Next.js and TailwindCSS, by default it routes core financial data (accounts, categories, transactions, budgets) to a Go REST API backend, while retaining superannuation and mortgage plans in browser-local storage (IndexedDB). Users can also choose to run completely offline without a backend.
 
 ## Key Features
 
@@ -47,9 +47,9 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-## Running with Go Backend API (Local Testing)
+## Running with Go Backend API (Online Mode)
 
-Budgy includes an optional containerized Go REST/JSON backend for centralizing data persistence. You can toggle between IndexedDB (default) and the Go backend on the fly using environment flags.
+Budgy includes a containerized Go REST/JSON backend for centralizing data persistence. By default, the application runs in **Online Mode** and expects the backend API to be running on `http://localhost:8080`.
 
 ### 1. Build and Start the Go Backend
 Ensure Docker is installed and running, then:
@@ -70,15 +70,17 @@ make backend-logs
 # or: pnpm backend:logs
 ```
 
-### 2. Start Frontend with Backend Integration
-To run the Next.js development server with the backend API toggled ON:
+### 2. Start the Frontend
+Start the Next.js development server:
 
 ```bash
-make dev-api
-# or: pnpm dev:api
+make dev
+# or: pnpm dev
 ```
 
-This starts the dev server and configures `NEXT_PUBLIC_USE_BACKEND=true` to transparently route Budget, Account, Category, and Transaction records to `http://localhost:8080`.
+The app will start in Online Mode and redirect to the Login screen. 
+
+*Note: Unauthenticated users can choose to bypass login and use **Offline Mode** by clicking the "Skip and use offline" button. Users in Offline Mode can transition to Online Mode via the Settings page, which will wipe local core tables and prompt them to register/login.*
 
 ### 3. Stop the Backend
 To clean up and stop the backend container:
@@ -87,6 +89,7 @@ To clean up and stop the backend container:
 make backend-down
 # or: pnpm backend:down
 ```
+
 
 ### Running Quality Checks
 

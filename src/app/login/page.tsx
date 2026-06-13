@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/features/auth/useAuth";
+import { usePrefs } from "@/lib/state/prefs-store";
 
 export default function LoginPage() {
   const { login, isAuthenticated, error, clearError } = useAuth();
@@ -50,6 +51,11 @@ export default function LoginPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleUseOffline = () => {
+    usePrefs.getState().setPref("storageMode", "offline");
+    router.push("/");
   };
 
   return (
@@ -128,6 +134,19 @@ export default function LoginPage() {
                   Create one now
                 </Link>
               </div>
+              <div className="flex w-full items-center my-1">
+                <div className="flex-1 border-t border-slate-800" />
+                <span className="mx-2 text-[10px] uppercase tracking-wider text-slate-500">or</span>
+                <div className="flex-1 border-t border-slate-800" />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleUseOffline}
+                className="w-full border border-slate-800 bg-slate-950/40 text-slate-300 hover:bg-slate-900 hover:text-white text-xs py-2 shadow-sm transition-all"
+              >
+                Skip and use offline (data stored locally)
+              </Button>
             </CardFooter>
           </form>
         </Card>

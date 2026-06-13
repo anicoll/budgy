@@ -4,30 +4,33 @@ import { usePathname, useRouter } from "next/navigation";
 import type React from "react";
 import { useEffect } from "react";
 import { useAuth } from "@/features/auth/useAuth";
+import { usePrefs } from "@/lib/state/prefs-store";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { checkSession, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const useBackend = process.env.NEXT_PUBLIC_USE_BACKEND === "true";
+  const hydrated = usePrefs((s) => s._hydrated);
+  const storageMode = usePrefs((s) => s.storageMode) || "online";
+  const isOnline = storageMode === "online";
 
   useEffect(() => {
-    if (useBackend) {
+    if (isOnline) {
       checkSession();
     }
-  }, [useBackend, checkSession]);
+  }, [isOnline, checkSession]);
 
   useEffect(() => {
-    if (!useBackend) return;
+    if (!isOnline) return;
 
     if (!isLoading && !isAuthenticated) {
       if (pathname !== "/login" && pathname !== "/register") {
         router.push("/login");
       }
     }
-  }, [useBackend, isLoading, isAuthenticated, pathname, router]);
+  }, [isOnline, isLoading, isAuthenticated, pathname, router]);
 
-  if (useBackend && isLoading && pathname !== "/login" && pathname !== "/register") {
+  if (!hydrated || (isOnline && isLoading && pathname !== "/login" && pathname !== "/register")) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
