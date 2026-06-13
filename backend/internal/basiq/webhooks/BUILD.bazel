@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "webhooks",
+    srcs = [
+        "generate.go",
+        "webhooks.gen.go",
+    ],
+    importpath = "budgeting_system/internal/basiq/webhooks",
+    visibility = ["//backend:__subpackages__"],
+    deps = [
+        "@com_github_oapi_codegen_runtime//:runtime",
+        "@com_github_oapi_codegen_runtime//types",
+    ],
+)
