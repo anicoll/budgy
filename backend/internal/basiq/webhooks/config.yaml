@@ -1,0 +1,5 @@
+package: webhooks
+generate:
+  client: true
+  models: true
+output: webhooks.gen.go
