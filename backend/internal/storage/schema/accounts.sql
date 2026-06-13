@@ -27,12 +27,19 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.accounts (
     id text NOT NULL,
-    budget_id text NOT NULL,
+    budget_id text,
     name text NOT NULL,
     type text NOT NULL,
     balance bigint DEFAULT 0 NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL
+    updated_at timestamp without time zone NOT NULL,
+    class text,
+    account_no text,
+    available_funds bigint,
+    product text,
+    institution_id text,
+    connection_id text,
+    last_updated timestamp without time zone
 );
 
 
@@ -49,7 +56,7 @@ ALTER TABLE ONLY public.accounts
 --
 
 ALTER TABLE ONLY public.accounts
-    ADD CONSTRAINT accounts_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE CASCADE;
+    ADD CONSTRAINT accounts_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE SET NULL;
 
 
 --

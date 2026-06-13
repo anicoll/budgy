@@ -27,7 +27,7 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.categories (
     id text NOT NULL,
-    budget_id text NOT NULL,
+    budget_id text,
     name text NOT NULL,
     budgeted bigint DEFAULT 0 NOT NULL,
     balance bigint DEFAULT 0 NOT NULL,
@@ -50,7 +50,7 @@ ALTER TABLE ONLY public.categories
 --
 
 ALTER TABLE ONLY public.categories
-    ADD CONSTRAINT categories_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE CASCADE;
+    ADD CONSTRAINT categories_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE SET NULL;
 
 
 --

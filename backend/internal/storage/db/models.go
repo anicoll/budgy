@@ -10,13 +10,20 @@ import (
 )
 
 type Account struct {
-	ID        string
-	BudgetID  string
-	Name      string
-	Type      string
-	Balance   int64
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID             string
+	BudgetID       sql.NullString
+	Name           string
+	Type           string
+	Balance        int64
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	Class          sql.NullString
+	AccountNo      sql.NullString
+	AvailableFunds sql.NullInt64
+	Product        sql.NullString
+	InstitutionID  sql.NullString
+	ConnectionID   sql.NullString
+	LastUpdated    sql.NullTime
 }
 
 type Budget struct {
@@ -30,7 +37,7 @@ type Budget struct {
 
 type Category struct {
 	ID          string
-	BudgetID    string
+	BudgetID    sql.NullString
 	Name        string
 	Budgeted    int64
 	Balance     int64
@@ -47,13 +54,20 @@ type GooseDbVersion struct {
 }
 
 type Transaction struct {
-	ID          string
-	BudgetID    string
-	AccountID   string
-	CategoryID  sql.NullString
-	Amount      int64
-	Description string
-	Date        time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID             string
+	BudgetID       sql.NullString
+	AccountID      string
+	CategoryID     sql.NullString
+	Amount         int64
+	Description    string
+	Date           time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	Direction      sql.NullString
+	Status         sql.NullString
+	Class          sql.NullString
+	PostDate       sql.NullTime
+	SubClass       sql.NullString
+	RawDescription sql.NullString
+	MerchantName   sql.NullString
 }

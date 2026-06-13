@@ -27,14 +27,21 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.transactions (
     id text NOT NULL,
-    budget_id text NOT NULL,
+    budget_id text,
     account_id text NOT NULL,
     category_id text,
     amount bigint NOT NULL,
     description text NOT NULL,
     date timestamp without time zone NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL
+    updated_at timestamp without time zone NOT NULL,
+    direction text,
+    status text,
+    class text,
+    post_date timestamp without time zone,
+    sub_class text,
+    raw_description text,
+    merchant_name text
 );
 
 
@@ -59,7 +66,7 @@ ALTER TABLE ONLY public.transactions
 --
 
 ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT transactions_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE CASCADE;
+    ADD CONSTRAINT transactions_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE SET NULL;
 
 
 --
