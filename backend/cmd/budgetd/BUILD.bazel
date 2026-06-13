@@ -13,6 +13,7 @@ go_library(
         "//backend/internal/storage",
         "@com_github_ncruces_go_sqlite3//driver",
         "@com_github_ncruces_go_sqlite3//embed",
+        "@org_uber_go_zap//:zap",
     ],
 )
 

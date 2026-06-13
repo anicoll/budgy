@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
-	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -14,10 +14,32 @@ import (
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
+	"go.uber.org/zap"
 )
 
+func initLogger() {
+	var config zap.Config
+	if os.Getenv("DEBUG") == "true" || os.Getenv("LOG_LEVEL") == "debug" {
+		config = zap.NewDevelopmentConfig()
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	} else {
+		config = zap.NewProductionConfig()
+		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	}
+	
+	logger, err := config.Build()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize zap logger: %v\n", err)
+		os.Exit(1)
+	}
+	zap.ReplaceGlobals(logger)
+}
+
 func main() {
-	log.Println("Starting budgeting API server...")
+	initLogger()
+	defer zap.L().Sync()
+
+	zap.S().Info("Starting budgeting API server...")
 
 	dbPath := os.Getenv("DATABASE_URL")
 	if dbPath == "" {
@@ -26,17 +48,17 @@ func main() {
 
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		zap.S().Fatalf("Failed to open database: %v", err)
 	}
 	defer db.Close()
 
 	if err := db.Ping(); err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
+		zap.S().Fatalf("Failed to ping database: %v", err)
 	}
 
 	// Run migrations
 	if err := storage.Migrate(db); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+		zap.S().Fatalf("Failed to run migrations: %v", err)
 	}
 
 	// Create storage and repositories
@@ -50,10 +72,10 @@ func main() {
 	var basiqService *basiq.Service
 	basiqAPIKey := os.Getenv("BASIQ_API_KEY")
 	if basiqAPIKey != "" {
-		log.Println("Basiq API key configured. Initializing Basiq service...")
+		zap.S().Info("Basiq API key configured. Initializing Basiq service...")
 		basiqService = basiq.NewService(basiqAPIKey)
 	} else {
-		log.Println("Warning: BASIQ_API_KEY is not configured. Basiq service will be disabled.")
+		zap.S().Warn("Warning: BASIQ_API_KEY is not configured. Basiq service will be disabled.")
 	}
 
 	apiServer := api.NewAPIServer(budgets, accounts, categories, transactions, users, basiqService)
@@ -61,15 +83,15 @@ func main() {
 	appWebhookURL := os.Getenv("APP_WEBHOOK_URL")
 	if basiqService != nil && appWebhookURL != "" {
 		go func() {
-			log.Printf("Automatically registering Basiq webhook for URL: %s", appWebhookURL)
+			zap.S().Infof("Automatically registering Basiq webhook for URL: %s", appWebhookURL)
 			// Wait a brief moment for the server to spin up
 			time.Sleep(2 * time.Second)
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			if err := basiqService.RegisterWebhook(ctx, appWebhookURL); err != nil {
-				log.Printf("Basiq Webhook registration failed: %v", err)
+				zap.S().Errorf("Basiq Webhook registration failed: %v", err)
 			} else {
-				log.Println("Basiq Webhook registration completed successfully.")
+				zap.S().Info("Basiq Webhook registration completed successfully.")
 			}
 		}()
 	}
@@ -83,9 +105,9 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Listening on :%s", port)
+	zap.S().Infof("Listening on :%s", port)
 	if err := http.ListenAndServe(":"+port, handler); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		zap.S().Fatalf("Server failed: %v", err)
 	}
 }
 

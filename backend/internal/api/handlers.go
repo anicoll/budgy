@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"budgeting_system/internal/domain"
@@ -992,11 +991,7 @@ func (s *APIServer) handleBasiqAuthLink(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:3000"
-	}
-	connectURL := fmt.Sprintf("https://connect.basiq.io/login?code=%s&redirect_url=%s/accounts", token, frontendURL)
+	connectURL := fmt.Sprintf("https://consent.basiq.io/home?token=%s", token)
 
 	s.respondJSON(w, http.StatusOK, map[string]string{
 		"token":       token,
