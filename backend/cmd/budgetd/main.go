@@ -76,9 +76,7 @@ func main() {
 
 	allowedOrigin := os.Getenv("ALLOWED_ORIGINS")
 	var handler http.Handler = apiServer.Routes()
-	if allowedOrigin != "" {
-		handler = withCORS(handler, allowedOrigin)
-	}
+	handler = withCORS(handler, allowedOrigin)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -91,8 +89,16 @@ func main() {
 	}
 }
 
-func withCORS(next http.Handler, origin string) http.Handler {
+func withCORS(next http.Handler, allowedOrigin string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := allowedOrigin
+		if origin == "" {
+			origin = r.Header.Get("Origin")
+		}
+		if origin == "" {
+			origin = "*"
+		}
+
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
