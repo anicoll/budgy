@@ -185,29 +185,69 @@ export class ApiBudgetRepository implements Repository<Budget> {
   async upsert(entity: Budget): Promise<Budget> {
     // Check if it already exists to avoid unique constraint error on backend
     const existing = await this.get(entity.id);
-    if (existing) return existing;
-
     const hasEnvelope = entity.targets?.some((t) => t.mode === "envelope");
-    const res = await fetch(`${API_BASE_URL}/api/budgets`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: entity.name,
-        method: hasEnvelope ? "ENVELOPE" : "ZERO_SUM",
-        currency: "AUD",
-      }),
-    });
-    if (!res.ok) throw new Error("Failed to create budget via API");
-    const b = await res.json();
+    let b: GoBudgetResponse;
+
+    if (existing) {
+      const res = await fetch(`${API_BASE_URL}/api/budgets/${entity.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: entity.name,
+          method: hasEnvelope ? "ENVELOPE" : "ZERO_SUM",
+          currency: "AUD",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update budget via API");
+      b = await res.json();
+    } else {
+      const res = await fetch(`${API_BASE_URL}/api/budgets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: entity.name,
+          method: hasEnvelope ? "ENVELOPE" : "ZERO_SUM",
+          currency: "AUD",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create budget via API");
+      b = await res.json();
+    }
+
+    // Sync targets to backend categories' target_limits
+    if (entity.targets && entity.targets.length > 0) {
+      for (const target of entity.targets) {
+        try {
+          const catRes = await fetch(`${API_BASE_URL}/api/budgets/${b.id}/categories`);
+          if (catRes.ok) {
+            const goCats = (await catRes.json()) as GoCategoryResponse[];
+            const existingCat = goCats?.find((c) => c.id === target.categoryId);
+            if (existingCat) {
+              await fetch(`${API_BASE_URL}/api/budgets/${b.id}/categories/${target.categoryId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  name: existingCat.name,
+                  target_limit: target.amount,
+                }),
+              });
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to sync target for category ${target.categoryId}:`, e);
+        }
+      }
+    }
+
     return {
       id: b.id,
       name: b.name,
-      period: "monthly",
+      period: entity.period || "monthly",
       startDate: b.created_at
         ? b.created_at.substring(0, 10)
         : new Date().toISOString().substring(0, 10),
       targets: entity.targets || [],
-      active: true,
+      active: entity.active ?? true,
       createdAt: b.created_at || new Date().toISOString(),
       updatedAt: b.updated_at || new Date().toISOString(),
     };
@@ -221,8 +261,12 @@ export class ApiBudgetRepository implements Repository<Budget> {
     return results;
   }
 
-  async delete(_id: string): Promise<void> {
-    // Budget delete is not supported in the current Go backend API
+  async delete(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/budgets/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete budget via API");
+    clearActiveBudgetIdCache();
   }
 
   async count(_query?: ListQuery<Budget>): Promise<number> {
@@ -294,20 +338,35 @@ export class ApiAccountRepository implements Repository<Account> {
 
   async upsert(entity: Account): Promise<Account> {
     const existing = await this.get(entity.id);
-    if (existing) return existing;
-
     const budgetId = await getActiveBudgetId();
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/accounts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: entity.name,
-        type: mapFrontendTypeToGo(entity.type),
-        balance: entity.openingBalance,
-      }),
-    });
-    if (!res.ok) throw new Error("Failed to create account via API");
-    const a = await res.json();
+    let a: GoAccountResponse;
+
+    if (existing) {
+      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/accounts/${entity.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: entity.name,
+          type: mapFrontendTypeToGo(entity.type),
+          balance: entity.openingBalance,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update account via API");
+      a = await res.json();
+    } else {
+      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/accounts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: entity.name,
+          type: mapFrontendTypeToGo(entity.type),
+          balance: entity.openingBalance,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create account via API");
+      a = await res.json();
+    }
+
     return {
       id: a.id,
       name: a.name,
@@ -331,8 +390,12 @@ export class ApiAccountRepository implements Repository<Account> {
     return results;
   }
 
-  async delete(_id: string): Promise<void> {
-    // Delete account is not supported in the current Go backend API
+  async delete(id: string): Promise<void> {
+    const budgetId = await getActiveBudgetId();
+    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/accounts/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete account via API");
   }
 
   async count(_query?: ListQuery<Account>): Promise<number> {
@@ -371,19 +434,33 @@ export class ApiCategoryRepository implements Repository<Category> {
 
   async upsert(entity: Category): Promise<Category> {
     const existing = await this.get(entity.id);
-    if (existing) return existing;
-
     const budgetId = await getActiveBudgetId();
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/categories`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: entity.name,
-        target_limit: 0,
-      }),
-    });
-    if (!res.ok) throw new Error("Failed to create category via API");
-    const c = await res.json();
+    let c: GoCategoryResponse;
+
+    if (existing) {
+      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/categories/${entity.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: entity.name,
+          target_limit: 0,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update category via API");
+      c = await res.json();
+    } else {
+      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/categories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: entity.name,
+          target_limit: 0,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create category via API");
+      c = await res.json();
+    }
+
     return {
       id: c.id,
       name: c.name,
@@ -404,8 +481,12 @@ export class ApiCategoryRepository implements Repository<Category> {
     return results;
   }
 
-  async delete(_id: string): Promise<void> {
-    // Delete category is not supported in the current Go backend API
+  async delete(id: string): Promise<void> {
+    const budgetId = await getActiveBudgetId();
+    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/categories/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete category via API");
   }
 
   async count(_query?: ListQuery<Category>): Promise<number> {
@@ -447,22 +528,39 @@ export class ApiTransactionRepository implements Repository<Transaction> {
 
   async upsert(entity: Transaction): Promise<Transaction> {
     const existing = await this.get(entity.id);
-    if (existing) return existing;
-
     const budgetId = await getActiveBudgetId();
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/transactions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        account_id: entity.accountId,
-        category_id: entity.categoryId || "",
-        amount: entity.amount,
-        description: entity.payee || "Transaction",
-        date: entity.date,
-      }),
-    });
-    if (!res.ok) throw new Error("Failed to create transaction via API");
-    const t = await res.json();
+    let t: GoTransactionResponse;
+
+    if (existing) {
+      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/transactions/${entity.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          account_id: entity.accountId,
+          category_id: entity.categoryId || "",
+          amount: entity.amount,
+          description: entity.payee || "Transaction",
+          date: entity.date,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update transaction via API");
+      t = await res.json();
+    } else {
+      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/transactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          account_id: entity.accountId,
+          category_id: entity.categoryId || "",
+          amount: entity.amount,
+          description: entity.payee || "Transaction",
+          date: entity.date,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create transaction via API");
+      t = await res.json();
+    }
+
     return {
       id: t.id,
       accountId: t.account_id,
@@ -486,8 +584,12 @@ export class ApiTransactionRepository implements Repository<Transaction> {
     return results;
   }
 
-  async delete(_id: string): Promise<void> {
-    // Delete transaction is not supported in the current Go backend API
+  async delete(id: string): Promise<void> {
+    const budgetId = await getActiveBudgetId();
+    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/transactions/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete transaction via API");
   }
 
   async count(_query?: ListQuery<Transaction>): Promise<number> {

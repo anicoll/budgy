@@ -29,8 +29,8 @@ pkg_tar(
 oci_image(
     name = "image",
     base = "@distroless_base",
-    tars = [":budgetd_tar"],
     entrypoint = ["/budgetd"],
+    tars = [":budgetd_tar"],
 )
 
 oci_load(
