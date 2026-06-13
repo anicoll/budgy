@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/features/auth/useAuth";
+import { usePrefs } from "@/lib/state/prefs-store";
 import { useUIStore } from "@/lib/state/ui-store";
 import { NAV_ITEMS } from "./nav-items";
 import { PeriodSwitcher } from "./period-switcher";
@@ -29,7 +30,8 @@ export function Topbar() {
 
   const { user, logout } = useAuth();
   const router = useRouter();
-  const useBackend = process.env.NEXT_PUBLIC_USE_BACKEND === "true";
+  const storageMode = usePrefs((s) => s.storageMode) || "online";
+  const isOnline = storageMode === "online";
 
   const handleLogout = async () => {
     try {
@@ -68,7 +70,7 @@ export function Topbar() {
           <Plus className="h-4 w-4" /> Add
         </Button>
 
-        {useBackend && user && (
+        {isOnline && user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button

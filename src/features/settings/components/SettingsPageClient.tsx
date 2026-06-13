@@ -14,6 +14,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -41,18 +42,26 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { estimateFortnightlyNet } from "@/features/budgets/utils/au-tax";
 import { CHANGELOG } from "@/lib/changelog";
-import { downloadJSON, exportData, importData, resetAllData } from "@/lib/data/export-import";
+import {
+  clearCoreLocalData,
+  downloadJSON,
+  exportData,
+  importData,
+  resetAllData,
+} from "@/lib/data/export-import";
 import type { Cents } from "@/lib/money/cents";
 import { formatAUDCompact, parseAUDInput } from "@/lib/money/format";
 import { loadDemoData } from "@/lib/seed/demo-data";
 import type { NovatedLease } from "@/lib/state/prefs-store";
 import { usePrefs } from "@/lib/state/prefs-store";
+import { resetRepositoriesForTests } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 export function SettingsPageClient() {
   const { theme, setTheme } = useTheme();
   const prefs = usePrefs();
   const qc = useQueryClient();
+  const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [loadingDemo, setLoadingDemo] = useState(false);
@@ -109,6 +118,22 @@ export function SettingsPageClient() {
       toast.success("All data cleared");
     } catch {
       toast.error("Reset failed");
+    }
+  }
+
+  const storageMode = prefs.storageMode || "online";
+
+  async function handleSwitchToOnline() {
+    try {
+      await clearCoreLocalData();
+      prefs.setPref("storageMode", "online");
+      resetRepositoriesForTests();
+      qc.clear();
+      toast.success("Switched to Online Mode. Log in to continue.");
+      router.push("/login");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to switch to Online Mode");
     }
   }
 
@@ -283,6 +308,60 @@ export function SettingsPageClient() {
 
       <Separator />
 
+      {/* Storage Mode */}
+      <Section title="Storage">
+        <Row
+          label="Storage mode"
+          description={
+            storageMode === "online"
+              ? "Online Mode — accounts, transactions, and budgets are synced to the cloud. Super and mortgage are stored locally."
+              : "Offline Mode — all data is stored locally in your browser's database. No account required."
+          }
+        >
+          {storageMode === "online" ? (
+            <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+              Online (Cloud Synced)
+            </span>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-md bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400 ring-1 ring-inset ring-amber-500/20 mr-2">
+                Offline (Local Only)
+              </span>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="cursor-pointer hover:bg-muted">
+                    Switch to Online
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="border-border bg-popover text-foreground">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-foreground">
+                      Switch to Online Mode?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-muted-foreground">
+                      This will permanently delete your offline accounts, transactions, and budgets
+                      to prevent data conflicts. Your super and mortgage plans will be preserved.
+                      You will be redirected to log in or register.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleSwitchToOnline}
+                      className="cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700"
+                    >
+                      Confirm and Switch
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+        </Row>
+      </Section>
+
+      <Separator />
+
       {/* Changelog */}
       <ChangelogSection />
 
@@ -290,7 +369,14 @@ export function SettingsPageClient() {
 
       {/* About */}
       <Section title="About">
-        <Row label="Budgy" description="Personal finance app — local-first, no login required">
+        <Row
+          label="Budgy"
+          description={
+            storageMode === "online"
+              ? "Personal finance app — cloud budgets, local super & mortgage"
+              : "Personal finance app — local-first, no login required"
+          }
+        >
           <span className="text-xs text-muted-foreground">v0.14.0</span>
         </Row>
       </Section>

@@ -1,7 +1,17 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+import { usePrefs } from "@/lib/state/prefs-store";
+
 const originalFetch = globalThis.fetch;
 function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const isTest =
+    typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.VITEST);
+  if (!isTest) {
+    const mode = usePrefs.getState().storageMode || "online";
+    if (mode === "offline") {
+      return Promise.reject(new Error("Cannot make API requests in Offline Mode."));
+    }
+  }
   return originalFetch(input, {
     ...init,
     credentials: "include",

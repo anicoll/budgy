@@ -125,3 +125,14 @@ export async function resetAllData(): Promise<void> {
     ...mortgagePlans.map((r) => repos.mortgagePlans.delete(r.id)),
   ]);
 }
+
+export async function clearCoreLocalData(): Promise<void> {
+  const { getDB } = await import("@/lib/storage/db");
+  const db = getDB();
+  await Promise.all([
+    db.accounts.clear(),
+    db.categories.clear(),
+    db.transactions.clear(),
+    db.budgets.clear(),
+  ]);
+}

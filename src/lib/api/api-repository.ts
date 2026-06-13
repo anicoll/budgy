@@ -7,8 +7,18 @@ import type { ListQuery, Repository } from "@/lib/storage/repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+import { usePrefs } from "@/lib/state/prefs-store";
+
 // Shadow fetch to inject credentials: "include" for backend cookie auth
 function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const isTest =
+    typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.VITEST);
+  if (!isTest) {
+    const mode = usePrefs.getState().storageMode || "online";
+    if (mode === "offline") {
+      return Promise.reject(new Error("Cannot make API requests in Offline Mode."));
+    }
+  }
   return globalThis.fetch(input, {
     ...init,
     credentials: "include",

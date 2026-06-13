@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { getBasiqAuthLink, syncBasiq } from "@/lib/api/basiq";
 import { queryKeys } from "@/lib/query/keys";
+import { usePrefs } from "@/lib/state/prefs-store";
 import {
   useAccounts,
   useCreateAccount,
@@ -47,6 +48,8 @@ export function AccountsPageClient() {
   const [pendingDelete, setPendingDelete] = useState<Account | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const storageMode = usePrefs((s) => s.storageMode) || "online";
+  const isOnline = storageMode === "online";
 
   const accountsQuery = useAccounts({ includeArchived: showArchived });
   const createMutation = useCreateAccount();
@@ -149,7 +152,7 @@ export function AccountsPageClient() {
           </label>
         </div>
         <div className="flex items-center gap-2">
-          {hasConnectedBank && (
+          {isOnline && hasConnectedBank && (
             <Button
               onClick={handleSyncBank}
               disabled={isSyncing || accountsQuery.isPending}
@@ -160,14 +163,16 @@ export function AccountsPageClient() {
               Sync Bank
             </Button>
           )}
-          <Button
-            onClick={handleConnectBank}
-            disabled={isConnecting}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10 transition-all"
-          >
-            <LinkIcon className={`mr-1.5 h-4 w-4 ${isConnecting ? "animate-pulse" : ""}`} />
-            Connect Bank
-          </Button>
+          {isOnline && (
+            <Button
+              onClick={handleConnectBank}
+              disabled={isConnecting}
+              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-indigo-500/10 transition-all"
+            >
+              <LinkIcon className={`mr-1.5 h-4 w-4 ${isConnecting ? "animate-pulse" : ""}`} />
+              Connect Bank
+            </Button>
+          )}
           <Button
             onClick={() => setSheetMode({ kind: "create" })}
             className="bg-gradient-accent text-primary-foreground hover:opacity-90 font-medium"

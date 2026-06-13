@@ -26,23 +26,15 @@ export interface Repositories {
   mortgagePlans: Repository<MortgagePlan>;
 }
 
-let registry: Repositories | null = null;
+let onlineRegistry: Repositories | null = null;
+let offlineRegistry: Repositories | null = null;
 
 export function getRepositories(): Repositories {
-  if (!registry) {
-    const useBackend = process.env.NEXT_PUBLIC_USE_BACKEND === "true";
-    if (useBackend) {
-      registry = {
-        accounts: new ApiAccountRepository(),
-        categories: new ApiCategoryRepository(),
-        transactions: new ApiTransactionRepository(),
-        budgets: new ApiBudgetRepository(),
-        superPlans: new LocalRepository<SuperPlan>(() => getDB().superPlans),
-        superSettings: new LocalRepository<SuperSettings>(() => getDB().superSettings),
-        mortgagePlans: new LocalRepository<MortgagePlan>(() => getDB().mortgagePlans),
-      };
-    } else {
-      registry = {
+  const isTest =
+    typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.VITEST);
+  if (isTest) {
+    if (!offlineRegistry) {
+      offlineRegistry = {
         accounts: new LocalRepository<Account>(() => getDB().accounts),
         categories: new LocalRepository<Category>(() => getDB().categories),
         transactions: new LocalRepository<Transaction>(() => getDB().transactions),
@@ -52,10 +44,49 @@ export function getRepositories(): Repositories {
         mortgagePlans: new LocalRepository<MortgagePlan>(() => getDB().mortgagePlans),
       };
     }
+    return offlineRegistry;
   }
-  return registry;
+
+  let mode: "offline" | "online" = "online";
+  if (typeof window !== "undefined") {
+    try {
+      const { usePrefs } = require("@/lib/state/prefs-store");
+      mode = usePrefs.getState().storageMode || "online";
+    } catch (e) {
+      console.warn("Failed to load prefs in getRepositories:", e);
+    }
+  }
+
+  if (mode === "online") {
+    if (!onlineRegistry) {
+      onlineRegistry = {
+        accounts: new ApiAccountRepository(),
+        categories: new ApiCategoryRepository(),
+        transactions: new ApiTransactionRepository(),
+        budgets: new ApiBudgetRepository(),
+        superPlans: new LocalRepository<SuperPlan>(() => getDB().superPlans),
+        superSettings: new LocalRepository<SuperSettings>(() => getDB().superSettings),
+        mortgagePlans: new LocalRepository<MortgagePlan>(() => getDB().mortgagePlans),
+      };
+    }
+    return onlineRegistry;
+  } else {
+    if (!offlineRegistry) {
+      offlineRegistry = {
+        accounts: new LocalRepository<Account>(() => getDB().accounts),
+        categories: new LocalRepository<Category>(() => getDB().categories),
+        transactions: new LocalRepository<Transaction>(() => getDB().transactions),
+        budgets: new LocalRepository<Budget>(() => getDB().budgets),
+        superPlans: new LocalRepository<SuperPlan>(() => getDB().superPlans),
+        superSettings: new LocalRepository<SuperSettings>(() => getDB().superSettings),
+        mortgagePlans: new LocalRepository<MortgagePlan>(() => getDB().mortgagePlans),
+      };
+    }
+    return offlineRegistry;
+  }
 }
 
 export function resetRepositoriesForTests(): void {
-  registry = null;
+  onlineRegistry = null;
+  offlineRegistry = null;
 }
