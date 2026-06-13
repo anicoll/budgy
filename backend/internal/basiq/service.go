@@ -2,7 +2,6 @@ package basiq
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,7 +23,7 @@ type Service struct {
 // NewService creates a new Service instance.
 func NewService(apiKey string) *Service {
 	return &Service{
-		apiKey:     apiKey,
+		apiKey:     strings.TrimSpace(apiKey),
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 	}
 }
@@ -36,7 +35,7 @@ func (s *Service) GetServerToken(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(s.apiKey+":")))
+	req.Header.Set("Authorization", "Basic "+s.apiKey)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("basiq-version", "3.0")
 
@@ -71,7 +70,7 @@ func (s *Service) GetClientToken(ctx context.Context, basiqUserID string) (strin
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(s.apiKey+":")))
+	req.Header.Set("Authorization", "Basic "+s.apiKey)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("basiq-version", "3.0")
 

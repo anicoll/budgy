@@ -8,12 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // WebhookPayload represents the inner payload details of a Basiq webhook message.
@@ -114,7 +115,7 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// Log a warning that we skipped verification
-		log.Println("Warning: BASIQ_WEBHOOK_SECRET is not configured. Webhook signature verification is skipped.")
+		zap.S().Warn("Warning: BASIQ_WEBHOOK_SECRET is not configured. Webhook signature verification is skipped.")
 	}
 
 	// Parse payload
@@ -125,7 +126,7 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log receipt
-	log.Printf("Basiq Webhook Event Received and Verified: id=%s, event=%s, type=%s", msg.ID, msg.Event, msg.EventTypeID)
+	zap.S().Debugf("Basiq Webhook Event Received and Verified: id=%s, event=%s, type=%s", msg.ID, msg.Event, msg.EventTypeID)
 
 	var basiqUserID string
 	if userLink, ok := msg.Payload.Links["user"]; ok && userLink != "" {
@@ -138,21 +139,21 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 	if basiqUserID != "" {
 		localUser, err := s.users.GetByBasiqUserID(r.Context(), basiqUserID)
 		if err != nil {
-			log.Printf("Basiq Webhook: failed to find user for basiq_user_id %s: %v", basiqUserID, err)
+			zap.S().Errorf("Basiq Webhook: failed to find user for basiq_user_id %s: %v", basiqUserID, err)
 		} else {
-			log.Printf("Basiq Webhook: Triggering background sync for user %s (%s)", localUser.ID, basiqUserID)
+			zap.S().Infof("Basiq Webhook: Triggering background sync for user %s (%s)", localUser.ID, basiqUserID)
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 				defer cancel()
 				if err := s.syncBasiqUser(ctx, localUser.ID, basiqUserID); err != nil {
-					log.Printf("Basiq Webhook: failed to sync user %s: %v", localUser.ID, err)
+					zap.S().Errorf("Basiq Webhook: failed to sync user %s: %v", localUser.ID, err)
 				} else {
-					log.Printf("Basiq Webhook: successfully synced user %s", localUser.ID)
+					zap.S().Infof("Basiq Webhook: successfully synced user %s", localUser.ID)
 				}
 			}()
 		}
 	} else {
-		log.Println("Basiq Webhook: missing user link in payload")
+		zap.S().Warn("Basiq Webhook: missing user link in payload")
 	}
 
 	s.respondJSON(w, http.StatusOK, map[string]string{"status": "received"})

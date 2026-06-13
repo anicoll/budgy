@@ -16,6 +16,7 @@ go_library(
         "//backend/internal/storage",
         "@com_github_golang_jwt_jwt_v5//:jwt",
         "@org_golang_x_crypto//bcrypt",
+        "@org_uber_go_zap//:zap",
     ],
 )
 

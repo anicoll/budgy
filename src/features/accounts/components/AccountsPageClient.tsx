@@ -2,7 +2,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { EyeOff, Link as LinkIcon, Plus, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -37,6 +38,10 @@ type SheetMode = { kind: "create" } | { kind: "edit"; account: Account } | null;
 
 export function AccountsPageClient() {
   const qc = useQueryClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [showArchived, setShowArchived] = useState(false);
   const [sheetMode, setSheetMode] = useState<SheetMode>(null);
   const [pendingDelete, setPendingDelete] = useState<Account | null>(null);
@@ -49,6 +54,36 @@ export function AccountsPageClient() {
   const archiveMutation = useSetArchived();
   const deleteMutation = useDeleteAccount();
   const reorderMutation = useReorderAccounts();
+
+  const jobId = searchParams ? searchParams.get("jobId") || searchParams.get("jobIds") : null;
+
+  useEffect(() => {
+    if (jobId) {
+      const doSync = async () => {
+        toast.loading("Connecting bank account: retrieving data...", { id: "basiq-sync" });
+        try {
+          await syncBasiq();
+          toast.success("Bank accounts synced successfully!", { id: "basiq-sync" });
+          qc.invalidateQueries({ queryKey: queryKeys.accounts.all });
+          qc.invalidateQueries({ queryKey: queryKeys.transactions.all });
+        } catch (err) {
+          console.error(err);
+          toast.error(err instanceof Error ? err.message : "Failed to sync bank accounts", {
+            id: "basiq-sync",
+          });
+        } finally {
+          if (searchParams && router && pathname) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("jobId");
+            params.delete("jobIds");
+            const qs = params.toString();
+            router.replace(qs ? `${pathname}?${qs}` : pathname);
+          }
+        }
+      };
+      doSync();
+    }
+  }, [jobId, searchParams, router, pathname, qc]);
 
   const submitting = createMutation.isPending || updateMutation.isPending;
   const accounts = accountsQuery.data ?? [];
