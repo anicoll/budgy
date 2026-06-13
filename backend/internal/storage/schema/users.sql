@@ -22,34 +22,35 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: budgets; Type: TABLE; Schema: public; Owner: -
+-- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.budgets (
+CREATE TABLE public.users (
     id text NOT NULL,
-    name text NOT NULL,
-    method text NOT NULL,
-    currency text NOT NULL,
+    email text NOT NULL,
+    password_hash text NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    basiq_user_id text,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL,
-    user_id text
+    updated_at timestamp without time zone NOT NULL
 );
 
 
 --
--- Name: budgets budgets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.budgets
-    ADD CONSTRAINT budgets_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_email_key UNIQUE (email);
 
 
 --
--- Name: budgets budgets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.budgets
-    ADD CONSTRAINT budgets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
 
 --

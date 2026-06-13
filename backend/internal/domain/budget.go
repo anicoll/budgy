@@ -16,6 +16,7 @@ const (
 // Budget represents a budgeting project owned by a user.
 type Budget struct {
 	ID        string       `json:"id"`
+	UserID    string       `json:"user_id"`
 	Name      string       `json:"name"`
 	Method    BudgetMethod `json:"method"`
 	Currency  string       `json:"currency"` // e.g. "USD", "EUR"
@@ -25,6 +26,9 @@ type Budget struct {
 
 // Validate validates the Budget fields.
 func (b *Budget) Validate() error {
+	if b.UserID == "" {
+		return errors.New("user ID is required")
+	}
 	if b.Name == "" {
 		return errors.New("budget name cannot be empty")
 	}

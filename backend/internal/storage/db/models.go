@@ -33,6 +33,7 @@ type Budget struct {
 	Currency  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	UserID    sql.NullString
 }
 
 type Category struct {
@@ -70,4 +71,15 @@ type Transaction struct {
 	SubClass       sql.NullString
 	RawDescription sql.NullString
 	MerchantName   sql.NullString
+}
+
+type User struct {
+	ID           string
+	Email        string
+	PasswordHash string
+	FirstName    string
+	LastName     string
+	BasiqUserID  sql.NullString
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }

@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "api",
     srcs = [
+        "auth.go",
         "handlers.go",
         "server.go",
     ],
@@ -11,6 +12,8 @@ go_library(
     deps = [
         "//backend/internal/domain",
         "//backend/internal/storage",
+        "@com_github_golang_jwt_jwt_v5//:jwt",
+        "@org_golang_x_crypto//bcrypt",
     ],
 )
 
