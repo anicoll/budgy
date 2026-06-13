@@ -3,6 +3,7 @@ module budgeting_system
 go 1.26.4
 
 require (
+	github.com/lib/pq v1.12.3
 	github.com/ncruces/go-sqlite3 v0.34.4
 	github.com/oapi-codegen/runtime v1.4.1
 	github.com/pressly/goose/v3 v3.27.1

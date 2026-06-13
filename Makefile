@@ -1,4 +1,4 @@
-.PHONY: help install dev build start typecheck lint lint-fix format test test-watch check clean reset shadcn-add
+.PHONY: help install dev build start typecheck lint lint-fix format test test-watch check clean reset shadcn-add db-dump db-generate
 
 PNPM ?= pnpm
 
@@ -63,3 +63,11 @@ backend-down: ## Stop the Go backend container via Docker Compose
 
 backend-logs: ## Follow logs for the Go backend container via Docker Compose
 	$(PNPM) backend:logs
+
+db-dump: ## Run the containerized Postgres schema-dump script
+	go -C backend run ./cmd/schema-dump
+
+db-generate: db-dump ## Run schema-dump then generate sqlc models
+	go -C backend run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.27.0 generate
+
+

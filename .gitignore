@@ -48,3 +48,8 @@ next-env.d.ts
 /data/
 /*.db
 /*.db-journal
+
+# Agent CLI
+.antigravitycli/
+.gemini/
+

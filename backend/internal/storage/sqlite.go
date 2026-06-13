@@ -18,8 +18,13 @@ var embedMigrations embed.FS
 
 // Migrate runs database migrations using Goose.
 func Migrate(db *sql.DB) error {
+	return MigrateWithDialect(db, "sqlite3")
+}
+
+// MigrateWithDialect runs database migrations using Goose with a specific dialect.
+func MigrateWithDialect(db *sql.DB, dialect string) error {
 	goose.SetBaseFS(embedMigrations)
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect(dialect); err != nil {
 		return err
 	}
 	return goose.Up(db, "migrations")
