@@ -46,6 +46,15 @@ type TransactionRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+// AllocationRepository defines storage operations for envelope allocations.
+type AllocationRepository interface {
+	Upsert(ctx context.Context, alloc *EnvelopeAllocation) error
+	Get(ctx context.Context, budgetID, accountID, categoryID string) (*EnvelopeAllocation, error)
+	ListByBudget(ctx context.Context, budgetID string) ([]*EnvelopeAllocation, error)
+	ListByAccount(ctx context.Context, budgetID, accountID string) ([]*EnvelopeAllocation, error)
+	Delete(ctx context.Context, budgetID, accountID, categoryID string) error
+}
+
 // UserRepository defines storage operations for users.
 type UserRepository interface {
 	Create(ctx context.Context, u *User) error
@@ -54,3 +63,4 @@ type UserRepository interface {
 	GetByBasiqUserID(ctx context.Context, basiqID string) (*User, error)
 	UpdateBasiqUserID(ctx context.Context, id string, basiqID string) error
 }
+

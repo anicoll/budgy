@@ -411,3 +411,83 @@ func TestUserRepository(t *testing.T) {
 	assert.Equal(t, "basiq-user-123", fetchedUpdated.BasiqUserID)
 }
 
+func TestAllocationRepository(t *testing.T) {
+	db := newTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	store := NewSQLiteStorage(db)
+	budgetRepo := store.Budgets()
+	accountRepo := store.Accounts()
+	categoryRepo := store.Categories()
+	allocRepo := store.Allocations()
+
+	// Setup structures
+	b := &domain.Budget{
+		ID:        "b-1",
+		Name:      "Test Budget",
+		Method:    domain.MethodEnvelope,
+		Currency:  "USD",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	require.NoError(t, budgetRepo.Create(ctx, b))
+
+	acc := &domain.Account{
+		ID:        "acc-1",
+		BudgetID:  "b-1",
+		Name:      "Checking",
+		Type:      domain.AccountChecking,
+		Balance:   100000,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	require.NoError(t, accountRepo.Create(ctx, acc))
+
+	cat := &domain.Category{
+		ID:        "cat-1",
+		BudgetID:  "b-1",
+		Name:      "Groceries",
+		Budgeted:  0,
+		Balance:   0,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	require.NoError(t, categoryRepo.Create(ctx, cat))
+
+	// Test Upsert
+	alloc := &domain.EnvelopeAllocation{
+		BudgetID:   "b-1",
+		AccountID:  "acc-1",
+		CategoryID: "cat-1",
+		Amount:     50000,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+	}
+	err := allocRepo.Upsert(ctx, alloc)
+	assert.NoError(t, err)
+
+	// Test Get
+	fetched, err := allocRepo.Get(ctx, "b-1", "acc-1", "cat-1")
+	assert.NoError(t, err)
+	assert.Equal(t, alloc.Amount, fetched.Amount)
+
+	// Test ListByBudget
+	listBudget, err := allocRepo.ListByBudget(ctx, "b-1")
+	assert.NoError(t, err)
+	assert.Len(t, listBudget, 1)
+
+	// Test ListByAccount
+	listAcc, err := allocRepo.ListByAccount(ctx, "b-1", "acc-1")
+	assert.NoError(t, err)
+	assert.Len(t, listAcc, 1)
+
+	// Test Delete
+	err = allocRepo.Delete(ctx, "b-1", "acc-1", "cat-1")
+	assert.NoError(t, err)
+
+	_, err = allocRepo.Get(ctx, "b-1", "acc-1", "cat-1")
+	assert.Error(t, err)
+}
+
+

@@ -127,6 +127,8 @@ func TestBudgetService_Create(t *testing.T) {
 func TestCategoryService_FundEnvelope(t *testing.T) {
 	mockCatRepo := mocks.NewMockCategoryRepository(t)
 	mockAccRepo := mocks.NewMockAccountRepository(t)
+	mockAllocRepo := mocks.NewMockAllocationRepository(t)
+	mockTxRepo := mocks.NewMockTransactionRepository(t)
 
 	acc := &domain.Account{
 		ID:       "acc-1",
@@ -142,10 +144,21 @@ func TestCategoryService_FundEnvelope(t *testing.T) {
 
 	mockAccRepo.On("GetByID", mock.Anything, "acc-1").Return(acc, nil)
 	mockCatRepo.On("GetByID", mock.Anything, "cat-1").Return(cat, nil)
-	mockAccRepo.On("UpdateBalance", mock.Anything, "acc-1", int64(70000)).Return(nil)
+	
+	// Mocks for calculateUnallocated
+	mockAllocRepo.On("ListByAccount", mock.Anything, "b-1", "acc-1").Return([]*domain.EnvelopeAllocation{}, nil)
+	mockTxRepo.On("ListByAccount", mock.Anything, "acc-1").Return([]*domain.Transaction{}, nil)
+
+	// Mock for allocation upsert
+	mockAllocRepo.On("Get", mock.Anything, "b-1", "acc-1", "cat-1").Return(nil, errors.New("not found"))
+	mockAllocRepo.On("Upsert", mock.Anything, mock.MatchedBy(func(alloc *domain.EnvelopeAllocation) bool {
+		return alloc.BudgetID == "b-1" && alloc.AccountID == "acc-1" && alloc.CategoryID == "cat-1" && alloc.Amount == 30000
+	})).Return(nil)
+
+	// Mock for category update
 	mockCatRepo.On("UpdateBudgetedAndBalance", mock.Anything, "cat-1", int64(0), int64(40000)).Return(nil)
 
-	svc := NewCategoryService(mockCatRepo, mockAccRepo)
+	svc := NewCategoryService(mockCatRepo, mockAccRepo, mockAllocRepo, mockTxRepo)
 	updatedAcc, updatedCat, err := svc.FundEnvelope(context.Background(), "b-1", "cat-1", "acc-1", 30000)
 
 	assert.NoError(t, err)

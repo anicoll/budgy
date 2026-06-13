@@ -69,6 +69,7 @@ func main() {
 	categoriesRepo := store.Categories()
 	transactionsRepo := store.Transactions()
 	usersRepo := store.Users()
+	allocationsRepo := store.Allocations()
 
 	var basiqService *basiq.Service
 	basiqAPIKey := os.Getenv("BASIQ_API_KEY")
@@ -81,9 +82,10 @@ func main() {
 
 	authSvc := service.NewAuthService(usersRepo)
 	budgetSvc := service.NewBudgetService(budgetsRepo, accountsRepo, categoriesRepo)
-	accountSvc := service.NewAccountService(accountsRepo)
-	categorySvc := service.NewCategoryService(categoriesRepo, accountsRepo)
+	accountSvc := service.NewAccountService(accountsRepo, budgetsRepo, allocationsRepo, transactionsRepo)
+	categorySvc := service.NewCategoryService(categoriesRepo, accountsRepo, allocationsRepo, transactionsRepo)
 	txSvc := service.NewTransactionService(transactionsRepo, accountsRepo, categoriesRepo, budgetsRepo)
+
 
 	var bankSyncSvc service.BankSyncService
 	if basiqService != nil {

@@ -151,3 +151,31 @@ func (t *Transaction) Validate() error {
 	}
 	return nil
 }
+
+// EnvelopeAllocation tracks virtual allocations of physical account balances to specific categories/envelopes.
+type EnvelopeAllocation struct {
+	BudgetID   string    `json:"budget_id"`
+	AccountID  string    `json:"account_id"`
+	CategoryID string    `json:"category_id"`
+	Amount     int64     `json:"amount"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// Validate validates the EnvelopeAllocation fields.
+func (ea *EnvelopeAllocation) Validate() error {
+	if ea.BudgetID == "" {
+		return errors.New("budget ID is required")
+	}
+	if ea.AccountID == "" {
+		return errors.New("account ID is required")
+	}
+	if ea.CategoryID == "" {
+		return errors.New("category ID is required")
+	}
+	if ea.Amount < 0 {
+		return errors.New("allocated amount cannot be negative")
+	}
+	return nil
+}
+
