@@ -71,7 +71,6 @@ func verifyBasiqSignature(webhookID, timestamp, signatureHeader, secret string, 
 	expectedSignature := mac.Sum(nil)
 
 	// 4. Verify against signatures in header
-	// The webhook-signature header contains space-delimited signatures prefixed with version (e.g. v1,...)
 	signatures := strings.Fields(signatureHeader)
 	for _, sig := range signatures {
 		parts := strings.SplitN(sig, ",", 2)
@@ -91,7 +90,7 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 	// Read body
 	rawBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		s.respondError(w, http.StatusBadRequest, "failed to read request body")
+		respondError(w, http.StatusBadRequest, "failed to read request body")
 		return
 	}
 
@@ -105,23 +104,22 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 		signatureHeader := r.Header.Get("webhook-signature")
 
 		if webhookID == "" || timestamp == "" || signatureHeader == "" {
-			s.respondError(w, http.StatusBadRequest, "missing required webhook security headers")
+			respondError(w, http.StatusBadRequest, "missing required webhook security headers")
 			return
 		}
 
 		if ok, err := verifyBasiqSignature(webhookID, timestamp, signatureHeader, secret, rawBody); !ok {
-			s.respondError(w, http.StatusUnauthorized, fmt.Sprintf("unauthorized: %v", err))
+			respondError(w, http.StatusUnauthorized, fmt.Sprintf("unauthorized: %v", err))
 			return
 		}
 	} else {
-		// Log a warning that we skipped verification
 		zap.S().Warn("Warning: BASIQ_WEBHOOK_SECRET is not configured. Webhook signature verification is skipped.")
 	}
 
 	// Parse payload
 	var msg WebhookMessage
 	if err := json.Unmarshal(rawBody, &msg); err != nil {
-		s.respondError(w, http.StatusBadRequest, "failed to parse webhook payload")
+		respondError(w, http.StatusBadRequest, "failed to parse webhook payload")
 		return
 	}
 
@@ -137,7 +135,7 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if basiqUserID != "" {
-		localUser, err := s.users.GetByBasiqUserID(r.Context(), basiqUserID)
+		localUser, err := s.auth.GetUserByBasiqUserID(r.Context(), basiqUserID)
 		if err != nil {
 			zap.S().Errorf("Basiq Webhook: failed to find user for basiq_user_id %s: %v", basiqUserID, err)
 		} else {
@@ -145,7 +143,7 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 				defer cancel()
-				if err := s.syncBasiqUser(ctx, localUser.ID, basiqUserID); err != nil {
+				if err := s.bankSync.SyncUser(ctx, localUser.ID); err != nil {
 					zap.S().Errorf("Basiq Webhook: failed to sync user %s: %v", localUser.ID, err)
 				} else {
 					zap.S().Infof("Basiq Webhook: successfully synced user %s", localUser.ID)
@@ -156,5 +154,5 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 		zap.S().Warn("Basiq Webhook: missing user link in payload")
 	}
 
-	s.respondJSON(w, http.StatusOK, map[string]string{"status": "received"})
+	respondJSON(w, http.StatusOK, map[string]string{"status": "received"})
 }

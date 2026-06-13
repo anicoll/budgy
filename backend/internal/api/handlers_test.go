@@ -2,226 +2,18 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"budgeting_system/internal/domain"
+	"budgeting_system/internal/service/mocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
-
-// Mock BudgetRepository
-type MockBudgetRepository struct {
-	mock.Mock
-}
-
-func (m *MockBudgetRepository) Create(ctx context.Context, b *domain.Budget) error {
-	args := m.Called(ctx, b)
-	return args.Error(0)
-}
-
-func (m *MockBudgetRepository) GetByID(ctx context.Context, id string) (*domain.Budget, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*domain.Budget), args.Error(1)
-}
-
-func (m *MockBudgetRepository) List(ctx context.Context, userID string) ([]*domain.Budget, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*domain.Budget), args.Error(1)
-}
-
-func (m *MockBudgetRepository) Update(ctx context.Context, b *domain.Budget) error {
-	args := m.Called(ctx, b)
-	return args.Error(0)
-}
-
-func (m *MockBudgetRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-// Mock AccountRepository
-type MockAccountRepository struct {
-	mock.Mock
-}
-
-func (m *MockAccountRepository) Create(ctx context.Context, acc *domain.Account) error {
-	args := m.Called(ctx, acc)
-	return args.Error(0)
-}
-
-func (m *MockAccountRepository) GetByID(ctx context.Context, id string) (*domain.Account, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*domain.Account), args.Error(1)
-}
-
-func (m *MockAccountRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Account, error) {
-	args := m.Called(ctx, budgetID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*domain.Account), args.Error(1)
-}
-
-func (m *MockAccountRepository) UpdateBalance(ctx context.Context, id string, balance int64) error {
-	args := m.Called(ctx, id, balance)
-	return args.Error(0)
-}
-
-func (m *MockAccountRepository) Update(ctx context.Context, acc *domain.Account) error {
-	args := m.Called(ctx, acc)
-	return args.Error(0)
-}
-
-func (m *MockAccountRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-// Mock CategoryRepository
-type MockCategoryRepository struct {
-	mock.Mock
-}
-
-func (m *MockCategoryRepository) Create(ctx context.Context, c *domain.Category) error {
-	args := m.Called(ctx, c)
-	return args.Error(0)
-}
-
-func (m *MockCategoryRepository) GetByID(ctx context.Context, id string) (*domain.Category, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*domain.Category), args.Error(1)
-}
-
-func (m *MockCategoryRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Category, error) {
-	args := m.Called(ctx, budgetID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*domain.Category), args.Error(1)
-}
-
-func (m *MockCategoryRepository) UpdateBudgetedAndBalance(ctx context.Context, id string, budgeted int64, balance int64) error {
-	args := m.Called(ctx, id, budgeted, balance)
-	return args.Error(0)
-}
-
-func (m *MockCategoryRepository) Update(ctx context.Context, c *domain.Category) error {
-	args := m.Called(ctx, c)
-	return args.Error(0)
-}
-
-func (m *MockCategoryRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-// Mock TransactionRepository
-type MockTransactionRepository struct {
-	mock.Mock
-}
-
-func (m *MockTransactionRepository) Create(ctx context.Context, tx *domain.Transaction) error {
-	args := m.Called(ctx, tx)
-	return args.Error(0)
-}
-
-func (m *MockTransactionRepository) GetByID(ctx context.Context, id string) (*domain.Transaction, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*domain.Transaction), args.Error(1)
-}
-
-func (m *MockTransactionRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Transaction, error) {
-	args := m.Called(ctx, budgetID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*domain.Transaction), args.Error(1)
-}
-
-func (m *MockTransactionRepository) ListByAccount(ctx context.Context, accountID string) ([]*domain.Transaction, error) {
-	args := m.Called(ctx, accountID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*domain.Transaction), args.Error(1)
-}
-
-func (m *MockTransactionRepository) ListByCategory(ctx context.Context, categoryID string) ([]*domain.Transaction, error) {
-	args := m.Called(ctx, categoryID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*domain.Transaction), args.Error(1)
-}
-
-func (m *MockTransactionRepository) Update(ctx context.Context, tx *domain.Transaction) error {
-	args := m.Called(ctx, tx)
-	return args.Error(0)
-}
-
-func (m *MockTransactionRepository) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-// Mock UserRepository
-type MockUserRepository struct {
-	mock.Mock
-}
-
-func (m *MockUserRepository) Create(ctx context.Context, u *domain.User) error {
-	args := m.Called(ctx, u)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*domain.User), args.Error(1)
-}
-
-func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
-	args := m.Called(ctx, email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*domain.User), args.Error(1)
-}
-
-func (m *MockUserRepository) UpdateBasiqUserID(ctx context.Context, id string, basiqID string) error {
-	args := m.Called(ctx, id, basiqID)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) GetByBasiqUserID(ctx context.Context, basiqID string) (*domain.User, error) {
-	args := m.Called(ctx, basiqID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*domain.User), args.Error(1)
-}
 
 func addAuth(req *http.Request, userID string) {
 	token, _ := GenerateJWT(userID)
@@ -232,45 +24,57 @@ func addAuth(req *http.Request, userID string) {
 }
 
 func TestHandleCreateBudget(t *testing.T) {
-	mockBudgetRepo := new(MockBudgetRepository)
-	mockUserRepo := new(MockUserRepository)
-	server := NewAPIServer(mockBudgetRepo, nil, nil, nil, mockUserRepo, nil)
+	mockBudgetSvc := mocks.NewMockBudgetService(t)
+	server := NewAPIServer(nil, mockBudgetSvc, nil, nil, nil, nil)
 	mux := server.Routes()
+
+	budget := &domain.Budget{
+		ID:        "b-1",
+		UserID:    "user-1",
+		Name:      "Personal",
+		Method:    domain.MethodZeroSum,
+		Currency:  "USD",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	mockBudgetSvc.On("Create", mock.Anything, "user-1", "Personal", domain.MethodZeroSum, "USD").Return(budget, nil)
 
 	reqBody := `{"name":"Personal","method":"ZERO_SUM","currency":"USD"}`
 	req := httptest.NewRequest("POST", "/api/budgets", bytes.NewBufferString(reqBody))
 	addAuth(req, "user-1")
 	rec := httptest.NewRecorder()
 
-	mockBudgetRepo.On("Create", mock.Anything, mock.MatchedBy(func(b *domain.Budget) bool {
-		return b.Name == "Personal" && b.UserID == "user-1"
-	})).Return(nil)
-
 	mux.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
 
-	var res domain.Budget
+	var res BudgetResponse
 	err := json.NewDecoder(rec.Body).Decode(&res)
 	assert.NoError(t, err)
 	assert.Equal(t, "Personal", res.Name)
 	assert.Equal(t, domain.MethodZeroSum, res.Method)
 	assert.Equal(t, "user-1", res.UserID)
-	assert.NotEmpty(t, res.ID)
-
-	mockBudgetRepo.AssertExpectations(t)
+	assert.Equal(t, "b-1", res.ID)
 }
 
 func TestHandleCreateAccount(t *testing.T) {
-	mockBudgetRepo := new(MockBudgetRepository)
-	mockAccRepo := new(MockAccountRepository)
-	mockUserRepo := new(MockUserRepository)
-	server := NewAPIServer(mockBudgetRepo, mockAccRepo, nil, nil, mockUserRepo, nil)
+	mockBudgetSvc := mocks.NewMockBudgetService(t)
+	mockAccSvc := mocks.NewMockAccountService(t)
+	server := NewAPIServer(nil, mockBudgetSvc, mockAccSvc, nil, nil, nil)
 	mux := server.Routes()
 
 	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodZeroSum}
-	mockBudgetRepo.On("GetByID", mock.Anything, "b-1").Return(budget, nil)
-	mockAccRepo.On("Create", mock.Anything, mock.AnythingOfType("*domain.Account")).Return(nil)
+	acc := &domain.Account{
+		ID:       "acc-1",
+		BudgetID: "b-1",
+		Name:     "Checking",
+		Type:     domain.AccountChecking,
+		Balance:  50000,
+	}
+
+	mockBudgetSvc.On("GetByID", mock.Anything, "b-1").Return(budget, nil)
+	mockAccSvc.On("Create", mock.Anything, "b-1", "Checking", domain.AccountChecking, int64(50000)).Return(acc, nil)
 
 	reqBody := `{"name":"Checking","type":"CHECKING","balance":50000}`
 	req := httptest.NewRequest("POST", "/api/budgets/b-1/accounts", bytes.NewBufferString(reqBody))
@@ -280,30 +84,26 @@ func TestHandleCreateAccount(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
-	mockBudgetRepo.AssertExpectations(t)
-	mockAccRepo.AssertExpectations(t)
 }
 
 func TestHandleCreateTransaction_ZeroSum(t *testing.T) {
-	mockBudgetRepo := new(MockBudgetRepository)
-	mockAccRepo := new(MockAccountRepository)
-	mockCatRepo := new(MockCategoryRepository)
-	mockTxRepo := new(MockTransactionRepository)
-	mockUserRepo := new(MockUserRepository)
-	server := NewAPIServer(mockBudgetRepo, mockAccRepo, mockCatRepo, mockTxRepo, mockUserRepo, nil)
+	mockBudgetSvc := mocks.NewMockBudgetService(t)
+	mockTxSvc := mocks.NewMockTransactionService(t)
+	server := NewAPIServer(nil, mockBudgetSvc, nil, nil, mockTxSvc, nil)
 	mux := server.Routes()
 
 	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodZeroSum}
-	acc := &domain.Account{ID: "acc-1", BudgetID: "b-1", Balance: 100000}
-	cat := &domain.Category{ID: "cat-1", BudgetID: "b-1", Budgeted: 50000, Balance: 50000}
+	tx := &domain.Transaction{
+		ID:          "tx-1",
+		BudgetID:    "b-1",
+		AccountID:   "acc-1",
+		CategoryID:  "cat-1",
+		Amount:      -20000,
+		Description: "groceries",
+	}
 
-	mockBudgetRepo.On("GetByID", mock.Anything, "b-1").Return(budget, nil)
-	mockAccRepo.On("GetByID", mock.Anything, "acc-1").Return(acc, nil)
-	mockCatRepo.On("GetByID", mock.Anything, "cat-1").Return(cat, nil)
-
-	mockTxRepo.On("Create", mock.Anything, mock.AnythingOfType("*domain.Transaction")).Return(nil)
-	mockAccRepo.On("UpdateBalance", mock.Anything, "acc-1", int64(80000)).Return(nil)
-	mockCatRepo.On("UpdateBudgetedAndBalance", mock.Anything, "cat-1", int64(50000), int64(30000)).Return(nil)
+	mockBudgetSvc.On("GetByID", mock.Anything, "b-1").Return(budget, nil)
+	mockTxSvc.On("Create", mock.Anything, "b-1", "acc-1", "cat-1", int64(-20000), "groceries", mock.Anything).Return(tx, nil)
 
 	reqBody := `{"account_id":"acc-1","category_id":"cat-1","amount":-20000,"description":"groceries","date":"2026-06-10T19:00:00Z"}`
 	req := httptest.NewRequest("POST", "/api/budgets/b-1/transactions", bytes.NewBufferString(reqBody))
@@ -313,31 +113,20 @@ func TestHandleCreateTransaction_ZeroSum(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
-
-	mockBudgetRepo.AssertExpectations(t)
-	mockAccRepo.AssertExpectations(t)
-	mockCatRepo.AssertExpectations(t)
-	mockTxRepo.AssertExpectations(t)
 }
 
 func TestHandleFundEnvelope_Envelope(t *testing.T) {
-	mockBudgetRepo := new(MockBudgetRepository)
-	mockAccRepo := new(MockAccountRepository)
-	mockCatRepo := new(MockCategoryRepository)
-	mockUserRepo := new(MockUserRepository)
-	server := NewAPIServer(mockBudgetRepo, mockAccRepo, mockCatRepo, nil, mockUserRepo, nil)
+	mockBudgetSvc := mocks.NewMockBudgetService(t)
+	mockCatSvc := mocks.NewMockCategoryService(t)
+	server := NewAPIServer(nil, mockBudgetSvc, nil, mockCatSvc, nil, nil)
 	mux := server.Routes()
 
 	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodEnvelope}
-	acc := &domain.Account{ID: "acc-1", BudgetID: "b-1", Balance: 100000}
-	cat := &domain.Category{ID: "cat-1", BudgetID: "b-1", Balance: 10000}
+	acc := &domain.Account{ID: "acc-1", BudgetID: "b-1", Balance: 70000}
+	cat := &domain.Category{ID: "cat-1", BudgetID: "b-1", Balance: 40000}
 
-	mockBudgetRepo.On("GetByID", mock.Anything, "b-1").Return(budget, nil)
-	mockAccRepo.On("GetByID", mock.Anything, "acc-1").Return(acc, nil)
-	mockCatRepo.On("GetByID", mock.Anything, "cat-1").Return(cat, nil)
-
-	mockAccRepo.On("UpdateBalance", mock.Anything, "acc-1", int64(70000)).Return(nil)
-	mockCatRepo.On("UpdateBudgetedAndBalance", mock.Anything, "cat-1", int64(0), int64(40000)).Return(nil)
+	mockBudgetSvc.On("GetByID", mock.Anything, "b-1").Return(budget, nil)
+	mockCatSvc.On("FundEnvelope", mock.Anything, "b-1", "cat-1", "acc-1", int64(30000)).Return(acc, cat, nil)
 
 	reqBody := `{"account_id":"acc-1","amount":30000}`
 	req := httptest.NewRequest("POST", "/api/budgets/b-1/categories/cat-1/fund", bytes.NewBufferString(reqBody))
@@ -347,8 +136,4 @@ func TestHandleFundEnvelope_Envelope(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
-
-	mockBudgetRepo.AssertExpectations(t)
-	mockAccRepo.AssertExpectations(t)
-	mockCatRepo.AssertExpectations(t)
 }

@@ -1,0 +1,29 @@
+all: false
+dir: '{{.InterfaceDir}}/mocks'
+filename: 'mocks.go'
+force-file-write: true
+formatter: goimports
+formatter-options:
+  goimports:
+    all-errors: false
+    comments: true
+    format-only: true
+    fragment: false
+    local-prefix: ""
+    tab-indent: true
+    tab-width: 8
+generate: true
+include-auto-generated: false
+log-level: info
+structname: 'Mock{{.InterfaceName}}'
+pkgname: 'mocks'
+recursive: false
+require-template-schema-exists: false
+template: testify
+packages:
+  budgeting_system/internal/domain:
+    config:
+      all: true
+  budgeting_system/internal/service:
+    config:
+      all: true

@@ -5,6 +5,8 @@ go_library(
     srcs = [
         "budget.go",
         "envelope.go",
+        "external.go",
+        "repository.go",
         "user.go",
         "zerosum.go",
     ],
