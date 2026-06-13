@@ -7,6 +7,14 @@ import type { ListQuery, Repository } from "@/lib/storage/repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+// Shadow fetch to inject credentials: "include" for backend cookie auth
+function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return globalThis.fetch(input, {
+    ...init,
+    credentials: "include",
+  });
+}
+
 // Go API response types
 interface GoBudgetResponse {
   id: string;

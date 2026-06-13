@@ -1,8 +1,17 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { LogOut, Plus, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/features/auth/useAuth";
 import { useUIStore } from "@/lib/state/ui-store";
 import { NAV_ITEMS } from "./nav-items";
 import { PeriodSwitcher } from "./period-switcher";
@@ -17,6 +26,19 @@ export function Topbar() {
   const title = TITLES[pathname] ?? "Budgy";
   const setCommandOpen = useUIStore((s) => s.setCommandOpen);
   const setQuickAddOpen = useUIStore((s) => s.setQuickAddOpen);
+
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const useBackend = process.env.NEXT_PUBLIC_USE_BACKEND === "true";
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push("/login");
+    } catch (e) {
+      console.error("Failed to log out:", e);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl md:px-6">
@@ -45,6 +67,37 @@ export function Topbar() {
         >
           <Plus className="h-4 w-4" /> Add
         </Button>
+
+        {useBackend && user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-accent text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-90 outline-none cursor-pointer"
+              >
+                {user.first_name[0].toUpperCase()}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 mt-1 border border-border bg-popover">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none text-foreground">
+                    {user.first_name} {user.last_name}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive dark:focus:bg-destructive/20"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </header>
   );

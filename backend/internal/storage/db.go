@@ -9,7 +9,7 @@ import (
 type BudgetRepository interface {
 	Create(ctx context.Context, b *domain.Budget) error
 	GetByID(ctx context.Context, id string) (*domain.Budget, error)
-	List(ctx context.Context) ([]*domain.Budget, error)
+	List(ctx context.Context, userID string) ([]*domain.Budget, error)
 	Update(ctx context.Context, b *domain.Budget) error
 	Delete(ctx context.Context, id string) error
 }
@@ -44,3 +44,12 @@ type TransactionRepository interface {
 	Update(ctx context.Context, tx *domain.Transaction) error
 	Delete(ctx context.Context, id string) error
 }
+
+// UserRepository defines storage operations for users.
+type UserRepository interface {
+	Create(ctx context.Context, u *domain.User) error
+	GetByID(ctx context.Context, id string) (*domain.User, error)
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	UpdateBasiqUserID(ctx context.Context, id string, basiqID string) error
+}
+

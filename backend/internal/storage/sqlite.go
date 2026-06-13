@@ -50,20 +50,29 @@ func (s *SQLiteStorage) Budgets() BudgetRepository {
 	return &budgetRepository{db: s.db}
 }
 
+func (s *SQLiteStorage) Users() UserRepository {
+	return &userRepository{db: s.db}
+}
+
 func (r *budgetRepository) Create(ctx context.Context, b *domain.Budget) error {
-	query := `INSERT INTO budgets (id, name, method, currency, created_at, updated_at)
-	          VALUES (?, ?, ?, ?, ?, ?)`
-	_, err := r.db.ExecContext(ctx, query, b.ID, b.Name, string(b.Method), b.Currency, b.CreatedAt, b.UpdatedAt)
+	query := `INSERT INTO budgets (id, user_id, name, method, currency, created_at, updated_at)
+	          VALUES (?, ?, ?, ?, ?, ?, ?)`
+	var userID interface{} = b.UserID
+	if b.UserID == "" {
+		userID = nil
+	}
+	_, err := r.db.ExecContext(ctx, query, b.ID, userID, b.Name, string(b.Method), b.Currency, b.CreatedAt, b.UpdatedAt)
 	return err
 }
 
 func (r *budgetRepository) GetByID(ctx context.Context, id string) (*domain.Budget, error) {
-	query := `SELECT id, name, method, currency, created_at, updated_at FROM budgets WHERE id = ?`
+	query := `SELECT id, user_id, name, method, currency, created_at, updated_at FROM budgets WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var b domain.Budget
 	var methodStr string
-	err := row.Scan(&b.ID, &b.Name, &methodStr, &b.Currency, &b.CreatedAt, &b.UpdatedAt)
+	var userIDNull sql.NullString
+	err := row.Scan(&b.ID, &userIDNull, &b.Name, &methodStr, &b.Currency, &b.CreatedAt, &b.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("budget not found")
@@ -71,12 +80,13 @@ func (r *budgetRepository) GetByID(ctx context.Context, id string) (*domain.Budg
 		return nil, err
 	}
 	b.Method = domain.BudgetMethod(methodStr)
+	b.UserID = userIDNull.String
 	return &b, nil
 }
 
-func (r *budgetRepository) List(ctx context.Context) ([]*domain.Budget, error) {
-	query := `SELECT id, name, method, currency, created_at, updated_at FROM budgets`
-	rows, err := r.db.QueryContext(ctx, query)
+func (r *budgetRepository) List(ctx context.Context, userID string) ([]*domain.Budget, error) {
+	query := `SELECT id, user_id, name, method, currency, created_at, updated_at FROM budgets WHERE user_id = ?`
+	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -86,19 +96,25 @@ func (r *budgetRepository) List(ctx context.Context) ([]*domain.Budget, error) {
 	for rows.Next() {
 		var b domain.Budget
 		var methodStr string
-		err := rows.Scan(&b.ID, &b.Name, &methodStr, &b.Currency, &b.CreatedAt, &b.UpdatedAt)
+		var userIDNull sql.NullString
+		err := rows.Scan(&b.ID, &userIDNull, &b.Name, &methodStr, &b.Currency, &b.CreatedAt, &b.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
 		b.Method = domain.BudgetMethod(methodStr)
+		b.UserID = userIDNull.String
 		list = append(list, &b)
 	}
 	return list, nil
 }
 
 func (r *budgetRepository) Update(ctx context.Context, b *domain.Budget) error {
-	query := `UPDATE budgets SET name = ?, method = ?, currency = ?, updated_at = ? WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, b.Name, string(b.Method), b.Currency, b.UpdatedAt, b.ID)
+	query := `UPDATE budgets SET user_id = ?, name = ?, method = ?, currency = ?, updated_at = ? WHERE id = ?`
+	var userID interface{} = b.UserID
+	if b.UserID == "" {
+		userID = nil
+	}
+	_, err := r.db.ExecContext(ctx, query, userID, b.Name, string(b.Method), b.Currency, b.UpdatedAt, b.ID)
 	return err
 }
 
@@ -375,6 +391,63 @@ func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transacti
 func (r *transactionRepository) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM transactions WHERE id = ?`
 	_, err := r.db.ExecContext(ctx, query, id)
+	return err
+}
+
+// User Repository Implementation
+
+type userRepository struct {
+	db *sql.DB
+}
+
+func (r *userRepository) Create(ctx context.Context, u *domain.User) error {
+	query := `INSERT INTO users (id, email, password_hash, first_name, last_name, basiq_user_id, created_at, updated_at)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	var basiqID interface{} = u.BasiqUserID
+	if u.BasiqUserID == "" {
+		basiqID = nil
+	}
+	_, err := r.db.ExecContext(ctx, query, u.ID, u.Email, u.PasswordHash, u.FirstName, u.LastName, basiqID, u.CreatedAt, u.UpdatedAt)
+	return err
+}
+
+func (r *userRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
+	query := `SELECT id, email, password_hash, first_name, last_name, basiq_user_id, created_at, updated_at FROM users WHERE id = ?`
+	row := r.db.QueryRowContext(ctx, query, id)
+
+	var u domain.User
+	var basiqIDNull sql.NullString
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &basiqIDNull, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+	u.BasiqUserID = basiqIDNull.String
+	return &u, nil
+}
+
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	query := `SELECT id, email, password_hash, first_name, last_name, basiq_user_id, created_at, updated_at FROM users WHERE email = ?`
+	row := r.db.QueryRowContext(ctx, query, email)
+
+	var u domain.User
+	var basiqIDNull sql.NullString
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &basiqIDNull, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+	u.BasiqUserID = basiqIDNull.String
+	return &u, nil
+}
+
+func (r *userRepository) UpdateBasiqUserID(ctx context.Context, id string, basiqID string) error {
+	query := `UPDATE users SET basiq_user_id = ?, updated_at = ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, basiqID, time.Now(), id)
 	return err
 }
 

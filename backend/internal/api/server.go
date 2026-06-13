@@ -13,6 +13,7 @@ type APIServer struct {
 	accounts     storage.AccountRepository
 	categories   storage.CategoryRepository
 	transactions storage.TransactionRepository
+	users        storage.UserRepository
 }
 
 // NewAPIServer creates a new APIServer with repository dependencies.
@@ -21,12 +22,14 @@ func NewAPIServer(
 	accounts storage.AccountRepository,
 	categories storage.CategoryRepository,
 	transactions storage.TransactionRepository,
+	users storage.UserRepository,
 ) *APIServer {
 	return &APIServer{
 		budgets:      budgets,
 		accounts:     accounts,
 		categories:   categories,
 		transactions: transactions,
+		users:        users,
 	}
 }
 
@@ -34,33 +37,41 @@ func NewAPIServer(
 func (s *APIServer) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 
+	// Public Auth handlers
+	mux.HandleFunc("POST /api/auth/register", s.handleRegister)
+	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
+
+	// Secure Auth handlers
+	s.handleSecure(mux, "GET /api/auth/me", s.handleMe)
+	s.handleSecure(mux, "POST /api/auth/logout", s.handleLogout)
+
 	// Budget handlers
-	mux.HandleFunc("POST /api/budgets", s.handleCreateBudget)
-	mux.HandleFunc("GET /api/budgets", s.handleListBudgets)
-	mux.HandleFunc("GET /api/budgets/{id}", s.handleGetBudget)
-	mux.HandleFunc("GET /api/budgets/{id}/summary", s.handleGetBudgetSummary)
-	mux.HandleFunc("PUT /api/budgets/{id}", s.handleUpdateBudget)
-	mux.HandleFunc("DELETE /api/budgets/{id}", s.handleDeleteBudget)
+	s.handleSecure(mux, "POST /api/budgets", s.handleCreateBudget)
+	s.handleSecure(mux, "GET /api/budgets", s.handleListBudgets)
+	s.handleSecure(mux, "GET /api/budgets/{id}", s.handleGetBudget)
+	s.handleSecure(mux, "GET /api/budgets/{id}/summary", s.handleGetBudgetSummary)
+	s.handleSecure(mux, "PUT /api/budgets/{id}", s.handleUpdateBudget)
+	s.handleSecure(mux, "DELETE /api/budgets/{id}", s.handleDeleteBudget)
 
 	// Account handlers
-	mux.HandleFunc("POST /api/budgets/{id}/accounts", s.handleCreateAccount)
-	mux.HandleFunc("GET /api/budgets/{id}/accounts", s.handleListAccounts)
-	mux.HandleFunc("PUT /api/budgets/{id}/accounts/{acc_id}", s.handleUpdateAccount)
-	mux.HandleFunc("DELETE /api/budgets/{id}/accounts/{acc_id}", s.handleDeleteAccount)
+	s.handleSecure(mux, "POST /api/budgets/{id}/accounts", s.handleCreateAccount)
+	s.handleSecure(mux, "GET /api/budgets/{id}/accounts", s.handleListAccounts)
+	s.handleSecure(mux, "PUT /api/budgets/{id}/accounts/{acc_id}", s.handleUpdateAccount)
+	s.handleSecure(mux, "DELETE /api/budgets/{id}/accounts/{acc_id}", s.handleDeleteAccount)
 
 	// Category/Envelope handlers
-	mux.HandleFunc("POST /api/budgets/{id}/categories", s.handleCreateCategory)
-	mux.HandleFunc("GET /api/budgets/{id}/categories", s.handleListCategories)
-	mux.HandleFunc("POST /api/budgets/{id}/categories/{cat_id}/assign", s.handleAssignCategoryFunds)
-	mux.HandleFunc("POST /api/budgets/{id}/categories/{cat_id}/fund", s.handleFundEnvelope)
-	mux.HandleFunc("PUT /api/budgets/{id}/categories/{cat_id}", s.handleUpdateCategory)
-	mux.HandleFunc("DELETE /api/budgets/{id}/categories/{cat_id}", s.handleDeleteCategory)
+	s.handleSecure(mux, "POST /api/budgets/{id}/categories", s.handleCreateCategory)
+	s.handleSecure(mux, "GET /api/budgets/{id}/categories", s.handleListCategories)
+	s.handleSecure(mux, "POST /api/budgets/{id}/categories/{cat_id}/assign", s.handleAssignCategoryFunds)
+	s.handleSecure(mux, "POST /api/budgets/{id}/categories/{cat_id}/fund", s.handleFundEnvelope)
+	s.handleSecure(mux, "PUT /api/budgets/{id}/categories/{cat_id}", s.handleUpdateCategory)
+	s.handleSecure(mux, "DELETE /api/budgets/{id}/categories/{cat_id}", s.handleDeleteCategory)
 
 	// Transaction handlers
-	mux.HandleFunc("POST /api/budgets/{id}/transactions", s.handleCreateTransaction)
-	mux.HandleFunc("GET /api/budgets/{id}/transactions", s.handleListTransactions)
-	mux.HandleFunc("PUT /api/budgets/{id}/transactions/{tx_id}", s.handleUpdateTransaction)
-	mux.HandleFunc("DELETE /api/budgets/{id}/transactions/{tx_id}", s.handleDeleteTransaction)
+	s.handleSecure(mux, "POST /api/budgets/{id}/transactions", s.handleCreateTransaction)
+	s.handleSecure(mux, "GET /api/budgets/{id}/transactions", s.handleListTransactions)
+	s.handleSecure(mux, "PUT /api/budgets/{id}/transactions/{tx_id}", s.handleUpdateTransaction)
+	s.handleSecure(mux, "DELETE /api/budgets/{id}/transactions/{tx_id}", s.handleDeleteTransaction)
 
 	return mux
 }

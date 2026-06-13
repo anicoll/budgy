@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "budget.go",
         "envelope.go",
+        "user.go",
         "zerosum.go",
     ],
     importpath = "budgeting_system/internal/domain",

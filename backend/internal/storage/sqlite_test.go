@@ -16,6 +16,7 @@ func newTestDB(t *testing.T) *sql.DB {
 	// Open in-memory SQLite database
 	db, err := sql.Open("sqlite3", ":memory:")
 	require.NoError(t, err)
+	db.SetMaxOpenConns(1)
 
 	// Run migrations
 	err = Migrate(db)
@@ -32,22 +33,36 @@ func TestBudgetRepository(t *testing.T) {
 	store := NewSQLiteStorage(db)
 	repo := store.Budgets()
 
+	// Setup User first due to foreign key
+	u := &domain.User{
+		ID:        "user-1",
+		Email:     "user1@example.com",
+		FirstName: "User",
+		LastName:  "One",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := store.Users().Create(ctx, u)
+	assert.NoError(t, err)
+
 	// Test Create
 	b := &domain.Budget{
 		ID:        "b-1",
+		UserID:    "user-1",
 		Name:      "Test Budget",
 		Method:    domain.MethodZeroSum,
 		Currency:  "USD",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	err := repo.Create(ctx, b)
+	err = repo.Create(ctx, b)
 	assert.NoError(t, err)
 
 	// Test GetByID
 	fetched, err := repo.GetByID(ctx, "b-1")
 	assert.NoError(t, err)
 	assert.Equal(t, b.ID, fetched.ID)
+	assert.Equal(t, b.UserID, fetched.UserID)
 	assert.Equal(t, b.Name, fetched.Name)
 	assert.Equal(t, b.Method, fetched.Method)
 	assert.Equal(t, b.Currency, fetched.Currency)
@@ -57,7 +72,7 @@ func TestBudgetRepository(t *testing.T) {
 	assert.Error(t, err)
 
 	// Test List
-	list, err := repo.List(ctx)
+	list, err := repo.List(ctx, "user-1")
 	assert.NoError(t, err)
 	assert.Len(t, list, 1)
 	assert.Equal(t, "b-1", list[0].ID)
@@ -345,5 +360,54 @@ func TestBudgetDeleteNoCascade(t *testing.T) {
 	fetchedTx, err := store.Transactions().GetByID(ctx, "tx-1")
 	assert.NoError(t, err)
 	assert.Empty(t, fetchedTx.BudgetID)
+}
+
+func TestUserRepository(t *testing.T) {
+	db := newTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	store := NewSQLiteStorage(db)
+	repo := store.Users()
+
+	// Test Create
+	u := &domain.User{
+		ID:           "u-1",
+		Email:        "test@example.com",
+		PasswordHash: "hashed",
+		FirstName:    "John",
+		LastName:     "Doe",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+	err := repo.Create(ctx, u)
+	assert.NoError(t, err)
+
+	// Test GetByID
+	fetched, err := repo.GetByID(ctx, "u-1")
+	assert.NoError(t, err)
+	assert.Equal(t, u.ID, fetched.ID)
+	assert.Equal(t, u.Email, fetched.Email)
+	assert.Equal(t, u.PasswordHash, fetched.PasswordHash)
+	assert.Equal(t, u.FirstName, fetched.FirstName)
+	assert.Equal(t, u.LastName, fetched.LastName)
+	assert.Empty(t, fetched.BasiqUserID)
+
+	// Test GetByEmail
+	fetchedByEmail, err := repo.GetByEmail(ctx, "test@example.com")
+	assert.NoError(t, err)
+	assert.Equal(t, u.ID, fetchedByEmail.ID)
+
+	// Test GetByEmail Not Found
+	_, err = repo.GetByEmail(ctx, "nonexistent@example.com")
+	assert.Error(t, err)
+
+	// Test UpdateBasiqUserID
+	err = repo.UpdateBasiqUserID(ctx, "u-1", "basiq-user-123")
+	assert.NoError(t, err)
+
+	fetchedUpdated, err := repo.GetByID(ctx, "u-1")
+	assert.NoError(t, err)
+	assert.Equal(t, "basiq-user-123", fetchedUpdated.BasiqUserID)
 }
 

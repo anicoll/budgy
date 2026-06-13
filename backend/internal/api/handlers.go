@@ -17,6 +17,20 @@ func generateID() string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
 
+func (s *APIServer) verifyBudgetOwnership(w http.ResponseWriter, r *http.Request, budgetID string) (*domain.Budget, bool) {
+	b, err := s.budgets.GetByID(r.Context(), budgetID)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "budget not found")
+		return nil, false
+	}
+	userID := getUserID(r)
+	if b.UserID != userID {
+		s.respondError(w, http.StatusForbidden, "forbidden")
+		return nil, false
+	}
+	return b, true
+}
+
 // Budget Handlers
 
 func (s *APIServer) handleCreateBudget(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +46,7 @@ func (s *APIServer) handleCreateBudget(w http.ResponseWriter, r *http.Request) {
 
 	b := &domain.Budget{
 		ID:        generateID(),
+		UserID:    getUserID(r),
 		Name:      req.Name,
 		Method:    req.Method,
 		Currency:  req.Currency,
@@ -53,7 +68,7 @@ func (s *APIServer) handleCreateBudget(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) handleListBudgets(w http.ResponseWriter, r *http.Request) {
-	list, err := s.budgets.List(r.Context())
+	list, err := s.budgets.List(r.Context(), getUserID(r))
 	if err != nil {
 		s.respondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -63,9 +78,8 @@ func (s *APIServer) handleListBudgets(w http.ResponseWriter, r *http.Request) {
 
 func (s *APIServer) handleGetBudget(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	b, err := s.budgets.GetByID(r.Context(), id)
-	if err != nil {
-		s.respondError(w, http.StatusNotFound, "budget not found")
+	b, ok := s.verifyBudgetOwnership(w, r, id)
+	if !ok {
 		return
 	}
 	s.respondJSON(w, http.StatusOK, b)
@@ -73,9 +87,8 @@ func (s *APIServer) handleGetBudget(w http.ResponseWriter, r *http.Request) {
 
 func (s *APIServer) handleGetBudgetSummary(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	b, err := s.budgets.GetByID(r.Context(), id)
-	if err != nil {
-		s.respondError(w, http.StatusNotFound, "budget not found")
+	b, ok := s.verifyBudgetOwnership(w, r, id)
+	if !ok {
 		return
 	}
 
@@ -108,9 +121,7 @@ func (s *APIServer) handleGetBudgetSummary(w http.ResponseWriter, r *http.Reques
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	budgetID := r.PathValue("id")
-	_, err := s.budgets.GetByID(r.Context(), budgetID)
-	if err != nil {
-		s.respondError(w, http.StatusNotFound, "budget not found")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
 		return
 	}
 
@@ -149,6 +160,9 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 
 func (s *APIServer) handleListAccounts(w http.ResponseWriter, r *http.Request) {
 	budgetID := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
+		return
+	}
 	list, err := s.accounts.ListByBudget(r.Context(), budgetID)
 	if err != nil {
 		s.respondError(w, http.StatusInternalServerError, err.Error())
@@ -161,9 +175,7 @@ func (s *APIServer) handleListAccounts(w http.ResponseWriter, r *http.Request) {
 
 func (s *APIServer) handleCreateCategory(w http.ResponseWriter, r *http.Request) {
 	budgetID := r.PathValue("id")
-	_, err := s.budgets.GetByID(r.Context(), budgetID)
-	if err != nil {
-		s.respondError(w, http.StatusNotFound, "budget not found")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
 		return
 	}
 
@@ -202,6 +214,9 @@ func (s *APIServer) handleCreateCategory(w http.ResponseWriter, r *http.Request)
 
 func (s *APIServer) handleListCategories(w http.ResponseWriter, r *http.Request) {
 	budgetID := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
+		return
+	}
 	list, err := s.categories.ListByBudget(r.Context(), budgetID)
 	if err != nil {
 		s.respondError(w, http.StatusInternalServerError, err.Error())
@@ -214,9 +229,8 @@ func (s *APIServer) handleAssignCategoryFunds(w http.ResponseWriter, r *http.Req
 	budgetID := r.PathValue("id")
 	catID := r.PathValue("cat_id")
 
-	b, err := s.budgets.GetByID(r.Context(), budgetID)
-	if err != nil {
-		s.respondError(w, http.StatusNotFound, "budget not found")
+	b, ok := s.verifyBudgetOwnership(w, r, budgetID)
+	if !ok {
 		return
 	}
 	if b.Method != domain.MethodZeroSum {
@@ -227,6 +241,10 @@ func (s *APIServer) handleAssignCategoryFunds(w http.ResponseWriter, r *http.Req
 	cat, err := s.categories.GetByID(r.Context(), catID)
 	if err != nil {
 		s.respondError(w, http.StatusNotFound, "category not found")
+		return
+	}
+	if cat.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "category does not belong to budget")
 		return
 	}
 
@@ -269,9 +287,8 @@ func (s *APIServer) handleFundEnvelope(w http.ResponseWriter, r *http.Request) {
 	budgetID := r.PathValue("id")
 	catID := r.PathValue("cat_id")
 
-	b, err := s.budgets.GetByID(r.Context(), budgetID)
-	if err != nil {
-		s.respondError(w, http.StatusNotFound, "budget not found")
+	b, ok := s.verifyBudgetOwnership(w, r, budgetID)
+	if !ok {
 		return
 	}
 	if b.Method != domain.MethodEnvelope {
@@ -293,10 +310,18 @@ func (s *APIServer) handleFundEnvelope(w http.ResponseWriter, r *http.Request) {
 		s.respondError(w, http.StatusNotFound, "account not found")
 		return
 	}
+	if acc.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "account does not belong to budget")
+		return
+	}
 
 	cat, err := s.categories.GetByID(r.Context(), catID)
 	if err != nil {
 		s.respondError(w, http.StatusNotFound, "envelope not found")
+		return
+	}
+	if cat.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "envelope does not belong to budget")
 		return
 	}
 
@@ -329,9 +354,8 @@ func (s *APIServer) handleFundEnvelope(w http.ResponseWriter, r *http.Request) {
 
 func (s *APIServer) handleCreateTransaction(w http.ResponseWriter, r *http.Request) {
 	budgetID := r.PathValue("id")
-	b, err := s.budgets.GetByID(r.Context(), budgetID)
-	if err != nil {
-		s.respondError(w, http.StatusNotFound, "budget not found")
+	b, ok := s.verifyBudgetOwnership(w, r, budgetID)
+	if !ok {
 		return
 	}
 
@@ -352,12 +376,20 @@ func (s *APIServer) handleCreateTransaction(w http.ResponseWriter, r *http.Reque
 		s.respondError(w, http.StatusNotFound, "account not found")
 		return
 	}
+	if acc.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "account does not belong to budget")
+		return
+	}
 
 	var cat *domain.Category
 	if req.CategoryID != "" {
 		cat, err = s.categories.GetByID(r.Context(), req.CategoryID)
 		if err != nil {
 			s.respondError(w, http.StatusNotFound, "category not found")
+			return
+		}
+		if cat.BudgetID != budgetID {
+			s.respondError(w, http.StatusBadRequest, "category does not belong to budget")
 			return
 		}
 	}
@@ -449,6 +481,9 @@ func (s *APIServer) handleCreateTransaction(w http.ResponseWriter, r *http.Reque
 
 func (s *APIServer) handleListTransactions(w http.ResponseWriter, r *http.Request) {
 	budgetID := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
+		return
+	}
 	list, err := s.transactions.ListByBudget(r.Context(), budgetID)
 	if err != nil {
 		s.respondError(w, http.StatusInternalServerError, err.Error())
@@ -459,9 +494,8 @@ func (s *APIServer) handleListTransactions(w http.ResponseWriter, r *http.Reques
 
 func (s *APIServer) handleUpdateBudget(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	b, err := s.budgets.GetByID(r.Context(), id)
-	if err != nil {
-		s.respondError(w, http.StatusNotFound, "budget not found")
+	b, ok := s.verifyBudgetOwnership(w, r, id)
+	if !ok {
 		return
 	}
 
@@ -501,6 +535,9 @@ func (s *APIServer) handleUpdateBudget(w http.ResponseWriter, r *http.Request) {
 
 func (s *APIServer) handleDeleteBudget(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, id); !ok {
+		return
+	}
 	if err := s.budgets.Delete(r.Context(), id); err != nil {
 		s.respondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -509,10 +546,18 @@ func (s *APIServer) handleDeleteBudget(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
+	budgetID := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
+		return
+	}
 	accID := r.PathValue("acc_id")
 	acc, err := s.accounts.GetByID(r.Context(), accID)
 	if err != nil {
 		s.respondError(w, http.StatusNotFound, "account not found")
+		return
+	}
+	if acc.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "account does not belong to budget")
 		return
 	}
 
@@ -579,7 +624,20 @@ func (s *APIServer) handleUpdateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
+	budgetID := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
+		return
+	}
 	accID := r.PathValue("acc_id")
+	acc, err := s.accounts.GetByID(r.Context(), accID)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "account not found")
+		return
+	}
+	if acc.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "account does not belong to budget")
+		return
+	}
 	if err := s.accounts.Delete(r.Context(), accID); err != nil {
 		s.respondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -588,10 +646,18 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
+	budgetID := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
+		return
+	}
 	catID := r.PathValue("cat_id")
 	c, err := s.categories.GetByID(r.Context(), catID)
 	if err != nil {
 		s.respondError(w, http.StatusNotFound, "category not found")
+		return
+	}
+	if c.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "category does not belong to budget")
 		return
 	}
 
@@ -634,7 +700,20 @@ func (s *APIServer) handleUpdateCategory(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *APIServer) handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
+	budgetID := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
+		return
+	}
 	catID := r.PathValue("cat_id")
+	c, err := s.categories.GetByID(r.Context(), catID)
+	if err != nil {
+		s.respondError(w, http.StatusNotFound, "category not found")
+		return
+	}
+	if c.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "category does not belong to budget")
+		return
+	}
 	if err := s.categories.Delete(r.Context(), catID); err != nil {
 		s.respondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -643,10 +722,18 @@ func (s *APIServer) handleDeleteCategory(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *APIServer) handleUpdateTransaction(w http.ResponseWriter, r *http.Request) {
+	budgetID := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
+		return
+	}
 	txID := r.PathValue("tx_id")
 	oldTx, err := s.transactions.GetByID(r.Context(), txID)
 	if err != nil {
 		s.respondError(w, http.StatusNotFound, "transaction not found")
+		return
+	}
+	if oldTx.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "transaction does not belong to budget")
 		return
 	}
 
@@ -673,10 +760,30 @@ func (s *APIServer) handleUpdateTransaction(w http.ResponseWriter, r *http.Reque
 	newAccountID := oldTx.AccountID
 	if req.AccountID != nil {
 		newAccountID = *req.AccountID
+		newAcc, err := s.accounts.GetByID(r.Context(), newAccountID)
+		if err != nil {
+			s.respondError(w, http.StatusNotFound, "new account not found")
+			return
+		}
+		if newAcc.BudgetID != budgetID {
+			s.respondError(w, http.StatusBadRequest, "new account does not belong to budget")
+			return
+		}
 	}
 	newCategoryID := oldTx.CategoryID
 	if req.CategoryID != nil {
 		newCategoryID = *req.CategoryID
+		if newCategoryID != "" {
+			newCat, err := s.categories.GetByID(r.Context(), newCategoryID)
+			if err != nil {
+				s.respondError(w, http.StatusNotFound, "new category not found")
+				return
+			}
+			if newCat.BudgetID != budgetID {
+				s.respondError(w, http.StatusBadRequest, "new category does not belong to budget")
+				return
+			}
+		}
 	}
 	newAmount := oldTx.Amount
 	if req.Amount != nil {
@@ -780,10 +887,18 @@ func (s *APIServer) handleUpdateTransaction(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *APIServer) handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
+	budgetID := r.PathValue("id")
+	if _, ok := s.verifyBudgetOwnership(w, r, budgetID); !ok {
+		return
+	}
 	txID := r.PathValue("tx_id")
 	tx, err := s.transactions.GetByID(r.Context(), txID)
 	if err != nil {
 		s.respondError(w, http.StatusNotFound, "transaction not found")
+		return
+	}
+	if tx.BudgetID != budgetID {
+		s.respondError(w, http.StatusBadRequest, "transaction does not belong to budget")
 		return
 	}
 

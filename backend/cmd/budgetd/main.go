@@ -36,14 +36,15 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Create storage and repositories
+		// Create storage and repositories
 	store := storage.NewSQLiteStorage(db)
 	budgets := store.Budgets()
 	accounts := store.Accounts()
 	categories := store.Categories()
 	transactions := store.Transactions()
+	users := store.Users()
 
-	apiServer := api.NewAPIServer(budgets, accounts, categories, transactions)
+	apiServer := api.NewAPIServer(budgets, accounts, categories, transactions, users)
 
 	allowedOrigin := os.Getenv("ALLOWED_ORIGINS")
 	var handler http.Handler = apiServer.Routes()
