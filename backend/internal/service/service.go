@@ -16,11 +16,11 @@ import (
 
 // Define custom errors
 var (
-	ErrNotFound      = errors.New("resource not found")
-	ErrUnauthorized  = errors.New("unauthorized")
-	ErrForbidden     = errors.New("forbidden")
-	ErrConflict      = errors.New("conflict")
-	ErrBadRequest    = errors.New("bad request")
+	ErrNotFound     = errors.New("resource not found")
+	ErrUnauthorized = errors.New("unauthorized")
+	ErrForbidden    = errors.New("forbidden")
+	ErrConflict     = errors.New("conflict")
+	ErrBadRequest   = errors.New("bad request")
 )
 
 // AuthService coordinates user registration, authentication, and management.
@@ -143,9 +143,9 @@ func (s *authService) GetUserByBasiqUserID(ctx context.Context, basiqUserID stri
 }
 
 type budgetService struct {
-	budgets      domain.BudgetRepository
-	accounts     domain.AccountRepository
-	categories   domain.CategoryRepository
+	budgets    domain.BudgetRepository
+	accounts   domain.AccountRepository
+	categories domain.CategoryRepository
 }
 
 func NewBudgetService(budgets domain.BudgetRepository, accounts domain.AccountRepository, categories domain.CategoryRepository) BudgetService {

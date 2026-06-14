@@ -6,13 +6,13 @@ import (
 
 func TestCalculateZeroSumSummary(t *testing.T) {
 	accounts := []*Account{
-		{ID: "1", Name: "Checking", Type: AccountChecking, Balance: 100000},  // $1000.00
-		{ID: "2", Name: "Savings", Type: AccountSavings, Balance: 500000},    // $5000.00
+		{ID: "1", Name: "Checking", Type: AccountChecking, Balance: 100000},      // $1000.00
+		{ID: "2", Name: "Savings", Type: AccountSavings, Balance: 500000},        // $5000.00
 		{ID: "3", Name: "Credit Card", Type: AccountCreditCard, Balance: -50000}, // -$500.00
 	}
 
 	categories := []*Category{
-		{ID: "1", Name: "Rent", Budgeted: 150000, Balance: 150000},   // $1500.00
+		{ID: "1", Name: "Rent", Budgeted: 150000, Balance: 150000},    // $1500.00
 		{ID: "2", Name: "Groceries", Budgeted: 30000, Balance: 30000}, // $300.00
 	}
 

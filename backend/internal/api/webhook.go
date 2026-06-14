@@ -156,3 +156,36 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, map[string]string{"status": "received"})
 }
+
+func respondJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if data != nil {
+		_ = json.NewEncoder(w).Encode(data)
+	}
+}
+
+func respondError(w http.ResponseWriter, status int, message string) {
+	// Trim custom error prefixes to show clean message
+	cleanMsg := message
+	for _, prefix := range []string{"resource not found: ", "bad request: ", "conflict: ", "unauthorized: ", "forbidden: "} {
+		if len(message) > len(prefix) && message[:len(prefix)] == prefix {
+			cleanMsg = message[len(prefix):]
+			break
+		}
+	}
+	// Fallback to simple mapping if it's nested
+	if idx := lastIndex(cleanMsg, ": "); idx != -1 {
+		cleanMsg = cleanMsg[idx+2:]
+	}
+	respondJSON(w, status, map[string]string{"error": cleanMsg})
+}
+
+func lastIndex(s, substr string) int {
+	for i := len(s) - len(substr); i >= 0; i-- {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
+}

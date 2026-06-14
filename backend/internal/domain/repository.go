@@ -63,4 +63,3 @@ type UserRepository interface {
 	GetByBasiqUserID(ctx context.Context, basiqID string) (*User, error)
 	UpdateBasiqUserID(ctx context.Context, id string, basiqID string) error
 }
-

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Cents } from "@/lib/money/cents";
 import {
   ApiAccountRepository,
   ApiBudgetRepository,
@@ -56,7 +55,9 @@ describe("getActiveBudgetId", () => {
 
   it("creates a default budget when none exist", async () => {
     mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [] }));
-    mockFetch.mockResolvedValueOnce(connectResponse({ budget: budgetMsg("new-b", "Default Budget") }));
+    mockFetch.mockResolvedValueOnce(
+      connectResponse({ budget: budgetMsg("new-b", "Default Budget") }),
+    );
     const id = await getActiveBudgetId();
     expect(id).toBe("new-b");
     expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -100,7 +101,9 @@ describe("ApiBudgetRepository", () => {
   });
 
   it("count returns number of budgets", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1"), budgetMsg("b2")] }));
+    mockFetch.mockResolvedValueOnce(
+      connectResponse({ budgets: [budgetMsg("b1"), budgetMsg("b2")] }),
+    );
     // Categories for each budget
     mockFetch.mockResolvedValueOnce(connectResponse({ categories: [] }));
     mockFetch.mockResolvedValueOnce(connectResponse({ categories: [] }));
@@ -172,7 +175,9 @@ describe("ApiCategoryRepository", () => {
 
   it("list maps proto categories to frontend Category type", async () => {
     mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
-    mockFetch.mockResolvedValueOnce(connectResponse({ categories: [categoryMsg("c1", "Groceries")] }));
+    mockFetch.mockResolvedValueOnce(
+      connectResponse({ categories: [categoryMsg("c1", "Groceries")] }),
+    );
 
     const result = await repo.list();
     expect(result).toHaveLength(1);

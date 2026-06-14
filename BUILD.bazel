@@ -5,4 +5,5 @@ load("@gazelle//:def.bzl", "gazelle")
 # gazelle:exclude public
 # gazelle:exclude .bin
 # gazelle:exclude .github
+# gazelle:resolve go budgeting_system/internal/gen/budgy/v1 //backend/internal/gen/budgy/v1:budgy
 gazelle(name = "gazelle")

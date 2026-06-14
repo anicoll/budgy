@@ -3,7 +3,14 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
 
 /**
@@ -80,7 +87,10 @@ export class Category extends Message<Category> {
     return new Category().fromJsonString(jsonString, options);
   }
 
-  static equals(a: Category | PlainMessage<Category> | undefined, b: Category | PlainMessage<Category> | undefined): boolean {
+  static equals(
+    a: Category | PlainMessage<Category> | undefined,
+    b: Category | PlainMessage<Category> | undefined,
+  ): boolean {
     return proto3.util.equals(Category, a, b);
   }
 }
@@ -129,11 +139,17 @@ export class FundEnvelopeResult extends Message<FundEnvelopeResult> {
     return new FundEnvelopeResult().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FundEnvelopeResult {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): FundEnvelopeResult {
     return new FundEnvelopeResult().fromJsonString(jsonString, options);
   }
 
-  static equals(a: FundEnvelopeResult | PlainMessage<FundEnvelopeResult> | undefined, b: FundEnvelopeResult | PlainMessage<FundEnvelopeResult> | undefined): boolean {
+  static equals(
+    a: FundEnvelopeResult | PlainMessage<FundEnvelopeResult> | undefined,
+    b: FundEnvelopeResult | PlainMessage<FundEnvelopeResult> | undefined,
+  ): boolean {
     return proto3.util.equals(FundEnvelopeResult, a, b);
   }
 }
@@ -170,7 +186,10 @@ export class CreateCategoryRequest extends Message<CreateCategoryRequest> {
     { no: 3, name: "target_limit", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateCategoryRequest {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): CreateCategoryRequest {
     return new CreateCategoryRequest().fromBinary(bytes, options);
   }
 
@@ -178,11 +197,17 @@ export class CreateCategoryRequest extends Message<CreateCategoryRequest> {
     return new CreateCategoryRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateCategoryRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): CreateCategoryRequest {
     return new CreateCategoryRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: CreateCategoryRequest | PlainMessage<CreateCategoryRequest> | undefined, b: CreateCategoryRequest | PlainMessage<CreateCategoryRequest> | undefined): boolean {
+  static equals(
+    a: CreateCategoryRequest | PlainMessage<CreateCategoryRequest> | undefined,
+    b: CreateCategoryRequest | PlainMessage<CreateCategoryRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(CreateCategoryRequest, a, b);
   }
 }
@@ -207,19 +232,31 @@ export class CreateCategoryResponse extends Message<CreateCategoryResponse> {
     { no: 1, name: "category", kind: "message", T: Category },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateCategoryResponse {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): CreateCategoryResponse {
     return new CreateCategoryResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateCategoryResponse {
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): CreateCategoryResponse {
     return new CreateCategoryResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateCategoryResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): CreateCategoryResponse {
     return new CreateCategoryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: CreateCategoryResponse | PlainMessage<CreateCategoryResponse> | undefined, b: CreateCategoryResponse | PlainMessage<CreateCategoryResponse> | undefined): boolean {
+  static equals(
+    a: CreateCategoryResponse | PlainMessage<CreateCategoryResponse> | undefined,
+    b: CreateCategoryResponse | PlainMessage<CreateCategoryResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(CreateCategoryResponse, a, b);
   }
 }
@@ -244,7 +281,10 @@ export class ListCategoriesRequest extends Message<ListCategoriesRequest> {
     { no: 1, name: "budget_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListCategoriesRequest {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): ListCategoriesRequest {
     return new ListCategoriesRequest().fromBinary(bytes, options);
   }
 
@@ -252,11 +292,17 @@ export class ListCategoriesRequest extends Message<ListCategoriesRequest> {
     return new ListCategoriesRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListCategoriesRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): ListCategoriesRequest {
     return new ListCategoriesRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: ListCategoriesRequest | PlainMessage<ListCategoriesRequest> | undefined, b: ListCategoriesRequest | PlainMessage<ListCategoriesRequest> | undefined): boolean {
+  static equals(
+    a: ListCategoriesRequest | PlainMessage<ListCategoriesRequest> | undefined,
+    b: ListCategoriesRequest | PlainMessage<ListCategoriesRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(ListCategoriesRequest, a, b);
   }
 }
@@ -281,19 +327,31 @@ export class ListCategoriesResponse extends Message<ListCategoriesResponse> {
     { no: 1, name: "categories", kind: "message", T: Category, repeated: true },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListCategoriesResponse {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): ListCategoriesResponse {
     return new ListCategoriesResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListCategoriesResponse {
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): ListCategoriesResponse {
     return new ListCategoriesResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListCategoriesResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): ListCategoriesResponse {
     return new ListCategoriesResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: ListCategoriesResponse | PlainMessage<ListCategoriesResponse> | undefined, b: ListCategoriesResponse | PlainMessage<ListCategoriesResponse> | undefined): boolean {
+  static equals(
+    a: ListCategoriesResponse | PlainMessage<ListCategoriesResponse> | undefined,
+    b: ListCategoriesResponse | PlainMessage<ListCategoriesResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(ListCategoriesResponse, a, b);
   }
 }
@@ -348,7 +406,10 @@ export class UpdateCategoryRequest extends Message<UpdateCategoryRequest> {
     { no: 6, name: "target_limit", kind: "scalar", T: 3 /* ScalarType.INT64 */, opt: true },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateCategoryRequest {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): UpdateCategoryRequest {
     return new UpdateCategoryRequest().fromBinary(bytes, options);
   }
 
@@ -356,11 +417,17 @@ export class UpdateCategoryRequest extends Message<UpdateCategoryRequest> {
     return new UpdateCategoryRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateCategoryRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): UpdateCategoryRequest {
     return new UpdateCategoryRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: UpdateCategoryRequest | PlainMessage<UpdateCategoryRequest> | undefined, b: UpdateCategoryRequest | PlainMessage<UpdateCategoryRequest> | undefined): boolean {
+  static equals(
+    a: UpdateCategoryRequest | PlainMessage<UpdateCategoryRequest> | undefined,
+    b: UpdateCategoryRequest | PlainMessage<UpdateCategoryRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(UpdateCategoryRequest, a, b);
   }
 }
@@ -385,19 +452,31 @@ export class UpdateCategoryResponse extends Message<UpdateCategoryResponse> {
     { no: 1, name: "category", kind: "message", T: Category },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateCategoryResponse {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): UpdateCategoryResponse {
     return new UpdateCategoryResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateCategoryResponse {
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): UpdateCategoryResponse {
     return new UpdateCategoryResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateCategoryResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): UpdateCategoryResponse {
     return new UpdateCategoryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: UpdateCategoryResponse | PlainMessage<UpdateCategoryResponse> | undefined, b: UpdateCategoryResponse | PlainMessage<UpdateCategoryResponse> | undefined): boolean {
+  static equals(
+    a: UpdateCategoryResponse | PlainMessage<UpdateCategoryResponse> | undefined,
+    b: UpdateCategoryResponse | PlainMessage<UpdateCategoryResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(UpdateCategoryResponse, a, b);
   }
 }
@@ -428,7 +507,10 @@ export class DeleteCategoryRequest extends Message<DeleteCategoryRequest> {
     { no: 2, name: "category_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteCategoryRequest {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): DeleteCategoryRequest {
     return new DeleteCategoryRequest().fromBinary(bytes, options);
   }
 
@@ -436,11 +518,17 @@ export class DeleteCategoryRequest extends Message<DeleteCategoryRequest> {
     return new DeleteCategoryRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteCategoryRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): DeleteCategoryRequest {
     return new DeleteCategoryRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: DeleteCategoryRequest | PlainMessage<DeleteCategoryRequest> | undefined, b: DeleteCategoryRequest | PlainMessage<DeleteCategoryRequest> | undefined): boolean {
+  static equals(
+    a: DeleteCategoryRequest | PlainMessage<DeleteCategoryRequest> | undefined,
+    b: DeleteCategoryRequest | PlainMessage<DeleteCategoryRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(DeleteCategoryRequest, a, b);
   }
 }
@@ -456,22 +544,33 @@ export class DeleteCategoryResponse extends Message<DeleteCategoryResponse> {
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.DeleteCategoryResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteCategoryResponse {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): DeleteCategoryResponse {
     return new DeleteCategoryResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteCategoryResponse {
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): DeleteCategoryResponse {
     return new DeleteCategoryResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteCategoryResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): DeleteCategoryResponse {
     return new DeleteCategoryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: DeleteCategoryResponse | PlainMessage<DeleteCategoryResponse> | undefined, b: DeleteCategoryResponse | PlainMessage<DeleteCategoryResponse> | undefined): boolean {
+  static equals(
+    a: DeleteCategoryResponse | PlainMessage<DeleteCategoryResponse> | undefined,
+    b: DeleteCategoryResponse | PlainMessage<DeleteCategoryResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(DeleteCategoryResponse, a, b);
   }
 }
@@ -508,19 +607,31 @@ export class AssignCategoryFundsRequest extends Message<AssignCategoryFundsReque
     { no: 3, name: "amount", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AssignCategoryFundsRequest {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): AssignCategoryFundsRequest {
     return new AssignCategoryFundsRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AssignCategoryFundsRequest {
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): AssignCategoryFundsRequest {
     return new AssignCategoryFundsRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AssignCategoryFundsRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): AssignCategoryFundsRequest {
     return new AssignCategoryFundsRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: AssignCategoryFundsRequest | PlainMessage<AssignCategoryFundsRequest> | undefined, b: AssignCategoryFundsRequest | PlainMessage<AssignCategoryFundsRequest> | undefined): boolean {
+  static equals(
+    a: AssignCategoryFundsRequest | PlainMessage<AssignCategoryFundsRequest> | undefined,
+    b: AssignCategoryFundsRequest | PlainMessage<AssignCategoryFundsRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(AssignCategoryFundsRequest, a, b);
   }
 }
@@ -545,19 +656,31 @@ export class AssignCategoryFundsResponse extends Message<AssignCategoryFundsResp
     { no: 1, name: "category", kind: "message", T: Category },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AssignCategoryFundsResponse {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): AssignCategoryFundsResponse {
     return new AssignCategoryFundsResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AssignCategoryFundsResponse {
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): AssignCategoryFundsResponse {
     return new AssignCategoryFundsResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AssignCategoryFundsResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): AssignCategoryFundsResponse {
     return new AssignCategoryFundsResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: AssignCategoryFundsResponse | PlainMessage<AssignCategoryFundsResponse> | undefined, b: AssignCategoryFundsResponse | PlainMessage<AssignCategoryFundsResponse> | undefined): boolean {
+  static equals(
+    a: AssignCategoryFundsResponse | PlainMessage<AssignCategoryFundsResponse> | undefined,
+    b: AssignCategoryFundsResponse | PlainMessage<AssignCategoryFundsResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(AssignCategoryFundsResponse, a, b);
   }
 }
@@ -608,11 +731,17 @@ export class FundEnvelopeRequest extends Message<FundEnvelopeRequest> {
     return new FundEnvelopeRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FundEnvelopeRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): FundEnvelopeRequest {
     return new FundEnvelopeRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: FundEnvelopeRequest | PlainMessage<FundEnvelopeRequest> | undefined, b: FundEnvelopeRequest | PlainMessage<FundEnvelopeRequest> | undefined): boolean {
+  static equals(
+    a: FundEnvelopeRequest | PlainMessage<FundEnvelopeRequest> | undefined,
+    b: FundEnvelopeRequest | PlainMessage<FundEnvelopeRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(FundEnvelopeRequest, a, b);
   }
 }
@@ -645,12 +774,17 @@ export class FundEnvelopeResponse extends Message<FundEnvelopeResponse> {
     return new FundEnvelopeResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FundEnvelopeResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): FundEnvelopeResponse {
     return new FundEnvelopeResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: FundEnvelopeResponse | PlainMessage<FundEnvelopeResponse> | undefined, b: FundEnvelopeResponse | PlainMessage<FundEnvelopeResponse> | undefined): boolean {
+  static equals(
+    a: FundEnvelopeResponse | PlainMessage<FundEnvelopeResponse> | undefined,
+    b: FundEnvelopeResponse | PlainMessage<FundEnvelopeResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(FundEnvelopeResponse, a, b);
   }
 }
-

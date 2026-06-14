@@ -489,5 +489,3 @@ func TestAllocationRepository(t *testing.T) {
 	_, err = allocRepo.Get(ctx, "b-1", "acc-1", "cat-1")
 	assert.Error(t, err)
 }
-
-

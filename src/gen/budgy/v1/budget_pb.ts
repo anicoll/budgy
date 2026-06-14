@@ -3,7 +3,14 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
 
 /**
@@ -100,7 +107,10 @@ export class Budget extends Message<Budget> {
     return new Budget().fromJsonString(jsonString, options);
   }
 
-  static equals(a: Budget | PlainMessage<Budget> | undefined, b: Budget | PlainMessage<Budget> | undefined): boolean {
+  static equals(
+    a: Budget | PlainMessage<Budget> | undefined,
+    b: Budget | PlainMessage<Budget> | undefined,
+  ): boolean {
     return proto3.util.equals(Budget, a, b);
   }
 }
@@ -155,7 +165,10 @@ export class BudgetSummary extends Message<BudgetSummary> {
     return new BudgetSummary().fromJsonString(jsonString, options);
   }
 
-  static equals(a: BudgetSummary | PlainMessage<BudgetSummary> | undefined, b: BudgetSummary | PlainMessage<BudgetSummary> | undefined): boolean {
+  static equals(
+    a: BudgetSummary | PlainMessage<BudgetSummary> | undefined,
+    b: BudgetSummary | PlainMessage<BudgetSummary> | undefined,
+  ): boolean {
     return proto3.util.equals(BudgetSummary, a, b);
   }
 }
@@ -200,11 +213,17 @@ export class CreateBudgetRequest extends Message<CreateBudgetRequest> {
     return new CreateBudgetRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateBudgetRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): CreateBudgetRequest {
     return new CreateBudgetRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: CreateBudgetRequest | PlainMessage<CreateBudgetRequest> | undefined, b: CreateBudgetRequest | PlainMessage<CreateBudgetRequest> | undefined): boolean {
+  static equals(
+    a: CreateBudgetRequest | PlainMessage<CreateBudgetRequest> | undefined,
+    b: CreateBudgetRequest | PlainMessage<CreateBudgetRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(CreateBudgetRequest, a, b);
   }
 }
@@ -237,11 +256,17 @@ export class CreateBudgetResponse extends Message<CreateBudgetResponse> {
     return new CreateBudgetResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateBudgetResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): CreateBudgetResponse {
     return new CreateBudgetResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: CreateBudgetResponse | PlainMessage<CreateBudgetResponse> | undefined, b: CreateBudgetResponse | PlainMessage<CreateBudgetResponse> | undefined): boolean {
+  static equals(
+    a: CreateBudgetResponse | PlainMessage<CreateBudgetResponse> | undefined,
+    b: CreateBudgetResponse | PlainMessage<CreateBudgetResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(CreateBudgetResponse, a, b);
   }
 }
@@ -257,8 +282,7 @@ export class ListBudgetsRequest extends Message<ListBudgetsRequest> {
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.ListBudgetsRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListBudgetsRequest {
     return new ListBudgetsRequest().fromBinary(bytes, options);
@@ -268,11 +292,17 @@ export class ListBudgetsRequest extends Message<ListBudgetsRequest> {
     return new ListBudgetsRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListBudgetsRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): ListBudgetsRequest {
     return new ListBudgetsRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: ListBudgetsRequest | PlainMessage<ListBudgetsRequest> | undefined, b: ListBudgetsRequest | PlainMessage<ListBudgetsRequest> | undefined): boolean {
+  static equals(
+    a: ListBudgetsRequest | PlainMessage<ListBudgetsRequest> | undefined,
+    b: ListBudgetsRequest | PlainMessage<ListBudgetsRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(ListBudgetsRequest, a, b);
   }
 }
@@ -305,11 +335,17 @@ export class ListBudgetsResponse extends Message<ListBudgetsResponse> {
     return new ListBudgetsResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListBudgetsResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): ListBudgetsResponse {
     return new ListBudgetsResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: ListBudgetsResponse | PlainMessage<ListBudgetsResponse> | undefined, b: ListBudgetsResponse | PlainMessage<ListBudgetsResponse> | undefined): boolean {
+  static equals(
+    a: ListBudgetsResponse | PlainMessage<ListBudgetsResponse> | undefined,
+    b: ListBudgetsResponse | PlainMessage<ListBudgetsResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(ListBudgetsResponse, a, b);
   }
 }
@@ -346,7 +382,10 @@ export class GetBudgetRequest extends Message<GetBudgetRequest> {
     return new GetBudgetRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: GetBudgetRequest | PlainMessage<GetBudgetRequest> | undefined, b: GetBudgetRequest | PlainMessage<GetBudgetRequest> | undefined): boolean {
+  static equals(
+    a: GetBudgetRequest | PlainMessage<GetBudgetRequest> | undefined,
+    b: GetBudgetRequest | PlainMessage<GetBudgetRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(GetBudgetRequest, a, b);
   }
 }
@@ -383,7 +422,10 @@ export class GetBudgetResponse extends Message<GetBudgetResponse> {
     return new GetBudgetResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: GetBudgetResponse | PlainMessage<GetBudgetResponse> | undefined, b: GetBudgetResponse | PlainMessage<GetBudgetResponse> | undefined): boolean {
+  static equals(
+    a: GetBudgetResponse | PlainMessage<GetBudgetResponse> | undefined,
+    b: GetBudgetResponse | PlainMessage<GetBudgetResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(GetBudgetResponse, a, b);
   }
 }
@@ -408,19 +450,31 @@ export class GetBudgetSummaryRequest extends Message<GetBudgetSummaryRequest> {
     { no: 1, name: "budget_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBudgetSummaryRequest {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): GetBudgetSummaryRequest {
     return new GetBudgetSummaryRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBudgetSummaryRequest {
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): GetBudgetSummaryRequest {
     return new GetBudgetSummaryRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBudgetSummaryRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): GetBudgetSummaryRequest {
     return new GetBudgetSummaryRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: GetBudgetSummaryRequest | PlainMessage<GetBudgetSummaryRequest> | undefined, b: GetBudgetSummaryRequest | PlainMessage<GetBudgetSummaryRequest> | undefined): boolean {
+  static equals(
+    a: GetBudgetSummaryRequest | PlainMessage<GetBudgetSummaryRequest> | undefined,
+    b: GetBudgetSummaryRequest | PlainMessage<GetBudgetSummaryRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(GetBudgetSummaryRequest, a, b);
   }
 }
@@ -445,19 +499,31 @@ export class GetBudgetSummaryResponse extends Message<GetBudgetSummaryResponse> 
     { no: 1, name: "summary", kind: "message", T: BudgetSummary },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBudgetSummaryResponse {
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): GetBudgetSummaryResponse {
     return new GetBudgetSummaryResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBudgetSummaryResponse {
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): GetBudgetSummaryResponse {
     return new GetBudgetSummaryResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBudgetSummaryResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): GetBudgetSummaryResponse {
     return new GetBudgetSummaryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: GetBudgetSummaryResponse | PlainMessage<GetBudgetSummaryResponse> | undefined, b: GetBudgetSummaryResponse | PlainMessage<GetBudgetSummaryResponse> | undefined): boolean {
+  static equals(
+    a: GetBudgetSummaryResponse | PlainMessage<GetBudgetSummaryResponse> | undefined,
+    b: GetBudgetSummaryResponse | PlainMessage<GetBudgetSummaryResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(GetBudgetSummaryResponse, a, b);
   }
 }
@@ -508,11 +574,17 @@ export class UpdateBudgetRequest extends Message<UpdateBudgetRequest> {
     return new UpdateBudgetRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateBudgetRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): UpdateBudgetRequest {
     return new UpdateBudgetRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: UpdateBudgetRequest | PlainMessage<UpdateBudgetRequest> | undefined, b: UpdateBudgetRequest | PlainMessage<UpdateBudgetRequest> | undefined): boolean {
+  static equals(
+    a: UpdateBudgetRequest | PlainMessage<UpdateBudgetRequest> | undefined,
+    b: UpdateBudgetRequest | PlainMessage<UpdateBudgetRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(UpdateBudgetRequest, a, b);
   }
 }
@@ -545,11 +617,17 @@ export class UpdateBudgetResponse extends Message<UpdateBudgetResponse> {
     return new UpdateBudgetResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateBudgetResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): UpdateBudgetResponse {
     return new UpdateBudgetResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: UpdateBudgetResponse | PlainMessage<UpdateBudgetResponse> | undefined, b: UpdateBudgetResponse | PlainMessage<UpdateBudgetResponse> | undefined): boolean {
+  static equals(
+    a: UpdateBudgetResponse | PlainMessage<UpdateBudgetResponse> | undefined,
+    b: UpdateBudgetResponse | PlainMessage<UpdateBudgetResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(UpdateBudgetResponse, a, b);
   }
 }
@@ -582,11 +660,17 @@ export class DeleteBudgetRequest extends Message<DeleteBudgetRequest> {
     return new DeleteBudgetRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteBudgetRequest {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): DeleteBudgetRequest {
     return new DeleteBudgetRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: DeleteBudgetRequest | PlainMessage<DeleteBudgetRequest> | undefined, b: DeleteBudgetRequest | PlainMessage<DeleteBudgetRequest> | undefined): boolean {
+  static equals(
+    a: DeleteBudgetRequest | PlainMessage<DeleteBudgetRequest> | undefined,
+    b: DeleteBudgetRequest | PlainMessage<DeleteBudgetRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(DeleteBudgetRequest, a, b);
   }
 }
@@ -602,8 +686,7 @@ export class DeleteBudgetResponse extends Message<DeleteBudgetResponse> {
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.DeleteBudgetResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteBudgetResponse {
     return new DeleteBudgetResponse().fromBinary(bytes, options);
@@ -613,12 +696,17 @@ export class DeleteBudgetResponse extends Message<DeleteBudgetResponse> {
     return new DeleteBudgetResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteBudgetResponse {
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): DeleteBudgetResponse {
     return new DeleteBudgetResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: DeleteBudgetResponse | PlainMessage<DeleteBudgetResponse> | undefined, b: DeleteBudgetResponse | PlainMessage<DeleteBudgetResponse> | undefined): boolean {
+  static equals(
+    a: DeleteBudgetResponse | PlainMessage<DeleteBudgetResponse> | undefined,
+    b: DeleteBudgetResponse | PlainMessage<DeleteBudgetResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(DeleteBudgetResponse, a, b);
   }
 }
-

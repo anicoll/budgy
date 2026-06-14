@@ -3,7 +3,14 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage,
+} from "@bufbuild/protobuf";
 import { Message, proto3, Timestamp } from "@bufbuild/protobuf";
 
 /**
@@ -74,7 +81,10 @@ export class User extends Message<User> {
     return new User().fromJsonString(jsonString, options);
   }
 
-  static equals(a: User | PlainMessage<User> | undefined, b: User | PlainMessage<User> | undefined): boolean {
+  static equals(
+    a: User | PlainMessage<User> | undefined,
+    b: User | PlainMessage<User> | undefined,
+  ): boolean {
     return proto3.util.equals(User, a, b);
   }
 }
@@ -129,7 +139,10 @@ export class RegisterRequest extends Message<RegisterRequest> {
     return new RegisterRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: RegisterRequest | PlainMessage<RegisterRequest> | undefined, b: RegisterRequest | PlainMessage<RegisterRequest> | undefined): boolean {
+  static equals(
+    a: RegisterRequest | PlainMessage<RegisterRequest> | undefined,
+    b: RegisterRequest | PlainMessage<RegisterRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(RegisterRequest, a, b);
   }
 }
@@ -166,7 +179,10 @@ export class RegisterResponse extends Message<RegisterResponse> {
     return new RegisterResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: RegisterResponse | PlainMessage<RegisterResponse> | undefined, b: RegisterResponse | PlainMessage<RegisterResponse> | undefined): boolean {
+  static equals(
+    a: RegisterResponse | PlainMessage<RegisterResponse> | undefined,
+    b: RegisterResponse | PlainMessage<RegisterResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(RegisterResponse, a, b);
   }
 }
@@ -209,7 +225,10 @@ export class LoginRequest extends Message<LoginRequest> {
     return new LoginRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: LoginRequest | PlainMessage<LoginRequest> | undefined, b: LoginRequest | PlainMessage<LoginRequest> | undefined): boolean {
+  static equals(
+    a: LoginRequest | PlainMessage<LoginRequest> | undefined,
+    b: LoginRequest | PlainMessage<LoginRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(LoginRequest, a, b);
   }
 }
@@ -246,7 +265,10 @@ export class LoginResponse extends Message<LoginResponse> {
     return new LoginResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: LoginResponse | PlainMessage<LoginResponse> | undefined, b: LoginResponse | PlainMessage<LoginResponse> | undefined): boolean {
+  static equals(
+    a: LoginResponse | PlainMessage<LoginResponse> | undefined,
+    b: LoginResponse | PlainMessage<LoginResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(LoginResponse, a, b);
   }
 }
@@ -262,8 +284,7 @@ export class LogoutRequest extends Message<LogoutRequest> {
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.LogoutRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LogoutRequest {
     return new LogoutRequest().fromBinary(bytes, options);
@@ -277,7 +298,10 @@ export class LogoutRequest extends Message<LogoutRequest> {
     return new LogoutRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: LogoutRequest | PlainMessage<LogoutRequest> | undefined, b: LogoutRequest | PlainMessage<LogoutRequest> | undefined): boolean {
+  static equals(
+    a: LogoutRequest | PlainMessage<LogoutRequest> | undefined,
+    b: LogoutRequest | PlainMessage<LogoutRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(LogoutRequest, a, b);
   }
 }
@@ -293,8 +317,7 @@ export class LogoutResponse extends Message<LogoutResponse> {
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.LogoutResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LogoutResponse {
     return new LogoutResponse().fromBinary(bytes, options);
@@ -308,7 +331,10 @@ export class LogoutResponse extends Message<LogoutResponse> {
     return new LogoutResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: LogoutResponse | PlainMessage<LogoutResponse> | undefined, b: LogoutResponse | PlainMessage<LogoutResponse> | undefined): boolean {
+  static equals(
+    a: LogoutResponse | PlainMessage<LogoutResponse> | undefined,
+    b: LogoutResponse | PlainMessage<LogoutResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(LogoutResponse, a, b);
   }
 }
@@ -324,8 +350,7 @@ export class GetMeRequest extends Message<GetMeRequest> {
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.GetMeRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetMeRequest {
     return new GetMeRequest().fromBinary(bytes, options);
@@ -339,7 +364,10 @@ export class GetMeRequest extends Message<GetMeRequest> {
     return new GetMeRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: GetMeRequest | PlainMessage<GetMeRequest> | undefined, b: GetMeRequest | PlainMessage<GetMeRequest> | undefined): boolean {
+  static equals(
+    a: GetMeRequest | PlainMessage<GetMeRequest> | undefined,
+    b: GetMeRequest | PlainMessage<GetMeRequest> | undefined,
+  ): boolean {
     return proto3.util.equals(GetMeRequest, a, b);
   }
 }
@@ -376,8 +404,10 @@ export class GetMeResponse extends Message<GetMeResponse> {
     return new GetMeResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: GetMeResponse | PlainMessage<GetMeResponse> | undefined, b: GetMeResponse | PlainMessage<GetMeResponse> | undefined): boolean {
+  static equals(
+    a: GetMeResponse | PlainMessage<GetMeResponse> | undefined,
+    b: GetMeResponse | PlainMessage<GetMeResponse> | undefined,
+  ): boolean {
     return proto3.util.equals(GetMeResponse, a, b);
   }
 }
-

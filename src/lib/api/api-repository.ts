@@ -1,18 +1,18 @@
+import type { Timestamp } from "@bufbuild/protobuf";
 import type { Account, AccountType } from "@/features/accounts/types";
 import type { Budget } from "@/features/budgets/types";
 import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
-import type { Cents } from "@/lib/money/cents";
-import type { ListQuery, Repository } from "@/lib/storage/repository";
+import { AccountType as ProtoAccountType } from "@/gen/budgy/v1/account_pb";
+import { BudgetMethod } from "@/gen/budgy/v1/budget_pb";
 import {
   accountClient,
   budgetClient,
   categoryClient,
   transactionClient,
 } from "@/lib/api/connect-client";
-import { AccountType as ProtoAccountType } from "@/gen/budgy/v1/account_pb";
-import { BudgetMethod } from "@/gen/budgy/v1/budget_pb";
-import type { Timestamp } from "@bufbuild/protobuf";
+import type { Cents } from "@/lib/money/cents";
+import type { ListQuery, Repository } from "@/lib/storage/repository";
 
 // ─── Timestamp helpers ────────────────────────────────────────────────────────
 
@@ -440,7 +440,10 @@ export class ApiTransactionRepository implements Repository<Transaction> {
     const existing = await this.get(entity.id);
     const budgetId = await getActiveBudgetId();
     const amount = BigInt(entity.type === "debit" ? -entity.amount : entity.amount);
-    const dateTs = { seconds: BigInt(Math.floor(new Date(entity.date).getTime() / 1000)), nanos: 0 };
+    const dateTs = {
+      seconds: BigInt(Math.floor(new Date(entity.date).getTime() / 1000)),
+      nanos: 0,
+    };
 
     if (existing) {
       const res = await transactionClient.updateTransaction({

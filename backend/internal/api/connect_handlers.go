@@ -15,6 +15,10 @@ import (
 	"budgeting_system/internal/service"
 )
 
+type responseWriterKeyType struct{}
+
+var responseWriterKey = responseWriterKeyType{}
+
 // ─── Error mapping ────────────────────────────────────────────────────────────
 
 func toConnectError(err error) error {

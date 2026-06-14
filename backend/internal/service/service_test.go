@@ -144,7 +144,7 @@ func TestCategoryService_FundEnvelope(t *testing.T) {
 
 	mockAccRepo.On("GetByID", mock.Anything, "acc-1").Return(acc, nil)
 	mockCatRepo.On("GetByID", mock.Anything, "cat-1").Return(cat, nil)
-	
+
 	// Mocks for calculateUnallocated
 	mockAllocRepo.On("ListByAccount", mock.Anything, "b-1", "acc-1").Return([]*domain.EnvelopeAllocation{}, nil)
 	mockTxRepo.On("ListByAccount", mock.Anything, "acc-1").Return([]*domain.Transaction{}, nil)

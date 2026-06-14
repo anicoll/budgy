@@ -7,6 +7,7 @@ help: ## List available targets
 
 install: ## Install dependencies
 	$(PNPM) install
+	go -C backend mod download
 
 dev: ## Start the Next.js dev server (Turbopack) on :3000
 	$(PNPM) dev
@@ -16,6 +17,7 @@ dev-api: ## Start Next.js dev server with backend API integration enabled
 
 build: ## Production build
 	$(PNPM) build
+	go -C backend build ./...
 
 start: build ## Build then serve the production bundle
 	$(PNPM) start
@@ -23,17 +25,21 @@ start: build ## Build then serve the production bundle
 typecheck: ## Run TypeScript without emitting
 	$(PNPM) typecheck
 
-lint: ## Run Biome lint + format checks
+lint: ## Run Biome check + Go vet
 	$(PNPM) lint
+	go -C backend vet ./...
 
-lint-fix: ## Apply safe Biome fixes (imports, format, lint)
+lint-fix: ## Apply safe Biome fixes + Go fmt
 	$(PNPM) lint:fix
+	go -C backend fmt ./...
 
-format: ## Format source with Biome
+format: ## Format source with Biome + Go fmt
 	$(PNPM) format
+	go -C backend fmt ./...
 
-test: ## Run Vitest once
+test: ## Run Vitest and Go tests
 	$(PNPM) test
+	go -C backend test ./...
 
 test-watch: ## Run Vitest in watch mode
 	$(PNPM) test:watch

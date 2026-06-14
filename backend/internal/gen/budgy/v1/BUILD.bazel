@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "budgy",
+    srcs = [
+        "account.pb.go",
+        "auth.pb.go",
+        "basiq.pb.go",
+        "budget.pb.go",
+        "category.pb.go",
+        "transaction.pb.go",
+    ],
+    importpath = "budgeting_system/internal/gen/budgy/v1",
+    visibility = ["//backend:__subpackages__"],
+    deps = [
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

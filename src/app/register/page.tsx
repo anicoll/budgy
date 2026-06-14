@@ -62,8 +62,9 @@ export default function RegisterPage() {
         first_name: firstName,
         last_name: lastName,
       });
-    } catch (err: any) {
-      setLocalError(err.message || "Failed to register.");
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to register.";
+      setLocalError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }

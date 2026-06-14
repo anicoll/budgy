@@ -1,0 +1,35 @@
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+
+proto_library(
+    name = "budgyv1_proto",
+    srcs = [
+        "account.proto",
+        "auth.proto",
+        "basiq.proto",
+        "budget.proto",
+        "category.proto",
+        "transaction.proto",
+    ],
+    visibility = ["//visibility:public"],
+    deps = ["@com_google_protobuf//:timestamp_proto"],
+)
+
+go_proto_library(
+    name = "budgyv1_go_proto",
+    compilers = [
+        "@rules_go//proto:go_proto",
+        "@rules_go//proto:go_grpc_v2",
+    ],
+    importpath = "budgeting_system/internal/gen/budgy/v1",
+    proto = ":budgyv1_proto",
+    visibility = ["//:__subpackages__"],
+)
+
+go_library(
+    name = "budgy",
+    embed = [":budgyv1_go_proto"],
+    importpath = "budgeting_system/internal/gen/budgy/v1",
+    visibility = ["//:__subpackages__"],
+)

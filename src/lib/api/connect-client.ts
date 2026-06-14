@@ -1,11 +1,11 @@
-import { createConnectTransport } from "@connectrpc/connect-web";
 import { createClient } from "@connectrpc/connect";
-import { AuthService } from "@/gen/budgy/v1/auth_connect";
-import { BudgetService } from "@/gen/budgy/v1/budget_connect";
+import { createConnectTransport } from "@connectrpc/connect-web";
 import { AccountService } from "@/gen/budgy/v1/account_connect";
+import { AuthService } from "@/gen/budgy/v1/auth_connect";
+import { BankSyncService } from "@/gen/budgy/v1/basiq_connect";
+import { BudgetService } from "@/gen/budgy/v1/budget_connect";
 import { CategoryService } from "@/gen/budgy/v1/category_connect";
 import { TransactionService } from "@/gen/budgy/v1/transaction_connect";
-import { BankSyncService } from "@/gen/budgy/v1/basiq_connect";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -16,8 +16,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
  */
 const transport = createConnectTransport({
   baseUrl: API_BASE_URL,
-  fetch: (input, init) =>
-    globalThis.fetch(input, { ...init, credentials: "include" }),
+  fetch: (input, init) => globalThis.fetch(input, { ...init, credentials: "include" }),
 });
 
 export const authClient = createClient(AuthService, transport);

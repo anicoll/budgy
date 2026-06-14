@@ -6,9 +6,9 @@ import (
 
 func TestGetEnvelopeSummary(t *testing.T) {
 	tests := []struct {
-		name        string
-		category    *Category
-		expected    EnvelopeSummary
+		name     string
+		category *Category
+		expected EnvelopeSummary
 	}{
 		{
 			name: "Normal state under capacity",
