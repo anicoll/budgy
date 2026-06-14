@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package budgy.v1;
+
+option go_package = "budgeting_system/internal/gen/budgy/v1;budgyv1";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+
+message Category {
+  string id           = 1;
+  string budget_id    = 2;
+  string name         = 3;
+  int64  budgeted     = 4;
+  int64  balance      = 5;
+  int64  target_limit = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message FundEnvelopeResult {
+  // The updated account after funding the envelope
+  string account_id      = 1;
+  int64  account_balance = 2;
+  // The updated envelope/category
+  Category envelope = 3;
+}
+
+// ─── Requests / Responses ─────────────────────────────────────────────────────
+
+message CreateCategoryRequest {
+  string budget_id    = 1;
+  string name         = 2;
+  int64  target_limit = 3;
+}
+
+message CreateCategoryResponse {
+  Category category = 1;
+}
+
+message ListCategoriesRequest {
+  string budget_id = 1;
+}
+
+message ListCategoriesResponse {
+  repeated Category categories = 1;
+}
+
+message UpdateCategoryRequest {
+  string budget_id    = 1;
+  string category_id  = 2;
+  optional string name         = 3;
+  optional int64  budgeted     = 4;
+  optional int64  balance      = 5;
+  optional int64  target_limit = 6;
+}
+
+message UpdateCategoryResponse {
+  Category category = 1;
+}
+
+message DeleteCategoryRequest {
+  string budget_id   = 1;
+  string category_id = 2;
+}
+
+message DeleteCategoryResponse {}
+
+message AssignCategoryFundsRequest {
+  string budget_id   = 1;
+  string category_id = 2;
+  int64  amount      = 3;
+}
+
+message AssignCategoryFundsResponse {
+  Category category = 1;
+}
+
+message FundEnvelopeRequest {
+  string budget_id   = 1;
+  string category_id = 2;
+  string account_id  = 3;
+  int64  amount      = 4;
+}
+
+message FundEnvelopeResponse {
+  FundEnvelopeResult result = 1;
+}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
+
+service CategoryService {
+  rpc CreateCategory(CreateCategoryRequest)           returns (CreateCategoryResponse);
+  rpc ListCategories(ListCategoriesRequest)           returns (ListCategoriesResponse);
+  rpc UpdateCategory(UpdateCategoryRequest)           returns (UpdateCategoryResponse);
+  rpc DeleteCategory(DeleteCategoryRequest)           returns (DeleteCategoryResponse);
+  rpc AssignCategoryFunds(AssignCategoryFundsRequest) returns (AssignCategoryFundsResponse);
+  rpc FundEnvelope(FundEnvelopeRequest)               returns (FundEnvelopeResponse);
+}

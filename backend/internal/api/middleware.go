@@ -7,8 +7,6 @@ import (
 
 	"budgeting_system/internal/domain"
 	"budgeting_system/internal/service"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type contextKey string
@@ -54,9 +52,7 @@ func (s *APIServer) withAuth(next http.Handler) http.Handler {
 		tokenStr := cookie.Value
 		claims := &Claims{}
 
-		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecretKey, nil
-		})
+		token, err := parseJWT(tokenStr, claims)
 
 		if err != nil || !token.Valid {
 			respondError(w, http.StatusUnauthorized, "unauthorized: invalid token")

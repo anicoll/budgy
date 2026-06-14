@@ -74,11 +74,14 @@ func (s *APIServer) Routes() *http.ServeMux {
 	s.handleBudgetSecure(mux, "PUT /api/budgets/{id}/categories/{cat_id}", MakeHandler(s.handleUpdateCategory))
 	s.handleBudgetSecure(mux, "DELETE /api/budgets/{id}/categories/{cat_id}", MakeHandler(s.handleDeleteCategory))
 
-	// Transaction handlers
+	// Transaction handlers (legacy REST - kept for backwards compat during migration)
 	s.handleBudgetSecure(mux, "POST /api/budgets/{id}/transactions", MakeHandler(s.handleCreateTransaction))
 	s.handleBudgetSecure(mux, "GET /api/budgets/{id}/transactions", MakeHandler(s.handleListTransactions))
 	s.handleBudgetSecure(mux, "PUT /api/budgets/{id}/transactions/{tx_id}", MakeHandler(s.handleUpdateTransaction))
 	s.handleBudgetSecure(mux, "DELETE /api/budgets/{id}/transactions/{tx_id}", MakeHandler(s.handleDeleteTransaction))
+
+	// Connect RPC handlers (protobuf over HTTP POST)
+	s.MountConnectHandlers(mux)
 
 	return mux
 }

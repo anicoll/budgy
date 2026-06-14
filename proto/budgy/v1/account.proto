@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package budgy.v1;
+
+option go_package = "budgeting_system/internal/gen/budgy/v1;budgyv1";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum AccountType {
+  ACCOUNT_TYPE_UNSPECIFIED  = 0;
+  ACCOUNT_TYPE_CHECKING     = 1;
+  ACCOUNT_TYPE_SAVINGS      = 2;
+  ACCOUNT_TYPE_CREDIT_CARD  = 3;
+  ACCOUNT_TYPE_CASH         = 4;
+}
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+
+message Account {
+  string      id              = 1;
+  string      budget_id       = 2;
+  string      name            = 3;
+  AccountType type            = 4;
+  int64       balance         = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  string      class           = 8;
+  string      account_no      = 9;
+  optional int64 available_funds = 10;
+  string      product         = 11;
+  string      institution_id  = 12;
+  string      connection_id   = 13;
+  optional google.protobuf.Timestamp last_updated = 14;
+}
+
+// ─── Requests / Responses ─────────────────────────────────────────────────────
+
+message CreateAccountRequest {
+  string      budget_id = 1;
+  string      name      = 2;
+  AccountType type      = 3;
+  int64       balance   = 4;
+}
+
+message CreateAccountResponse {
+  Account account = 1;
+}
+
+message ListAccountsRequest {
+  string budget_id = 1;
+}
+
+message ListAccountsResponse {
+  repeated Account accounts = 1;
+}
+
+message UpdateAccountRequest {
+  string      budget_id       = 1;
+  string      account_id      = 2;
+  optional string name            = 3;
+  optional AccountType type       = 4;
+  optional int64  balance         = 5;
+  optional string class           = 6;
+  optional string account_no      = 7;
+  optional int64  available_funds = 8;
+  optional string product         = 9;
+  optional string institution_id  = 10;
+  optional string connection_id   = 11;
+  optional google.protobuf.Timestamp last_updated = 12;
+}
+
+message UpdateAccountResponse {
+  Account account = 1;
+}
+
+message DeleteAccountRequest {
+  string budget_id  = 1;
+  string account_id = 2;
+}
+
+message DeleteAccountResponse {}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
+
+service AccountService {
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+  rpc ListAccounts(ListAccountsRequest)   returns (ListAccountsResponse);
+  rpc UpdateAccount(UpdateAccountRequest) returns (UpdateAccountResponse);
+  rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
+}

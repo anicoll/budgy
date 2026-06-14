@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package budgy.v1;
+
+option go_package = "budgeting_system/internal/gen/budgy/v1;budgyv1";
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+
+message BasiqAuthLink {
+  string token       = 1;
+  string connect_url = 2;
+}
+
+// ─── Requests / Responses ─────────────────────────────────────────────────────
+
+message GetBasiqAuthLinkRequest {}
+
+message GetBasiqAuthLinkResponse {
+  BasiqAuthLink auth_link = 1;
+}
+
+message SyncBankRequest {}
+
+message SyncBankResponse {
+  string message = 1;
+}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
+
+service BankSyncService {
+  rpc GetBasiqAuthLink(GetBasiqAuthLinkRequest) returns (GetBasiqAuthLinkResponse);
+  rpc SyncBank(SyncBankRequest)                 returns (SyncBankResponse);
+}

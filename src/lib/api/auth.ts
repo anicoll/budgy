@@ -1,5 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { authClient } from "@/lib/api/connect-client";
 
+// Re-export User shape matching existing interface consumers expect
 export interface User {
   id: string;
   email: string;
@@ -10,22 +11,24 @@ export interface User {
   updated_at: string;
 }
 
-import { usePrefs } from "@/lib/state/prefs-store";
-
-const originalFetch = globalThis.fetch;
-function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const isTest =
-    typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.VITEST);
-  if (!isTest) {
-    const mode = usePrefs.getState().storageMode || "online";
-    if (mode === "offline") {
-      return Promise.reject(new Error("Cannot make API requests in Offline Mode."));
-    }
-  }
-  return originalFetch(input, {
-    ...init,
-    credentials: "include",
-  });
+function protoUserToUser(u: {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  basiqUserId?: string;
+  createdAt?: { toDate(): Date } | null;
+  updatedAt?: { toDate(): Date } | null;
+}): User {
+  return {
+    id: u.id,
+    email: u.email,
+    first_name: u.firstName,
+    last_name: u.lastName,
+    basiq_user_id: u.basiqUserId || undefined,
+    created_at: u.createdAt ? u.createdAt.toDate().toISOString() : new Date().toISOString(),
+    updated_at: u.updatedAt ? u.updatedAt.toDate().toISOString() : new Date().toISOString(),
+  };
 }
 
 export async function register(req: {
@@ -34,51 +37,28 @@ export async function register(req: {
   first_name: string;
   last_name: string;
 }): Promise<User> {
-  const res = await authFetch(`${API_BASE_URL}/api/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
+  const res = await authClient.register({
+    email: req.email,
+    password: req.password,
+    firstName: req.first_name,
+    lastName: req.last_name,
   });
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || "Failed to register");
-  }
-
-  return res.json();
+  if (!res.user) throw new Error("Failed to register");
+  return protoUserToUser(res.user);
 }
 
 export async function login(req: { email: string; password: string }): Promise<User> {
-  const res = await authFetch(`${API_BASE_URL}/api/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || "Failed to login");
-  }
-
-  return res.json();
+  const res = await authClient.login({ email: req.email, password: req.password });
+  if (!res.user) throw new Error("Failed to login");
+  return protoUserToUser(res.user);
 }
 
 export async function logout(): Promise<void> {
-  const res = await authFetch(`${API_BASE_URL}/api/auth/logout`, {
-    method: "POST",
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to logout");
-  }
+  await authClient.logout({});
 }
 
 export async function getMe(): Promise<User> {
-  const res = await authFetch(`${API_BASE_URL}/api/auth/me`);
-
-  if (!res.ok) {
-    throw new Error("Unauthorized");
-  }
-
-  return res.json();
+  const res = await authClient.getMe({});
+  if (!res.user) throw new Error("Unauthorized");
+  return protoUserToUser(res.user);
 }

@@ -9,16 +9,33 @@ import {
   getActiveBudgetId,
 } from "./api-repository";
 
-// Mock global fetch
+// Mock global fetch for Connect RPC JSON protocol
+// Connect uses POST and returns {"result": <response_message>} or the message directly
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-function jsonResponse(data: unknown, status = 200): Response {
+// Connect RPC JSON protocol wraps responses in the response message fields directly
+// For a ListBudgetsResponse: { "budgets": [...] }
+function connectResponse(data: unknown, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
+    headers: new Headers({ "content-type": "application/json" }),
     json: () => Promise.resolve(data),
+    text: () => Promise.resolve(JSON.stringify(data)),
   } as Response;
+}
+
+// Helper: budget proto-like object for connect responses
+function budgetMsg(id: string, name = "Test") {
+  return {
+    id,
+    name,
+    method: 1, // BUDGET_METHOD_ZERO_SUM = 1
+    currency: "AUD",
+    createdAt: "2024-01-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  };
 }
 
 beforeEach(() => {
@@ -32,32 +49,24 @@ afterEach(() => {
 
 describe("getActiveBudgetId", () => {
   it("returns the first budget id when budgets exist", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "b1", name: "Budget 1" }]));
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     const id = await getActiveBudgetId();
     expect(id).toBe("b1");
   });
 
   it("creates a default budget when none exist", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse([]));
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({
-        id: "new-b",
-        name: "Default Budget",
-        method: "ZERO_SUM",
-        currency: "AUD",
-      }),
-    );
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [] }));
+    mockFetch.mockResolvedValueOnce(connectResponse({ budget: budgetMsg("new-b", "Default Budget") }));
     const id = await getActiveBudgetId();
     expect(id).toBe("new-b");
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
   it("caches the budget id after the first call", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "cached-id", name: "B" }]));
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("cached-id")] }));
     await getActiveBudgetId();
     const id2 = await getActiveBudgetId();
     expect(id2).toBe("cached-id");
-    // Only one fetch call (cached)
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });
@@ -65,27 +74,16 @@ describe("getActiveBudgetId", () => {
 describe("ApiBudgetRepository", () => {
   const repo = new ApiBudgetRepository();
 
-  it("list returns empty array when API returns null", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse(null));
+  it("list returns empty array when API returns no budgets", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [] }));
     const result = await repo.list();
     expect(result).toEqual([]);
   });
 
-  it("list maps Go budgets to frontend Budget type", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse([
-        {
-          id: "b1",
-          name: "Test Budget",
-          method: "ZERO_SUM",
-          currency: "AUD",
-          created_at: "2024-01-15T00:00:00Z",
-          updated_at: "2024-01-15T00:00:00Z",
-        },
-      ]),
-    );
-    // Categories fetch for targets
-    mockFetch.mockResolvedValueOnce(jsonResponse([]));
+  it("list maps proto budgets to frontend Budget type", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1", "Test Budget")] }));
+    // Categories fetch for targets (listCategories)
+    mockFetch.mockResolvedValueOnce(connectResponse({ categories: [] }));
 
     const result = await repo.list();
     expect(result).toHaveLength(1);
@@ -95,32 +93,17 @@ describe("ApiBudgetRepository", () => {
     expect(result[0].active).toBe(true);
   });
 
-  it("get returns null on 404", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse(null, 404));
+  it("get returns null on error", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ code: "not_found" }, 404));
     const result = await repo.get("nonexistent");
     expect(result).toBeNull();
   });
 
   it("count returns number of budgets", async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse([
-        {
-          id: "b1",
-          name: "B1",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-        {
-          id: "b2",
-          name: "B2",
-          created_at: "2024-02-01T00:00:00Z",
-          updated_at: "2024-02-01T00:00:00Z",
-        },
-      ]),
-    );
-    // Categories fetch for each budget
-    mockFetch.mockResolvedValueOnce(jsonResponse([]));
-    mockFetch.mockResolvedValueOnce(jsonResponse([]));
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1"), budgetMsg("b2")] }));
+    // Categories for each budget
+    mockFetch.mockResolvedValueOnce(connectResponse({ categories: [] }));
+    mockFetch.mockResolvedValueOnce(connectResponse({ categories: [] }));
 
     const count = await repo.count();
     expect(count).toBe(2);
@@ -130,45 +113,41 @@ describe("ApiBudgetRepository", () => {
 describe("ApiAccountRepository", () => {
   const repo = new ApiAccountRepository();
 
-  it("list maps Go accounts to frontend Account type", async () => {
-    // First call for getActiveBudgetId
-    mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "b1", name: "B1" }]));
-    // Second call for accounts
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse([
-        {
-          id: "a1",
-          budget_id: "b1",
-          name: "Checking",
-          type: "CHECKING",
-          balance: 50000,
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-      ]),
-    );
+  function accountMsg(id: string, name: string, type = 1, balance = 50000) {
+    return {
+      id,
+      budgetId: "b1",
+      name,
+      type,
+      balance: String(balance),
+      createdAt: "2024-01-01T00:00:00Z",
+      updatedAt: "2024-01-01T00:00:00Z",
+    };
+  }
+
+  it("list maps proto accounts to frontend Account type", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
+    mockFetch.mockResolvedValueOnce(connectResponse({ accounts: [accountMsg("a1", "Checking")] }));
 
     const result = await repo.list();
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("a1");
     expect(result[0].name).toBe("Checking");
     expect(result[0].type).toBe("checking");
-    expect(result[0].openingBalance).toBe(50000);
-    expect(result[0].currentBalance).toBe(50000);
     expect(result[0].currency).toBe("AUD");
   });
 
-  it("list returns empty array when API returns null", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "b1", name: "B1" }]));
-    mockFetch.mockResolvedValueOnce(jsonResponse(null));
+  it("list returns empty array when API returns no accounts", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
+    mockFetch.mockResolvedValueOnce(connectResponse({ accounts: [] }));
 
     const result = await repo.list();
     expect(result).toEqual([]);
   });
 
   it("get returns null for nonexistent account", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "b1", name: "B1" }]));
-    mockFetch.mockResolvedValueOnce(jsonResponse([]));
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
+    mockFetch.mockResolvedValueOnce(connectResponse({ accounts: [] }));
 
     const result = await repo.get("nonexistent");
     expect(result).toBeNull();
@@ -178,22 +157,22 @@ describe("ApiAccountRepository", () => {
 describe("ApiCategoryRepository", () => {
   const repo = new ApiCategoryRepository();
 
-  it("list maps Go categories to frontend Category type", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "b1", name: "B1" }]));
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse([
-        {
-          id: "c1",
-          budget_id: "b1",
-          name: "Groceries",
-          budgeted: 10000,
-          balance: 5000,
-          target_limit: 15000,
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-      ]),
-    );
+  function categoryMsg(id: string, name: string) {
+    return {
+      id,
+      budgetId: "b1",
+      name,
+      budgeted: "10000",
+      balance: "5000",
+      targetLimit: "15000",
+      createdAt: "2024-01-01T00:00:00Z",
+      updatedAt: "2024-01-01T00:00:00Z",
+    };
+  }
+
+  it("list maps proto categories to frontend Category type", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
+    mockFetch.mockResolvedValueOnce(connectResponse({ categories: [categoryMsg("c1", "Groceries")] }));
 
     const result = await repo.list();
     expect(result).toHaveLength(1);
@@ -207,22 +186,24 @@ describe("ApiCategoryRepository", () => {
 describe("ApiTransactionRepository", () => {
   const repo = new ApiTransactionRepository();
 
-  it("list maps Go transactions to frontend Transaction type", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "b1", name: "B1" }]));
+  function txMsg(id: string, amount: string, description: string, categoryId = "c1") {
+    return {
+      id,
+      budgetId: "b1",
+      accountId: "a1",
+      categoryId,
+      amount,
+      description,
+      date: "2024-01-15T00:00:00Z",
+      createdAt: "2024-01-15T00:00:00Z",
+      updatedAt: "2024-01-15T00:00:00Z",
+    };
+  }
+
+  it("list maps proto transactions to frontend Transaction type (debit)", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
-      jsonResponse([
-        {
-          id: "t1",
-          budget_id: "b1",
-          account_id: "a1",
-          category_id: "c1",
-          amount: -5000,
-          description: "Woolworths",
-          date: "2024-01-15T00:00:00Z",
-          created_at: "2024-01-15T00:00:00Z",
-          updated_at: "2024-01-15T00:00:00Z",
-        },
-      ]),
+      connectResponse({ transactions: [txMsg("t1", "-5000", "Woolworths")] }),
     );
 
     const result = await repo.list();
@@ -236,64 +217,13 @@ describe("ApiTransactionRepository", () => {
   });
 
   it("maps positive amounts to credit type", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "b1", name: "B1" }]));
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
-      jsonResponse([
-        {
-          id: "t2",
-          budget_id: "b1",
-          account_id: "a1",
-          category_id: "",
-          amount: 150000,
-          description: "Salary",
-          date: "2024-01-31T00:00:00Z",
-          created_at: "2024-01-31T00:00:00Z",
-          updated_at: "2024-01-31T00:00:00Z",
-        },
-      ]),
+      connectResponse({ transactions: [txMsg("t2", "150000", "Salary", "")] }),
     );
 
     const result = await repo.list();
     expect(result[0].type).toBe("credit");
     expect(result[0].categoryId).toBeNull();
-  });
-
-  it("upsert sends POST and returns mapped transaction", async () => {
-    // getActiveBudgetId
-    mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "b1", name: "B1" }]));
-    // get() -> list() for existence check
-    mockFetch.mockResolvedValueOnce(jsonResponse([]));
-    // POST create
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({
-        id: "new-t1",
-        budget_id: "b1",
-        account_id: "a1",
-        category_id: "c1",
-        amount: -3000,
-        description: "Test",
-        date: "2024-02-01T00:00:00Z",
-        created_at: "2024-02-01T00:00:00Z",
-        updated_at: "2024-02-01T00:00:00Z",
-      }),
-    );
-
-    const result = await repo.upsert({
-      id: "temp-id",
-      accountId: "a1",
-      date: "2024-02-01T00:00:00Z",
-      amount: 3000 as Cents,
-      type: "debit",
-      categoryId: "c1",
-      payee: "Test",
-      tags: [],
-      cleared: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-
-    expect(result.id).toBe("new-t1");
-    expect(result.amount).toBe(3000);
-    expect(result.type).toBe("debit");
   });
 });

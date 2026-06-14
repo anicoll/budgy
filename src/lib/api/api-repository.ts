@@ -4,450 +4,342 @@ import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
 import type { Cents } from "@/lib/money/cents";
 import type { ListQuery, Repository } from "@/lib/storage/repository";
+import {
+  accountClient,
+  budgetClient,
+  categoryClient,
+  transactionClient,
+} from "@/lib/api/connect-client";
+import { AccountType as ProtoAccountType } from "@/gen/budgy/v1/account_pb";
+import { BudgetMethod } from "@/gen/budgy/v1/budget_pb";
+import type { Timestamp } from "@bufbuild/protobuf";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+// ─── Timestamp helpers ────────────────────────────────────────────────────────
 
-import { usePrefs } from "@/lib/state/prefs-store";
-
-// Shadow fetch to inject credentials: "include" for backend cookie auth
-function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const isTest =
-    typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.VITEST);
-  if (!isTest) {
-    const mode = usePrefs.getState().storageMode || "online";
-    if (mode === "offline") {
-      return Promise.reject(new Error("Cannot make API requests in Offline Mode."));
-    }
-  }
-  return globalThis.fetch(input, {
-    ...init,
-    credentials: "include",
-  });
+function tsToISO(ts: Timestamp | null | undefined): string {
+  if (!ts) return new Date().toISOString();
+  // Timestamp in @bufbuild/protobuf v1 has a toDate() method
+  return (ts as unknown as { toDate(): Date }).toDate().toISOString();
 }
 
-// Go API response types
-interface GoBudgetResponse {
-  id: string;
-  name: string;
-  method: string;
-  currency: string;
-  created_at: string;
-  updated_at: string;
+function tsToDateStr(ts: Timestamp | null | undefined): string {
+  return tsToISO(ts).substring(0, 10);
 }
 
-interface GoAccountResponse {
-  id: string;
-  budget_id: string;
-  name: string;
-  type: string;
-  balance: number;
-  created_at: string;
-  updated_at: string;
-  class?: string;
-  account_no?: string;
-  available_funds?: number;
-  product?: string;
-  institution_id?: string;
-  connection_id?: string;
-  last_updated?: string;
-}
-
-interface GoCategoryResponse {
-  id: string;
-  budget_id: string;
-  name: string;
-  budgeted: number;
-  balance: number;
-  target_limit: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface GoTransactionResponse {
-  id: string;
-  budget_id: string;
-  account_id: string;
-  category_id: string;
-  amount: number;
-  description: string;
-  date: string;
-  created_at: string;
-  updated_at: string;
-}
+// ─── Active budget cache ───────────────────────────────────────────────────────
 
 let activeBudgetIdCache: string | null = null;
 
 export async function getActiveBudgetId(): Promise<string> {
   if (activeBudgetIdCache) return activeBudgetIdCache;
   try {
-    const res = await fetch(`${API_BASE_URL}/api/budgets`);
-    if (!res.ok) throw new Error("Failed to fetch budgets");
-    const budgets = await res.json();
-    if (budgets && budgets.length > 0) {
+    const res = await budgetClient.listBudgets({});
+    const budgets = res.budgets ?? [];
+    if (budgets.length > 0) {
       activeBudgetIdCache = budgets[0].id;
       return budgets[0].id;
     }
   } catch (e) {
     console.error("Error fetching budgets, attempting to create default:", e);
   }
-
   // Create default budget if none exists
-  const createRes = await fetch(`${API_BASE_URL}/api/budgets`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: "Default Budget",
-      method: "ZERO_SUM",
-      currency: "AUD",
-    }),
+  const createRes = await budgetClient.createBudget({
+    name: "Default Budget",
+    method: BudgetMethod.ZERO_SUM,
+    currency: "AUD",
   });
-  if (!createRes.ok) throw new Error("Failed to create default budget");
-  const defaultBudget = await createRes.json();
-  activeBudgetIdCache = defaultBudget.id;
-  return defaultBudget.id;
+  if (!createRes.budget) throw new Error("Failed to create default budget");
+  activeBudgetIdCache = createRes.budget.id;
+  return createRes.budget.id;
 }
 
 export function clearActiveBudgetIdCache() {
   activeBudgetIdCache = null;
 }
 
-// -----------------------------------------------------------------------------
-// ApiBudgetRepository
-// -----------------------------------------------------------------------------
-export class ApiBudgetRepository implements Repository<Budget> {
-  async list(_query?: ListQuery<Budget>): Promise<Budget[]> {
-    const res = await fetch(`${API_BASE_URL}/api/budgets`);
-    if (!res.ok) throw new Error("Failed to fetch budgets from API");
-    const goBudgets = await res.json();
-    if (!goBudgets) return [];
+// ─── Type mappers ─────────────────────────────────────────────────────────────
 
-    // Map each budget
-    const budgets: Budget[] = [];
-    for (const b of goBudgets as GoBudgetResponse[]) {
-      // Fetch categories for this budget to build targets
-      let targets: Budget["targets"] = [];
-      try {
-        const catRes = await fetch(`${API_BASE_URL}/api/budgets/${b.id}/categories`);
-        if (catRes.ok) {
-          const goCats = await catRes.json();
-          if (goCats) {
-            targets = (goCats as GoCategoryResponse[])
-              .filter((c) => c.target_limit > 0)
-              .map((c) => ({
-                categoryId: c.id,
-                amount: c.target_limit as Cents,
-                frequency: "monthly",
-                mode: "envelope",
-                openedAt: b.created_at
-                  ? b.created_at.substring(0, 10)
-                  : new Date().toISOString().substring(0, 10),
-              }));
-          }
-        }
-      } catch (e) {
-        console.error(`Error fetching categories for budget ${b.id}:`, e);
-      }
-
-      budgets.push({
-        id: b.id,
-        name: b.name,
-        period: "monthly",
-        startDate: b.created_at
-          ? b.created_at.substring(0, 10)
-          : new Date().toISOString().substring(0, 10),
-        targets,
-        active: true, // Mark active so the first one matches getActiveBudget
-        createdAt: b.created_at || new Date().toISOString(),
-        updatedAt: b.updated_at || new Date().toISOString(),
-      });
-    }
-    return budgets;
-  }
-
-  async get(id: string): Promise<Budget | null> {
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${id}`);
-    if (!res.ok) return null;
-    const b = (await res.json()) as GoBudgetResponse;
-
-    // Fetch categories for this budget to build targets
-    let targets: Budget["targets"] = [];
-    try {
-      const catRes = await fetch(`${API_BASE_URL}/api/budgets/${b.id}/categories`);
-      if (catRes.ok) {
-        const goCats = await catRes.json();
-        if (goCats) {
-          targets = (goCats as GoCategoryResponse[])
-            .filter((c) => c.target_limit > 0)
-            .map((c) => ({
-              categoryId: c.id,
-              amount: c.target_limit as Cents,
-              frequency: "monthly",
-              mode: "envelope",
-              openedAt: b.created_at
-                ? b.created_at.substring(0, 10)
-                : new Date().toISOString().substring(0, 10),
-            }));
-        }
-      }
-    } catch (e) {
-      console.error(`Error fetching categories for budget ${b.id}:`, e);
-    }
-
-    return {
-      id: b.id,
-      name: b.name,
-      period: "monthly",
-      startDate: b.created_at
-        ? b.created_at.substring(0, 10)
-        : new Date().toISOString().substring(0, 10),
-      targets,
-      active: true,
-      createdAt: b.created_at || new Date().toISOString(),
-      updatedAt: b.updated_at || new Date().toISOString(),
-    };
-  }
-
-  async upsert(entity: Budget): Promise<Budget> {
-    // Check if it already exists to avoid unique constraint error on backend
-    const existing = await this.get(entity.id);
-    const hasEnvelope = entity.targets?.some((t) => t.mode === "envelope");
-    let b: GoBudgetResponse;
-
-    if (existing) {
-      const res = await fetch(`${API_BASE_URL}/api/budgets/${entity.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: entity.name,
-          method: hasEnvelope ? "ENVELOPE" : "ZERO_SUM",
-          currency: "AUD",
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to update budget via API");
-      b = await res.json();
-    } else {
-      const res = await fetch(`${API_BASE_URL}/api/budgets`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: entity.name,
-          method: hasEnvelope ? "ENVELOPE" : "ZERO_SUM",
-          currency: "AUD",
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to create budget via API");
-      b = await res.json();
-    }
-
-    // Sync targets to backend categories' target_limits
-    if (entity.targets && entity.targets.length > 0) {
-      for (const target of entity.targets) {
-        try {
-          const catRes = await fetch(`${API_BASE_URL}/api/budgets/${b.id}/categories`);
-          if (catRes.ok) {
-            const goCats = (await catRes.json()) as GoCategoryResponse[];
-            const existingCat = goCats?.find((c) => c.id === target.categoryId);
-            if (existingCat) {
-              await fetch(`${API_BASE_URL}/api/budgets/${b.id}/categories/${target.categoryId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  name: existingCat.name,
-                  target_limit: target.amount,
-                }),
-              });
-            }
-          }
-        } catch (e) {
-          console.error(`Failed to sync target for category ${target.categoryId}:`, e);
-        }
-      }
-    }
-
-    return {
-      id: b.id,
-      name: b.name,
-      period: entity.period || "monthly",
-      startDate: b.created_at
-        ? b.created_at.substring(0, 10)
-        : new Date().toISOString().substring(0, 10),
-      targets: entity.targets || [],
-      active: entity.active ?? true,
-      createdAt: b.created_at || new Date().toISOString(),
-      updatedAt: b.updated_at || new Date().toISOString(),
-    };
-  }
-
-  async bulkUpsert(entities: Budget[]): Promise<Budget[]> {
-    const results: Budget[] = [];
-    for (const entity of entities) {
-      results.push(await this.upsert(entity));
-    }
-    return results;
-  }
-
-  async delete(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to delete budget via API");
-    clearActiveBudgetIdCache();
-  }
-
-  async count(_query?: ListQuery<Budget>): Promise<number> {
-    const budgets = await this.list();
-    return budgets.length;
-  }
-}
-
-// -----------------------------------------------------------------------------
-// ApiAccountRepository
-// -----------------------------------------------------------------------------
-function mapGoTypeToFrontend(type: string): AccountType {
+function mapProtoTypeToFrontend(type: ProtoAccountType): AccountType {
   switch (type) {
-    case "CHECKING":
+    case ProtoAccountType.CHECKING:
       return "checking";
-    case "SAVINGS":
+    case ProtoAccountType.SAVINGS:
       return "savings";
-    case "CREDIT_CARD":
+    case ProtoAccountType.CREDIT_CARD:
       return "credit";
-    case "CASH":
+    case ProtoAccountType.CASH:
       return "cash";
     default:
       return "checking";
   }
 }
 
-function mapFrontendTypeToGo(type: AccountType): string {
+function mapFrontendTypeToProto(type: AccountType): ProtoAccountType {
   switch (type) {
     case "checking":
-      return "CHECKING";
+      return ProtoAccountType.CHECKING;
     case "savings":
-      return "SAVINGS";
+      return ProtoAccountType.SAVINGS;
     case "credit":
-      return "CREDIT_CARD";
+      return ProtoAccountType.CREDIT_CARD;
     case "cash":
-      return "CASH";
+      return ProtoAccountType.CASH;
     default:
-      return "CHECKING";
+      return ProtoAccountType.CHECKING;
   }
 }
+
+// ─── ApiBudgetRepository ──────────────────────────────────────────────────────
+
+export class ApiBudgetRepository implements Repository<Budget> {
+  async list(_query?: ListQuery<Budget>): Promise<Budget[]> {
+    const res = await budgetClient.listBudgets({});
+    if (!res.budgets) return [];
+
+    return Promise.all(
+      res.budgets.map(async (b) => {
+        // Fetch categories to build targets
+        let targets: Budget["targets"] = [];
+        try {
+          const catRes = await categoryClient.listCategories({ budgetId: b.id });
+          const cats = catRes.categories ?? [];
+          targets = cats
+            .filter((c) => c.targetLimit > 0n)
+            .map((c) => ({
+              categoryId: c.id,
+              amount: Number(c.targetLimit) as Cents,
+              frequency: "monthly" as const,
+              mode: "envelope" as const,
+              openedAt: tsToDateStr(b.createdAt),
+            }));
+        } catch {}
+
+        return {
+          id: b.id,
+          name: b.name,
+          period: "monthly" as const,
+          startDate: tsToDateStr(b.createdAt),
+          targets,
+          active: true,
+          createdAt: tsToISO(b.createdAt),
+          updatedAt: tsToISO(b.updatedAt),
+        };
+      }),
+    );
+  }
+
+  async get(id: string): Promise<Budget | null> {
+    try {
+      const res = await budgetClient.getBudget({ budgetId: id });
+      const b = res.budget;
+      if (!b) return null;
+
+      let targets: Budget["targets"] = [];
+      try {
+        const catRes = await categoryClient.listCategories({ budgetId: b.id });
+        const cats = catRes.categories ?? [];
+        targets = cats
+          .filter((c) => c.targetLimit > 0n)
+          .map((c) => ({
+            categoryId: c.id,
+            amount: Number(c.targetLimit) as Cents,
+            frequency: "monthly" as const,
+            mode: "envelope" as const,
+            openedAt: tsToDateStr(b.createdAt),
+          }));
+      } catch {}
+
+      return {
+        id: b.id,
+        name: b.name,
+        period: "monthly",
+        startDate: tsToDateStr(b.createdAt),
+        targets,
+        active: true,
+        createdAt: tsToISO(b.createdAt),
+        updatedAt: tsToISO(b.updatedAt),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async upsert(entity: Budget): Promise<Budget> {
+    const existing = await this.get(entity.id);
+    const hasEnvelope = entity.targets?.some((t) => t.mode === "envelope");
+    const method = hasEnvelope ? BudgetMethod.ENVELOPE : BudgetMethod.ZERO_SUM;
+
+    let budgetId: string;
+    if (existing) {
+      const res = await budgetClient.updateBudget({
+        budgetId: entity.id,
+        name: entity.name,
+        method,
+        currency: "AUD",
+      });
+      budgetId = res.budget?.id ?? entity.id;
+    } else {
+      const res = await budgetClient.createBudget({
+        name: entity.name,
+        method,
+        currency: "AUD",
+      });
+      if (!res.budget) throw new Error("Failed to create budget");
+      budgetId = res.budget.id;
+    }
+
+    // Sync targets to backend categories' target_limits
+    if (entity.targets && entity.targets.length > 0) {
+      for (const target of entity.targets) {
+        try {
+          const catRes = await categoryClient.listCategories({ budgetId });
+          const cats = catRes.categories ?? [];
+          const existingCat = cats.find((c) => c.id === target.categoryId);
+          if (existingCat) {
+            await categoryClient.updateCategory({
+              budgetId,
+              categoryId: target.categoryId,
+              targetLimit: BigInt(target.amount),
+            });
+          }
+        } catch {}
+      }
+    }
+
+    return {
+      id: budgetId,
+      name: entity.name,
+      period: entity.period || "monthly",
+      startDate: entity.startDate,
+      targets: entity.targets || [],
+      active: entity.active ?? true,
+      createdAt: entity.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async bulkUpsert(entities: Budget[]): Promise<Budget[]> {
+    return Promise.all(entities.map((e) => this.upsert(e)));
+  }
+
+  async delete(id: string): Promise<void> {
+    await budgetClient.deleteBudget({ budgetId: id });
+    clearActiveBudgetIdCache();
+  }
+
+  async count(_query?: ListQuery<Budget>): Promise<number> {
+    return (await this.list()).length;
+  }
+}
+
+// ─── ApiAccountRepository ─────────────────────────────────────────────────────
 
 export class ApiAccountRepository implements Repository<Account> {
   async list(_query?: ListQuery<Account>): Promise<Account[]> {
     const budgetId = await getActiveBudgetId();
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/accounts`);
-    if (!res.ok) throw new Error("Failed to fetch accounts from API");
-    const goAccounts = await res.json();
-    if (!goAccounts) return [];
+    const res = await accountClient.listAccounts({ budgetId });
+    const accs = res.accounts ?? [];
 
-    return (goAccounts as GoAccountResponse[]).map((a) => ({
+    return accs.map((a) => ({
       id: a.id,
       name: a.name,
-      type: mapGoTypeToFrontend(a.type),
-      openingBalance: a.balance as Cents,
-      currentBalance: a.balance as Cents,
+      type: mapProtoTypeToFrontend(a.type),
+      openingBalance: Number(a.balance) as Cents,
+      currentBalance: Number(a.balance) as Cents,
       currency: "AUD",
       color: "#7c5cff",
       archived: false,
       sortOrder: 0,
-      createdAt: a.created_at || new Date().toISOString(),
-      updatedAt: a.updated_at || new Date().toISOString(),
-      connectionId: a.connection_id,
-      institutionId: a.institution_id,
-      lastUpdated: a.last_updated,
+      createdAt: tsToISO(a.createdAt),
+      updatedAt: tsToISO(a.updatedAt),
+      connectionId: a.connectionId || undefined,
+      institutionId: a.institutionId || undefined,
+      lastUpdated: a.lastUpdated ? tsToISO(a.lastUpdated) : undefined,
     }));
   }
 
   async get(id: string): Promise<Account | null> {
-    const accounts = await this.list();
-    return accounts.find((a) => a.id === id) || null;
+    const all = await this.list();
+    return all.find((a) => a.id === id) ?? null;
   }
 
   async upsert(entity: Account): Promise<Account> {
     const existing = await this.get(entity.id);
     const budgetId = await getActiveBudgetId();
-    let a: GoAccountResponse;
 
     if (existing) {
-      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/accounts/${entity.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: entity.name,
-          type: mapFrontendTypeToGo(entity.type),
-          balance: entity.openingBalance,
-        }),
+      const res = await accountClient.updateAccount({
+        budgetId,
+        accountId: entity.id,
+        name: entity.name,
+        type: mapFrontendTypeToProto(entity.type),
+        balance: BigInt(entity.openingBalance),
       });
-      if (!res.ok) throw new Error("Failed to update account via API");
-      a = await res.json();
+      const a = res.account!;
+      return {
+        id: a.id,
+        name: a.name,
+        type: mapProtoTypeToFrontend(a.type),
+        openingBalance: Number(a.balance) as Cents,
+        currentBalance: Number(a.balance) as Cents,
+        currency: "AUD",
+        color: entity.color || "#7c5cff",
+        archived: false,
+        sortOrder: entity.sortOrder || 0,
+        createdAt: tsToISO(a.createdAt),
+        updatedAt: tsToISO(a.updatedAt),
+      };
     } else {
-      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/accounts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: entity.name,
-          type: mapFrontendTypeToGo(entity.type),
-          balance: entity.openingBalance,
-        }),
+      const res = await accountClient.createAccount({
+        budgetId,
+        name: entity.name,
+        type: mapFrontendTypeToProto(entity.type),
+        balance: BigInt(entity.openingBalance),
       });
-      if (!res.ok) throw new Error("Failed to create account via API");
-      a = await res.json();
+      const a = res.account!;
+      return {
+        id: a.id,
+        name: a.name,
+        type: mapProtoTypeToFrontend(a.type),
+        openingBalance: Number(a.balance) as Cents,
+        currentBalance: Number(a.balance) as Cents,
+        currency: "AUD",
+        color: entity.color || "#7c5cff",
+        archived: false,
+        sortOrder: entity.sortOrder || 0,
+        createdAt: tsToISO(a.createdAt),
+        updatedAt: tsToISO(a.updatedAt),
+      };
     }
-
-    return {
-      id: a.id,
-      name: a.name,
-      type: mapGoTypeToFrontend(a.type),
-      openingBalance: a.balance as Cents,
-      currentBalance: a.balance as Cents,
-      currency: "AUD",
-      color: entity.color || "#7c5cff",
-      archived: false,
-      sortOrder: entity.sortOrder || 0,
-      createdAt: a.created_at || new Date().toISOString(),
-      updatedAt: a.updated_at || new Date().toISOString(),
-    };
   }
 
   async bulkUpsert(entities: Account[]): Promise<Account[]> {
-    const results: Account[] = [];
-    for (const entity of entities) {
-      results.push(await this.upsert(entity));
-    }
-    return results;
+    return Promise.all(entities.map((e) => this.upsert(e)));
   }
 
   async delete(id: string): Promise<void> {
     const budgetId = await getActiveBudgetId();
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/accounts/${id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to delete account via API");
+    await accountClient.deleteAccount({ budgetId, accountId: id });
   }
 
   async count(_query?: ListQuery<Account>): Promise<number> {
-    const list = await this.list();
-    return list.length;
+    return (await this.list()).length;
   }
 }
 
-// -----------------------------------------------------------------------------
-// ApiCategoryRepository
-// -----------------------------------------------------------------------------
+// ─── ApiCategoryRepository ────────────────────────────────────────────────────
+
 export class ApiCategoryRepository implements Repository<Category> {
   async list(_query?: ListQuery<Category>): Promise<Category[]> {
     const budgetId = await getActiveBudgetId();
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/categories`);
-    if (!res.ok) throw new Error("Failed to fetch categories from API");
-    const goCats = await res.json();
-    if (!goCats) return [];
+    const res = await categoryClient.listCategories({ budgetId });
+    const cats = res.categories ?? [];
 
-    return (goCats as GoCategoryResponse[]).map((c) => ({
+    return cats.map((c) => ({
       id: c.id,
       name: c.name,
       parentId: null,
-      type: "expense",
+      type: "expense" as const,
       color: "#7c5cff",
       archived: false,
       sortOrder: 0,
@@ -456,172 +348,160 @@ export class ApiCategoryRepository implements Repository<Category> {
   }
 
   async get(id: string): Promise<Category | null> {
-    const list = await this.list();
-    return list.find((c) => c.id === id) || null;
+    const all = await this.list();
+    return all.find((c) => c.id === id) ?? null;
   }
 
   async upsert(entity: Category): Promise<Category> {
     const existing = await this.get(entity.id);
     const budgetId = await getActiveBudgetId();
-    let c: GoCategoryResponse;
 
     if (existing) {
-      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/categories/${entity.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: entity.name,
-          target_limit: 0,
-        }),
+      const res = await categoryClient.updateCategory({
+        budgetId,
+        categoryId: entity.id,
+        name: entity.name,
+        targetLimit: 0n,
       });
-      if (!res.ok) throw new Error("Failed to update category via API");
-      c = await res.json();
+      const c = res.category!;
+      return {
+        id: c.id,
+        name: c.name,
+        parentId: null,
+        type: "expense",
+        color: entity.color || "#7c5cff",
+        archived: false,
+        sortOrder: entity.sortOrder || 0,
+        system: entity.system || false,
+      };
     } else {
-      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/categories`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: entity.name,
-          target_limit: 0,
-        }),
+      const res = await categoryClient.createCategory({
+        budgetId,
+        name: entity.name,
+        targetLimit: 0n,
       });
-      if (!res.ok) throw new Error("Failed to create category via API");
-      c = await res.json();
+      const c = res.category!;
+      return {
+        id: c.id,
+        name: c.name,
+        parentId: null,
+        type: "expense",
+        color: entity.color || "#7c5cff",
+        archived: false,
+        sortOrder: entity.sortOrder || 0,
+        system: entity.system || false,
+      };
     }
-
-    return {
-      id: c.id,
-      name: c.name,
-      parentId: null,
-      type: "expense",
-      color: entity.color || "#7c5cff",
-      archived: false,
-      sortOrder: entity.sortOrder || 0,
-      system: entity.system || false,
-    };
   }
 
   async bulkUpsert(entities: Category[]): Promise<Category[]> {
-    const results: Category[] = [];
-    for (const entity of entities) {
-      results.push(await this.upsert(entity));
-    }
-    return results;
+    return Promise.all(entities.map((e) => this.upsert(e)));
   }
 
   async delete(id: string): Promise<void> {
     const budgetId = await getActiveBudgetId();
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/categories/${id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to delete category via API");
+    await categoryClient.deleteCategory({ budgetId, categoryId: id });
   }
 
   async count(_query?: ListQuery<Category>): Promise<number> {
-    const list = await this.list();
-    return list.length;
+    return (await this.list()).length;
   }
 }
 
-// -----------------------------------------------------------------------------
-// ApiTransactionRepository
-// -----------------------------------------------------------------------------
+// ─── ApiTransactionRepository ─────────────────────────────────────────────────
+
 export class ApiTransactionRepository implements Repository<Transaction> {
   async list(_query?: ListQuery<Transaction>): Promise<Transaction[]> {
     const budgetId = await getActiveBudgetId();
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/transactions`);
-    if (!res.ok) throw new Error("Failed to fetch transactions from API");
-    const goTxns = await res.json();
-    if (!goTxns) return [];
+    const res = await transactionClient.listTransactions({ budgetId });
+    const txns = res.transactions ?? [];
 
-    return (goTxns as GoTransactionResponse[]).map((t) => ({
+    return txns.map((t) => ({
       id: t.id,
-      accountId: t.account_id,
-      date: t.date,
-      amount: Math.abs(t.amount) as Cents,
-      type: t.amount > 0 ? "credit" : "debit",
-      categoryId: t.category_id || null,
+      accountId: t.accountId,
+      date: tsToDateStr(t.date),
+      amount: Math.abs(Number(t.amount)) as Cents,
+      type: t.amount > 0n ? "credit" : "debit",
+      categoryId: t.categoryId || null,
       payee: t.description,
       tags: [],
       cleared: true,
-      createdAt: t.created_at || new Date().toISOString(),
-      updatedAt: t.updated_at || new Date().toISOString(),
+      createdAt: tsToISO(t.createdAt),
+      updatedAt: tsToISO(t.updatedAt),
     }));
   }
 
   async get(id: string): Promise<Transaction | null> {
-    const list = await this.list();
-    return list.find((t) => t.id === id) || null;
+    const all = await this.list();
+    return all.find((t) => t.id === id) ?? null;
   }
 
   async upsert(entity: Transaction): Promise<Transaction> {
     const existing = await this.get(entity.id);
     const budgetId = await getActiveBudgetId();
-    let t: GoTransactionResponse;
+    const amount = BigInt(entity.type === "debit" ? -entity.amount : entity.amount);
+    const dateTs = { seconds: BigInt(Math.floor(new Date(entity.date).getTime() / 1000)), nanos: 0 };
 
     if (existing) {
-      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/transactions/${entity.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          account_id: entity.accountId,
-          category_id: entity.categoryId || "",
-          amount: entity.type === "debit" ? -entity.amount : entity.amount,
-          description: entity.payee || "Transaction",
-          date: entity.date,
-        }),
+      const res = await transactionClient.updateTransaction({
+        budgetId,
+        transactionId: entity.id,
+        accountId: entity.accountId,
+        categoryId: entity.categoryId || "",
+        amount,
+        description: entity.payee || "Transaction",
+        date: dateTs,
       });
-      if (!res.ok) throw new Error("Failed to update transaction via API");
-      t = await res.json();
+      const t = res.transaction!;
+      return {
+        id: t.id,
+        accountId: t.accountId,
+        date: tsToDateStr(t.date),
+        amount: Math.abs(Number(t.amount)) as Cents,
+        type: t.amount > 0n ? "credit" : "debit",
+        categoryId: t.categoryId || null,
+        payee: t.description,
+        tags: [],
+        cleared: true,
+        createdAt: tsToISO(t.createdAt),
+        updatedAt: tsToISO(t.updatedAt),
+      };
     } else {
-      const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          account_id: entity.accountId,
-          category_id: entity.categoryId || "",
-          amount: entity.type === "debit" ? -entity.amount : entity.amount,
-          description: entity.payee || "Transaction",
-          date: entity.date,
-        }),
+      const res = await transactionClient.createTransaction({
+        budgetId,
+        accountId: entity.accountId,
+        categoryId: entity.categoryId || "",
+        amount,
+        description: entity.payee || "Transaction",
+        date: dateTs,
       });
-      if (!res.ok) throw new Error("Failed to create transaction via API");
-      t = await res.json();
+      const t = res.transaction!;
+      return {
+        id: t.id,
+        accountId: t.accountId,
+        date: tsToDateStr(t.date),
+        amount: Math.abs(Number(t.amount)) as Cents,
+        type: t.amount > 0n ? "credit" : "debit",
+        categoryId: t.categoryId || null,
+        payee: t.description,
+        tags: [],
+        cleared: true,
+        createdAt: tsToISO(t.createdAt),
+        updatedAt: tsToISO(t.updatedAt),
+      };
     }
-
-    return {
-      id: t.id,
-      accountId: t.account_id,
-      date: t.date,
-      amount: Math.abs(t.amount) as Cents,
-      type: t.amount > 0 ? "credit" : "debit",
-      categoryId: t.category_id || null,
-      payee: t.description,
-      tags: [],
-      cleared: true,
-      createdAt: t.created_at || new Date().toISOString(),
-      updatedAt: t.updated_at || new Date().toISOString(),
-    };
   }
 
   async bulkUpsert(entities: Transaction[]): Promise<Transaction[]> {
-    const results: Transaction[] = [];
-    for (const entity of entities) {
-      results.push(await this.upsert(entity));
-    }
-    return results;
+    return Promise.all(entities.map((e) => this.upsert(e)));
   }
 
   async delete(id: string): Promise<void> {
     const budgetId = await getActiveBudgetId();
-    const res = await fetch(`${API_BASE_URL}/api/budgets/${budgetId}/transactions/${id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to delete transaction via API");
+    await transactionClient.deleteTransaction({ budgetId, transactionId: id });
   }
 
   async count(_query?: ListQuery<Transaction>): Promise<number> {
-    const list = await this.list();
-    return list.length;
+    return (await this.list()).length;
   }
 }

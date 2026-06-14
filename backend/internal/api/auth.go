@@ -38,6 +38,13 @@ func GenerateJWT(userID string) (string, error) {
 	return token.SignedString(jwtSecretKey)
 }
 
+// parseJWT validates a raw token string and populates claims.
+func parseJWT(tokenStr string, claims *Claims) (*jwt.Token, error) {
+	return jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecretKey, nil
+	})
+}
+
 // Auth Handlers using DTOs and wrapper
 
 func (s *APIServer) handleRegister(ctx context.Context, req RegisterRequest) (UserResponse, error) {

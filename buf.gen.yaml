@@ -1,0 +1,24 @@
+version: v2
+plugins:
+  # Go: protobuf message types
+  - remote: buf.build/protocolbuffers/go
+    out: backend/internal/gen
+    opt:
+      - paths=source_relative
+  # Go: Connect RPC service stubs
+  - remote: buf.build/connectrpc/go
+    out: backend/internal/gen
+    opt:
+      - paths=source_relative
+  # TypeScript: ES protobuf messages (v2 format, matching @bufbuild/protobuf v2)
+  - local: ./node_modules/.bin/protoc-gen-es
+    out: src/gen
+    opt:
+      - target=ts
+  # TypeScript: Connect RPC clients
+  - local: ./node_modules/.bin/protoc-gen-connect-es
+    out: src/gen
+    opt:
+      - target=ts
+inputs:
+  - directory: proto
