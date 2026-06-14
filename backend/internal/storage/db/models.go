@@ -26,6 +26,19 @@ type Account struct {
 	LastUpdated    sql.NullTime
 }
 
+type BackgroundJob struct {
+	ID           string
+	JobType      string
+	Payload      string
+	Status       string
+	Attempts     int32
+	MaxAttempts  int32
+	RunAt        time.Time
+	ErrorMessage sql.NullString
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
 type Budget struct {
 	ID        string
 	Name      string
