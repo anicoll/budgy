@@ -38,7 +38,7 @@ type BudgetService interface {
 	List(ctx context.Context, userID string) ([]*domain.Budget, error)
 	Update(ctx context.Context, id string, name string, method domain.BudgetMethod, currency string) (*domain.Budget, error)
 	Delete(ctx context.Context, id string) error
-	GetSummary(ctx context.Context, id string) (interface{}, error)
+	GetSummary(ctx context.Context, id string) (any, error)
 }
 
 // AccountService coordinates account operations.
@@ -218,7 +218,7 @@ func (s *budgetService) Delete(ctx context.Context, id string) error {
 	return s.budgets.Delete(ctx, id)
 }
 
-func (s *budgetService) GetSummary(ctx context.Context, id string) (interface{}, error) {
+func (s *budgetService) GetSummary(ctx context.Context, id string) (any, error) {
 	b, err := s.GetByID(ctx, id)
 	if err != nil {
 		return nil, err

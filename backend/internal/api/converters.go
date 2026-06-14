@@ -1,6 +1,7 @@
 package api
 
 import (
+	"budgeting_system/internal/mappings"
 	"context"
 	"time"
 
@@ -9,24 +10,24 @@ import (
 
 // Mappers is a container for all application mappers.
 type Mappers struct {
-	txMapper TransactionMapper
+	txMapper mappings.TransactionMapper
 }
 
 // InitMappers creates and returns an initialized Mappers instance.
 func InitMappers() *Mappers {
-	mappers := NewMappers()
+	mappers := mappings.NewMappers()
 	mappers.Add("TimestampConverter", &TimestampConverter{})
-	tx, err := mappers.Get("budgeting_system/internal/api.TransactionMapper")
+	tx, err := mappers.Get("budgeting_system/internal/mappings.TransactionMapper")
 	if err != nil {
 		panic(err)
 	}
-	return &Mappers{
-		txMapper: tx.(TransactionMapper),
-	}
+	return new(Mappers{
+		txMapper: tx.(mappings.TransactionMapper),
+	})
 }
 
 // Transaction returns the TransactionMapper.
-func (m *Mappers) Transaction() TransactionMapper {
+func (m *Mappers) Transaction() mappings.TransactionMapper {
 	return m.txMapper
 }
 

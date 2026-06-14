@@ -60,7 +60,7 @@ func main() {
 	// 4. Wait for Postgres to be ready
 	log.Println("Waiting for Postgres to be ready...")
 	ready := false
-	for i := 0; i < 30; i++ {
+	for range 30 {
 		cmd := exec.Command("docker", "exec", containerName, "pg_isready", "-U", dbUser)
 		if err := cmd.Run(); err == nil {
 			ready = true
@@ -84,7 +84,7 @@ func main() {
 
 	// Ping check
 	pinged := false
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		if err := db.Ping(); err == nil {
 			pinged = true
 			break

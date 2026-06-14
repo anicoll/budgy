@@ -80,8 +80,10 @@ mocks-generate: ## Generate mock files for repositories and services
 	go -C backend generate ./...
 
 mappings-generate: ## Generate sesame mappers
-	cd backend && ./.bin/sesame -c sesame.yml
+	go -C backend run github.com/yuin/sesame/cmd/sesame -c sesame.yml
 
-gen-all: db-generate mocks-generate mappings-generate ## Generate all: db-schema, mocks, and mappings
-
+gen-all: ## Generate all: db-schema, mocks, and mappings
+	make db-generate \
+	mocks-generate \
+	mappings-generate 
 
