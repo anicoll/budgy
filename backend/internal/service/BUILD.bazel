@@ -2,22 +2,30 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "service",
-    srcs = ["service.go"],
+    srcs = [
+        "job_queue.go",
+        "service.go",
+    ],
     importpath = "budgeting_system/internal/service",
     visibility = ["//backend:__subpackages__"],
     deps = [
         "//backend/internal/domain",
         "@org_golang_x_crypto//bcrypt",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_test(
     name = "service_test",
-    srcs = ["service_test.go"],
+    srcs = [
+        "job_queue_test.go",
+        "service_test.go",
+    ],
     embed = [":service"],
     deps = [
         "//backend/internal/domain",
         "//backend/internal/domain/mocks",
+        "//backend/internal/service/mocks",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//mock",
     ],

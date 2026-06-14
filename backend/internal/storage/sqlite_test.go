@@ -489,3 +489,60 @@ func TestAllocationRepository(t *testing.T) {
 	_, err = allocRepo.Get(ctx, "b-1", "acc-1", "cat-1")
 	assert.Error(t, err)
 }
+
+func TestJobRepository(t *testing.T) {
+	db := newTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	store := NewSQLiteStorage(db)
+	repo := store.Jobs()
+
+	// Test Create
+	job := &domain.Job{
+		ID:          "job-1",
+		JobType:     "sync_basiq_user",
+		Payload:     `{"user_id":"u-1"}`,
+		Status:      domain.JobStatusPending,
+		Attempts:    0,
+		MaxAttempts: 5,
+		RunAt:       time.Now().Add(-1 * time.Minute), // in the past
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	err := repo.Create(ctx, job)
+	assert.NoError(t, err)
+
+	// Test GetNextPending
+	fetched, err := repo.GetNextPending(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, job.ID, fetched.ID)
+	assert.Equal(t, job.JobType, fetched.JobType)
+	assert.Equal(t, job.Payload, fetched.Payload)
+	assert.Equal(t, domain.JobStatusPending, fetched.Status)
+
+	// Test UpdateStatus
+	errMsg := "some error occurred"
+	err = repo.UpdateStatus(ctx, "job-1", domain.JobStatusFailed, 1, time.Now().Add(5*time.Minute), &errMsg)
+	assert.NoError(t, err)
+
+	// Verify no pending jobs (since status is failed)
+	_, err = repo.GetNextPending(ctx)
+	assert.Error(t, err)
+
+	// Reset to pending and check
+	err = repo.UpdateStatus(ctx, "job-1", domain.JobStatusPending, 1, time.Now().Add(-5*time.Minute), nil)
+	assert.NoError(t, err)
+
+	fetched2, err := repo.GetNextPending(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, "job-1", fetched2.ID)
+	assert.Nil(t, fetched2.ErrorMessage)
+
+	// Test Delete
+	err = repo.Delete(ctx, "job-1")
+	assert.NoError(t, err)
+
+	_, err = repo.GetNextPending(ctx)
+	assert.Error(t, err)
+}

@@ -14,6 +14,7 @@ type APIServer struct {
 	categories   service.CategoryService
 	transactions service.TransactionService
 	bankSync     service.BankSyncService
+	jobQueue     service.JobQueue
 	mappers      *Mappers
 }
 
@@ -25,6 +26,7 @@ func NewAPIServer(
 	categories service.CategoryService,
 	transactions service.TransactionService,
 	bankSync service.BankSyncService,
+	jobQueue service.JobQueue,
 ) *APIServer {
 	return &APIServer{
 		auth:         auth,
@@ -33,6 +35,7 @@ func NewAPIServer(
 		categories:   categories,
 		transactions: transactions,
 		bankSync:     bankSync,
+		jobQueue:     jobQueue,
 		mappers:      InitMappers(),
 	}
 }
