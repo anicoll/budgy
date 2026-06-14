@@ -1,12 +1,12 @@
 mappers:
-  package: api
-  destination: ./internal/api/mappers_gen.go
+  package: mappings
+  destination: ./internal/mappings/mappers_gen.go
 
 mappings:
-  - id: budgeting_system/internal/api.TransactionMapper
+  - id: budgeting_system/internal/mappings.TransactionMapper
     name: TransactionMapper
-    package: api
-    destination: ./internal/api/transaction_mapper_gen.go
+    package: mappings
+    destination: ./internal/mappings/transaction_mapper_gen.go
     bidirectional: false
     a:
       package: ./internal/gen/budgy/v1

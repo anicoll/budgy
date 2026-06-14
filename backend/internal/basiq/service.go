@@ -177,7 +177,7 @@ func (s *Service) RegisterWebhook(ctx context.Context, webhookURL string) error 
 		}
 	}
 
-	webhookData := map[string]interface{}{
+	webhookData := map[string]any{
 		"url": webhookURL,
 		"subscribedEvents": []string{
 			"transaction.created",

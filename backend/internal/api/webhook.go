@@ -71,8 +71,8 @@ func verifyBasiqSignature(webhookID, timestamp, signatureHeader, secret string, 
 	expectedSignature := mac.Sum(nil)
 
 	// 4. Verify against signatures in header
-	signatures := strings.Fields(signatureHeader)
-	for _, sig := range signatures {
+	signatures := strings.FieldsSeq(signatureHeader)
+	for sig := range signatures {
 		parts := strings.SplitN(sig, ",", 2)
 		if len(parts) == 2 && parts[0] == "v1" {
 			sigBytes, err := base64.StdEncoding.DecodeString(parts[1])
@@ -157,7 +157,7 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"status": "received"})
 }
 
-func respondJSON(w http.ResponseWriter, status int, data interface{}) {
+func respondJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if data != nil {

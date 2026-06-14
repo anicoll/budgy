@@ -61,7 +61,7 @@ func (s *SQLiteStorage) Allocations() domain.AllocationRepository {
 func (r *budgetRepository) Create(ctx context.Context, b *domain.Budget) error {
 	query := `INSERT INTO budgets (id, user_id, name, method, currency, created_at, updated_at)
 	          VALUES (?, ?, ?, ?, ?, ?, ?)`
-	var userID interface{} = b.UserID
+	var userID any = b.UserID
 	if b.UserID == "" {
 		userID = nil
 	}
@@ -114,7 +114,7 @@ func (r *budgetRepository) List(ctx context.Context, userID string) ([]*domain.B
 
 func (r *budgetRepository) Update(ctx context.Context, b *domain.Budget) error {
 	query := `UPDATE budgets SET user_id = ?, name = ?, method = ?, currency = ?, updated_at = ? WHERE id = ?`
-	var userID interface{} = b.UserID
+	var userID any = b.UserID
 	if b.UserID == "" {
 		userID = nil
 	}
@@ -141,7 +141,7 @@ func (s *SQLiteStorage) Accounts() domain.AccountRepository {
 func (r *accountRepository) Create(ctx context.Context, acc *domain.Account) error {
 	query := `INSERT INTO accounts (id, budget_id, name, type, balance, created_at, updated_at, class, account_no, available_funds, product, institution_id, connection_id, last_updated)
 	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	var budgetID interface{} = acc.BudgetID
+	var budgetID any = acc.BudgetID
 	if acc.BudgetID == "" {
 		budgetID = nil
 	}
@@ -200,7 +200,7 @@ func (r *accountRepository) UpdateBalance(ctx context.Context, id string, balanc
 
 func (r *accountRepository) Update(ctx context.Context, acc *domain.Account) error {
 	query := `UPDATE accounts SET budget_id = ?, name = ?, type = ?, balance = ?, updated_at = ?, class = ?, account_no = ?, available_funds = ?, product = ?, institution_id = ?, connection_id = ?, last_updated = ? WHERE id = ?`
-	var budgetID interface{} = acc.BudgetID
+	var budgetID any = acc.BudgetID
 	if acc.BudgetID == "" {
 		budgetID = nil
 	}
@@ -278,7 +278,7 @@ func (r *categoryRepository) UpdateBudgetedAndBalance(ctx context.Context, id st
 
 func (r *categoryRepository) Update(ctx context.Context, c *domain.Category) error {
 	query := `UPDATE categories SET budget_id = ?, name = ?, budgeted = ?, balance = ?, target_limit = ?, updated_at = ? WHERE id = ?`
-	var budgetID interface{} = c.BudgetID
+	var budgetID any = c.BudgetID
 	if c.BudgetID == "" {
 		budgetID = nil
 	}
@@ -305,7 +305,7 @@ func (s *SQLiteStorage) Transactions() domain.TransactionRepository {
 func (r *transactionRepository) Create(ctx context.Context, tx *domain.Transaction) error {
 	query := `INSERT INTO transactions (id, account_id, category_id, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name)
 	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	var catID interface{} = tx.CategoryID
+	var catID any = tx.CategoryID
 	if tx.CategoryID == "" {
 		catID = nil
 	}
@@ -361,7 +361,7 @@ func (r *transactionRepository) ListByCategory(ctx context.Context, categoryID s
 	return r.listQuery(ctx, query, categoryID)
 }
 
-func (r *transactionRepository) listQuery(ctx context.Context, query string, arg interface{}) ([]*domain.Transaction, error) {
+func (r *transactionRepository) listQuery(ctx context.Context, query string, arg any) ([]*domain.Transaction, error) {
 	rows, err := r.db.QueryContext(ctx, query, arg)
 	if err != nil {
 		return nil, err
@@ -388,7 +388,7 @@ func (r *transactionRepository) listQuery(ctx context.Context, query string, arg
 
 func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transaction) error {
 	query := `UPDATE transactions SET account_id = ?, category_id = ?, amount = ?, description = ?, date = ?, updated_at = ?, direction = ?, status = ?, class = ?, post_date = ?, sub_class = ?, raw_description = ?, merchant_name = ? WHERE id = ?`
-	var catID interface{} = tx.CategoryID
+	var catID any = tx.CategoryID
 	if tx.CategoryID == "" {
 		catID = nil
 	}
@@ -411,7 +411,7 @@ type userRepository struct {
 func (r *userRepository) Create(ctx context.Context, u *domain.User) error {
 	query := `INSERT INTO users (id, email, password_hash, first_name, last_name, basiq_user_id, created_at, updated_at)
 	          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-	var basiqID interface{} = u.BasiqUserID
+	var basiqID any = u.BasiqUserID
 	if u.BasiqUserID == "" {
 		basiqID = nil
 	}

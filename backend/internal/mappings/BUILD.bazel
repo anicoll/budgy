@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mappings",
+    srcs = [
+        "mappers_gen.go",
+        "transaction_mapper_gen.go",
+    ],
+    importpath = "budgeting_system/internal/mappings",
+    visibility = ["//backend:__subpackages__"],
+    deps = [
+        "//backend/internal/domain",
+        "//backend/internal/gen/budgy/v1:budgy",
+        "@com_github_yuin_sesame//:sesame",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
