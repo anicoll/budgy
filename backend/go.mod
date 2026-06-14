@@ -3,6 +3,7 @@ module budgeting_system
 go 1.26.4
 
 require (
+	connectrpc.com/connect v1.20.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/lib/pq v1.12.3
 	github.com/ncruces/go-sqlite3 v0.34.4
@@ -11,6 +12,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.53.0
+	google.golang.org/protobuf v1.36.11
 )
 
 require (

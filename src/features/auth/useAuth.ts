@@ -38,8 +38,9 @@ export const useAuth = create<AuthState>((set) => ({
     try {
       const user = await apiLogin({ email, password });
       set({ user, isAuthenticated: true, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.message || "Failed to log in", isLoading: false });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to log in";
+      set({ error: errorMsg, isLoading: false });
       throw err;
     }
   },
@@ -49,8 +50,9 @@ export const useAuth = create<AuthState>((set) => ({
     try {
       const user = await apiRegister(req);
       set({ user, isAuthenticated: true, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.message || "Failed to register", isLoading: false });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to register";
+      set({ error: errorMsg, isLoading: false });
       throw err;
     }
   },
@@ -60,8 +62,9 @@ export const useAuth = create<AuthState>((set) => ({
     try {
       await apiLogout();
       set({ user: null, isAuthenticated: false, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.message || "Failed to log out", isLoading: false });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to log out";
+      set({ error: errorMsg, isLoading: false });
       throw err;
     }
   },
@@ -71,7 +74,7 @@ export const useAuth = create<AuthState>((set) => ({
     try {
       const user = await getMe();
       set({ user, isAuthenticated: true, isLoading: false });
-    } catch (err: any) {
+    } catch (_err) {
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },

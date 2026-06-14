@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package budgy.v1;
+
+option go_package = "budgeting_system/internal/gen/budgy/v1;budgyv1";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum BudgetMethod {
+  BUDGET_METHOD_UNSPECIFIED = 0;
+  BUDGET_METHOD_ZERO_SUM    = 1;
+  BUDGET_METHOD_ENVELOPE    = 2;
+}
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+
+message Budget {
+  string id       = 1;
+  string user_id  = 2;
+  string name     = 3;
+  BudgetMethod method   = 4;
+  string currency = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message BudgetSummary {
+  string budget_id       = 1;
+  int64  total_budgeted  = 2;
+  int64  total_spent     = 3;
+  int64  total_remaining = 4;
+}
+
+// ─── Requests / Responses ─────────────────────────────────────────────────────
+
+message CreateBudgetRequest {
+  string name     = 1;
+  BudgetMethod method   = 2;
+  string currency = 3;
+}
+
+message CreateBudgetResponse {
+  Budget budget = 1;
+}
+
+message ListBudgetsRequest {}
+
+message ListBudgetsResponse {
+  repeated Budget budgets = 1;
+}
+
+message GetBudgetRequest {
+  string budget_id = 1;
+}
+
+message GetBudgetResponse {
+  Budget budget = 1;
+}
+
+message GetBudgetSummaryRequest {
+  string budget_id = 1;
+}
+
+message GetBudgetSummaryResponse {
+  BudgetSummary summary = 1;
+}
+
+message UpdateBudgetRequest {
+  string budget_id = 1;
+  string name      = 2;
+  BudgetMethod method    = 3;
+  string currency  = 4;
+}
+
+message UpdateBudgetResponse {
+  Budget budget = 1;
+}
+
+message DeleteBudgetRequest {
+  string budget_id = 1;
+}
+
+message DeleteBudgetResponse {}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
+
+service BudgetService {
+  rpc CreateBudget(CreateBudgetRequest)           returns (CreateBudgetResponse);
+  rpc ListBudgets(ListBudgetsRequest)             returns (ListBudgetsResponse);
+  rpc GetBudget(GetBudgetRequest)                 returns (GetBudgetResponse);
+  rpc GetBudgetSummary(GetBudgetSummaryRequest)   returns (GetBudgetSummaryResponse);
+  rpc UpdateBudget(UpdateBudgetRequest)           returns (UpdateBudgetResponse);
+  rpc DeleteBudget(DeleteBudgetRequest)           returns (DeleteBudgetResponse);
+}

@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "budgyv1connect",
+    srcs = [
+        "account.connect.go",
+        "auth.connect.go",
+        "basiq.connect.go",
+        "budget.connect.go",
+        "category.connect.go",
+        "transaction.connect.go",
+    ],
+    importpath = "budgeting_system/internal/gen/budgy/v1/budgyv1connect",
+    visibility = ["//backend:__subpackages__"],
+    deps = [
+        "//backend/internal/gen/budgy/v1:budgy",
+        "@com_connectrpc_connect//:connect",
+    ],
+)

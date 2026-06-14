@@ -555,4 +555,3 @@ func (r *allocationRepository) Delete(ctx context.Context, budgetID, accountID, 
 	_, err := r.db.ExecContext(ctx, query, budgetID, accountID, categoryID)
 	return err
 }
-

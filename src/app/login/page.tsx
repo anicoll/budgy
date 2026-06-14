@@ -46,8 +46,9 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login(email, password);
-    } catch (err: any) {
-      setLocalError(err.message || "Failed to log in.");
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to log in.";
+      setLocalError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }

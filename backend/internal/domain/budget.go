@@ -178,4 +178,3 @@ func (ea *EnvelopeAllocation) Validate() error {
 	}
 	return nil
 }
-

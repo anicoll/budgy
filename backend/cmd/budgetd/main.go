@@ -27,7 +27,7 @@ func initLogger() {
 		config = zap.NewProductionConfig()
 		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
-	
+
 	logger, err := config.Build()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize zap logger: %v\n", err)
@@ -86,7 +86,6 @@ func main() {
 	categorySvc := service.NewCategoryService(categoriesRepo, accountsRepo, allocationsRepo, transactionsRepo)
 	txSvc := service.NewTransactionService(transactionsRepo, accountsRepo, categoriesRepo, budgetsRepo)
 
-
 	var bankSyncSvc service.BankSyncService
 	if basiqService != nil {
 		bankSyncSvc = service.NewBankSyncService(usersRepo, budgetsRepo, accountsRepo, transactionsRepo, basiqService)
@@ -139,12 +138,12 @@ func withCORS(next http.Handler, allowedOrigin string) http.Handler {
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		
+
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
