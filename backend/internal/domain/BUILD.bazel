@@ -6,6 +6,7 @@ go_library(
         "budget.go",
         "envelope.go",
         "external.go",
+        "job.go",
         "repository.go",
         "user.go",
         "zerosum.go",

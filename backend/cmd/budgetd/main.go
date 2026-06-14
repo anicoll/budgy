@@ -87,11 +87,16 @@ func main() {
 	txSvc := service.NewTransactionService(transactionsRepo, accountsRepo, categoriesRepo, budgetsRepo)
 
 	var bankSyncSvc service.BankSyncService
+	var jobQueue service.JobQueue
 	if basiqService != nil {
 		bankSyncSvc = service.NewBankSyncService(usersRepo, budgetsRepo, accountsRepo, transactionsRepo, basiqService)
+		jobsRepo := store.Jobs()
+		jobQueue = service.NewJobQueue(jobsRepo, bankSyncSvc)
+		jobQueue.Start(context.Background())
+		defer jobQueue.Stop()
 	}
 
-	apiServer := api.NewAPIServer(authSvc, budgetSvc, accountSvc, categorySvc, txSvc, bankSyncSvc)
+	apiServer := api.NewAPIServer(authSvc, budgetSvc, accountSvc, categorySvc, txSvc, bankSyncSvc, jobQueue)
 
 	appWebhookURL := os.Getenv("APP_WEBHOOK_URL")
 	if basiqService != nil && appWebhookURL != "" {

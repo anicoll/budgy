@@ -139,16 +139,31 @@ func (s *APIServer) handleBasiqWebhook(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			zap.S().Errorf("Basiq Webhook: failed to find user for basiq_user_id %s: %v", basiqUserID, err)
 		} else {
-			zap.S().Infof("Basiq Webhook: Triggering background sync for user %s (%s)", localUser.ID, basiqUserID)
-			go func() {
-				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-				defer cancel()
-				if err := s.bankSync.SyncUser(ctx, localUser.ID); err != nil {
-					zap.S().Errorf("Basiq Webhook: failed to sync user %s: %v", localUser.ID, err)
-				} else {
-					zap.S().Infof("Basiq Webhook: successfully synced user %s", localUser.ID)
+			if s.jobQueue != nil {
+				zap.S().Infof("Basiq Webhook: Queueing background sync job for user %s (%s)", localUser.ID, basiqUserID)
+				payload := map[string]string{
+					"local_user_id": localUser.ID,
+					"basiq_user_id": basiqUserID,
 				}
-			}()
+				if err := s.jobQueue.Enqueue(r.Context(), "sync_basiq_user", payload); err != nil {
+					zap.S().Errorf("Basiq Webhook: failed to enqueue sync job for user %s: %v", localUser.ID, err)
+					respondError(w, http.StatusInternalServerError, "failed to queue background sync")
+					return
+				}
+			} else {
+				zap.S().Warnf("Basiq Webhook: Job queue not configured, falling back to goroutine sync for user %s (%s)", localUser.ID, basiqUserID)
+				if s.bankSync != nil {
+					go func() {
+						ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+						defer cancel()
+						if err := s.bankSync.SyncUser(ctx, localUser.ID); err != nil {
+							zap.S().Errorf("Basiq Webhook: fallback sync failed for user %s: %v", localUser.ID, err)
+						} else {
+							zap.S().Infof("Basiq Webhook: fallback sync successfully completed for user %s", localUser.ID)
+						}
+					}()
+				}
+			}
 		}
 	} else {
 		zap.S().Warn("Basiq Webhook: missing user link in payload")

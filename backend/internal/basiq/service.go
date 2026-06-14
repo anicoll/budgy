@@ -180,6 +180,9 @@ func (s *Service) RegisterWebhook(ctx context.Context, webhookURL string) error 
 	webhookData := map[string]any{
 		"url": webhookURL,
 		"subscribedEvents": []string{
+			"connection.created",
+			"connection.deleted",
+			"connection.invalidated",
 			"transaction.created",
 			"transaction.updated",
 		},

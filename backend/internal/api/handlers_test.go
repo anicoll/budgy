@@ -19,7 +19,7 @@ import (
 
 func TestHandleCreateBudget(t *testing.T) {
 	mockBudgetSvc := mocks.NewMockBudgetService(t)
-	server := NewAPIServer(nil, mockBudgetSvc, nil, nil, nil, nil)
+	server := NewAPIServer(nil, mockBudgetSvc, nil, nil, nil, nil, nil)
 	mux := http.NewServeMux()
 	server.MountConnectHandlers(mux)
 	ts := httptest.NewServer(mux)
@@ -58,7 +58,7 @@ func TestHandleCreateBudget(t *testing.T) {
 func TestHandleCreateAccount(t *testing.T) {
 	mockBudgetSvc := mocks.NewMockBudgetService(t)
 	mockAccSvc := mocks.NewMockAccountService(t)
-	server := NewAPIServer(nil, mockBudgetSvc, mockAccSvc, nil, nil, nil)
+	server := NewAPIServer(nil, mockBudgetSvc, mockAccSvc, nil, nil, nil, nil)
 	mux := http.NewServeMux()
 	server.MountConnectHandlers(mux)
 	ts := httptest.NewServer(mux)
@@ -97,7 +97,7 @@ func TestHandleCreateAccount(t *testing.T) {
 func TestHandleCreateTransaction_ZeroSum(t *testing.T) {
 	mockBudgetSvc := mocks.NewMockBudgetService(t)
 	mockTxSvc := mocks.NewMockTransactionService(t)
-	server := NewAPIServer(nil, mockBudgetSvc, nil, nil, mockTxSvc, nil)
+	server := NewAPIServer(nil, mockBudgetSvc, nil, nil, mockTxSvc, nil, nil)
 	mux := http.NewServeMux()
 	server.MountConnectHandlers(mux)
 	ts := httptest.NewServer(mux)
@@ -139,7 +139,7 @@ func TestHandleCreateTransaction_ZeroSum(t *testing.T) {
 func TestHandleFundEnvelope_Envelope(t *testing.T) {
 	mockBudgetSvc := mocks.NewMockBudgetService(t)
 	mockCatSvc := mocks.NewMockCategoryService(t)
-	server := NewAPIServer(nil, mockBudgetSvc, nil, mockCatSvc, nil, nil)
+	server := NewAPIServer(nil, mockBudgetSvc, nil, mockCatSvc, nil, nil, nil)
 	mux := http.NewServeMux()
 	server.MountConnectHandlers(mux)
 	ts := httptest.NewServer(mux)

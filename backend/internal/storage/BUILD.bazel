@@ -7,6 +7,7 @@ go_library(
         "migrations/0001_init.sql",
         "migrations/0002_add_users.sql",
         "migrations/0003_envelope_allocations.sql",
+        "migrations/0004_create_background_jobs.sql",
     ],
     importpath = "budgeting_system/internal/storage",
     visibility = ["//backend:__subpackages__"],

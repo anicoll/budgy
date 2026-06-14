@@ -66,7 +66,7 @@ func TestHandleBasiqWebhook(t *testing.T) {
 
 	mockAuth := mocks.NewMockAuthService(t)
 	mockBankSync := mocks.NewMockBankSyncService(t)
-	server := NewAPIServer(mockAuth, nil, nil, nil, nil, mockBankSync)
+	server := NewAPIServer(mockAuth, nil, nil, nil, nil, mockBankSync, nil)
 
 	body := []byte(`{
 		"id": "11a85f64-5717-4562-b3fc-2c963f66af11",

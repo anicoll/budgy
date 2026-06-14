@@ -58,6 +58,10 @@ func (s *SQLiteStorage) Allocations() domain.AllocationRepository {
 	return &allocationRepository{db: s.db}
 }
 
+func (s *SQLiteStorage) Jobs() domain.JobRepository {
+	return &jobRepository{db: s.db}
+}
+
 func (r *budgetRepository) Create(ctx context.Context, b *domain.Budget) error {
 	query := `INSERT INTO budgets (id, user_id, name, method, currency, created_at, updated_at)
 	          VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -553,5 +557,61 @@ func (r *allocationRepository) ListByAccount(ctx context.Context, budgetID, acco
 func (r *allocationRepository) Delete(ctx context.Context, budgetID, accountID, categoryID string) error {
 	query := `DELETE FROM envelope_allocations WHERE budget_id = ? AND account_id = ? AND category_id = ?`
 	_, err := r.db.ExecContext(ctx, query, budgetID, accountID, categoryID)
+	return err
+}
+
+// Job Repository Implementation
+
+type jobRepository struct {
+	db *sql.DB
+}
+
+func (r *jobRepository) Create(ctx context.Context, job *domain.Job) error {
+	query := `INSERT INTO background_jobs (id, job_type, payload, status, attempts, max_attempts, run_at, error_message, created_at, updated_at)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := r.db.ExecContext(ctx, query, job.ID, job.JobType, job.Payload, string(job.Status), job.Attempts, job.MaxAttempts, job.RunAt, job.ErrorMessage, job.CreatedAt, job.UpdatedAt)
+	return err
+}
+
+func (r *jobRepository) GetNextPending(ctx context.Context) (*domain.Job, error) {
+	query := `SELECT id, job_type, payload, status, attempts, max_attempts, run_at, error_message, created_at, updated_at 
+	          FROM background_jobs 
+	          WHERE status = 'pending' AND run_at <= ? 
+	          ORDER BY run_at ASC, created_at ASC 
+	          LIMIT 1`
+	row := r.db.QueryRowContext(ctx, query, time.Now())
+
+	var job domain.Job
+	var statusStr string
+	var errMsgNull sql.NullString
+	err := row.Scan(&job.ID, &job.JobType, &job.Payload, &statusStr, &job.Attempts, &job.MaxAttempts, &job.RunAt, &errMsgNull, &job.CreatedAt, &job.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("no pending jobs found")
+		}
+		return nil, err
+	}
+	job.Status = domain.JobStatus(statusStr)
+	if errMsgNull.Valid {
+		job.ErrorMessage = &errMsgNull.String
+	}
+	return &job, nil
+}
+
+func (r *jobRepository) UpdateStatus(ctx context.Context, id string, status domain.JobStatus, attempts int, runAt time.Time, errMsg *string) error {
+	query := `UPDATE background_jobs 
+	          SET status = ?, attempts = ?, run_at = ?, error_message = ?, updated_at = ? 
+	          WHERE id = ?`
+	var errMsgVal any = nil
+	if errMsg != nil {
+		errMsgVal = *errMsg
+	}
+	_, err := r.db.ExecContext(ctx, query, string(status), attempts, runAt, errMsgVal, time.Now(), id)
+	return err
+}
+
+func (r *jobRepository) Delete(ctx context.Context, id string) error {
+	query := `DELETE FROM background_jobs WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, id)
 	return err
 }
