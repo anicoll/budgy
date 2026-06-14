@@ -85,5 +85,6 @@ mappings-generate: ## Generate sesame mappers
 gen-all: ## Generate all: db-schema, mocks, and mappings
 	make db-generate \
 	mocks-generate \
-	mappings-generate 
+	mappings-generate
+	go -C backend fix ./...
 

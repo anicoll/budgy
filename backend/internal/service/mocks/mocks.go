@@ -574,23 +574,23 @@ func (_c *MockBudgetService_GetByID_Call) RunAndReturn(run func(ctx context.Cont
 }
 
 // GetSummary provides a mock function for the type MockBudgetService
-func (_mock *MockBudgetService) GetSummary(ctx context.Context, id string) (interface{}, error) {
+func (_mock *MockBudgetService) GetSummary(ctx context.Context, id string) (any, error) {
 	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetSummary")
 	}
 
-	var r0 interface{}
+	var r0 any
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (interface{}, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (any, error)); ok {
 		return returnFunc(ctx, id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) interface{}); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) any); ok {
 		r0 = returnFunc(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(interface{})
+			r0 = ret.Get(0).(any)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -631,12 +631,12 @@ func (_c *MockBudgetService_GetSummary_Call) Run(run func(ctx context.Context, i
 	return _c
 }
 
-func (_c *MockBudgetService_GetSummary_Call) Return(ifaceVal interface{}, err error) *MockBudgetService_GetSummary_Call {
-	_c.Call.Return(ifaceVal, err)
+func (_c *MockBudgetService_GetSummary_Call) Return(v any, err error) *MockBudgetService_GetSummary_Call {
+	_c.Call.Return(v, err)
 	return _c
 }
 
-func (_c *MockBudgetService_GetSummary_Call) RunAndReturn(run func(ctx context.Context, id string) (interface{}, error)) *MockBudgetService_GetSummary_Call {
+func (_c *MockBudgetService_GetSummary_Call) RunAndReturn(run func(ctx context.Context, id string) (any, error)) *MockBudgetService_GetSummary_Call {
 	_c.Call.Return(run)
 	return _c
 }
