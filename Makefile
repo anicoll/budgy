@@ -1,4 +1,4 @@
-.PHONY: help install dev build start typecheck lint lint-fix format test test-watch check clean reset shadcn-add db-dump db-generate
+.PHONY: help install dev build start typecheck lint lint-fix format test test-watch check clean reset shadcn-add db-dump db-generate mocks-generate mappings-generate gen-all
 
 PNPM ?= pnpm
 
@@ -75,5 +75,13 @@ db-dump: ## Run the containerized Postgres schema-dump script
 
 db-generate: db-dump ## Run schema-dump then generate sqlc models
 	go -C backend run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.27.0 generate
+
+mocks-generate: ## Generate mock files for repositories and services
+	go -C backend generate ./...
+
+mappings-generate: ## Generate sesame mappers
+	cd backend && ./.bin/sesame -c sesame.yml
+
+gen-all: db-generate mocks-generate mappings-generate ## Generate all: db-schema, mocks, and mappings
 
 

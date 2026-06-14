@@ -582,6 +582,7 @@ func (h *categoryConnectHandler) FundEnvelope(ctx context.Context, req *connect.
 type transactionConnectHandler struct {
 	budgets      service.BudgetService
 	transactions service.TransactionService
+	mappers      *Mappers
 }
 
 var _ budgyv1connect.TransactionServiceHandler = (*transactionConnectHandler)(nil)
@@ -637,42 +638,8 @@ func (h *transactionConnectHandler) UpdateTransaction(ctx context.Context, req *
 		return nil, err
 	}
 	updates := &domain.Transaction{}
-	if r.AccountId != nil {
-		updates.AccountID = *r.AccountId
-	}
-	if r.CategoryId != nil {
-		updates.CategoryID = *r.CategoryId
-	}
-	if r.Amount != nil {
-		updates.Amount = *r.Amount
-	}
-	if r.Description != nil {
-		updates.Description = *r.Description
-	}
-	if r.Date != nil {
-		updates.Date = r.Date.AsTime()
-	}
-	if r.Direction != nil {
-		updates.Direction = *r.Direction
-	}
-	if r.Status != nil {
-		updates.Status = *r.Status
-	}
-	if r.Class != nil {
-		updates.Class = *r.Class
-	}
-	if r.PostDate != nil {
-		t := r.PostDate.AsTime()
-		updates.PostDate = &t
-	}
-	if r.SubClass != nil {
-		updates.SubClass = *r.SubClass
-	}
-	if r.RawDescription != nil {
-		updates.RawDescription = *r.RawDescription
-	}
-	if r.MerchantName != nil {
-		updates.MerchantName = *r.MerchantName
+	if err := h.mappers.Transaction().UpdateTransactionRequestToTransaction(ctx, r, updates); err != nil {
+		return nil, toConnectError(err)
 	}
 	tx, err := h.transactions.Update(ctx, r.BudgetId, r.TransactionId, updates)
 	if err != nil {
@@ -740,7 +707,7 @@ func (s *APIServer) MountConnectHandlers(mux *http.ServeMux) {
 	budgetHandler := &budgetConnectHandler{budgets: s.budgets}
 	accountHandler := &accountConnectHandler{budgets: s.budgets, accounts: s.accounts}
 	categoryHandler := &categoryConnectHandler{budgets: s.budgets, categories: s.categories}
-	txHandler := &transactionConnectHandler{budgets: s.budgets, transactions: s.transactions}
+	txHandler := &transactionConnectHandler{budgets: s.budgets, transactions: s.transactions, mappers: s.mappers}
 	bankSyncHandler := &bankSyncConnectHandler{bankSync: s.bankSync}
 
 	// Auth service – Register and Login are public; GetMe and Logout require auth
