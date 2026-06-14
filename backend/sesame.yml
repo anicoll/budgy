@@ -1,0 +1,25 @@
+mappers:
+  package: api
+  destination: ./internal/api/mappers_gen.go
+
+mappings:
+  - id: budgeting_system/internal/api.TransactionMapper
+    name: TransactionMapper
+    package: api
+    destination: ./internal/api/transaction_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/gen/budgy/v1
+      name: UpdateTransactionRequest
+    b:
+      package: ./internal/domain
+      name: Transaction
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: Date
+        b: Date
+        converter: TimestampConverter
+      - a: PostDate
+        b: PostDate
+        converter: TimestampConverter

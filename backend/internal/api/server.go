@@ -14,6 +14,7 @@ type APIServer struct {
 	categories   service.CategoryService
 	transactions service.TransactionService
 	bankSync     service.BankSyncService
+	mappers      *Mappers
 }
 
 // NewAPIServer creates a new APIServer with injected services.
@@ -32,6 +33,7 @@ func NewAPIServer(
 		categories:   categories,
 		transactions: transactions,
 		bankSync:     bankSync,
+		mappers:      InitMappers(),
 	}
 }
 
