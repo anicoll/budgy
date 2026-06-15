@@ -7,8 +7,8 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	budgyv1 "budgeting_system/internal/gen/budgy/v1"
 	"budgeting_system/internal/domain"
+	budgyv1 "budgeting_system/internal/gen/budgy/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

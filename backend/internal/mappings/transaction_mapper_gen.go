@@ -126,6 +126,27 @@ func (m *transactionmapper) UpdateTransactionRequestToTransaction(ctx pkg_contex
 	if (source.MerchantName) != nil {
 		dest.MerchantName = *(source.MerchantName)
 	}
+	if (source.MerchantWebsite) != nil {
+		dest.MerchantWebsite = *(source.MerchantWebsite)
+	}
+	if (source.MerchantLogoUrl) != nil {
+		dest.MerchantLogoURL = *(source.MerchantLogoUrl)
+	}
+	if (source.LocationAddress) != nil {
+		dest.LocationAddress = *(source.LocationAddress)
+	}
+	if (source.LocationLat) != nil {
+		dest.LocationLat = *(source.LocationLat)
+	}
+	if (source.LocationLng) != nil {
+		dest.LocationLng = *(source.LocationLng)
+	}
+	if (source.CategoryCode) != nil {
+		dest.CategoryCode = *(source.CategoryCode)
+	}
+	if (source.CategoryTitle) != nil {
+		dest.CategoryTitle = *(source.CategoryTitle)
+	}
 	if m.helper != nil {
 		if err := m.helper.UpdateTransactionRequestToTransaction(ctx, source, dest); err != nil {
 			return err

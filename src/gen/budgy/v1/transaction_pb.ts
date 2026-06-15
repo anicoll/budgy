@@ -97,6 +97,41 @@ export class Transaction extends Message<Transaction> {
    */
   merchantName = "";
 
+  /**
+   * @generated from field: string merchant_website = 17;
+   */
+  merchantWebsite = "";
+
+  /**
+   * @generated from field: string merchant_logo_url = 18;
+   */
+  merchantLogoUrl = "";
+
+  /**
+   * @generated from field: string location_address = 19;
+   */
+  locationAddress = "";
+
+  /**
+   * @generated from field: string location_lat = 20;
+   */
+  locationLat = "";
+
+  /**
+   * @generated from field: string location_lng = 21;
+   */
+  locationLng = "";
+
+  /**
+   * @generated from field: string category_code = 22;
+   */
+  categoryCode = "";
+
+  /**
+   * @generated from field: string category_title = 23;
+   */
+  categoryTitle = "";
+
   constructor(data?: PartialMessage<Transaction>) {
     super();
     proto3.util.initPartial(data, this);
@@ -121,6 +156,13 @@ export class Transaction extends Message<Transaction> {
     { no: 14, name: "sub_class", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 15, name: "raw_description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 16, name: "merchant_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 17, name: "merchant_website", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 18, name: "merchant_logo_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 19, name: "location_address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 20, name: "location_lat", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 21, name: "location_lng", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 22, name: "category_code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 23, name: "category_title", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Transaction {
@@ -443,6 +485,41 @@ export class UpdateTransactionRequest extends Message<UpdateTransactionRequest> 
    */
   merchantName?: string;
 
+  /**
+   * @generated from field: optional string merchant_website = 15;
+   */
+  merchantWebsite?: string;
+
+  /**
+   * @generated from field: optional string merchant_logo_url = 16;
+   */
+  merchantLogoUrl?: string;
+
+  /**
+   * @generated from field: optional string location_address = 17;
+   */
+  locationAddress?: string;
+
+  /**
+   * @generated from field: optional string location_lat = 18;
+   */
+  locationLat?: string;
+
+  /**
+   * @generated from field: optional string location_lng = 19;
+   */
+  locationLng?: string;
+
+  /**
+   * @generated from field: optional string category_code = 20;
+   */
+  categoryCode?: string;
+
+  /**
+   * @generated from field: optional string category_title = 21;
+   */
+  categoryTitle?: string;
+
   constructor(data?: PartialMessage<UpdateTransactionRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -465,6 +542,13 @@ export class UpdateTransactionRequest extends Message<UpdateTransactionRequest> 
     { no: 12, name: "sub_class", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 13, name: "raw_description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 14, name: "merchant_name", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 15, name: "merchant_website", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 16, name: "merchant_logo_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 17, name: "location_address", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 18, name: "location_lat", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 19, name: "location_lng", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 20, name: "category_code", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 21, name: "category_title", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(

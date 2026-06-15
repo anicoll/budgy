@@ -23,25 +23,32 @@ const (
 )
 
 type Transaction struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	BudgetId       string                 `protobuf:"bytes,2,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	AccountId      string                 `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	CategoryId     string                 `protobuf:"bytes,4,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	Amount         int64                  `protobuf:"varint,5,opt,name=amount,proto3" json:"amount,omitempty"`
-	Description    string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
-	Date           *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date,proto3" json:"date,omitempty"`
-	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Direction      string                 `protobuf:"bytes,10,opt,name=direction,proto3" json:"direction,omitempty"`
-	Status         string                 `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
-	Class          string                 `protobuf:"bytes,12,opt,name=class,proto3" json:"class,omitempty"`
-	PostDate       *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=post_date,json=postDate,proto3,oneof" json:"post_date,omitempty"`
-	SubClass       string                 `protobuf:"bytes,14,opt,name=sub_class,json=subClass,proto3" json:"sub_class,omitempty"`
-	RawDescription string                 `protobuf:"bytes,15,opt,name=raw_description,json=rawDescription,proto3" json:"raw_description,omitempty"`
-	MerchantName   string                 `protobuf:"bytes,16,opt,name=merchant_name,json=merchantName,proto3" json:"merchant_name,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	BudgetId        string                 `protobuf:"bytes,2,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	AccountId       string                 `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	CategoryId      string                 `protobuf:"bytes,4,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	Amount          int64                  `protobuf:"varint,5,opt,name=amount,proto3" json:"amount,omitempty"`
+	Description     string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	Date            *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date,proto3" json:"date,omitempty"`
+	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Direction       string                 `protobuf:"bytes,10,opt,name=direction,proto3" json:"direction,omitempty"`
+	Status          string                 `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
+	Class           string                 `protobuf:"bytes,12,opt,name=class,proto3" json:"class,omitempty"`
+	PostDate        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=post_date,json=postDate,proto3,oneof" json:"post_date,omitempty"`
+	SubClass        string                 `protobuf:"bytes,14,opt,name=sub_class,json=subClass,proto3" json:"sub_class,omitempty"`
+	RawDescription  string                 `protobuf:"bytes,15,opt,name=raw_description,json=rawDescription,proto3" json:"raw_description,omitempty"`
+	MerchantName    string                 `protobuf:"bytes,16,opt,name=merchant_name,json=merchantName,proto3" json:"merchant_name,omitempty"`
+	MerchantWebsite string                 `protobuf:"bytes,17,opt,name=merchant_website,json=merchantWebsite,proto3" json:"merchant_website,omitempty"`
+	MerchantLogoUrl string                 `protobuf:"bytes,18,opt,name=merchant_logo_url,json=merchantLogoUrl,proto3" json:"merchant_logo_url,omitempty"`
+	LocationAddress string                 `protobuf:"bytes,19,opt,name=location_address,json=locationAddress,proto3" json:"location_address,omitempty"`
+	LocationLat     string                 `protobuf:"bytes,20,opt,name=location_lat,json=locationLat,proto3" json:"location_lat,omitempty"`
+	LocationLng     string                 `protobuf:"bytes,21,opt,name=location_lng,json=locationLng,proto3" json:"location_lng,omitempty"`
+	CategoryCode    string                 `protobuf:"bytes,22,opt,name=category_code,json=categoryCode,proto3" json:"category_code,omitempty"`
+	CategoryTitle   string                 `protobuf:"bytes,23,opt,name=category_title,json=categoryTitle,proto3" json:"category_title,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Transaction) Reset() {
@@ -182,6 +189,55 @@ func (x *Transaction) GetRawDescription() string {
 func (x *Transaction) GetMerchantName() string {
 	if x != nil {
 		return x.MerchantName
+	}
+	return ""
+}
+
+func (x *Transaction) GetMerchantWebsite() string {
+	if x != nil {
+		return x.MerchantWebsite
+	}
+	return ""
+}
+
+func (x *Transaction) GetMerchantLogoUrl() string {
+	if x != nil {
+		return x.MerchantLogoUrl
+	}
+	return ""
+}
+
+func (x *Transaction) GetLocationAddress() string {
+	if x != nil {
+		return x.LocationAddress
+	}
+	return ""
+}
+
+func (x *Transaction) GetLocationLat() string {
+	if x != nil {
+		return x.LocationLat
+	}
+	return ""
+}
+
+func (x *Transaction) GetLocationLng() string {
+	if x != nil {
+		return x.LocationLng
+	}
+	return ""
+}
+
+func (x *Transaction) GetCategoryCode() string {
+	if x != nil {
+		return x.CategoryCode
+	}
+	return ""
+}
+
+func (x *Transaction) GetCategoryTitle() string {
+	if x != nil {
+		return x.CategoryTitle
 	}
 	return ""
 }
@@ -403,23 +459,30 @@ func (x *ListTransactionsResponse) GetTransactions() []*Transaction {
 }
 
 type UpdateTransactionRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId       string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	TransactionId  string                 `protobuf:"bytes,2,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty"`
-	AccountId      *string                `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3,oneof" json:"account_id,omitempty"`
-	CategoryId     *string                `protobuf:"bytes,4,opt,name=category_id,json=categoryId,proto3,oneof" json:"category_id,omitempty"`
-	Amount         *int64                 `protobuf:"varint,5,opt,name=amount,proto3,oneof" json:"amount,omitempty"`
-	Description    *string                `protobuf:"bytes,6,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	Date           *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date,proto3,oneof" json:"date,omitempty"`
-	Direction      *string                `protobuf:"bytes,8,opt,name=direction,proto3,oneof" json:"direction,omitempty"`
-	Status         *string                `protobuf:"bytes,9,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	Class          *string                `protobuf:"bytes,10,opt,name=class,proto3,oneof" json:"class,omitempty"`
-	PostDate       *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=post_date,json=postDate,proto3,oneof" json:"post_date,omitempty"`
-	SubClass       *string                `protobuf:"bytes,12,opt,name=sub_class,json=subClass,proto3,oneof" json:"sub_class,omitempty"`
-	RawDescription *string                `protobuf:"bytes,13,opt,name=raw_description,json=rawDescription,proto3,oneof" json:"raw_description,omitempty"`
-	MerchantName   *string                `protobuf:"bytes,14,opt,name=merchant_name,json=merchantName,proto3,oneof" json:"merchant_name,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	BudgetId        string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	TransactionId   string                 `protobuf:"bytes,2,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty"`
+	AccountId       *string                `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3,oneof" json:"account_id,omitempty"`
+	CategoryId      *string                `protobuf:"bytes,4,opt,name=category_id,json=categoryId,proto3,oneof" json:"category_id,omitempty"`
+	Amount          *int64                 `protobuf:"varint,5,opt,name=amount,proto3,oneof" json:"amount,omitempty"`
+	Description     *string                `protobuf:"bytes,6,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Date            *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date,proto3,oneof" json:"date,omitempty"`
+	Direction       *string                `protobuf:"bytes,8,opt,name=direction,proto3,oneof" json:"direction,omitempty"`
+	Status          *string                `protobuf:"bytes,9,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Class           *string                `protobuf:"bytes,10,opt,name=class,proto3,oneof" json:"class,omitempty"`
+	PostDate        *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=post_date,json=postDate,proto3,oneof" json:"post_date,omitempty"`
+	SubClass        *string                `protobuf:"bytes,12,opt,name=sub_class,json=subClass,proto3,oneof" json:"sub_class,omitempty"`
+	RawDescription  *string                `protobuf:"bytes,13,opt,name=raw_description,json=rawDescription,proto3,oneof" json:"raw_description,omitempty"`
+	MerchantName    *string                `protobuf:"bytes,14,opt,name=merchant_name,json=merchantName,proto3,oneof" json:"merchant_name,omitempty"`
+	MerchantWebsite *string                `protobuf:"bytes,15,opt,name=merchant_website,json=merchantWebsite,proto3,oneof" json:"merchant_website,omitempty"`
+	MerchantLogoUrl *string                `protobuf:"bytes,16,opt,name=merchant_logo_url,json=merchantLogoUrl,proto3,oneof" json:"merchant_logo_url,omitempty"`
+	LocationAddress *string                `protobuf:"bytes,17,opt,name=location_address,json=locationAddress,proto3,oneof" json:"location_address,omitempty"`
+	LocationLat     *string                `protobuf:"bytes,18,opt,name=location_lat,json=locationLat,proto3,oneof" json:"location_lat,omitempty"`
+	LocationLng     *string                `protobuf:"bytes,19,opt,name=location_lng,json=locationLng,proto3,oneof" json:"location_lng,omitempty"`
+	CategoryCode    *string                `protobuf:"bytes,20,opt,name=category_code,json=categoryCode,proto3,oneof" json:"category_code,omitempty"`
+	CategoryTitle   *string                `protobuf:"bytes,21,opt,name=category_title,json=categoryTitle,proto3,oneof" json:"category_title,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateTransactionRequest) Reset() {
@@ -546,6 +609,55 @@ func (x *UpdateTransactionRequest) GetRawDescription() string {
 func (x *UpdateTransactionRequest) GetMerchantName() string {
 	if x != nil && x.MerchantName != nil {
 		return *x.MerchantName
+	}
+	return ""
+}
+
+func (x *UpdateTransactionRequest) GetMerchantWebsite() string {
+	if x != nil && x.MerchantWebsite != nil {
+		return *x.MerchantWebsite
+	}
+	return ""
+}
+
+func (x *UpdateTransactionRequest) GetMerchantLogoUrl() string {
+	if x != nil && x.MerchantLogoUrl != nil {
+		return *x.MerchantLogoUrl
+	}
+	return ""
+}
+
+func (x *UpdateTransactionRequest) GetLocationAddress() string {
+	if x != nil && x.LocationAddress != nil {
+		return *x.LocationAddress
+	}
+	return ""
+}
+
+func (x *UpdateTransactionRequest) GetLocationLat() string {
+	if x != nil && x.LocationLat != nil {
+		return *x.LocationLat
+	}
+	return ""
+}
+
+func (x *UpdateTransactionRequest) GetLocationLng() string {
+	if x != nil && x.LocationLng != nil {
+		return *x.LocationLng
+	}
+	return ""
+}
+
+func (x *UpdateTransactionRequest) GetCategoryCode() string {
+	if x != nil && x.CategoryCode != nil {
+		return *x.CategoryCode
+	}
+	return ""
+}
+
+func (x *UpdateTransactionRequest) GetCategoryTitle() string {
+	if x != nil && x.CategoryTitle != nil {
+		return *x.CategoryTitle
 	}
 	return ""
 }
@@ -686,7 +798,7 @@ var File_budgy_v1_transaction_proto protoreflect.FileDescriptor
 
 const file_budgy_v1_transaction_proto_rawDesc = "" +
 	"\n" +
-	"\x1abudgy/v1/transaction.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdd\x04\n" +
+	"\x1abudgy/v1/transaction.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf1\x06\n" +
 	"\vTransaction\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tbudget_id\x18\x02 \x01(\tR\bbudgetId\x12\x1d\n" +
@@ -708,7 +820,14 @@ const file_budgy_v1_transaction_proto_rawDesc = "" +
 	"\tpost_date\x18\r \x01(\v2\x1a.google.protobuf.TimestampH\x00R\bpostDate\x88\x01\x01\x12\x1b\n" +
 	"\tsub_class\x18\x0e \x01(\tR\bsubClass\x12'\n" +
 	"\x0fraw_description\x18\x0f \x01(\tR\x0erawDescription\x12#\n" +
-	"\rmerchant_name\x18\x10 \x01(\tR\fmerchantNameB\f\n" +
+	"\rmerchant_name\x18\x10 \x01(\tR\fmerchantName\x12)\n" +
+	"\x10merchant_website\x18\x11 \x01(\tR\x0fmerchantWebsite\x12*\n" +
+	"\x11merchant_logo_url\x18\x12 \x01(\tR\x0fmerchantLogoUrl\x12)\n" +
+	"\x10location_address\x18\x13 \x01(\tR\x0flocationAddress\x12!\n" +
+	"\flocation_lat\x18\x14 \x01(\tR\vlocationLat\x12!\n" +
+	"\flocation_lng\x18\x15 \x01(\tR\vlocationLng\x12#\n" +
+	"\rcategory_code\x18\x16 \x01(\tR\fcategoryCode\x12%\n" +
+	"\x0ecategory_title\x18\x17 \x01(\tR\rcategoryTitleB\f\n" +
 	"\n" +
 	"_post_date\"\xe1\x01\n" +
 	"\x18CreateTransactionRequest\x12\x1b\n" +
@@ -725,7 +844,7 @@ const file_budgy_v1_transaction_proto_rawDesc = "" +
 	"\x17ListTransactionsRequest\x12\x1b\n" +
 	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\"U\n" +
 	"\x18ListTransactionsResponse\x129\n" +
-	"\ftransactions\x18\x01 \x03(\v2\x15.budgy.v1.TransactionR\ftransactions\"\xdc\x05\n" +
+	"\ftransactions\x18\x01 \x03(\v2\x15.budgy.v1.TransactionR\ftransactions\"\x9a\t\n" +
 	"\x18UpdateTransactionRequest\x12\x1b\n" +
 	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12%\n" +
 	"\x0etransaction_id\x18\x02 \x01(\tR\rtransactionId\x12\"\n" +
@@ -744,7 +863,14 @@ const file_budgy_v1_transaction_proto_rawDesc = "" +
 	"\tsub_class\x18\f \x01(\tH\tR\bsubClass\x88\x01\x01\x12,\n" +
 	"\x0fraw_description\x18\r \x01(\tH\n" +
 	"R\x0erawDescription\x88\x01\x01\x12(\n" +
-	"\rmerchant_name\x18\x0e \x01(\tH\vR\fmerchantName\x88\x01\x01B\r\n" +
+	"\rmerchant_name\x18\x0e \x01(\tH\vR\fmerchantName\x88\x01\x01\x12.\n" +
+	"\x10merchant_website\x18\x0f \x01(\tH\fR\x0fmerchantWebsite\x88\x01\x01\x12/\n" +
+	"\x11merchant_logo_url\x18\x10 \x01(\tH\rR\x0fmerchantLogoUrl\x88\x01\x01\x12.\n" +
+	"\x10location_address\x18\x11 \x01(\tH\x0eR\x0flocationAddress\x88\x01\x01\x12&\n" +
+	"\flocation_lat\x18\x12 \x01(\tH\x0fR\vlocationLat\x88\x01\x01\x12&\n" +
+	"\flocation_lng\x18\x13 \x01(\tH\x10R\vlocationLng\x88\x01\x01\x12(\n" +
+	"\rcategory_code\x18\x14 \x01(\tH\x11R\fcategoryCode\x88\x01\x01\x12*\n" +
+	"\x0ecategory_title\x18\x15 \x01(\tH\x12R\rcategoryTitle\x88\x01\x01B\r\n" +
 	"\v_account_idB\x0e\n" +
 	"\f_category_idB\t\n" +
 	"\a_amountB\x0e\n" +
@@ -759,7 +885,14 @@ const file_budgy_v1_transaction_proto_rawDesc = "" +
 	"\n" +
 	"_sub_classB\x12\n" +
 	"\x10_raw_descriptionB\x10\n" +
-	"\x0e_merchant_name\"T\n" +
+	"\x0e_merchant_nameB\x13\n" +
+	"\x11_merchant_websiteB\x14\n" +
+	"\x12_merchant_logo_urlB\x13\n" +
+	"\x11_location_addressB\x0f\n" +
+	"\r_location_latB\x0f\n" +
+	"\r_location_lngB\x10\n" +
+	"\x0e_category_codeB\x11\n" +
+	"\x0f_category_title\"T\n" +
 	"\x19UpdateTransactionResponse\x127\n" +
 	"\vtransaction\x18\x01 \x01(\v2\x15.budgy.v1.TransactionR\vtransaction\"^\n" +
 	"\x18DeleteTransactionRequest\x12\x1b\n" +

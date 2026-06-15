@@ -25,6 +25,13 @@ message Transaction {
   string sub_class        = 14;
   string raw_description  = 15;
   string merchant_name    = 16;
+  string merchant_website = 17;
+  string merchant_logo_url = 18;
+  string location_address = 19;
+  string location_lat     = 20;
+  string location_lng     = 21;
+  string category_code    = 22;
+  string category_title   = 23;
 }
 
 // ─── Requests / Responses ─────────────────────────────────────────────────────
@@ -65,6 +72,13 @@ message UpdateTransactionRequest {
   optional string sub_class       = 12;
   optional string raw_description = 13;
   optional string merchant_name   = 14;
+  optional string merchant_website = 15;
+  optional string merchant_logo_url = 16;
+  optional string location_address = 17;
+  optional string location_lat     = 18;
+  optional string location_lng     = 19;
+  optional string category_code    = 20;
+  optional string category_title   = 21;
 }
 
 message UpdateTransactionResponse {
