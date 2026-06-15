@@ -1,4 +1,4 @@
-import type { Timestamp } from "@bufbuild/protobuf";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import type { Account, AccountType } from "@/features/accounts/types";
 import type { Budget } from "@/features/budgets/types";
 import type { Category } from "@/features/categories/types";
@@ -18,8 +18,8 @@ import type { ListQuery, Repository } from "@/lib/storage/repository";
 
 function tsToISO(ts: Timestamp | null | undefined): string {
   if (!ts) return new Date().toISOString();
-  // Timestamp in @bufbuild/protobuf v1 has a toDate() method
-  return (ts as unknown as { toDate(): Date }).toDate().toISOString();
+  const ms = Number(ts.seconds) * 1000 + Math.floor(ts.nanos / 1000000);
+  return new Date(ms).toISOString();
 }
 
 function tsToDateStr(ts: Timestamp | null | undefined): string {
