@@ -1,5 +1,4 @@
 version: v2
-clean: true
 plugins:
   # Go: protobuf message types
   - remote: buf.build/protocolbuffers/go
