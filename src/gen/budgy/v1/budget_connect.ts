@@ -3,8 +3,21 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateBudgetRequest, CreateBudgetResponse, DeleteBudgetRequest, DeleteBudgetResponse, GetBudgetRequest, GetBudgetResponse, GetBudgetSummaryRequest, GetBudgetSummaryResponse, ListBudgetsRequest, ListBudgetsResponse, UpdateBudgetRequest, UpdateBudgetResponse } from "./budget_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
+import {
+  CreateBudgetRequest,
+  CreateBudgetResponse,
+  DeleteBudgetRequest,
+  DeleteBudgetResponse,
+  GetBudgetRequest,
+  GetBudgetResponse,
+  GetBudgetSummaryRequest,
+  GetBudgetSummaryResponse,
+  ListBudgetsRequest,
+  ListBudgetsResponse,
+  UpdateBudgetRequest,
+  UpdateBudgetResponse,
+} from "./budget_pb.js";
 
 /**
  * @generated from service budgy.v1.BudgetService
@@ -66,6 +79,5 @@ export const BudgetService = {
       O: DeleteBudgetResponse,
       kind: MethodKind.Unary,
     },
-  }
+  },
 } as const;
-

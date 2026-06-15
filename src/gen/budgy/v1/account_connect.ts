@@ -3,8 +3,17 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateAccountRequest, CreateAccountResponse, DeleteAccountRequest, DeleteAccountResponse, ListAccountsRequest, ListAccountsResponse, UpdateAccountRequest, UpdateAccountResponse } from "./account_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
+import {
+  CreateAccountRequest,
+  CreateAccountResponse,
+  DeleteAccountRequest,
+  DeleteAccountResponse,
+  ListAccountsRequest,
+  ListAccountsResponse,
+  UpdateAccountRequest,
+  UpdateAccountResponse,
+} from "./account_pb.js";
 
 /**
  * @generated from service budgy.v1.AccountService
@@ -48,6 +57,5 @@ export const AccountService = {
       O: DeleteAccountResponse,
       kind: MethodKind.Unary,
     },
-  }
+  },
 } as const;
-

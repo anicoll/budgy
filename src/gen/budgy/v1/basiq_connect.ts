@@ -3,8 +3,13 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetBasiqAuthLinkRequest, GetBasiqAuthLinkResponse, SyncBankRequest, SyncBankResponse } from "./basiq_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
+import {
+  GetBasiqAuthLinkRequest,
+  GetBasiqAuthLinkResponse,
+  SyncBankRequest,
+  SyncBankResponse,
+} from "./basiq_pb.js";
 
 /**
  * @generated from service budgy.v1.BankSyncService
@@ -30,6 +35,5 @@ export const BankSyncService = {
       O: SyncBankResponse,
       kind: MethodKind.Unary,
     },
-  }
+  },
 } as const;
-

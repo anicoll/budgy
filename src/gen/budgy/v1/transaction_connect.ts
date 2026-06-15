@@ -3,8 +3,17 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateTransactionRequest, CreateTransactionResponse, DeleteTransactionRequest, DeleteTransactionResponse, ListTransactionsRequest, ListTransactionsResponse, UpdateTransactionRequest, UpdateTransactionResponse } from "./transaction_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
+import {
+  CreateTransactionRequest,
+  CreateTransactionResponse,
+  DeleteTransactionRequest,
+  DeleteTransactionResponse,
+  ListTransactionsRequest,
+  ListTransactionsResponse,
+  UpdateTransactionRequest,
+  UpdateTransactionResponse,
+} from "./transaction_pb.js";
 
 /**
  * @generated from service budgy.v1.TransactionService
@@ -48,6 +57,5 @@ export const TransactionService = {
       O: DeleteTransactionResponse,
       kind: MethodKind.Unary,
     },
-  }
+  },
 } as const;
-
