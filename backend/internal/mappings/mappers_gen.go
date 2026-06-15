@@ -13,8 +13,26 @@ import (
 // Mappers are not goroutine safe for add/merge actions.
 func NewMappers() sesame.Mappers {
 	mappers := sesame.NewMappers()
+	mappers.AddFactory("budgeting_system/internal/mappings.AccountMapper", reflect.TypeOf((*AccountMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewAccountMapper(ms), nil
+	})
+	mappers.AddFactory("budgeting_system/internal/mappings.BudgetMapper", reflect.TypeOf((*BudgetMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewBudgetMapper(ms), nil
+	})
+	mappers.AddFactory("budgeting_system/internal/mappings.CategoryMapper", reflect.TypeOf((*CategoryMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewCategoryMapper(ms), nil
+	})
+	mappers.AddFactory("budgeting_system/internal/mappings.DBTransactionMapper", reflect.TypeOf((*DBTransactionMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewDBTransactionMapper(ms), nil
+	})
 	mappers.AddFactory("budgeting_system/internal/mappings.TransactionMapper", reflect.TypeOf((*TransactionMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
 		return NewTransactionMapper(ms), nil
+	})
+	mappers.AddFactory("budgeting_system/internal/mappings.TransactionProtoMapper", reflect.TypeOf((*TransactionProtoMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewTransactionProtoMapper(ms), nil
+	})
+	mappers.AddFactory("budgeting_system/internal/mappings.UserMapper", reflect.TypeOf((*UserMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewUserMapper(ms), nil
 	})
 	return mappers
 }
