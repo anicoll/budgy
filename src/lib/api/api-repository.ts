@@ -95,6 +95,7 @@ interface AccountMetadata {
   archived?: boolean;
   institution?: string;
   icon?: string;
+  type?: AccountType;
 }
 
 function parseNameAndMetadata(rawName: string): { name: string; metadata: AccountMetadata } {
@@ -258,12 +259,38 @@ export class ApiBudgetRepository implements Repository<Budget> {
   }
 }
 
+function getFrontendAccountType(protoType: ProtoAccountType, className: string): AccountType {
+  const c = className.toLowerCase();
+  if (c.includes("mortgage") || c.includes("loan") || c.includes("liability")) {
+    return "loan";
+  }
+  if (c.includes("investment")) {
+    return "investment";
+  }
+  if (c.includes("super")) {
+    return "super";
+  }
+  return mapProtoTypeToFrontend(protoType);
+}
+
 function resolveAccount(a: any): Account {
   const { name, metadata } = parseNameAndMetadata(a.name);
-  const type = mapProtoTypeToFrontend(a.type);
+  let type: AccountType;
+  if (metadata.type) {
+    type = metadata.type;
+  } else if (a.connectionId) {
+    type = getFrontendAccountType(a.type, a.class || "");
+  } else {
+    type = mapProtoTypeToFrontend(a.type);
+  }
+
+  const displayName = a.connectionId
+    ? (a.product || name || "Connected Account")
+    : (name || "Checking Account");
+
   return {
     id: a.id,
-    name,
+    name: displayName,
     type,
     openingBalance: Number(a.balance) as Cents,
     currentBalance: Number(a.balance) as Cents,
@@ -306,6 +333,7 @@ export class ApiAccountRepository implements Repository<Account> {
       archived: entity.archived,
       institution: entity.institution,
       icon: entity.icon,
+      type: entity.type,
     });
 
     if (existing) {

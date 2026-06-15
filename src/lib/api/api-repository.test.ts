@@ -186,6 +186,25 @@ describe("ApiAccountRepository", () => {
     expect(result[0].sortOrder).toBe(0);
   });
 
+  it("list handles empty name synced accounts by falling back to product name and maps class to frontend type", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
+    mockFetch.mockResolvedValueOnce(
+      connectResponse({
+        accounts: [
+          accountMsg("a1", "", 1, 50000, {
+            connectionId: "conn-123",
+            product: "Hooli Home Loan",
+            class: "mortgage",
+          }),
+        ],
+      })
+    );
+
+    const result = await repo.list();
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Hooli Home Loan");
+    expect(result[0].type).toBe("loan"); // mapped from mortgage class
+  });
   it("upsert serializes metadata into name field suffix", async () => {
     mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     // get() for existing check inside upsert
@@ -226,7 +245,7 @@ describe("ApiAccountRepository", () => {
     const decoded = typeof rawBody === "string" ? rawBody : new TextDecoder().decode(rawBody);
     const body = JSON.parse(decoded);
     expect(body.name).toBe(
-      'Savings ||{"color":"#00ff00","sortOrder":2,"archived":false,"institution":"Bank","icon":"icon"}',
+      'Savings ||{"color":"#00ff00","sortOrder":2,"archived":false,"institution":"Bank","icon":"icon","type":"savings"}',
     );
   });
 
