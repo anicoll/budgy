@@ -39,8 +39,8 @@ importers:
         specifier: ^3.14.2
         version: 3.14.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       apexcharts:
-        specifier: ^5.14.0
-        version: 5.14.0
+        specifier: ^5.15.0
+        version: 5.15.0
       apexsankey:
         specifier: ^1.8.0
         version: 1.8.0
@@ -85,7 +85,7 @@ importers:
         version: 19.2.7
       react-apexcharts:
         specifier: ^2.1.0
-        version: 2.1.0(apexcharts@5.14.0)(react@19.2.7)
+        version: 2.1.0(apexcharts@5.15.0)(react@19.2.7)
       react-dom:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
@@ -1659,8 +1659,8 @@ packages:
     resolution: {integrity: sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==}
     engines: {node: '>=10'}
 
-  apexcharts@5.14.0:
-    resolution: {integrity: sha512-hBLz5Gd8B5ZuocEzNUwEeKdw9vd7uy4OnqbDjAYyvwiAEyHk3OnO9+tGzAznpM6pnyCqWjPXUKKYoNIwdskeuQ==}
+  apexcharts@5.15.0:
+    resolution: {integrity: sha512-ATswoiZi8wynKcwqf0eyE0Is5mBQoDpxZN3PlSVy41OrD+9GMBp2kZQRjyGK+5/j0GFjHkuAd7GKOrt5VMoPrw==}
 
   apexsankey@1.8.0:
     resolution: {integrity: sha512-rf0A+tBmqk9NZnyzCFPPtbDh8TWUbB+F3D6jFAPkCmhR2sIPTaexqm9ThYZDiuT48uuAd8XdGtou8ZOc/SXDGg==}
@@ -3805,7 +3805,7 @@ snapshots:
 
   ansi-styles@5.2.0: {}
 
-  apexcharts@5.14.0: {}
+  apexcharts@5.15.0: {}
 
   apexsankey@1.8.0: {}
 
@@ -4195,9 +4195,9 @@ snapshots:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
 
-  react-apexcharts@2.1.0(apexcharts@5.14.0)(react@19.2.7):
+  react-apexcharts@2.1.0(apexcharts@5.15.0)(react@19.2.7):
     dependencies:
-      apexcharts: 5.14.0
+      apexcharts: 5.15.0
       prop-types: 15.8.1
       react: 19.2.7
 
