@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -33,20 +33,21 @@ export function QuickAddDialog() {
   const setOpen = useUIStore((s) => s.setQuickAddOpen);
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const manualAccounts = useMemo(() => accounts.filter((a) => !a.connectionId), [accounts]);
   const createMutation = useCreateTransaction();
 
   const form = useForm<TxnFormValues>({
     resolver: zodResolver(txnFormSchema),
-    defaultValues: defaultTxnValues(accounts[0]?.id),
+    defaultValues: defaultTxnValues(manualAccounts[0]?.id),
   });
 
   const watchType = form.watch("type");
 
   useEffect(() => {
-    if (open && accounts.length) {
-      form.reset(defaultTxnValues(accounts[0].id));
+    if (open && manualAccounts.length) {
+      form.reset(defaultTxnValues(manualAccounts[0].id));
     }
-  }, [open, accounts, form]);
+  }, [open, manualAccounts, form]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await createMutation.mutateAsync(values);
@@ -118,7 +119,7 @@ export function QuickAddDialog() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {accounts.map((a) => (
+                        {manualAccounts.map((a) => (
                           <SelectItem key={a.id} value={a.id}>
                             {a.name}
                           </SelectItem>
@@ -168,7 +169,7 @@ export function QuickAddDialog() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {accounts
+                        {manualAccounts
                           .filter((a) => a.id !== form.watch("accountId"))
                           .map((a) => (
                             <SelectItem key={a.id} value={a.id}>

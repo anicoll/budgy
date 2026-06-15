@@ -44,6 +44,7 @@ export function AccountCard({ account, onEdit, onArchiveToggle, onDelete }: Acco
   const balance = account.currentBalance as Cents;
   const liability = isLiability(account.type);
   const [menuOpen, setMenuOpen] = useState(false);
+  const isSynced = !!account.connectionId;
 
   return (
     <div
@@ -60,49 +61,57 @@ export function AccountCard({ account, onEdit, onArchiveToggle, onDelete }: Acco
       <div
         className={cn(
           "absolute right-3 top-3 flex items-center gap-0.5 transition-opacity",
-          menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+          isSynced ? "opacity-100" : menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100",
         )}
       >
-        <button
-          type="button"
-          aria-label="Drag to reorder"
-          className="inline-flex h-7 w-7 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
+        {!isSynced && (
+          <button
+            type="button"
+            aria-label="Drag to reorder"
+            className="inline-flex h-7 w-7 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+        )}
 
-        <DropdownMenu onOpenChange={setMenuOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Actions">
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={() => onEdit(account)}>
-              <Pencil className="mr-2 h-4 w-4" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onArchiveToggle(account)}>
-              {account.archived ? (
-                <>
-                  <ArchiveRestore className="mr-2 h-4 w-4" /> Restore
-                </>
-              ) : (
-                <>
-                  <Archive className="mr-2 h-4 w-4" /> Archive
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => onDelete(account)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {isSynced ? (
+          <span className="inline-flex h-7 px-2.5 items-center justify-center rounded-md bg-indigo-500/10 text-indigo-400 text-[10px] font-semibold uppercase tracking-wider select-none border border-indigo-500/20">
+            Synced
+          </span>
+        ) : (
+          <DropdownMenu onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Actions">
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={() => onEdit(account)}>
+                <Pencil className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onArchiveToggle(account)}>
+                {account.archived ? (
+                  <>
+                    <ArchiveRestore className="mr-2 h-4 w-4" /> Restore
+                  </>
+                ) : (
+                  <>
+                    <Archive className="mr-2 h-4 w-4" /> Archive
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onDelete(account)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Avatar + name */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,10 +55,11 @@ export function TransactionFormSheet({
 }: Props) {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const manualAccounts = useMemo(() => accounts.filter((a) => !a.connectionId), [accounts]);
 
   const form = useForm<TxnFormValues>({
     resolver: zodResolver(txnFormSchema),
-    defaultValues: defaultTxnValues(defaultAccountId),
+    defaultValues: defaultTxnValues(defaultAccountId || manualAccounts[0]?.id),
   });
 
   const watchType = form.watch("type");
@@ -79,9 +80,9 @@ export function TransactionFormSheet({
         cleared: editing.cleared,
       });
     } else {
-      reset(defaultTxnValues(defaultAccountId));
+      reset(defaultTxnValues(defaultAccountId || manualAccounts[0]?.id));
     }
-  }, [editing, defaultAccountId, reset]);
+  }, [editing, defaultAccountId, reset, manualAccounts]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit(values);
@@ -162,7 +163,7 @@ export function TransactionFormSheet({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {accounts.map((a) => (
+                      {manualAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
                           {a.name}
                         </SelectItem>
@@ -188,7 +189,7 @@ export function TransactionFormSheet({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {accounts
+                        {manualAccounts
                           .filter((a) => a.id !== form.watch("accountId"))
                           .map((a) => (
                             <SelectItem key={a.id} value={a.id}>
