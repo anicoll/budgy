@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"embed"
 	"errors"
-	"fmt"
 	"time"
 
 	"budgeting_system/internal/domain"
 	"budgeting_system/internal/mappings"
 	"budgeting_system/internal/storage/db"
+	"budgeting_system/pkg/utils"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	"github.com/pressly/goose/v3"
@@ -19,22 +19,28 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-var dbTxMapper mappings.DBTransactionMapper
+var (
+	dbTxMapper       mappings.DBTransactionMapper
+	dbUserMapper     mappings.DBUserMapper
+	dbBudgetMapper   mappings.DBBudgetMapper
+	dbAccountMapper  mappings.DBAccountMapper
+	dbCategoryMapper mappings.DBCategoryMapper
+	dbJobMapper      mappings.DBJobMapper
+)
 
 func init() {
 	mappers := mappings.NewMappers()
 	mappers.Add("NullStringConverter", &mappings.NullStringConverter{})
 	mappers.Add("NullTimeConverter", &mappings.NullTimeConverter{})
-	m, err := mappers.Get("budgeting_system/internal/mappings.DBTransactionMapper")
-	if err != nil {
-		all, _ := mappers.GetAllMappers()
-		keys := []string{}
-		for k := range all {
-			keys = append(keys, k)
-		}
-		panic(fmt.Sprintf("DBTransactionMapper not found. Registered mappers: %v, err: %v", keys, err))
-	}
-	dbTxMapper = m.(mappings.DBTransactionMapper)
+	mappers.Add("NullInt64Converter", &mappings.NullInt64Converter{})
+	mappers.Add("DBJobMapperHelper", &mappings.DBJobMapperHelperImpl{})
+
+	dbTxMapper = utils.Must(mappers.Get("budgeting_system/internal/mappings.DBTransactionMapper")).(mappings.DBTransactionMapper)
+	dbUserMapper = utils.Must(mappers.Get("budgeting_system/internal/mappings.DBUserMapper")).(mappings.DBUserMapper)
+	dbBudgetMapper = utils.Must(mappers.Get("budgeting_system/internal/mappings.DBBudgetMapper")).(mappings.DBBudgetMapper)
+	dbAccountMapper = utils.Must(mappers.Get("budgeting_system/internal/mappings.DBAccountMapper")).(mappings.DBAccountMapper)
+	dbCategoryMapper = utils.Must(mappers.Get("budgeting_system/internal/mappings.DBCategoryMapper")).(mappings.DBCategoryMapper)
+	dbJobMapper = utils.Must(mappers.Get("budgeting_system/internal/mappings.DBJobMapper")).(mappings.DBJobMapper)
 }
 
 // Migrate runs database migrations using Goose.
@@ -98,18 +104,18 @@ func (r *budgetRepository) GetByID(ctx context.Context, id string) (*domain.Budg
 	query := `SELECT id, user_id, name, method, currency, created_at, updated_at FROM budgets WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
 
-	var b domain.Budget
-	var methodStr string
-	var userIDNull sql.NullString
-	err := row.Scan(&b.ID, &userIDNull, &b.Name, &methodStr, &b.Currency, &b.CreatedAt, &b.UpdatedAt)
+	var dbBudget db.Budget
+	err := row.Scan(&dbBudget.ID, &dbBudget.UserID, &dbBudget.Name, &dbBudget.Method, &dbBudget.Currency, &dbBudget.CreatedAt, &dbBudget.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("budget not found")
 		}
 		return nil, err
 	}
-	b.Method = domain.BudgetMethod(methodStr)
-	b.UserID = userIDNull.String
+	var b domain.Budget
+	if err := dbBudgetMapper.BudgetToBudget(ctx, &dbBudget, &b); err != nil {
+		return nil, err
+	}
 	return &b, nil
 }
 
@@ -123,15 +129,15 @@ func (r *budgetRepository) List(ctx context.Context, userID string) ([]*domain.B
 
 	var list []*domain.Budget
 	for rows.Next() {
-		var b domain.Budget
-		var methodStr string
-		var userIDNull sql.NullString
-		err := rows.Scan(&b.ID, &userIDNull, &b.Name, &methodStr, &b.Currency, &b.CreatedAt, &b.UpdatedAt)
+		var dbBudget db.Budget
+		err := rows.Scan(&dbBudget.ID, &dbBudget.UserID, &dbBudget.Name, &dbBudget.Method, &dbBudget.Currency, &dbBudget.CreatedAt, &dbBudget.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
-		b.Method = domain.BudgetMethod(methodStr)
-		b.UserID = userIDNull.String
+		var b domain.Budget
+		if err := dbBudgetMapper.BudgetToBudget(ctx, &dbBudget, &b); err != nil {
+			return nil, err
+		}
 		list = append(list, &b)
 	}
 	return list, nil
@@ -178,18 +184,18 @@ func (r *accountRepository) GetByID(ctx context.Context, id string) (*domain.Acc
 	query := `SELECT id, budget_id, name, type, balance, created_at, updated_at, class, account_no, available_funds, product, institution_id, connection_id, last_updated FROM accounts WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
 
-	var acc domain.Account
-	var typeStr string
-	var budgetIDNull sql.NullString
-	err := row.Scan(&acc.ID, &budgetIDNull, &acc.Name, &typeStr, &acc.Balance, &acc.CreatedAt, &acc.UpdatedAt, &acc.Class, &acc.AccountNo, &acc.AvailableFunds, &acc.Product, &acc.InstitutionID, &acc.ConnectionID, &acc.LastUpdated)
+	var dbAcc db.Account
+	err := row.Scan(&dbAcc.ID, &dbAcc.BudgetID, &dbAcc.Name, &dbAcc.Type, &dbAcc.Balance, &dbAcc.CreatedAt, &dbAcc.UpdatedAt, &dbAcc.Class, &dbAcc.AccountNo, &dbAcc.AvailableFunds, &dbAcc.Product, &dbAcc.InstitutionID, &dbAcc.ConnectionID, &dbAcc.LastUpdated)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("account not found")
 		}
 		return nil, err
 	}
-	acc.Type = domain.AccountType(typeStr)
-	acc.BudgetID = budgetIDNull.String
+	var acc domain.Account
+	if err := dbAccountMapper.AccountToAccount(ctx, &dbAcc, &acc); err != nil {
+		return nil, err
+	}
 	return &acc, nil
 }
 
@@ -203,15 +209,15 @@ func (r *accountRepository) ListByBudget(ctx context.Context, budgetID string) (
 
 	var list []*domain.Account
 	for rows.Next() {
-		var acc domain.Account
-		var typeStr string
-		var budgetIDNull sql.NullString
-		err := rows.Scan(&acc.ID, &budgetIDNull, &acc.Name, &typeStr, &acc.Balance, &acc.CreatedAt, &acc.UpdatedAt, &acc.Class, &acc.AccountNo, &acc.AvailableFunds, &acc.Product, &acc.InstitutionID, &acc.ConnectionID, &acc.LastUpdated)
+		var dbAcc db.Account
+		err := rows.Scan(&dbAcc.ID, &dbAcc.BudgetID, &dbAcc.Name, &dbAcc.Type, &dbAcc.Balance, &dbAcc.CreatedAt, &dbAcc.UpdatedAt, &dbAcc.Class, &dbAcc.AccountNo, &dbAcc.AvailableFunds, &dbAcc.Product, &dbAcc.InstitutionID, &dbAcc.ConnectionID, &dbAcc.LastUpdated)
 		if err != nil {
 			return nil, err
 		}
-		acc.Type = domain.AccountType(typeStr)
-		acc.BudgetID = budgetIDNull.String
+		var acc domain.Account
+		if err := dbAccountMapper.AccountToAccount(ctx, &dbAcc, &acc); err != nil {
+			return nil, err
+		}
 		list = append(list, &acc)
 	}
 	return list, nil
@@ -260,16 +266,18 @@ func (r *categoryRepository) GetByID(ctx context.Context, id string) (*domain.Ca
 	query := `SELECT id, budget_id, name, budgeted, balance, target_limit, created_at, updated_at FROM categories WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
 
-	var c domain.Category
-	var budgetIDNull sql.NullString
-	err := row.Scan(&c.ID, &budgetIDNull, &c.Name, &c.Budgeted, &c.Balance, &c.TargetLimit, &c.CreatedAt, &c.UpdatedAt)
+	var dbC db.Category
+	err := row.Scan(&dbC.ID, &dbC.BudgetID, &dbC.Name, &dbC.Budgeted, &dbC.Balance, &dbC.TargetLimit, &dbC.CreatedAt, &dbC.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("category not found")
 		}
 		return nil, err
 	}
-	c.BudgetID = budgetIDNull.String
+	var c domain.Category
+	if err := dbCategoryMapper.CategoryToCategory(ctx, &dbC, &c); err != nil {
+		return nil, err
+	}
 	return &c, nil
 }
 
@@ -283,13 +291,15 @@ func (r *categoryRepository) ListByBudget(ctx context.Context, budgetID string) 
 
 	var list []*domain.Category
 	for rows.Next() {
-		var c domain.Category
-		var budgetIDNull sql.NullString
-		err := rows.Scan(&c.ID, &budgetIDNull, &c.Name, &c.Budgeted, &c.Balance, &c.TargetLimit, &c.CreatedAt, &c.UpdatedAt)
+		var dbC db.Category
+		err := rows.Scan(&dbC.ID, &dbC.BudgetID, &dbC.Name, &dbC.Budgeted, &dbC.Balance, &dbC.TargetLimit, &dbC.CreatedAt, &dbC.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
-		c.BudgetID = budgetIDNull.String
+		var c domain.Category
+		if err := dbCategoryMapper.CategoryToCategory(ctx, &dbC, &c); err != nil {
+			return nil, err
+		}
 		list = append(list, &c)
 	}
 	return list, nil
@@ -496,16 +506,18 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*domain.User, 
 	query := `SELECT id, email, password_hash, first_name, last_name, basiq_user_id, created_at, updated_at FROM users WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
 
-	var u domain.User
-	var basiqIDNull sql.NullString
-	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &basiqIDNull, &u.CreatedAt, &u.UpdatedAt)
+	var dbU db.User
+	err := row.Scan(&dbU.ID, &dbU.Email, &dbU.PasswordHash, &dbU.FirstName, &dbU.LastName, &dbU.BasiqUserID, &dbU.CreatedAt, &dbU.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("user not found")
 		}
 		return nil, err
 	}
-	u.BasiqUserID = basiqIDNull.String
+	var u domain.User
+	if err := dbUserMapper.UserToUser(ctx, &dbU, &u); err != nil {
+		return nil, err
+	}
 	return &u, nil
 }
 
@@ -513,16 +525,18 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	query := `SELECT id, email, password_hash, first_name, last_name, basiq_user_id, created_at, updated_at FROM users WHERE email = ?`
 	row := r.db.QueryRowContext(ctx, query, email)
 
-	var u domain.User
-	var basiqIDNull sql.NullString
-	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &basiqIDNull, &u.CreatedAt, &u.UpdatedAt)
+	var dbU db.User
+	err := row.Scan(&dbU.ID, &dbU.Email, &dbU.PasswordHash, &dbU.FirstName, &dbU.LastName, &dbU.BasiqUserID, &dbU.CreatedAt, &dbU.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("user not found")
 		}
 		return nil, err
 	}
-	u.BasiqUserID = basiqIDNull.String
+	var u domain.User
+	if err := dbUserMapper.UserToUser(ctx, &dbU, &u); err != nil {
+		return nil, err
+	}
 	return &u, nil
 }
 
@@ -530,16 +544,18 @@ func (r *userRepository) GetByBasiqUserID(ctx context.Context, basiqID string) (
 	query := `SELECT id, email, password_hash, first_name, last_name, basiq_user_id, created_at, updated_at FROM users WHERE basiq_user_id = ?`
 	row := r.db.QueryRowContext(ctx, query, basiqID)
 
-	var u domain.User
-	var basiqIDNull sql.NullString
-	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &basiqIDNull, &u.CreatedAt, &u.UpdatedAt)
+	var dbU db.User
+	err := row.Scan(&dbU.ID, &dbU.Email, &dbU.PasswordHash, &dbU.FirstName, &dbU.LastName, &dbU.BasiqUserID, &dbU.CreatedAt, &dbU.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("user not found")
 		}
 		return nil, err
 	}
-	u.BasiqUserID = basiqIDNull.String
+	var u domain.User
+	if err := dbUserMapper.UserToUser(ctx, &dbU, &u); err != nil {
+		return nil, err
+	}
 	return &u, nil
 }
 
@@ -650,19 +666,17 @@ func (r *jobRepository) GetNextPending(ctx context.Context) (*domain.Job, error)
 	          LIMIT 1`
 	row := r.db.QueryRowContext(ctx, query, time.Now())
 
-	var job domain.Job
-	var statusStr string
-	var errMsgNull sql.NullString
-	err := row.Scan(&job.ID, &job.JobType, &job.Payload, &statusStr, &job.Attempts, &job.MaxAttempts, &job.RunAt, &errMsgNull, &job.CreatedAt, &job.UpdatedAt)
+	var dbJob db.BackgroundJob
+	err := row.Scan(&dbJob.ID, &dbJob.JobType, &dbJob.Payload, &dbJob.Status, &dbJob.Attempts, &dbJob.MaxAttempts, &dbJob.RunAt, &dbJob.ErrorMessage, &dbJob.CreatedAt, &dbJob.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("no pending jobs found")
 		}
 		return nil, err
 	}
-	job.Status = domain.JobStatus(statusStr)
-	if errMsgNull.Valid {
-		job.ErrorMessage = &errMsgNull.String
+	var job domain.Job
+	if err := dbJobMapper.BackgroundJobToJob(ctx, &dbJob, &job); err != nil {
+		return nil, err
 	}
 	return &job, nil
 }

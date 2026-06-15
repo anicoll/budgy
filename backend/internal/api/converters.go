@@ -4,6 +4,7 @@ import (
 	"budgeting_system/internal/domain"
 	budgyv1 "budgeting_system/internal/gen/budgy/v1"
 	"budgeting_system/internal/mappings"
+	"budgeting_system/pkg/utils"
 	"context"
 	"time"
 
@@ -26,38 +27,13 @@ func InitMappers() *Mappers {
 	mappers.Add("TimestampConverter", &TimestampConverter{})
 	mappers.Add("EnumConverter", &EnumConverter{})
 
-	tx, err := mappers.Get("budgeting_system/internal/mappings.TransactionMapper")
-	if err != nil {
-		panic(err)
-	}
-	user, err := mappers.Get("budgeting_system/internal/mappings.UserMapper")
-	if err != nil {
-		panic(err)
-	}
-	budget, err := mappers.Get("budgeting_system/internal/mappings.BudgetMapper")
-	if err != nil {
-		panic(err)
-	}
-	account, err := mappers.Get("budgeting_system/internal/mappings.AccountMapper")
-	if err != nil {
-		panic(err)
-	}
-	category, err := mappers.Get("budgeting_system/internal/mappings.CategoryMapper")
-	if err != nil {
-		panic(err)
-	}
-	txProto, err := mappers.Get("budgeting_system/internal/mappings.TransactionProtoMapper")
-	if err != nil {
-		panic(err)
-	}
-
 	return &Mappers{
-		txMapper:       tx.(mappings.TransactionMapper),
-		userMapper:     user.(mappings.UserMapper),
-		budgetMapper:   budget.(mappings.BudgetMapper),
-		accountMapper:  account.(mappings.AccountMapper),
-		categoryMapper: category.(mappings.CategoryMapper),
-		txProtoMapper:  txProto.(mappings.TransactionProtoMapper),
+		txMapper:       utils.Must(mappers.Get("budgeting_system/internal/mappings.TransactionMapper")).(mappings.TransactionMapper),
+		userMapper:     utils.Must(mappers.Get("budgeting_system/internal/mappings.UserMapper")).(mappings.UserMapper),
+		budgetMapper:   utils.Must(mappers.Get("budgeting_system/internal/mappings.BudgetMapper")).(mappings.BudgetMapper),
+		accountMapper:  utils.Must(mappers.Get("budgeting_system/internal/mappings.AccountMapper")).(mappings.AccountMapper),
+		categoryMapper: utils.Must(mappers.Get("budgeting_system/internal/mappings.CategoryMapper")).(mappings.CategoryMapper),
+		txProtoMapper:  utils.Must(mappers.Get("budgeting_system/internal/mappings.TransactionProtoMapper")).(mappings.TransactionProtoMapper),
 	}
 }
 

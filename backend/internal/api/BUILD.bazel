@@ -18,6 +18,7 @@ go_library(
         "//backend/internal/gen/budgy/v1/budgyv1connect",
         "//backend/internal/mappings",
         "//backend/internal/service",
+        "//backend/pkg/utils",
         "@com_connectrpc_connect//:connect",
         "@com_github_golang_jwt_jwt_v5//:jwt",
         "@org_golang_google_protobuf//types/known/timestamppb",
