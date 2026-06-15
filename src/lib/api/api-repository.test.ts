@@ -197,7 +197,7 @@ describe("ApiAccountRepository", () => {
             class: "mortgage",
           }),
         ],
-      })
+      }),
     );
 
     const result = await repo.list();

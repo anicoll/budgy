@@ -285,8 +285,8 @@ function resolveAccount(a: any): Account {
   }
 
   const displayName = a.connectionId
-    ? (a.product || name || "Connected Account")
-    : (name || "Checking Account");
+    ? a.product || name || "Connected Account"
+    : name || "Checking Account";
 
   return {
     id: a.id,
