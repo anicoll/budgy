@@ -1,3 +1,4 @@
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { authClient } from "@/lib/api/connect-client";
 
 // Re-export User shape matching existing interface consumers expect
@@ -17,17 +18,21 @@ function protoUserToUser(u: {
   firstName: string;
   lastName: string;
   basiqUserId?: string;
-  createdAt?: { toDate(): Date } | null;
-  updatedAt?: { toDate(): Date } | null;
+  createdAt?: Timestamp | null;
+  updatedAt?: Timestamp | null;
 }): User {
+  const tsToISO = (ts: Timestamp | null | undefined): string => {
+    if (!ts) return new Date().toISOString();
+    return new Date(Number(ts.seconds) * 1000 + Math.floor(ts.nanos / 1000000)).toISOString();
+  };
   return {
     id: u.id,
     email: u.email,
     first_name: u.firstName,
     last_name: u.lastName,
     basiq_user_id: u.basiqUserId || undefined,
-    created_at: u.createdAt ? u.createdAt.toDate().toISOString() : new Date().toISOString(),
-    updated_at: u.updatedAt ? u.updatedAt.toDate().toISOString() : new Date().toISOString(),
+    created_at: tsToISO(u.createdAt),
+    updated_at: tsToISO(u.updatedAt),
   };
 }
 

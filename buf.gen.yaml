@@ -15,10 +15,5 @@ plugins:
     out: src/gen
     opt:
       - target=ts
-  # TypeScript: Connect RPC clients
-  - local: ./node_modules/.bin/protoc-gen-connect-es
-    out: src/gen
-    opt:
-      - target=ts
 inputs:
   - directory: proto
