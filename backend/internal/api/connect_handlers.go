@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"budgeting_system/internal/domain"
 	budgyv1 "budgeting_system/internal/gen/budgy/v1"
@@ -42,72 +41,11 @@ func toConnectError(err error) error {
 
 // ─── Domain → Proto converters ────────────────────────────────────────────────
 
-func protoUser(u *domain.User) *budgyv1.User {
-	return &budgyv1.User{
-		Id:          u.ID,
-		Email:       u.Email,
-		FirstName:   u.FirstName,
-		LastName:    u.LastName,
-		BasiqUserId: u.BasiqUserID,
-		CreatedAt:   timestamppb.New(u.CreatedAt),
-		UpdatedAt:   timestamppb.New(u.UpdatedAt),
-	}
-}
-
-func protoBudget(b *domain.Budget) *budgyv1.Budget {
-	method := budgyv1.BudgetMethod_BUDGET_METHOD_ZERO_SUM
-	if b.Method == domain.MethodEnvelope {
-		method = budgyv1.BudgetMethod_BUDGET_METHOD_ENVELOPE
-	}
-	return &budgyv1.Budget{
-		Id:        b.ID,
-		UserId:    b.UserID,
-		Name:      b.Name,
-		Method:    method,
-		Currency:  b.Currency,
-		CreatedAt: timestamppb.New(b.CreatedAt),
-		UpdatedAt: timestamppb.New(b.UpdatedAt),
-	}
-}
-
 func domainBudgetMethod(m budgyv1.BudgetMethod) domain.BudgetMethod {
 	if m == budgyv1.BudgetMethod_BUDGET_METHOD_ENVELOPE {
 		return domain.MethodEnvelope
 	}
 	return domain.MethodZeroSum
-}
-
-func protoAccount(a *domain.Account) *budgyv1.Account {
-	at := budgyv1.AccountType_ACCOUNT_TYPE_CHECKING
-	switch a.Type {
-	case domain.AccountSavings:
-		at = budgyv1.AccountType_ACCOUNT_TYPE_SAVINGS
-	case domain.AccountCreditCard:
-		at = budgyv1.AccountType_ACCOUNT_TYPE_CREDIT_CARD
-	case domain.AccountCash:
-		at = budgyv1.AccountType_ACCOUNT_TYPE_CASH
-	}
-	acc := &budgyv1.Account{
-		Id:            a.ID,
-		BudgetId:      a.BudgetID,
-		Name:          a.Name,
-		Type:          at,
-		Balance:       a.Balance,
-		CreatedAt:     timestamppb.New(a.CreatedAt),
-		UpdatedAt:     timestamppb.New(a.UpdatedAt),
-		Class:         a.Class,
-		AccountNo:     a.AccountNo,
-		Product:       a.Product,
-		InstitutionId: a.InstitutionID,
-		ConnectionId:  a.ConnectionID,
-	}
-	if a.AvailableFunds != nil {
-		acc.AvailableFunds = a.AvailableFunds
-	}
-	if a.LastUpdated != nil {
-		acc.LastUpdated = timestamppb.New(*a.LastUpdated)
-	}
-	return acc
 }
 
 func domainAccountType(at budgyv1.AccountType) domain.AccountType {
@@ -123,54 +61,11 @@ func domainAccountType(at budgyv1.AccountType) domain.AccountType {
 	}
 }
 
-func protoCategory(c *domain.Category) *budgyv1.Category {
-	return &budgyv1.Category{
-		Id:          c.ID,
-		BudgetId:    c.BudgetID,
-		Name:        c.Name,
-		Budgeted:    c.Budgeted,
-		Balance:     c.Balance,
-		TargetLimit: c.TargetLimit,
-		CreatedAt:   timestamppb.New(c.CreatedAt),
-		UpdatedAt:   timestamppb.New(c.UpdatedAt),
-	}
-}
-
-func protoTransaction(t *domain.Transaction) *budgyv1.Transaction {
-	tx := &budgyv1.Transaction{
-		Id:              t.ID,
-		BudgetId:        t.BudgetID,
-		AccountId:       t.AccountID,
-		CategoryId:      t.CategoryID,
-		Amount:          t.Amount,
-		Description:     t.Description,
-		Date:            timestamppb.New(t.Date),
-		CreatedAt:       timestamppb.New(t.CreatedAt),
-		UpdatedAt:       timestamppb.New(t.UpdatedAt),
-		Direction:       t.Direction,
-		Status:          t.Status,
-		Class:           t.Class,
-		SubClass:        t.SubClass,
-		RawDescription:  t.RawDescription,
-		MerchantName:    t.MerchantName,
-		MerchantWebsite: t.MerchantWebsite,
-		MerchantLogoUrl: t.MerchantLogoURL,
-		LocationAddress: t.LocationAddress,
-		LocationLat:     t.LocationLat,
-		LocationLng:     t.LocationLng,
-		CategoryCode:    t.CategoryCode,
-		CategoryTitle:   t.CategoryTitle,
-	}
-	if t.PostDate != nil {
-		tx.PostDate = timestamppb.New(*t.PostDate)
-	}
-	return tx
-}
-
 // ─── AuthServiceHandler ───────────────────────────────────────────────────────
 
 type authConnectHandler struct {
-	auth service.AuthService
+	auth    service.AuthService
+	mappers *Mappers
 }
 
 var _ budgyv1connect.AuthServiceHandler = (*authConnectHandler)(nil)
@@ -184,7 +79,7 @@ func (h *authConnectHandler) Register(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.RegisterResponse{User: protoUser(u)}), nil
+	return connect.NewResponse(&budgyv1.RegisterResponse{User: h.mappers.User(ctx, u)}), nil
 }
 
 func (h *authConnectHandler) Login(ctx context.Context, req *connect.Request[budgyv1.LoginRequest]) (*connect.Response[budgyv1.LoginResponse], error) {
@@ -208,7 +103,7 @@ func (h *authConnectHandler) Login(ctx context.Context, req *connect.Request[bud
 			SameSite: http.SameSiteLaxMode,
 		})
 	}
-	return connect.NewResponse(&budgyv1.LoginResponse{User: protoUser(u)}), nil
+	return connect.NewResponse(&budgyv1.LoginResponse{User: h.mappers.User(ctx, u)}), nil
 }
 
 func (h *authConnectHandler) Logout(ctx context.Context, req *connect.Request[budgyv1.LogoutRequest]) (*connect.Response[budgyv1.LogoutResponse], error) {
@@ -235,13 +130,14 @@ func (h *authConnectHandler) GetMe(ctx context.Context, req *connect.Request[bud
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.GetMeResponse{User: protoUser(u)}), nil
+	return connect.NewResponse(&budgyv1.GetMeResponse{User: h.mappers.User(ctx, u)}), nil
 }
 
 // ─── BudgetServiceHandler ─────────────────────────────────────────────────────
 
 type budgetConnectHandler struct {
 	budgets service.BudgetService
+	mappers *Mappers
 }
 
 var _ budgyv1connect.BudgetServiceHandler = (*budgetConnectHandler)(nil)
@@ -256,7 +152,7 @@ func (h *budgetConnectHandler) CreateBudget(ctx context.Context, req *connect.Re
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.CreateBudgetResponse{Budget: protoBudget(b)}), nil
+	return connect.NewResponse(&budgyv1.CreateBudgetResponse{Budget: h.mappers.Budget(ctx, b)}), nil
 }
 
 func (h *budgetConnectHandler) ListBudgets(ctx context.Context, req *connect.Request[budgyv1.ListBudgetsRequest]) (*connect.Response[budgyv1.ListBudgetsResponse], error) {
@@ -270,7 +166,7 @@ func (h *budgetConnectHandler) ListBudgets(ctx context.Context, req *connect.Req
 	}
 	pb := make([]*budgyv1.Budget, len(list))
 	for i, b := range list {
-		pb[i] = protoBudget(b)
+		pb[i] = h.mappers.Budget(ctx, b)
 	}
 	return connect.NewResponse(&budgyv1.ListBudgetsResponse{Budgets: pb}), nil
 }
@@ -285,7 +181,7 @@ func (h *budgetConnectHandler) GetBudget(ctx context.Context, req *connect.Reque
 	if b.UserID != userID {
 		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
 	}
-	return connect.NewResponse(&budgyv1.GetBudgetResponse{Budget: protoBudget(b)}), nil
+	return connect.NewResponse(&budgyv1.GetBudgetResponse{Budget: h.mappers.Budget(ctx, b)}), nil
 }
 
 func (h *budgetConnectHandler) GetBudgetSummary(ctx context.Context, req *connect.Request[budgyv1.GetBudgetSummaryRequest]) (*connect.Response[budgyv1.GetBudgetSummaryResponse], error) {
@@ -323,7 +219,7 @@ func (h *budgetConnectHandler) UpdateBudget(ctx context.Context, req *connect.Re
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.UpdateBudgetResponse{Budget: protoBudget(updated)}), nil
+	return connect.NewResponse(&budgyv1.UpdateBudgetResponse{Budget: h.mappers.Budget(ctx, updated)}), nil
 }
 
 func (h *budgetConnectHandler) DeleteBudget(ctx context.Context, req *connect.Request[budgyv1.DeleteBudgetRequest]) (*connect.Response[budgyv1.DeleteBudgetResponse], error) {
@@ -346,6 +242,7 @@ func (h *budgetConnectHandler) DeleteBudget(ctx context.Context, req *connect.Re
 type accountConnectHandler struct {
 	budgets  service.BudgetService
 	accounts service.AccountService
+	mappers  *Mappers
 }
 
 var _ budgyv1connect.AccountServiceHandler = (*accountConnectHandler)(nil)
@@ -370,7 +267,7 @@ func (h *accountConnectHandler) CreateAccount(ctx context.Context, req *connect.
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.CreateAccountResponse{Account: protoAccount(acc)}), nil
+	return connect.NewResponse(&budgyv1.CreateAccountResponse{Account: h.mappers.Account(ctx, acc)}), nil
 }
 
 func (h *accountConnectHandler) ListAccounts(ctx context.Context, req *connect.Request[budgyv1.ListAccountsRequest]) (*connect.Response[budgyv1.ListAccountsResponse], error) {
@@ -384,7 +281,7 @@ func (h *accountConnectHandler) ListAccounts(ctx context.Context, req *connect.R
 	}
 	pb := make([]*budgyv1.Account, len(list))
 	for i, a := range list {
-		pb[i] = protoAccount(a)
+		pb[i] = h.mappers.Account(ctx, a)
 	}
 	return connect.NewResponse(&budgyv1.ListAccountsResponse{Accounts: pb}), nil
 }
@@ -436,7 +333,7 @@ func (h *accountConnectHandler) UpdateAccount(ctx context.Context, req *connect.
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.UpdateAccountResponse{Account: protoAccount(updated)}), nil
+	return connect.NewResponse(&budgyv1.UpdateAccountResponse{Account: h.mappers.Account(ctx, updated)}), nil
 }
 
 func (h *accountConnectHandler) DeleteAccount(ctx context.Context, req *connect.Request[budgyv1.DeleteAccountRequest]) (*connect.Response[budgyv1.DeleteAccountResponse], error) {
@@ -462,6 +359,7 @@ func (h *accountConnectHandler) DeleteAccount(ctx context.Context, req *connect.
 type categoryConnectHandler struct {
 	budgets    service.BudgetService
 	categories service.CategoryService
+	mappers    *Mappers
 }
 
 var _ budgyv1connect.CategoryServiceHandler = (*categoryConnectHandler)(nil)
@@ -486,7 +384,7 @@ func (h *categoryConnectHandler) CreateCategory(ctx context.Context, req *connec
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.CreateCategoryResponse{Category: protoCategory(c)}), nil
+	return connect.NewResponse(&budgyv1.CreateCategoryResponse{Category: h.mappers.Category(ctx, c)}), nil
 }
 
 func (h *categoryConnectHandler) ListCategories(ctx context.Context, req *connect.Request[budgyv1.ListCategoriesRequest]) (*connect.Response[budgyv1.ListCategoriesResponse], error) {
@@ -500,7 +398,7 @@ func (h *categoryConnectHandler) ListCategories(ctx context.Context, req *connec
 	}
 	pb := make([]*budgyv1.Category, len(list))
 	for i, c := range list {
-		pb[i] = protoCategory(c)
+		pb[i] = h.mappers.Category(ctx, c)
 	}
 	return connect.NewResponse(&budgyv1.ListCategoriesResponse{Categories: pb}), nil
 }
@@ -533,7 +431,7 @@ func (h *categoryConnectHandler) UpdateCategory(ctx context.Context, req *connec
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.UpdateCategoryResponse{Category: protoCategory(updated)}), nil
+	return connect.NewResponse(&budgyv1.UpdateCategoryResponse{Category: h.mappers.Category(ctx, updated)}), nil
 }
 
 func (h *categoryConnectHandler) DeleteCategory(ctx context.Context, req *connect.Request[budgyv1.DeleteCategoryRequest]) (*connect.Response[budgyv1.DeleteCategoryResponse], error) {
@@ -563,7 +461,7 @@ func (h *categoryConnectHandler) AssignCategoryFunds(ctx context.Context, req *c
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.AssignCategoryFundsResponse{Category: protoCategory(c)}), nil
+	return connect.NewResponse(&budgyv1.AssignCategoryFundsResponse{Category: h.mappers.Category(ctx, c)}), nil
 }
 
 func (h *categoryConnectHandler) FundEnvelope(ctx context.Context, req *connect.Request[budgyv1.FundEnvelopeRequest]) (*connect.Response[budgyv1.FundEnvelopeResponse], error) {
@@ -579,7 +477,7 @@ func (h *categoryConnectHandler) FundEnvelope(ctx context.Context, req *connect.
 		Result: &budgyv1.FundEnvelopeResult{
 			AccountId:      updatedAcc.ID,
 			AccountBalance: updatedAcc.Balance,
-			Envelope:       protoCategory(updatedEnv),
+			Envelope:       h.mappers.Category(ctx, updatedEnv),
 		},
 	}), nil
 }
@@ -620,7 +518,7 @@ func (h *transactionConnectHandler) CreateTransaction(ctx context.Context, req *
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.CreateTransactionResponse{Transaction: protoTransaction(tx)}), nil
+	return connect.NewResponse(&budgyv1.CreateTransactionResponse{Transaction: h.mappers.TransactionProto(ctx, tx)}), nil
 }
 
 func (h *transactionConnectHandler) ListTransactions(ctx context.Context, req *connect.Request[budgyv1.ListTransactionsRequest]) (*connect.Response[budgyv1.ListTransactionsResponse], error) {
@@ -634,7 +532,7 @@ func (h *transactionConnectHandler) ListTransactions(ctx context.Context, req *c
 	}
 	pb := make([]*budgyv1.Transaction, len(list))
 	for i, t := range list {
-		pb[i] = protoTransaction(t)
+		pb[i] = h.mappers.TransactionProto(ctx, t)
 	}
 	return connect.NewResponse(&budgyv1.ListTransactionsResponse{Transactions: pb}), nil
 }
@@ -652,7 +550,7 @@ func (h *transactionConnectHandler) UpdateTransaction(ctx context.Context, req *
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	return connect.NewResponse(&budgyv1.UpdateTransactionResponse{Transaction: protoTransaction(tx)}), nil
+	return connect.NewResponse(&budgyv1.UpdateTransactionResponse{Transaction: h.mappers.TransactionProto(ctx, tx)}), nil
 }
 
 func (h *transactionConnectHandler) DeleteTransaction(ctx context.Context, req *connect.Request[budgyv1.DeleteTransactionRequest]) (*connect.Response[budgyv1.DeleteTransactionResponse], error) {
@@ -710,10 +608,10 @@ func (h *bankSyncConnectHandler) SyncBank(ctx context.Context, req *connect.Requ
 // MountConnectHandlers registers all Connect RPC service handlers on mux.
 // The auth middleware wrapping is applied inline using withConnectAuth.
 func (s *APIServer) MountConnectHandlers(mux *http.ServeMux) {
-	authHandler := &authConnectHandler{auth: s.auth}
-	budgetHandler := &budgetConnectHandler{budgets: s.budgets}
-	accountHandler := &accountConnectHandler{budgets: s.budgets, accounts: s.accounts}
-	categoryHandler := &categoryConnectHandler{budgets: s.budgets, categories: s.categories}
+	authHandler := &authConnectHandler{auth: s.auth, mappers: s.mappers}
+	budgetHandler := &budgetConnectHandler{budgets: s.budgets, mappers: s.mappers}
+	accountHandler := &accountConnectHandler{budgets: s.budgets, accounts: s.accounts, mappers: s.mappers}
+	categoryHandler := &categoryConnectHandler{budgets: s.budgets, categories: s.categories, mappers: s.mappers}
 	txHandler := &transactionConnectHandler{budgets: s.budgets, transactions: s.transactions, mappers: s.mappers}
 	bankSyncHandler := &bankSyncConnectHandler{bankSync: s.bankSync}
 

@@ -23,3 +23,218 @@ mappings:
       - a: PostDate
         b: PostDate
         converter: TimestampConverter
+
+  - id: budgeting_system/internal/mappings.UserMapper
+    name: UserMapper
+    package: mappings
+    destination: ./internal/mappings/user_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/domain
+      name: User
+    b:
+      package: ./internal/gen/budgy/v1
+      name: User
+    a-to-b: ToProto
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: ID
+        b: Id
+      - a: BasiqUserID
+        b: BasiqUserId
+      - a: CreatedAt
+        b: CreatedAt
+        converter: TimestampConverter
+      - a: UpdatedAt
+        b: UpdatedAt
+        converter: TimestampConverter
+
+  - id: budgeting_system/internal/mappings.BudgetMapper
+    name: BudgetMapper
+    package: mappings
+    destination: ./internal/mappings/budget_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/domain
+      name: Budget
+    b:
+      package: ./internal/gen/budgy/v1
+      name: Budget
+    a-to-b: ToProto
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: ID
+        b: Id
+      - a: UserID
+        b: UserId
+      - a: Method
+        b: Method
+        converter: EnumConverter
+      - a: CreatedAt
+        b: CreatedAt
+        converter: TimestampConverter
+      - a: UpdatedAt
+        b: UpdatedAt
+        converter: TimestampConverter
+
+  - id: budgeting_system/internal/mappings.AccountMapper
+    name: AccountMapper
+    package: mappings
+    destination: ./internal/mappings/account_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/domain
+      name: Account
+    b:
+      package: ./internal/gen/budgy/v1
+      name: Account
+    a-to-b: ToProto
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: ID
+        b: Id
+      - a: BudgetID
+        b: BudgetId
+      - a: Type
+        b: Type
+        converter: EnumConverter
+      - a: CreatedAt
+        b: CreatedAt
+        converter: TimestampConverter
+      - a: UpdatedAt
+        b: UpdatedAt
+        converter: TimestampConverter
+      - a: InstitutionID
+        b: InstitutionId
+      - a: ConnectionID
+        b: ConnectionId
+      - a: LastUpdated
+        b: LastUpdated
+        converter: TimestampConverter
+
+  - id: budgeting_system/internal/mappings.CategoryMapper
+    name: CategoryMapper
+    package: mappings
+    destination: ./internal/mappings/category_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/domain
+      name: Category
+    b:
+      package: ./internal/gen/budgy/v1
+      name: Category
+    a-to-b: ToProto
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: ID
+        b: Id
+      - a: BudgetID
+        b: BudgetId
+      - a: CreatedAt
+        b: CreatedAt
+        converter: TimestampConverter
+      - a: UpdatedAt
+        b: UpdatedAt
+        converter: TimestampConverter
+
+  - id: budgeting_system/internal/mappings.TransactionProtoMapper
+    name: TransactionProtoMapper
+    package: mappings
+    destination: ./internal/mappings/transaction_proto_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/domain
+      name: Transaction
+    b:
+      package: ./internal/gen/budgy/v1
+      name: Transaction
+    a-to-b: ToProto
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: ID
+        b: Id
+      - a: BudgetID
+        b: BudgetId
+      - a: AccountID
+        b: AccountId
+      - a: CategoryID
+        b: CategoryId
+      - a: Date
+        b: Date
+        converter: TimestampConverter
+      - a: CreatedAt
+        b: CreatedAt
+        converter: TimestampConverter
+      - a: UpdatedAt
+        b: UpdatedAt
+        converter: TimestampConverter
+      - a: PostDate
+        b: PostDate
+        converter: TimestampConverter
+      - a: MerchantLogoURL
+        b: MerchantLogoUrl
+
+  - id: budgeting_system/internal/mappings.DBTransactionMapper
+    name: DBTransactionMapper
+    package: mappings
+    destination: ./internal/mappings/db_transaction_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/storage/db
+      name: Transaction
+    b:
+      package: ./internal/domain
+      name: Transaction
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: CategoryID
+        b: CategoryID
+        converter: NullStringConverter
+      - a: Direction
+        b: Direction
+        converter: NullStringConverter
+      - a: Status
+        b: Status
+        converter: NullStringConverter
+      - a: Class
+        b: Class
+        converter: NullStringConverter
+      - a: PostDate
+        b: PostDate
+        converter: NullTimeConverter
+      - a: SubClass
+        b: SubClass
+        converter: NullStringConverter
+      - a: RawDescription
+        b: RawDescription
+        converter: NullStringConverter
+      - a: MerchantName
+        b: MerchantName
+        converter: NullStringConverter
+      - a: MerchantWebsite
+        b: MerchantWebsite
+        converter: NullStringConverter
+      - a: MerchantLogoUrl
+        b: MerchantLogoURL
+        converter: NullStringConverter
+      - a: LocationAddress
+        b: LocationAddress
+        converter: NullStringConverter
+      - a: LocationLat
+        b: LocationLat
+        converter: NullStringConverter
+      - a: LocationLng
+        b: LocationLng
+        converter: NullStringConverter
+      - a: CategoryCode
+        b: CategoryCode
+        converter: NullStringConverter
+      - a: CategoryTitle
+        b: CategoryTitle
+        converter: NullStringConverter

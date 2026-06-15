@@ -5,9 +5,12 @@ import (
 	"database/sql"
 	"embed"
 	"errors"
+	"fmt"
 	"time"
 
 	"budgeting_system/internal/domain"
+	"budgeting_system/internal/mappings"
+	"budgeting_system/internal/storage/db"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	"github.com/pressly/goose/v3"
@@ -15,6 +18,24 @@ import (
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
+
+var dbTxMapper mappings.DBTransactionMapper
+
+func init() {
+	mappers := mappings.NewMappers()
+	mappers.Add("NullStringConverter", &mappings.NullStringConverter{})
+	mappers.Add("NullTimeConverter", &mappings.NullTimeConverter{})
+	m, err := mappers.Get("budgeting_system/internal/mappings.DBTransactionMapper")
+	if err != nil {
+		all, _ := mappers.GetAllMappers()
+		keys := []string{}
+		for k := range all {
+			keys = append(keys, k)
+		}
+		panic(fmt.Sprintf("DBTransactionMapper not found. Registered mappers: %v, err: %v", keys, err))
+	}
+	dbTxMapper = m.(mappings.DBTransactionMapper)
+}
 
 // Migrate runs database migrations using Goose.
 func Migrate(db *sql.DB) error {
@@ -324,18 +345,42 @@ func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain
 	          WHERE t.id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
 
-	var tx domain.Transaction
-	var catID sql.NullString
+	var dbTx db.Transaction
 	var budgetIDNull sql.NullString
-	err := row.Scan(&tx.ID, &budgetIDNull, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt, &tx.Direction, &tx.Status, &tx.Class, &tx.PostDate, &tx.SubClass, &tx.RawDescription, &tx.MerchantName, &tx.MerchantWebsite, &tx.MerchantLogoURL, &tx.LocationAddress, &tx.LocationLat, &tx.LocationLng, &tx.CategoryCode, &tx.CategoryTitle)
+	err := row.Scan(
+		&dbTx.ID,
+		&budgetIDNull,
+		&dbTx.AccountID,
+		&dbTx.CategoryID,
+		&dbTx.Amount,
+		&dbTx.Description,
+		&dbTx.Date,
+		&dbTx.CreatedAt,
+		&dbTx.UpdatedAt,
+		&dbTx.Direction,
+		&dbTx.Status,
+		&dbTx.Class,
+		&dbTx.PostDate,
+		&dbTx.SubClass,
+		&dbTx.RawDescription,
+		&dbTx.MerchantName,
+		&dbTx.MerchantWebsite,
+		&dbTx.MerchantLogoUrl,
+		&dbTx.LocationAddress,
+		&dbTx.LocationLat,
+		&dbTx.LocationLng,
+		&dbTx.CategoryCode,
+		&dbTx.CategoryTitle,
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("transaction not found")
 		}
 		return nil, err
 	}
-	if catID.Valid {
-		tx.CategoryID = catID.String
+	var tx domain.Transaction
+	if err := dbTxMapper.TransactionToTransaction(ctx, &dbTx, &tx); err != nil {
+		return nil, err
 	}
 	tx.BudgetID = budgetIDNull.String
 	return &tx, nil
@@ -374,15 +419,39 @@ func (r *transactionRepository) listQuery(ctx context.Context, query string, arg
 
 	var list []*domain.Transaction
 	for rows.Next() {
-		var tx domain.Transaction
-		var catID sql.NullString
+		var dbTx db.Transaction
 		var budgetIDNull sql.NullString
-		err := rows.Scan(&tx.ID, &budgetIDNull, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt, &tx.Direction, &tx.Status, &tx.Class, &tx.PostDate, &tx.SubClass, &tx.RawDescription, &tx.MerchantName, &tx.MerchantWebsite, &tx.MerchantLogoURL, &tx.LocationAddress, &tx.LocationLat, &tx.LocationLng, &tx.CategoryCode, &tx.CategoryTitle)
+		err := rows.Scan(
+			&dbTx.ID,
+			&budgetIDNull,
+			&dbTx.AccountID,
+			&dbTx.CategoryID,
+			&dbTx.Amount,
+			&dbTx.Description,
+			&dbTx.Date,
+			&dbTx.CreatedAt,
+			&dbTx.UpdatedAt,
+			&dbTx.Direction,
+			&dbTx.Status,
+			&dbTx.Class,
+			&dbTx.PostDate,
+			&dbTx.SubClass,
+			&dbTx.RawDescription,
+			&dbTx.MerchantName,
+			&dbTx.MerchantWebsite,
+			&dbTx.MerchantLogoUrl,
+			&dbTx.LocationAddress,
+			&dbTx.LocationLat,
+			&dbTx.LocationLng,
+			&dbTx.CategoryCode,
+			&dbTx.CategoryTitle,
+		)
 		if err != nil {
 			return nil, err
 		}
-		if catID.Valid {
-			tx.CategoryID = catID.String
+		var tx domain.Transaction
+		if err := dbTxMapper.TransactionToTransaction(ctx, &dbTx, &tx); err != nil {
+			return nil, err
 		}
 		tx.BudgetID = budgetIDNull.String
 		list = append(list, &tx)
