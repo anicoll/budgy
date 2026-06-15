@@ -3,21 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { AssignCategoryFundsRequest, AssignCategoryFundsResponse, CreateCategoryRequest, CreateCategoryResponse, DeleteCategoryRequest, DeleteCategoryResponse, FundEnvelopeRequest, FundEnvelopeResponse, ListCategoriesRequest, ListCategoriesResponse, UpdateCategoryRequest, UpdateCategoryResponse } from "./category_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import {
-  AssignCategoryFundsRequest,
-  AssignCategoryFundsResponse,
-  CreateCategoryRequest,
-  CreateCategoryResponse,
-  DeleteCategoryRequest,
-  DeleteCategoryResponse,
-  FundEnvelopeRequest,
-  FundEnvelopeResponse,
-  ListCategoriesRequest,
-  ListCategoriesResponse,
-  UpdateCategoryRequest,
-  UpdateCategoryResponse,
-} from "./category_pb.js";
 
 /**
  * @generated from service budgy.v1.CategoryService
@@ -79,5 +66,6 @@ export const CategoryService = {
       O: FundEnvelopeResponse,
       kind: MethodKind.Unary,
     },
-  },
+  }
 } as const;
+

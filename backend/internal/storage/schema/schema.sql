@@ -151,7 +151,14 @@ CREATE TABLE public.transactions (
     post_date timestamp without time zone,
     sub_class text,
     raw_description text,
-    merchant_name text
+    merchant_name text,
+    merchant_website text,
+    merchant_logo_url text,
+    location_address text,
+    location_lat text,
+    location_lng text,
+    category_code text,
+    category_title text
 );
 
 

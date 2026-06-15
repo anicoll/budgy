@@ -307,18 +307,18 @@ func (s *SQLiteStorage) Transactions() domain.TransactionRepository {
 }
 
 func (r *transactionRepository) Create(ctx context.Context, tx *domain.Transaction) error {
-	query := `INSERT INTO transactions (id, account_id, category_id, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO transactions (id, account_id, category_id, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name, merchant_website, merchant_logo_url, location_address, location_lat, location_lng, category_code, category_title)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	var catID any = tx.CategoryID
 	if tx.CategoryID == "" {
 		catID = nil
 	}
-	_, err := r.db.ExecContext(ctx, query, tx.ID, tx.AccountID, catID, tx.Amount, tx.Description, tx.Date, tx.CreatedAt, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName)
+	_, err := r.db.ExecContext(ctx, query, tx.ID, tx.AccountID, catID, tx.Amount, tx.Description, tx.Date, tx.CreatedAt, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName, tx.MerchantWebsite, tx.MerchantLogoURL, tx.LocationAddress, tx.LocationLat, tx.LocationLng, tx.CategoryCode, tx.CategoryTitle)
 	return err
 }
 
 func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain.Transaction, error) {
-	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name 
+	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title 
 	          FROM transactions t
 	          JOIN accounts a ON t.account_id = a.id
 	          WHERE t.id = ?`
@@ -327,7 +327,7 @@ func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain
 	var tx domain.Transaction
 	var catID sql.NullString
 	var budgetIDNull sql.NullString
-	err := row.Scan(&tx.ID, &budgetIDNull, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt, &tx.Direction, &tx.Status, &tx.Class, &tx.PostDate, &tx.SubClass, &tx.RawDescription, &tx.MerchantName)
+	err := row.Scan(&tx.ID, &budgetIDNull, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt, &tx.Direction, &tx.Status, &tx.Class, &tx.PostDate, &tx.SubClass, &tx.RawDescription, &tx.MerchantName, &tx.MerchantWebsite, &tx.MerchantLogoURL, &tx.LocationAddress, &tx.LocationLat, &tx.LocationLng, &tx.CategoryCode, &tx.CategoryTitle)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("transaction not found")
@@ -342,7 +342,7 @@ func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain
 }
 
 func (r *transactionRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Transaction, error) {
-	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name 
+	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title 
 	          FROM transactions t
 	          JOIN accounts a ON t.account_id = a.id
 	          WHERE a.budget_id = ?`
@@ -350,7 +350,7 @@ func (r *transactionRepository) ListByBudget(ctx context.Context, budgetID strin
 }
 
 func (r *transactionRepository) ListByAccount(ctx context.Context, accountID string) ([]*domain.Transaction, error) {
-	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name 
+	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title 
 	          FROM transactions t
 	          JOIN accounts a ON t.account_id = a.id
 	          WHERE t.account_id = ?`
@@ -358,7 +358,7 @@ func (r *transactionRepository) ListByAccount(ctx context.Context, accountID str
 }
 
 func (r *transactionRepository) ListByCategory(ctx context.Context, categoryID string) ([]*domain.Transaction, error) {
-	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name 
+	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title 
 	          FROM transactions t
 	          JOIN accounts a ON t.account_id = a.id
 	          WHERE t.category_id = ?`
@@ -377,7 +377,7 @@ func (r *transactionRepository) listQuery(ctx context.Context, query string, arg
 		var tx domain.Transaction
 		var catID sql.NullString
 		var budgetIDNull sql.NullString
-		err := rows.Scan(&tx.ID, &budgetIDNull, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt, &tx.Direction, &tx.Status, &tx.Class, &tx.PostDate, &tx.SubClass, &tx.RawDescription, &tx.MerchantName)
+		err := rows.Scan(&tx.ID, &budgetIDNull, &tx.AccountID, &catID, &tx.Amount, &tx.Description, &tx.Date, &tx.CreatedAt, &tx.UpdatedAt, &tx.Direction, &tx.Status, &tx.Class, &tx.PostDate, &tx.SubClass, &tx.RawDescription, &tx.MerchantName, &tx.MerchantWebsite, &tx.MerchantLogoURL, &tx.LocationAddress, &tx.LocationLat, &tx.LocationLng, &tx.CategoryCode, &tx.CategoryTitle)
 		if err != nil {
 			return nil, err
 		}
@@ -391,12 +391,12 @@ func (r *transactionRepository) listQuery(ctx context.Context, query string, arg
 }
 
 func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transaction) error {
-	query := `UPDATE transactions SET account_id = ?, category_id = ?, amount = ?, description = ?, date = ?, updated_at = ?, direction = ?, status = ?, class = ?, post_date = ?, sub_class = ?, raw_description = ?, merchant_name = ? WHERE id = ?`
+	query := `UPDATE transactions SET account_id = ?, category_id = ?, amount = ?, description = ?, date = ?, updated_at = ?, direction = ?, status = ?, class = ?, post_date = ?, sub_class = ?, raw_description = ?, merchant_name = ?, merchant_website = ?, merchant_logo_url = ?, location_address = ?, location_lat = ?, location_lng = ?, category_code = ?, category_title = ? WHERE id = ?`
 	var catID any = tx.CategoryID
 	if tx.CategoryID == "" {
 		catID = nil
 	}
-	_, err := r.db.ExecContext(ctx, query, tx.AccountID, catID, tx.Amount, tx.Description, tx.Date, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName, tx.ID)
+	_, err := r.db.ExecContext(ctx, query, tx.AccountID, catID, tx.Amount, tx.Description, tx.Date, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName, tx.MerchantWebsite, tx.MerchantLogoURL, tx.LocationAddress, tx.LocationLat, tx.LocationLng, tx.CategoryCode, tx.CategoryTitle, tx.ID)
 	return err
 }
 

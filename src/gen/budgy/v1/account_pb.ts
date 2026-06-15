@@ -3,14 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type {
-  BinaryReadOptions,
-  FieldList,
-  JsonReadOptions,
-  JsonValue,
-  PartialMessage,
-  PlainMessage,
-} from "@bufbuild/protobuf";
+import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
 
 /**
@@ -161,10 +154,7 @@ export class Account extends Message<Account> {
     return new Account().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: Account | PlainMessage<Account> | undefined,
-    b: Account | PlainMessage<Account> | undefined,
-  ): boolean {
+  static equals(a: Account | PlainMessage<Account> | undefined, b: Account | PlainMessage<Account> | undefined): boolean {
     return proto3.util.equals(Account, a, b);
   }
 }
@@ -215,17 +205,11 @@ export class CreateAccountRequest extends Message<CreateAccountRequest> {
     return new CreateAccountRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): CreateAccountRequest {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateAccountRequest {
     return new CreateAccountRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: CreateAccountRequest | PlainMessage<CreateAccountRequest> | undefined,
-    b: CreateAccountRequest | PlainMessage<CreateAccountRequest> | undefined,
-  ): boolean {
+  static equals(a: CreateAccountRequest | PlainMessage<CreateAccountRequest> | undefined, b: CreateAccountRequest | PlainMessage<CreateAccountRequest> | undefined): boolean {
     return proto3.util.equals(CreateAccountRequest, a, b);
   }
 }
@@ -250,10 +234,7 @@ export class CreateAccountResponse extends Message<CreateAccountResponse> {
     { no: 1, name: "account", kind: "message", T: Account },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): CreateAccountResponse {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateAccountResponse {
     return new CreateAccountResponse().fromBinary(bytes, options);
   }
 
@@ -261,17 +242,11 @@ export class CreateAccountResponse extends Message<CreateAccountResponse> {
     return new CreateAccountResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): CreateAccountResponse {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateAccountResponse {
     return new CreateAccountResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: CreateAccountResponse | PlainMessage<CreateAccountResponse> | undefined,
-    b: CreateAccountResponse | PlainMessage<CreateAccountResponse> | undefined,
-  ): boolean {
+  static equals(a: CreateAccountResponse | PlainMessage<CreateAccountResponse> | undefined, b: CreateAccountResponse | PlainMessage<CreateAccountResponse> | undefined): boolean {
     return proto3.util.equals(CreateAccountResponse, a, b);
   }
 }
@@ -304,17 +279,11 @@ export class ListAccountsRequest extends Message<ListAccountsRequest> {
     return new ListAccountsRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): ListAccountsRequest {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListAccountsRequest {
     return new ListAccountsRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListAccountsRequest | PlainMessage<ListAccountsRequest> | undefined,
-    b: ListAccountsRequest | PlainMessage<ListAccountsRequest> | undefined,
-  ): boolean {
+  static equals(a: ListAccountsRequest | PlainMessage<ListAccountsRequest> | undefined, b: ListAccountsRequest | PlainMessage<ListAccountsRequest> | undefined): boolean {
     return proto3.util.equals(ListAccountsRequest, a, b);
   }
 }
@@ -347,17 +316,11 @@ export class ListAccountsResponse extends Message<ListAccountsResponse> {
     return new ListAccountsResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): ListAccountsResponse {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListAccountsResponse {
     return new ListAccountsResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListAccountsResponse | PlainMessage<ListAccountsResponse> | undefined,
-    b: ListAccountsResponse | PlainMessage<ListAccountsResponse> | undefined,
-  ): boolean {
+  static equals(a: ListAccountsResponse | PlainMessage<ListAccountsResponse> | undefined, b: ListAccountsResponse | PlainMessage<ListAccountsResponse> | undefined): boolean {
     return proto3.util.equals(ListAccountsResponse, a, b);
   }
 }
@@ -456,17 +419,11 @@ export class UpdateAccountRequest extends Message<UpdateAccountRequest> {
     return new UpdateAccountRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): UpdateAccountRequest {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateAccountRequest {
     return new UpdateAccountRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UpdateAccountRequest | PlainMessage<UpdateAccountRequest> | undefined,
-    b: UpdateAccountRequest | PlainMessage<UpdateAccountRequest> | undefined,
-  ): boolean {
+  static equals(a: UpdateAccountRequest | PlainMessage<UpdateAccountRequest> | undefined, b: UpdateAccountRequest | PlainMessage<UpdateAccountRequest> | undefined): boolean {
     return proto3.util.equals(UpdateAccountRequest, a, b);
   }
 }
@@ -491,10 +448,7 @@ export class UpdateAccountResponse extends Message<UpdateAccountResponse> {
     { no: 1, name: "account", kind: "message", T: Account },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): UpdateAccountResponse {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateAccountResponse {
     return new UpdateAccountResponse().fromBinary(bytes, options);
   }
 
@@ -502,17 +456,11 @@ export class UpdateAccountResponse extends Message<UpdateAccountResponse> {
     return new UpdateAccountResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): UpdateAccountResponse {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateAccountResponse {
     return new UpdateAccountResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UpdateAccountResponse | PlainMessage<UpdateAccountResponse> | undefined,
-    b: UpdateAccountResponse | PlainMessage<UpdateAccountResponse> | undefined,
-  ): boolean {
+  static equals(a: UpdateAccountResponse | PlainMessage<UpdateAccountResponse> | undefined, b: UpdateAccountResponse | PlainMessage<UpdateAccountResponse> | undefined): boolean {
     return proto3.util.equals(UpdateAccountResponse, a, b);
   }
 }
@@ -551,17 +499,11 @@ export class DeleteAccountRequest extends Message<DeleteAccountRequest> {
     return new DeleteAccountRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): DeleteAccountRequest {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteAccountRequest {
     return new DeleteAccountRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: DeleteAccountRequest | PlainMessage<DeleteAccountRequest> | undefined,
-    b: DeleteAccountRequest | PlainMessage<DeleteAccountRequest> | undefined,
-  ): boolean {
+  static equals(a: DeleteAccountRequest | PlainMessage<DeleteAccountRequest> | undefined, b: DeleteAccountRequest | PlainMessage<DeleteAccountRequest> | undefined): boolean {
     return proto3.util.equals(DeleteAccountRequest, a, b);
   }
 }
@@ -577,12 +519,10 @@ export class DeleteAccountResponse extends Message<DeleteAccountResponse> {
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.DeleteAccountResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): DeleteAccountResponse {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteAccountResponse {
     return new DeleteAccountResponse().fromBinary(bytes, options);
   }
 
@@ -590,17 +530,12 @@ export class DeleteAccountResponse extends Message<DeleteAccountResponse> {
     return new DeleteAccountResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): DeleteAccountResponse {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteAccountResponse {
     return new DeleteAccountResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: DeleteAccountResponse | PlainMessage<DeleteAccountResponse> | undefined,
-    b: DeleteAccountResponse | PlainMessage<DeleteAccountResponse> | undefined,
-  ): boolean {
+  static equals(a: DeleteAccountResponse | PlainMessage<DeleteAccountResponse> | undefined, b: DeleteAccountResponse | PlainMessage<DeleteAccountResponse> | undefined): boolean {
     return proto3.util.equals(DeleteAccountResponse, a, b);
   }
 }
+

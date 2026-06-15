@@ -3,17 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
+import { GetMeRequest, GetMeResponse, LoginRequest, LoginResponse, LogoutRequest, LogoutResponse, RegisterRequest, RegisterResponse } from "./auth_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import {
-  GetMeRequest,
-  GetMeResponse,
-  LoginRequest,
-  LoginResponse,
-  LogoutRequest,
-  LogoutResponse,
-  RegisterRequest,
-  RegisterResponse,
-} from "./auth_pb.js";
 
 /**
  * @generated from service budgy.v1.AuthService
@@ -57,5 +48,6 @@ export const AuthService = {
       O: GetMeResponse,
       kind: MethodKind.Unary,
     },
-  },
+  }
 } as const;
+

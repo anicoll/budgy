@@ -3,14 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type {
-  BinaryReadOptions,
-  FieldList,
-  JsonReadOptions,
-  JsonValue,
-  PartialMessage,
-  PlainMessage,
-} from "@bufbuild/protobuf";
+import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
 
 /**
@@ -97,6 +90,41 @@ export class Transaction extends Message<Transaction> {
    */
   merchantName = "";
 
+  /**
+   * @generated from field: string merchant_website = 17;
+   */
+  merchantWebsite = "";
+
+  /**
+   * @generated from field: string merchant_logo_url = 18;
+   */
+  merchantLogoUrl = "";
+
+  /**
+   * @generated from field: string location_address = 19;
+   */
+  locationAddress = "";
+
+  /**
+   * @generated from field: string location_lat = 20;
+   */
+  locationLat = "";
+
+  /**
+   * @generated from field: string location_lng = 21;
+   */
+  locationLng = "";
+
+  /**
+   * @generated from field: string category_code = 22;
+   */
+  categoryCode = "";
+
+  /**
+   * @generated from field: string category_title = 23;
+   */
+  categoryTitle = "";
+
   constructor(data?: PartialMessage<Transaction>) {
     super();
     proto3.util.initPartial(data, this);
@@ -121,6 +149,13 @@ export class Transaction extends Message<Transaction> {
     { no: 14, name: "sub_class", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 15, name: "raw_description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 16, name: "merchant_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 17, name: "merchant_website", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 18, name: "merchant_logo_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 19, name: "location_address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 20, name: "location_lat", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 21, name: "location_lng", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 22, name: "category_code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 23, name: "category_title", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Transaction {
@@ -135,10 +170,7 @@ export class Transaction extends Message<Transaction> {
     return new Transaction().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: Transaction | PlainMessage<Transaction> | undefined,
-    b: Transaction | PlainMessage<Transaction> | undefined,
-  ): boolean {
+  static equals(a: Transaction | PlainMessage<Transaction> | undefined, b: Transaction | PlainMessage<Transaction> | undefined): boolean {
     return proto3.util.equals(Transaction, a, b);
   }
 }
@@ -193,31 +225,19 @@ export class CreateTransactionRequest extends Message<CreateTransactionRequest> 
     { no: 6, name: "date", kind: "message", T: Timestamp },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): CreateTransactionRequest {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateTransactionRequest {
     return new CreateTransactionRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): CreateTransactionRequest {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateTransactionRequest {
     return new CreateTransactionRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): CreateTransactionRequest {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateTransactionRequest {
     return new CreateTransactionRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: CreateTransactionRequest | PlainMessage<CreateTransactionRequest> | undefined,
-    b: CreateTransactionRequest | PlainMessage<CreateTransactionRequest> | undefined,
-  ): boolean {
+  static equals(a: CreateTransactionRequest | PlainMessage<CreateTransactionRequest> | undefined, b: CreateTransactionRequest | PlainMessage<CreateTransactionRequest> | undefined): boolean {
     return proto3.util.equals(CreateTransactionRequest, a, b);
   }
 }
@@ -242,31 +262,19 @@ export class CreateTransactionResponse extends Message<CreateTransactionResponse
     { no: 1, name: "transaction", kind: "message", T: Transaction },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): CreateTransactionResponse {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateTransactionResponse {
     return new CreateTransactionResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): CreateTransactionResponse {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateTransactionResponse {
     return new CreateTransactionResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): CreateTransactionResponse {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateTransactionResponse {
     return new CreateTransactionResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: CreateTransactionResponse | PlainMessage<CreateTransactionResponse> | undefined,
-    b: CreateTransactionResponse | PlainMessage<CreateTransactionResponse> | undefined,
-  ): boolean {
+  static equals(a: CreateTransactionResponse | PlainMessage<CreateTransactionResponse> | undefined, b: CreateTransactionResponse | PlainMessage<CreateTransactionResponse> | undefined): boolean {
     return proto3.util.equals(CreateTransactionResponse, a, b);
   }
 }
@@ -291,31 +299,19 @@ export class ListTransactionsRequest extends Message<ListTransactionsRequest> {
     { no: 1, name: "budget_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): ListTransactionsRequest {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListTransactionsRequest {
     return new ListTransactionsRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): ListTransactionsRequest {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListTransactionsRequest {
     return new ListTransactionsRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): ListTransactionsRequest {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListTransactionsRequest {
     return new ListTransactionsRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListTransactionsRequest | PlainMessage<ListTransactionsRequest> | undefined,
-    b: ListTransactionsRequest | PlainMessage<ListTransactionsRequest> | undefined,
-  ): boolean {
+  static equals(a: ListTransactionsRequest | PlainMessage<ListTransactionsRequest> | undefined, b: ListTransactionsRequest | PlainMessage<ListTransactionsRequest> | undefined): boolean {
     return proto3.util.equals(ListTransactionsRequest, a, b);
   }
 }
@@ -340,31 +336,19 @@ export class ListTransactionsResponse extends Message<ListTransactionsResponse> 
     { no: 1, name: "transactions", kind: "message", T: Transaction, repeated: true },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): ListTransactionsResponse {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListTransactionsResponse {
     return new ListTransactionsResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): ListTransactionsResponse {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListTransactionsResponse {
     return new ListTransactionsResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): ListTransactionsResponse {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListTransactionsResponse {
     return new ListTransactionsResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListTransactionsResponse | PlainMessage<ListTransactionsResponse> | undefined,
-    b: ListTransactionsResponse | PlainMessage<ListTransactionsResponse> | undefined,
-  ): boolean {
+  static equals(a: ListTransactionsResponse | PlainMessage<ListTransactionsResponse> | undefined, b: ListTransactionsResponse | PlainMessage<ListTransactionsResponse> | undefined): boolean {
     return proto3.util.equals(ListTransactionsResponse, a, b);
   }
 }
@@ -443,6 +427,41 @@ export class UpdateTransactionRequest extends Message<UpdateTransactionRequest> 
    */
   merchantName?: string;
 
+  /**
+   * @generated from field: optional string merchant_website = 15;
+   */
+  merchantWebsite?: string;
+
+  /**
+   * @generated from field: optional string merchant_logo_url = 16;
+   */
+  merchantLogoUrl?: string;
+
+  /**
+   * @generated from field: optional string location_address = 17;
+   */
+  locationAddress?: string;
+
+  /**
+   * @generated from field: optional string location_lat = 18;
+   */
+  locationLat?: string;
+
+  /**
+   * @generated from field: optional string location_lng = 19;
+   */
+  locationLng?: string;
+
+  /**
+   * @generated from field: optional string category_code = 20;
+   */
+  categoryCode?: string;
+
+  /**
+   * @generated from field: optional string category_title = 21;
+   */
+  categoryTitle?: string;
+
   constructor(data?: PartialMessage<UpdateTransactionRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -465,33 +484,28 @@ export class UpdateTransactionRequest extends Message<UpdateTransactionRequest> 
     { no: 12, name: "sub_class", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 13, name: "raw_description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 14, name: "merchant_name", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 15, name: "merchant_website", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 16, name: "merchant_logo_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 17, name: "location_address", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 18, name: "location_lat", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 19, name: "location_lng", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 20, name: "category_code", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 21, name: "category_title", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): UpdateTransactionRequest {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateTransactionRequest {
     return new UpdateTransactionRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): UpdateTransactionRequest {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateTransactionRequest {
     return new UpdateTransactionRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): UpdateTransactionRequest {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateTransactionRequest {
     return new UpdateTransactionRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UpdateTransactionRequest | PlainMessage<UpdateTransactionRequest> | undefined,
-    b: UpdateTransactionRequest | PlainMessage<UpdateTransactionRequest> | undefined,
-  ): boolean {
+  static equals(a: UpdateTransactionRequest | PlainMessage<UpdateTransactionRequest> | undefined, b: UpdateTransactionRequest | PlainMessage<UpdateTransactionRequest> | undefined): boolean {
     return proto3.util.equals(UpdateTransactionRequest, a, b);
   }
 }
@@ -516,31 +530,19 @@ export class UpdateTransactionResponse extends Message<UpdateTransactionResponse
     { no: 1, name: "transaction", kind: "message", T: Transaction },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): UpdateTransactionResponse {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateTransactionResponse {
     return new UpdateTransactionResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): UpdateTransactionResponse {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateTransactionResponse {
     return new UpdateTransactionResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): UpdateTransactionResponse {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateTransactionResponse {
     return new UpdateTransactionResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UpdateTransactionResponse | PlainMessage<UpdateTransactionResponse> | undefined,
-    b: UpdateTransactionResponse | PlainMessage<UpdateTransactionResponse> | undefined,
-  ): boolean {
+  static equals(a: UpdateTransactionResponse | PlainMessage<UpdateTransactionResponse> | undefined, b: UpdateTransactionResponse | PlainMessage<UpdateTransactionResponse> | undefined): boolean {
     return proto3.util.equals(UpdateTransactionResponse, a, b);
   }
 }
@@ -571,31 +573,19 @@ export class DeleteTransactionRequest extends Message<DeleteTransactionRequest> 
     { no: 2, name: "transaction_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): DeleteTransactionRequest {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteTransactionRequest {
     return new DeleteTransactionRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): DeleteTransactionRequest {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteTransactionRequest {
     return new DeleteTransactionRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): DeleteTransactionRequest {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteTransactionRequest {
     return new DeleteTransactionRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: DeleteTransactionRequest | PlainMessage<DeleteTransactionRequest> | undefined,
-    b: DeleteTransactionRequest | PlainMessage<DeleteTransactionRequest> | undefined,
-  ): boolean {
+  static equals(a: DeleteTransactionRequest | PlainMessage<DeleteTransactionRequest> | undefined, b: DeleteTransactionRequest | PlainMessage<DeleteTransactionRequest> | undefined): boolean {
     return proto3.util.equals(DeleteTransactionRequest, a, b);
   }
 }
@@ -611,33 +601,23 @@ export class DeleteTransactionResponse extends Message<DeleteTransactionResponse
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.DeleteTransactionResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): DeleteTransactionResponse {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteTransactionResponse {
     return new DeleteTransactionResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): DeleteTransactionResponse {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteTransactionResponse {
     return new DeleteTransactionResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): DeleteTransactionResponse {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteTransactionResponse {
     return new DeleteTransactionResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: DeleteTransactionResponse | PlainMessage<DeleteTransactionResponse> | undefined,
-    b: DeleteTransactionResponse | PlainMessage<DeleteTransactionResponse> | undefined,
-  ): boolean {
+  static equals(a: DeleteTransactionResponse | PlainMessage<DeleteTransactionResponse> | undefined, b: DeleteTransactionResponse | PlainMessage<DeleteTransactionResponse> | undefined): boolean {
     return proto3.util.equals(DeleteTransactionResponse, a, b);
   }
 }
+

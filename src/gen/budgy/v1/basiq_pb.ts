@@ -3,14 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type {
-  BinaryReadOptions,
-  FieldList,
-  JsonReadOptions,
-  JsonValue,
-  PartialMessage,
-  PlainMessage,
-} from "@bufbuild/protobuf";
+import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
 
 /**
@@ -51,10 +44,7 @@ export class BasiqAuthLink extends Message<BasiqAuthLink> {
     return new BasiqAuthLink().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: BasiqAuthLink | PlainMessage<BasiqAuthLink> | undefined,
-    b: BasiqAuthLink | PlainMessage<BasiqAuthLink> | undefined,
-  ): boolean {
+  static equals(a: BasiqAuthLink | PlainMessage<BasiqAuthLink> | undefined, b: BasiqAuthLink | PlainMessage<BasiqAuthLink> | undefined): boolean {
     return proto3.util.equals(BasiqAuthLink, a, b);
   }
 }
@@ -70,33 +60,22 @@ export class GetBasiqAuthLinkRequest extends Message<GetBasiqAuthLinkRequest> {
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.GetBasiqAuthLinkRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): GetBasiqAuthLinkRequest {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBasiqAuthLinkRequest {
     return new GetBasiqAuthLinkRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): GetBasiqAuthLinkRequest {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBasiqAuthLinkRequest {
     return new GetBasiqAuthLinkRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): GetBasiqAuthLinkRequest {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBasiqAuthLinkRequest {
     return new GetBasiqAuthLinkRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetBasiqAuthLinkRequest | PlainMessage<GetBasiqAuthLinkRequest> | undefined,
-    b: GetBasiqAuthLinkRequest | PlainMessage<GetBasiqAuthLinkRequest> | undefined,
-  ): boolean {
+  static equals(a: GetBasiqAuthLinkRequest | PlainMessage<GetBasiqAuthLinkRequest> | undefined, b: GetBasiqAuthLinkRequest | PlainMessage<GetBasiqAuthLinkRequest> | undefined): boolean {
     return proto3.util.equals(GetBasiqAuthLinkRequest, a, b);
   }
 }
@@ -121,31 +100,19 @@ export class GetBasiqAuthLinkResponse extends Message<GetBasiqAuthLinkResponse> 
     { no: 1, name: "auth_link", kind: "message", T: BasiqAuthLink },
   ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>,
-  ): GetBasiqAuthLinkResponse {
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBasiqAuthLinkResponse {
     return new GetBasiqAuthLinkResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>,
-  ): GetBasiqAuthLinkResponse {
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBasiqAuthLinkResponse {
     return new GetBasiqAuthLinkResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): GetBasiqAuthLinkResponse {
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBasiqAuthLinkResponse {
     return new GetBasiqAuthLinkResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetBasiqAuthLinkResponse | PlainMessage<GetBasiqAuthLinkResponse> | undefined,
-    b: GetBasiqAuthLinkResponse | PlainMessage<GetBasiqAuthLinkResponse> | undefined,
-  ): boolean {
+  static equals(a: GetBasiqAuthLinkResponse | PlainMessage<GetBasiqAuthLinkResponse> | undefined, b: GetBasiqAuthLinkResponse | PlainMessage<GetBasiqAuthLinkResponse> | undefined): boolean {
     return proto3.util.equals(GetBasiqAuthLinkResponse, a, b);
   }
 }
@@ -161,7 +128,8 @@ export class SyncBankRequest extends Message<SyncBankRequest> {
 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "budgy.v1.SyncBankRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => []);
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SyncBankRequest {
     return new SyncBankRequest().fromBinary(bytes, options);
@@ -175,10 +143,7 @@ export class SyncBankRequest extends Message<SyncBankRequest> {
     return new SyncBankRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SyncBankRequest | PlainMessage<SyncBankRequest> | undefined,
-    b: SyncBankRequest | PlainMessage<SyncBankRequest> | undefined,
-  ): boolean {
+  static equals(a: SyncBankRequest | PlainMessage<SyncBankRequest> | undefined, b: SyncBankRequest | PlainMessage<SyncBankRequest> | undefined): boolean {
     return proto3.util.equals(SyncBankRequest, a, b);
   }
 }
@@ -215,10 +180,8 @@ export class SyncBankResponse extends Message<SyncBankResponse> {
     return new SyncBankResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SyncBankResponse | PlainMessage<SyncBankResponse> | undefined,
-    b: SyncBankResponse | PlainMessage<SyncBankResponse> | undefined,
-  ): boolean {
+  static equals(a: SyncBankResponse | PlainMessage<SyncBankResponse> | undefined, b: SyncBankResponse | PlainMessage<SyncBankResponse> | undefined): boolean {
     return proto3.util.equals(SyncBankResponse, a, b);
   }
 }
+
