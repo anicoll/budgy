@@ -1,5 +1,5 @@
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import type { Account, AccountType } from "@/features/accounts/types";
+import { ACCOUNT_DEFAULT_COLOR, type Account, type AccountType } from "@/features/accounts/types";
 import type { Budget } from "@/features/budgets/types";
 import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
@@ -87,6 +87,32 @@ function mapFrontendTypeToProto(type: AccountType): ProtoAccountType {
     default:
       return ProtoAccountType.CHECKING;
   }
+}
+
+interface AccountMetadata {
+  color?: string;
+  sortOrder?: number;
+  archived?: boolean;
+  institution?: string;
+  icon?: string;
+}
+
+function parseNameAndMetadata(rawName: string): { name: string; metadata: AccountMetadata } {
+  const parts = rawName.split(" ||");
+  if (parts.length > 1) {
+    try {
+      const metadata = JSON.parse(parts[1]);
+      return { name: parts[0], metadata };
+    } catch {
+      // Fallback
+    }
+  }
+  return { name: rawName, metadata: {} };
+}
+
+function formatNameWithMetadata(name: string, metadata: AccountMetadata): string {
+  const cleanName = name.split(" ||")[0];
+  return `${cleanName} ||${JSON.stringify(metadata)}`;
 }
 
 // ─── ApiBudgetRepository ──────────────────────────────────────────────────────
@@ -232,6 +258,29 @@ export class ApiBudgetRepository implements Repository<Budget> {
   }
 }
 
+function resolveAccount(a: any): Account {
+  const { name, metadata } = parseNameAndMetadata(a.name);
+  const type = mapProtoTypeToFrontend(a.type);
+  return {
+    id: a.id,
+    name,
+    type,
+    openingBalance: Number(a.balance) as Cents,
+    currentBalance: Number(a.balance) as Cents,
+    currency: "AUD",
+    color: metadata.color || ACCOUNT_DEFAULT_COLOR[type] || "#7c5cff",
+    archived: metadata.archived !== undefined ? metadata.archived : false,
+    sortOrder: metadata.sortOrder !== undefined ? metadata.sortOrder : 0,
+    createdAt: tsToISO(a.createdAt),
+    updatedAt: tsToISO(a.updatedAt),
+    connectionId: a.connectionId || undefined,
+    institutionId: a.institutionId || undefined,
+    lastUpdated: a.lastUpdated ? tsToISO(a.lastUpdated) : undefined,
+    institution: metadata.institution || undefined,
+    icon: metadata.icon || undefined,
+  };
+}
+
 // ─── ApiAccountRepository ─────────────────────────────────────────────────────
 
 export class ApiAccountRepository implements Repository<Account> {
@@ -239,23 +288,7 @@ export class ApiAccountRepository implements Repository<Account> {
     const budgetId = await getActiveBudgetId();
     const res = await accountClient.listAccounts({ budgetId });
     const accs = res.accounts ?? [];
-
-    return accs.map((a) => ({
-      id: a.id,
-      name: a.name,
-      type: mapProtoTypeToFrontend(a.type),
-      openingBalance: Number(a.balance) as Cents,
-      currentBalance: Number(a.balance) as Cents,
-      currency: "AUD",
-      color: "#7c5cff",
-      archived: false,
-      sortOrder: 0,
-      createdAt: tsToISO(a.createdAt),
-      updatedAt: tsToISO(a.updatedAt),
-      connectionId: a.connectionId || undefined,
-      institutionId: a.institutionId || undefined,
-      lastUpdated: a.lastUpdated ? tsToISO(a.lastUpdated) : undefined,
-    }));
+    return accs.map(resolveAccount);
   }
 
   async get(id: string): Promise<Account | null> {
@@ -267,49 +300,33 @@ export class ApiAccountRepository implements Repository<Account> {
     const existing = await this.get(entity.id);
     const budgetId = await getActiveBudgetId();
 
+    const rawName = formatNameWithMetadata(entity.name, {
+      color: entity.color,
+      sortOrder: entity.sortOrder,
+      archived: entity.archived,
+      institution: entity.institution,
+      icon: entity.icon,
+    });
+
     if (existing) {
       const res = await accountClient.updateAccount({
         budgetId,
         accountId: entity.id,
-        name: entity.name,
+        name: rawName,
         type: mapFrontendTypeToProto(entity.type),
         balance: BigInt(entity.openingBalance),
       });
       const a = res.account!;
-      return {
-        id: a.id,
-        name: a.name,
-        type: mapProtoTypeToFrontend(a.type),
-        openingBalance: Number(a.balance) as Cents,
-        currentBalance: Number(a.balance) as Cents,
-        currency: "AUD",
-        color: entity.color || "#7c5cff",
-        archived: false,
-        sortOrder: entity.sortOrder || 0,
-        createdAt: tsToISO(a.createdAt),
-        updatedAt: tsToISO(a.updatedAt),
-      };
+      return resolveAccount(a);
     } else {
       const res = await accountClient.createAccount({
         budgetId,
-        name: entity.name,
+        name: rawName,
         type: mapFrontendTypeToProto(entity.type),
         balance: BigInt(entity.openingBalance),
       });
       const a = res.account!;
-      return {
-        id: a.id,
-        name: a.name,
-        type: mapProtoTypeToFrontend(a.type),
-        openingBalance: Number(a.balance) as Cents,
-        currentBalance: Number(a.balance) as Cents,
-        currency: "AUD",
-        color: entity.color || "#7c5cff",
-        archived: false,
-        sortOrder: entity.sortOrder || 0,
-        createdAt: tsToISO(a.createdAt),
-        updatedAt: tsToISO(a.updatedAt),
-      };
+      return resolveAccount(a);
     }
   }
 

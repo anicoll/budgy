@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Cents } from "@/lib/money/cents";
 import {
   ApiAccountRepository,
   ApiBudgetRepository,
@@ -116,7 +117,7 @@ describe("ApiBudgetRepository", () => {
 describe("ApiAccountRepository", () => {
   const repo = new ApiAccountRepository();
 
-  function accountMsg(id: string, name: string, type = 1, balance = 50000) {
+  function accountMsg(id: string, name: string, type = 1, balance = 50000, extra = {}) {
     return {
       id,
       budgetId: "b1",
@@ -125,6 +126,7 @@ describe("ApiAccountRepository", () => {
       balance: String(balance),
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-01-01T00:00:00Z",
+      ...extra,
     };
   }
 
@@ -138,6 +140,94 @@ describe("ApiAccountRepository", () => {
     expect(result[0].name).toBe("Checking");
     expect(result[0].type).toBe("checking");
     expect(result[0].currency).toBe("AUD");
+  });
+
+  it("list parses metadata suffix from the account name", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
+    mockFetch.mockResolvedValueOnce(
+      connectResponse({
+        accounts: [
+          accountMsg(
+            "a1",
+            'Savings ||{"color":"#00ff00","sortOrder":4,"archived":true,"institution":"MyBank","icon":"piggy"}',
+          ),
+        ],
+      }),
+    );
+
+    const result = await repo.list();
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Savings");
+    expect(result[0].color).toBe("#00ff00");
+    expect(result[0].sortOrder).toBe(4);
+    expect(result[0].archived).toBe(true);
+    expect(result[0].institution).toBe("MyBank");
+    expect(result[0].icon).toBe("piggy");
+  });
+
+  it("list defaults metadata for synced accounts without suffix", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
+    mockFetch.mockResolvedValueOnce(
+      connectResponse({
+        accounts: [
+          accountMsg("a1", "Synced Account", 2, 50000, {
+            connectionId: "conn-123",
+          }),
+        ],
+      }),
+    );
+
+    const result = await repo.list();
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Synced Account");
+    expect(result[0].connectionId).toBe("conn-123");
+    expect(result[0].color).toBe("#22c1c3"); // Default savings color
+    expect(result[0].archived).toBe(false);
+    expect(result[0].sortOrder).toBe(0);
+  });
+
+  it("upsert serializes metadata into name field suffix", async () => {
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
+    // get() for existing check inside upsert
+    mockFetch.mockResolvedValueOnce(connectResponse({ accounts: [] }));
+    // createAccount call response mock
+    mockFetch.mockResolvedValueOnce(
+      connectResponse({
+        account: accountMsg(
+          "a1",
+          'Savings ||{"color":"#00ff00","sortOrder":2,"archived":false,"institution":"Bank","icon":"icon"}',
+        ),
+      }),
+    );
+
+    const result = await repo.upsert({
+      id: "a1",
+      name: "Savings",
+      type: "savings",
+      openingBalance: 10000 as unknown as Cents,
+      currentBalance: 10000 as unknown as Cents,
+      currency: "AUD",
+      color: "#00ff00",
+      archived: false,
+      sortOrder: 2,
+      createdAt: "",
+      updatedAt: "",
+      institution: "Bank",
+      icon: "icon",
+    });
+
+    expect(result.name).toBe("Savings");
+    expect(result.color).toBe("#00ff00");
+    expect(result.sortOrder).toBe(2);
+
+    // Verify last fetch call body contained formatted name
+    const lastCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
+    const rawBody = lastCall[1].body;
+    const decoded = typeof rawBody === "string" ? rawBody : new TextDecoder().decode(rawBody);
+    const body = JSON.parse(decoded);
+    expect(body.name).toBe(
+      'Savings ||{"color":"#00ff00","sortOrder":2,"archived":false,"institution":"Bank","icon":"icon"}',
+    );
   });
 
   it("list returns empty array when API returns no accounts", async () => {

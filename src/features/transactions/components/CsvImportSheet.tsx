@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, ChevronDown, ChevronUp, FileUp, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -35,6 +35,7 @@ interface Props {
 
 export function CsvImportSheet({ open, onClose }: Props) {
   const { data: accounts = [] } = useAccounts();
+  const manualAccounts = useMemo(() => accounts.filter((a) => !a.connectionId), [accounts]);
   const importMutation = useBulkImportTransactions();
 
   const [accountId, setAccountId] = useState<string>("");
@@ -135,7 +136,7 @@ export function CsvImportSheet({ open, onClose }: Props) {
                     <SelectValue placeholder="Select account…" />
                   </SelectTrigger>
                   <SelectContent>
-                    {accounts.map((a) => (
+                    {manualAccounts.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.name}
                       </SelectItem>
@@ -206,7 +207,7 @@ export function CsvImportSheet({ open, onClose }: Props) {
                         <SelectValue placeholder="Select account…" />
                       </SelectTrigger>
                       <SelectContent>
-                        {accounts.map((a) => (
+                        {manualAccounts.map((a) => (
                           <SelectItem key={a.id} value={a.id}>
                             {a.name}
                           </SelectItem>
