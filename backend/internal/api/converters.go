@@ -138,13 +138,8 @@ func (c *TimestampConverter) TimestampToTime(ctx context.Context, source *timest
 	return &t, nil
 }
 
-// TimeToTimestamp converts time.Time to *timestamppb.Timestamp.
-func (c *TimestampConverter) TimeToTimestamp(ctx context.Context, source time.Time) (*timestamppb.Timestamp, error) {
-	return timestamppb.New(source), nil
-}
-
-// PtrTimeToTimestamp converts *time.Time to *timestamppb.Timestamp.
-func (c *TimestampConverter) PtrTimeToTimestamp(ctx context.Context, source *time.Time) (*timestamppb.Timestamp, error) {
+// TimeToTimestamp converts *time.Time to *timestamppb.Timestamp.
+func (c *TimestampConverter) TimeToTimestamp(ctx context.Context, source *time.Time) (*timestamppb.Timestamp, error) {
 	if source == nil {
 		return nil, nil
 	}

@@ -132,3 +132,182 @@ func TestTimestampConverter_ValidInput(t *testing.T) {
 	require.NotNil(t, tp)
 	assert.Equal(t, now, *tp)
 }
+
+func TestUserMapper(t *testing.T) {
+	ctx := context.Background()
+	mappers := InitMappers()
+
+	now := time.Now().UTC().Truncate(time.Second)
+	u := &domain.User{
+		ID:          "u-1",
+		Email:       "test@example.com",
+		FirstName:   "John",
+		LastName:    "Doe",
+		BasiqUserID: "bas-123",
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	p := mappers.User(ctx, u)
+	require.NotNil(t, p)
+	assert.Equal(t, u.ID, p.Id)
+	assert.Equal(t, u.Email, p.Email)
+	assert.Equal(t, u.FirstName, p.FirstName)
+	assert.Equal(t, u.LastName, p.LastName)
+	assert.Equal(t, u.BasiqUserID, p.BasiqUserId)
+	assert.Equal(t, u.CreatedAt, p.CreatedAt.AsTime())
+	assert.Equal(t, u.UpdatedAt, p.UpdatedAt.AsTime())
+}
+
+func TestBudgetMapper(t *testing.T) {
+	ctx := context.Background()
+	mappers := InitMappers()
+
+	now := time.Now().UTC().Truncate(time.Second)
+	b := &domain.Budget{
+		ID:        "b-1",
+		UserID:    "u-1",
+		Name:      "Budget Name",
+		Method:    domain.MethodEnvelope,
+		Currency:  "AUD",
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	p := mappers.Budget(ctx, b)
+	require.NotNil(t, p)
+	assert.Equal(t, b.ID, p.Id)
+	assert.Equal(t, b.UserID, p.UserId)
+	assert.Equal(t, b.Name, p.Name)
+	assert.Equal(t, budgyv1.BudgetMethod_BUDGET_METHOD_ENVELOPE, p.Method)
+	assert.Equal(t, b.Currency, p.Currency)
+	assert.Equal(t, b.CreatedAt, p.CreatedAt.AsTime())
+	assert.Equal(t, b.UpdatedAt, p.UpdatedAt.AsTime())
+}
+
+func TestAccountMapper(t *testing.T) {
+	ctx := context.Background()
+	mappers := InitMappers()
+
+	now := time.Now().UTC().Truncate(time.Second)
+	funds := int64(1000)
+	a := &domain.Account{
+		ID:             "a-1",
+		BudgetID:       "b-1",
+		Name:           "Savings",
+		Type:           domain.AccountSavings,
+		Balance:        5000,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		Class:          "asset",
+		AccountNo:      "123-456",
+		AvailableFunds: &funds,
+		Product:        "SuperSaver",
+		InstitutionID:  "inst-1",
+		ConnectionID:   "conn-1",
+		LastUpdated:    &now,
+	}
+
+	p := mappers.Account(ctx, a)
+	require.NotNil(t, p)
+	assert.Equal(t, a.ID, p.Id)
+	assert.Equal(t, a.BudgetID, p.BudgetId)
+	assert.Equal(t, a.Name, p.Name)
+	assert.Equal(t, budgyv1.AccountType_ACCOUNT_TYPE_SAVINGS, p.Type)
+	assert.Equal(t, a.Balance, p.Balance)
+	assert.Equal(t, a.Class, p.Class)
+	assert.Equal(t, a.AccountNo, p.AccountNo)
+	assert.Equal(t, *a.AvailableFunds, *p.AvailableFunds)
+	assert.Equal(t, a.Product, p.Product)
+	assert.Equal(t, a.InstitutionID, p.InstitutionId)
+	assert.Equal(t, a.ConnectionID, p.ConnectionId)
+	assert.Equal(t, *a.LastUpdated, p.LastUpdated.AsTime())
+	assert.Equal(t, a.CreatedAt, p.CreatedAt.AsTime())
+	assert.Equal(t, a.UpdatedAt, p.UpdatedAt.AsTime())
+}
+
+func TestCategoryMapper(t *testing.T) {
+	ctx := context.Background()
+	mappers := InitMappers()
+
+	now := time.Now().UTC().Truncate(time.Second)
+	c := &domain.Category{
+		ID:          "c-1",
+		BudgetID:    "b-1",
+		Name:        "Groceries",
+		Budgeted:    200,
+		Balance:     150,
+		TargetLimit: 500,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	p := mappers.Category(ctx, c)
+	require.NotNil(t, p)
+	assert.Equal(t, c.ID, p.Id)
+	assert.Equal(t, c.BudgetID, p.BudgetId)
+	assert.Equal(t, c.Name, p.Name)
+	assert.Equal(t, c.Budgeted, p.Budgeted)
+	assert.Equal(t, c.Balance, p.Balance)
+	assert.Equal(t, c.TargetLimit, p.TargetLimit)
+	assert.Equal(t, c.CreatedAt, p.CreatedAt.AsTime())
+	assert.Equal(t, c.UpdatedAt, p.UpdatedAt.AsTime())
+}
+
+func TestTransactionProtoMapper(t *testing.T) {
+	ctx := context.Background()
+	mappers := InitMappers()
+
+	now := time.Now().UTC().Truncate(time.Second)
+	tObj := &domain.Transaction{
+		ID:              "t-1",
+		BudgetID:        "b-1",
+		AccountID:       "a-1",
+		CategoryID:      "c-1",
+		Amount:          -50,
+		Description:     "Woolworths",
+		Date:            now,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+		Direction:       "debit",
+		Status:          "cleared",
+		Class:           "food",
+		PostDate:        &now,
+		SubClass:        "supermarket",
+		RawDescription:  "WOOLWORTHS METRO",
+		MerchantName:    "Woolworths",
+		MerchantWebsite: "woolworths.com.au",
+		MerchantLogoURL: "logo.png",
+		LocationAddress: "Sydney",
+		LocationLat:     "-33.86",
+		LocationLng:     "151.20",
+		CategoryCode:    "123",
+		CategoryTitle:   "Groceries",
+	}
+
+	p := mappers.TransactionProto(ctx, tObj)
+	require.NotNil(t, p)
+	assert.Equal(t, tObj.ID, p.Id)
+	assert.Equal(t, tObj.BudgetID, p.BudgetId)
+	assert.Equal(t, tObj.AccountID, p.AccountId)
+	assert.Equal(t, tObj.CategoryID, p.CategoryId)
+	assert.Equal(t, tObj.Amount, p.Amount)
+	assert.Equal(t, tObj.Description, p.Description)
+	assert.Equal(t, tObj.Date, p.Date.AsTime())
+	assert.Equal(t, tObj.CreatedAt, p.CreatedAt.AsTime())
+	assert.Equal(t, tObj.UpdatedAt, p.UpdatedAt.AsTime())
+	assert.Equal(t, tObj.Direction, p.Direction)
+	assert.Equal(t, tObj.Status, p.Status)
+	assert.Equal(t, tObj.Class, p.Class)
+	assert.Equal(t, *tObj.PostDate, p.PostDate.AsTime())
+	assert.Equal(t, tObj.SubClass, p.SubClass)
+	assert.Equal(t, tObj.RawDescription, p.RawDescription)
+	assert.Equal(t, tObj.MerchantName, p.MerchantName)
+	assert.Equal(t, tObj.MerchantWebsite, p.MerchantWebsite)
+	assert.Equal(t, tObj.MerchantLogoURL, p.MerchantLogoUrl)
+	assert.Equal(t, tObj.LocationAddress, p.LocationAddress)
+	assert.Equal(t, tObj.LocationLat, p.LocationLat)
+	assert.Equal(t, tObj.LocationLng, p.LocationLng)
+	assert.Equal(t, tObj.CategoryCode, p.CategoryCode)
+	assert.Equal(t, tObj.CategoryTitle, p.CategoryTitle)
+}
