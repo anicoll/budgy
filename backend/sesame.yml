@@ -238,3 +238,115 @@ mappings:
       - a: CategoryTitle
         b: CategoryTitle
         converter: NullStringConverter
+
+  - id: budgeting_system/internal/mappings.DBUserMapper
+    name: DBUserMapper
+    package: mappings
+    destination: ./internal/mappings/db_user_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/storage/db
+      name: User
+    b:
+      package: ./internal/domain
+      name: User
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: BasiqUserID
+        b: BasiqUserID
+        converter: NullStringConverter
+
+  - id: budgeting_system/internal/mappings.DBBudgetMapper
+    name: DBBudgetMapper
+    package: mappings
+    destination: ./internal/mappings/db_budget_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/storage/db
+      name: Budget
+    b:
+      package: ./internal/domain
+      name: Budget
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: UserID
+        b: UserID
+        converter: NullStringConverter
+
+  - id: budgeting_system/internal/mappings.DBAccountMapper
+    name: DBAccountMapper
+    package: mappings
+    destination: ./internal/mappings/db_account_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/storage/db
+      name: Account
+    b:
+      package: ./internal/domain
+      name: Account
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: BudgetID
+        b: BudgetID
+        converter: NullStringConverter
+      - a: Class
+        b: Class
+        converter: NullStringConverter
+      - a: AccountNo
+        b: AccountNo
+        converter: NullStringConverter
+      - a: AvailableFunds
+        b: AvailableFunds
+        converter: NullInt64Converter
+      - a: Product
+        b: Product
+        converter: NullStringConverter
+      - a: InstitutionID
+        b: InstitutionID
+        converter: NullStringConverter
+      - a: ConnectionID
+        b: ConnectionID
+        converter: NullStringConverter
+      - a: LastUpdated
+        b: LastUpdated
+        converter: NullTimeConverter
+
+  - id: budgeting_system/internal/mappings.DBCategoryMapper
+    name: DBCategoryMapper
+    package: mappings
+    destination: ./internal/mappings/db_category_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/storage/db
+      name: Category
+    b:
+      package: ./internal/domain
+      name: Category
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: BudgetID
+        b: BudgetID
+        converter: NullStringConverter
+
+  - id: budgeting_system/internal/mappings.DBJobMapper
+    name: DBJobMapper
+    package: mappings
+    destination: ./internal/mappings/db_job_mapper_gen.go
+    bidirectional: false
+    a:
+      package: ./internal/storage/db
+      name: BackgroundJob
+    b:
+      package: ./internal/domain
+      name: Job
+    ignore-case: true
+    allow-unmapped: true
+    fields:
+      - a: ErrorMessage
+        b: ErrorMessage
+        ignore: true
+

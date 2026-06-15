@@ -22,8 +22,23 @@ func NewMappers() sesame.Mappers {
 	mappers.AddFactory("budgeting_system/internal/mappings.CategoryMapper", reflect.TypeOf((*CategoryMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
 		return NewCategoryMapper(ms), nil
 	})
+	mappers.AddFactory("budgeting_system/internal/mappings.DBAccountMapper", reflect.TypeOf((*DBAccountMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewDBAccountMapper(ms), nil
+	})
+	mappers.AddFactory("budgeting_system/internal/mappings.DBBudgetMapper", reflect.TypeOf((*DBBudgetMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewDBBudgetMapper(ms), nil
+	})
+	mappers.AddFactory("budgeting_system/internal/mappings.DBCategoryMapper", reflect.TypeOf((*DBCategoryMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewDBCategoryMapper(ms), nil
+	})
+	mappers.AddFactory("budgeting_system/internal/mappings.DBJobMapper", reflect.TypeOf((*DBJobMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewDBJobMapper(ms), nil
+	})
 	mappers.AddFactory("budgeting_system/internal/mappings.DBTransactionMapper", reflect.TypeOf((*DBTransactionMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
 		return NewDBTransactionMapper(ms), nil
+	})
+	mappers.AddFactory("budgeting_system/internal/mappings.DBUserMapper", reflect.TypeOf((*DBUserMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
+		return NewDBUserMapper(ms), nil
 	})
 	mappers.AddFactory("budgeting_system/internal/mappings.TransactionMapper", reflect.TypeOf((*TransactionMapper)(nil)).Elem(), func(ms sesame.MapperGetter) (any, error) {
 		return NewTransactionMapper(ms), nil

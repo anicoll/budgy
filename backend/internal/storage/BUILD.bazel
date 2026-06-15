@@ -16,6 +16,7 @@ go_library(
         "//backend/internal/domain",
         "//backend/internal/mappings",
         "//backend/internal/storage/db",
+        "//backend/pkg/utils",
         "@com_github_ncruces_go_sqlite3//driver",
         "@com_github_pressly_goose_v3//:goose",
     ],
