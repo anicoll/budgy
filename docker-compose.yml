@@ -1,8 +1,6 @@
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: budgeting_system_backend:latest
     container_name: budgeting-system-backend
     ports:
       - "8080:8080"

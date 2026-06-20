@@ -21,15 +21,11 @@ jobs:
         with:
           node-version: 24
 
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm typecheck
-
-      - run: pnpm lint
-
-      - run: pnpm test
-
-      - run: pnpm build
+      - run: make install
+      - run: make typecheck
+      - run: make lint-frontend
+      - run: make test-frontend
+      - run: make build-frontend
 
   backend-ci:
     name: Backend Build & Test (Bazel)
@@ -37,11 +33,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+
+      - run: make install
 
       - name: Check Schema and SQLC Drift
         run: |
@@ -57,5 +63,5 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bazel-
 
-      - name: Build & Test
-        run: bazel test //...
+      - run: make test-backend
+      - run: make build-backend
