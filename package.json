@@ -10,13 +10,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "backend:build": "./.bin/bazel run //backend/cmd/budgetd:tarball",
-    "backend:up": "docker compose up -d",
-    "backend:down": "docker compose down",
-    "backend:logs": "docker compose logs -f"
+    "proto:generate": "buf generate"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.12.0",
