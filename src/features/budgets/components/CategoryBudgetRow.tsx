@@ -2,11 +2,7 @@
 
 import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
-import {
-  envelopeCategoryStatus,
-  envelopeProgressRatio,
-  envelopeStatusToUi,
-} from "../api/summary";
+import { envelopeCategoryStatus, envelopeProgressRatio, envelopeStatusToUi } from "../api/summary";
 import type { BackendBudgetMethod, BackendCategory } from "../api/types";
 import { EnvelopeProgress } from "./shared/EnvelopeProgress";
 

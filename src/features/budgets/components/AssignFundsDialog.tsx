@@ -32,7 +32,7 @@ export function AssignFundsDialog({ open, category, onClose, onSubmit, submittin
       setAmount("");
       setError(null);
     }
-  }, [open, category?.id]);
+  }, [open]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,7 +46,7 @@ export function AssignFundsDialog({ open, category, onClose, onSubmit, submittin
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog key={category?.id ?? "assign"} open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>

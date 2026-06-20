@@ -43,7 +43,10 @@ export function BudgetPageHeader({
         {showSwitcher ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-auto max-w-full px-2 py-1.5 text-lg font-semibold">
+              <Button
+                variant="ghost"
+                className="h-auto max-w-full px-2 py-1.5 text-lg font-semibold"
+              >
                 <span className="truncate">{selected.name}</span>
                 <ChevronDown className="ml-1 h-4 w-4 shrink-0 opacity-60" />
               </Button>
@@ -74,7 +77,10 @@ export function BudgetPageHeader({
           <DropdownMenuContent align="start">
             <DropdownMenuItem onClick={onEdit}>Edit budget</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={onDelete}
+            >
               Delete budget
             </DropdownMenuItem>
           </DropdownMenuContent>

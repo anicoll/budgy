@@ -21,7 +21,8 @@ export function BudgetSummaryHero({ summary }: Props) {
               <Money value={summary.readyToAssign} signColor />
             </p>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              Unallocated cash across your accounts. Assign it to categories until this reaches zero.
+              Unallocated cash across your accounts. Assign it to categories until this reaches
+              zero.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -57,7 +58,13 @@ export function BudgetSummaryHero({ summary }: Props) {
   );
 }
 
-function MetricChip({ label, value }: { label: string; value: Parameters<typeof Money>[0]["value"] }) {
+function MetricChip({
+  label,
+  value,
+}: {
+  label: string;
+  value: Parameters<typeof Money>[0]["value"];
+}) {
   return (
     <div className="rounded-xl border border-border/60 bg-surface/60 px-3 py-2">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>

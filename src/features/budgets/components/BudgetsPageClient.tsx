@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { BackendBudgetFormValues } from "../api/schema";
 import {
   useAssignCategoryFunds,
   useBackendAccounts,
@@ -18,6 +17,7 @@ import {
   useSelectedBudgetId,
   useUpdateBackendBudget,
 } from "../api/hooks";
+import type { BackendBudgetFormValues } from "../api/schema";
 import type { BackendBudget, BackendCategory } from "../api/types";
 import { AssignFundsDialog } from "./AssignFundsDialog";
 import { BudgetPageHeader } from "./BudgetPageHeader";

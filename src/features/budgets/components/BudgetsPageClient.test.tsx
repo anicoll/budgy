@@ -19,8 +19,8 @@ vi.mock("../api/hooks", () => ({
 
 import {
   useBackendAccounts,
-  useBackendBudgets,
   useBackendBudgetSummary,
+  useBackendBudgets,
   useBackendCategories,
   useSelectedBudgetId,
 } from "../api/hooks";

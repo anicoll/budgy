@@ -49,7 +49,7 @@ export function FundEnvelopeDialog({
       setAmount("");
       setError(null);
     }
-  }, [open, category?.id, accounts]);
+  }, [open, accounts]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,7 +67,7 @@ export function FundEnvelopeDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog key={category?.id ?? "fund"} open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>

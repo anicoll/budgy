@@ -54,7 +54,10 @@ export function useSelectedBudgetId(budgets: BackendBudget[] | undefined) {
 export function useBackendCategories(budgetId: string | null) {
   return useQuery({
     queryKey: backendBudgetKeys.categories(budgetId ?? ""),
-    queryFn: () => fetchCategories(budgetId!),
+    queryFn: () => {
+      if (!budgetId) throw new Error("budgetId is required");
+      return fetchCategories(budgetId);
+    },
     enabled: !!budgetId,
   });
 }
@@ -62,7 +65,10 @@ export function useBackendCategories(budgetId: string | null) {
 export function useBackendAccounts(budgetId: string | null) {
   return useQuery({
     queryKey: backendBudgetKeys.accounts(budgetId ?? ""),
-    queryFn: () => fetchAccounts(budgetId!),
+    queryFn: () => {
+      if (!budgetId) throw new Error("budgetId is required");
+      return fetchAccounts(budgetId);
+    },
     enabled: !!budgetId,
   });
 }
@@ -135,8 +141,10 @@ export function useDeleteBackendBudget() {
 export function useAssignCategoryFunds(budgetId: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ categoryId, amountCents }: { categoryId: string; amountCents: number }) =>
-      assignCategoryFunds(budgetId!, categoryId, amountCents),
+    mutationFn: ({ categoryId, amountCents }: { categoryId: string; amountCents: number }) => {
+      if (!budgetId) throw new Error("budgetId is required");
+      return assignCategoryFunds(budgetId, categoryId, amountCents);
+    },
     onSuccess: () => {
       if (budgetId) invalidateBudgetQueries(qc, budgetId);
       toast.success("Funds assigned");
@@ -156,7 +164,10 @@ export function useFundEnvelope(budgetId: string | null) {
       categoryId: string;
       accountId: string;
       amountCents: number;
-    }) => fundEnvelope(budgetId!, categoryId, accountId, amountCents),
+    }) => {
+      if (!budgetId) throw new Error("budgetId is required");
+      return fundEnvelope(budgetId, categoryId, accountId, amountCents);
+    },
     onSuccess: () => {
       if (budgetId) invalidateBudgetQueries(qc, budgetId);
       toast.success("Envelope funded");

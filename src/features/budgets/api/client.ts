@@ -1,10 +1,6 @@
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { BudgetMethod } from "@/gen/budgy/v1/budget_pb";
-import {
-  accountClient,
-  budgetClient,
-  categoryClient,
-} from "@/lib/api/connect-client";
+import { accountClient, budgetClient, categoryClient } from "@/lib/api/connect-client";
 import { cents } from "@/lib/money/cents";
 import type { BackendAccount, BackendBudget, BackendBudgetMethod, BackendCategory } from "./types";
 
@@ -62,7 +58,12 @@ function mapCategory(c: {
   };
 }
 
-function mapAccount(a: { id: string; budgetId: string; name: string; balance: bigint }): BackendAccount {
+function mapAccount(a: {
+  id: string;
+  budgetId: string;
+  name: string;
+  balance: bigint;
+}): BackendAccount {
   const cleanName = a.name.split(" ||")[0];
   return {
     id: a.id,
