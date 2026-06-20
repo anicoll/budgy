@@ -79,6 +79,13 @@ func (h *authConnectHandler) Register(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, toConnectError(err)
 	}
+	if w, ok := ctx.Value(responseWriterKey).(http.ResponseWriter); ok {
+		cookie, err := NewAuthTokenCookie(u.ID)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		http.SetCookie(w, cookie)
+	}
 	return connect.NewResponse(&budgyv1.RegisterResponse{User: h.mappers.User(ctx, u)}), nil
 }
 
@@ -88,35 +95,19 @@ func (h *authConnectHandler) Login(ctx context.Context, req *connect.Request[bud
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	token, err := GenerateJWT(u.ID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	// Set cookie on the underlying http.ResponseWriter
 	if w, ok := ctx.Value(responseWriterKey).(http.ResponseWriter); ok {
-		http.SetCookie(w, &http.Cookie{
-			Name:     "token",
-			Value:    token,
-			Expires:  time.Now().Add(24 * time.Hour),
-			HttpOnly: true,
-			Path:     "/",
-			SameSite: http.SameSiteLaxMode,
-		})
+		cookie, err := NewAuthTokenCookie(u.ID)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		http.SetCookie(w, cookie)
 	}
 	return connect.NewResponse(&budgyv1.LoginResponse{User: h.mappers.User(ctx, u)}), nil
 }
 
 func (h *authConnectHandler) Logout(ctx context.Context, req *connect.Request[budgyv1.LogoutRequest]) (*connect.Response[budgyv1.LogoutResponse], error) {
 	if w, ok := ctx.Value(responseWriterKey).(http.ResponseWriter); ok {
-		http.SetCookie(w, &http.Cookie{
-			Name:     "token",
-			Value:    "",
-			Expires:  time.Unix(0, 0),
-			MaxAge:   -1,
-			HttpOnly: true,
-			Path:     "/",
-			SameSite: http.SameSiteLaxMode,
-		})
+		http.SetCookie(w, ClearAuthTokenCookie())
 	}
 	return connect.NewResponse(&budgyv1.LogoutResponse{}), nil
 }
@@ -608,11 +599,21 @@ func (h *transactionConnectHandler) CreateTransaction(ctx context.Context, req *
 }
 
 func (h *transactionConnectHandler) ListTransactions(ctx context.Context, req *connect.Request[budgyv1.ListTransactionsRequest]) (*connect.Response[budgyv1.ListTransactionsResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
-	list, err := h.transactions.List(ctx, r.BudgetId)
+	r := req.Msg
+	var list []*domain.Transaction
+	var err error
+	if r.BudgetId == "" {
+		list, err = h.transactions.ListByUser(ctx, userID)
+	} else {
+		if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
+			return nil, err
+		}
+		list, err = h.transactions.List(ctx, r.BudgetId)
+	}
 	if err != nil {
 		return nil, toConnectError(err)
 	}
@@ -734,7 +735,7 @@ func (s *APIServer) withConnectAuth(next http.Handler) http.Handler {
 		// Inject ResponseWriter into context for cookie setting
 		ctx := context.WithValue(r.Context(), responseWriterKey, w)
 
-		cookie, err := r.Cookie("token")
+		cookie, err := r.Cookie(AuthTokenCookieName)
 		if err == nil {
 			claims := &Claims{}
 			token, err := parseJWT(cookie.Value, claims)

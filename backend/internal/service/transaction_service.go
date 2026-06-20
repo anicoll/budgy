@@ -165,6 +165,10 @@ func (s *transactionService) List(ctx context.Context, budgetID string) ([]*doma
 	return s.transactions.ListByBudget(ctx, budgetID)
 }
 
+func (s *transactionService) ListByUser(ctx context.Context, userID string) ([]*domain.Transaction, error) {
+	return s.transactions.ListByUser(ctx, userID)
+}
+
 func (s *transactionService) Update(ctx context.Context, budgetID, txID string, updates *domain.Transaction) (*domain.Transaction, error) {
 	oldTx, err := s.transactions.GetByID(ctx, txID)
 	if err != nil {

@@ -387,6 +387,14 @@ func (r *transactionRepository) ListByBudget(ctx context.Context, budgetID strin
 	return r.listQuery(ctx, query, budgetID)
 }
 
+func (r *transactionRepository) ListByUser(ctx context.Context, userID string) ([]*domain.Transaction, error) {
+	query := `SELECT ` + txSelectCols + `
+	          FROM transactions t
+	          INNER JOIN accounts a ON a.id = t.account_id
+	          WHERE a.user_id = ?`
+	return r.listQuery(ctx, query, userID)
+}
+
 func (r *transactionRepository) ListByAccount(ctx context.Context, accountID string) ([]*domain.Transaction, error) {
 	query := `SELECT ` + txSelectCols + ` FROM transactions t WHERE t.account_id = ?`
 	return r.listQuery(ctx, query, accountID)

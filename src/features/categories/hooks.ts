@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/query/keys";
+import { useOnlineQueryEnabled } from "@/lib/query/use-online-query-enabled";
 import {
   createCategory,
   deleteCategory,
@@ -15,17 +16,21 @@ import type { CategoryFormValues } from "./schema";
 import type { CategoryType } from "./types";
 
 export function useCategories(opts?: { type?: CategoryType; includeArchived?: boolean }) {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: [...queryKeys.categories.list(), opts?.type ?? "all", !!opts?.includeArchived],
     queryFn: () => listCategories({ includeArchived: opts?.includeArchived }),
     select: opts?.type ? (data) => data.filter((c) => c.type === opts.type) : undefined,
+    enabled,
   });
 }
 
 export function useCategoryTree(type?: CategoryType) {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: [...queryKeys.categories.list(), "tree", type ?? "all"],
     queryFn: () => listCategoriesTree(type),
+    enabled,
   });
 }
 

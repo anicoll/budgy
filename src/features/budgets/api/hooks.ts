@@ -8,6 +8,7 @@ import {
   readSelectedBudgetId,
   writeSelectedBudgetId,
 } from "@/lib/api/active-budget";
+import { useOnlineQueryEnabled } from "@/lib/query/use-online-query-enabled";
 import {
   assignCategoryFunds,
   createBudget,
@@ -23,9 +24,11 @@ import { computeBudgetSummary } from "./summary";
 import type { BackendBudget, BackendBudgetMethod } from "./types";
 
 export function useBackendBudgets() {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: backendBudgetKeys.list(),
     queryFn: fetchBudgets,
+    enabled,
   });
 }
 
@@ -52,24 +55,26 @@ export function useSelectedBudgetId(budgets: BackendBudget[] | undefined) {
 }
 
 export function useBackendCategories(budgetId: string | null) {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: backendBudgetKeys.categories(budgetId ?? ""),
     queryFn: () => {
       if (!budgetId) throw new Error("budgetId is required");
       return fetchCategories(budgetId);
     },
-    enabled: !!budgetId,
+    enabled: enabled && !!budgetId,
   });
 }
 
 export function useBackendAccounts(budgetId: string | null) {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: backendBudgetKeys.accounts(budgetId ?? ""),
     queryFn: () => {
       if (!budgetId) throw new Error("budgetId is required");
       return fetchAccounts(budgetId);
     },
-    enabled: !!budgetId,
+    enabled: enabled && !!budgetId,
   });
 }
 

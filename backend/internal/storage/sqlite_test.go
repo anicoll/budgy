@@ -197,9 +197,48 @@ func TestTransactionRepository(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, listByBudget, 1)
 
+	listByUser, err := txRepo.ListByUser(ctx, "user-1")
+	require.NoError(t, err)
+	assert.Len(t, listByUser, 1)
+
 	require.NoError(t, txRepo.Delete(ctx, "tx-1"))
 	_, err = txRepo.GetByID(ctx, "tx-1")
 	assert.Error(t, err)
+}
+
+func TestTransactionListByUserIncludesUnlinkedAccounts(t *testing.T) {
+	db := newTestDB(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	store := NewSQLiteStorage(db)
+	setupUser(t, store, "user-1")
+	setupBudget(t, store, "user-1", "b-1")
+
+	require.NoError(t, store.Accounts().Create(ctx, &domain.Account{
+		ID: "acc-unlinked", UserID: "user-1", Name: "Savings", Type: domain.AccountSavings,
+		Balance: 50000, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
+	require.NoError(t, store.Categories().Create(ctx, &domain.Category{
+		ID: "cat-1", UserID: "user-1", Name: "Groceries", Type: domain.CategoryExpense,
+		Color: "#34d399", CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
+
+	txRepo := store.Transactions()
+	tx := &domain.Transaction{
+		ID: "tx-unlinked", AccountID: "acc-unlinked", CategoryID: "cat-1",
+		Amount: -2500, Description: "Coffee", Date: time.Now(),
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	require.NoError(t, txRepo.Create(ctx, tx))
+
+	listByUser, err := txRepo.ListByUser(ctx, "user-1")
+	require.NoError(t, err)
+	assert.Len(t, listByUser, 1)
+
+	listByBudget, err := txRepo.ListByBudget(ctx, "b-1")
+	require.NoError(t, err)
+	assert.Empty(t, listByBudget)
 }
 
 func TestBudgetDeleteCascadeLinks(t *testing.T) {

@@ -72,7 +72,9 @@ export function DonutChart({ slices, height = 220, showLegend = true }: Props) {
                 color: theme.muted,
                 fontSize: "11px",
                 formatter: (w) => {
-                  const total = w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0);
+                  const totals = w?.globals?.seriesTotals;
+                  if (!totals?.length) return "";
+                  const total = totals.reduce((a: number, b: number) => a + b, 0);
                   return new Intl.NumberFormat("en-AU", {
                     style: "currency",
                     currency: "AUD",
@@ -94,10 +96,11 @@ export function DonutChart({ slices, height = 220, showLegend = true }: Props) {
         itemMargin: { horizontal: 6, vertical: 2 },
         formatter: (
           label,
-          opts?: { w: { globals: { series: number[] } }; seriesIndex: number },
+          opts?: { w?: { globals?: { series?: number[] } }; seriesIndex?: number },
         ) => {
-          if (!opts) return label;
+          if (!opts?.w?.globals?.series || opts.seriesIndex === undefined) return label;
           const val = opts.w.globals.series[opts.seriesIndex];
+          if (val === undefined) return label;
           const formatted = new Intl.NumberFormat("en-AU", {
             style: "currency",
             currency: "AUD",

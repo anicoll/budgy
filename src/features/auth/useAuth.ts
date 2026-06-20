@@ -36,11 +36,12 @@ export const useAuth = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const user = await apiLogin({ email, password });
+      await apiLogin({ email, password });
+      const user = await getMe();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to log in";
-      set({ error: errorMsg, isLoading: false });
+      set({ user: null, isAuthenticated: false, error: errorMsg, isLoading: false });
       throw err;
     }
   },
@@ -48,11 +49,12 @@ export const useAuth = create<AuthState>((set) => ({
   register: async (req) => {
     set({ isLoading: true, error: null });
     try {
-      const user = await apiRegister(req);
+      await apiRegister(req);
+      const user = await getMe();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to register";
-      set({ error: errorMsg, isLoading: false });
+      set({ user: null, isAuthenticated: false, error: errorMsg, isLoading: false });
       throw err;
     }
   },

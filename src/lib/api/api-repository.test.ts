@@ -322,7 +322,6 @@ describe("ApiTransactionRepository", () => {
   }
 
   it("list maps proto transactions to frontend Transaction type (debit)", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
       connectResponse({ transactions: [txMsg("t1", "-5000", "Woolworths")] }),
     );
@@ -338,7 +337,6 @@ describe("ApiTransactionRepository", () => {
   });
 
   it("maps positive amounts to credit type", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
       connectResponse({ transactions: [txMsg("t2", "150000", "Salary", "")] }),
     );

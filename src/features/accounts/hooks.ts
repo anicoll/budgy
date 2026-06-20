@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/query/keys";
+import { useOnlineQueryEnabled } from "@/lib/query/use-online-query-enabled";
 import {
   createAccount,
   deleteAccount,
@@ -14,9 +15,11 @@ import {
 import type { AccountFormValues } from "./schema";
 
 export function useAccounts(opts?: { includeArchived?: boolean }) {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: queryKeys.accounts.list({ archived: opts?.includeArchived }),
     queryFn: () => listAccounts(opts),
+    enabled,
   });
 }
 

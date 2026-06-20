@@ -1,4 +1,5 @@
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { Code, ConnectError } from "@connectrpc/connect";
 import {
   createAccountApi,
   deleteAccountApi,
@@ -45,9 +46,10 @@ function tsToDateStr(ts: Timestamp | null | undefined): string {
 let activeBudgetIdCache: string | null = null;
 
 export async function getActiveBudgetId(): Promise<string> {
+  let budgets: { id: string }[] = [];
   try {
     const res = await budgetClient.listBudgets({});
-    const budgets = res.budgets ?? [];
+    budgets = res.budgets ?? [];
 
     if (budgets.length > 0) {
       const candidates = [activeBudgetIdCache, readSelectedBudgetId()];
@@ -64,6 +66,9 @@ export async function getActiveBudgetId(): Promise<string> {
       return budgets[0].id;
     }
   } catch (e) {
+    if (e instanceof ConnectError && e.code === Code.Unauthenticated) {
+      throw e;
+    }
     console.error("Error fetching budgets, attempting to create default:", e);
   }
 
@@ -407,8 +412,7 @@ export class ApiCategoryRepository implements Repository<Category> {
 
 export class ApiTransactionRepository implements Repository<Transaction> {
   async list(_query?: ListQuery<Transaction>): Promise<Transaction[]> {
-    const budgetId = await getActiveBudgetId();
-    const res = await transactionClient.listTransactions({ budgetId });
+    const res = await transactionClient.listTransactions({ budgetId: "" });
     const txns = res.transactions ?? [];
 
     return txns.map((t) => ({

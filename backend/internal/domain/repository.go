@@ -41,6 +41,7 @@ type TransactionRepository interface {
 	Create(ctx context.Context, tx *Transaction) error
 	GetByID(ctx context.Context, id string) (*Transaction, error)
 	ListByBudget(ctx context.Context, budgetID string) ([]*Transaction, error)
+	ListByUser(ctx context.Context, userID string) ([]*Transaction, error)
 	ListByAccount(ctx context.Context, accountID string) ([]*Transaction, error)
 	ListByCategory(ctx context.Context, categoryID string) ([]*Transaction, error)
 	Update(ctx context.Context, tx *Transaction) error

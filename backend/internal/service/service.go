@@ -66,6 +66,7 @@ type CategoryService interface {
 type TransactionService interface {
 	Create(ctx context.Context, budgetID, accountID, categoryID string, amount int64, description string, date time.Time) (*domain.Transaction, error)
 	List(ctx context.Context, budgetID string) ([]*domain.Transaction, error)
+	ListByUser(ctx context.Context, userID string) ([]*domain.Transaction, error)
 	Update(ctx context.Context, budgetID, txID string, updates *domain.Transaction) (*domain.Transaction, error)
 	Delete(ctx context.Context, budgetID, txID string) error
 }
