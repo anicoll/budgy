@@ -14,7 +14,7 @@ import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 export const file_budgy_v1_account: GenFile =
   /*@__PURE__*/
   fileDesc(
-    "ChZidWRneS92MS9hY2NvdW50LnByb3RvEghidWRneS52MSKpAwoHQWNjb3VudBIKCgJpZBgBIAEoCRIRCglidWRnZXRfaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIjCgR0eXBlGAQgASgOMhUuYnVkZ3kudjEuQWNjb3VudFR5cGUSDwoHYmFsYW5jZRgFIAEoAxIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVjbGFzcxgIIAEoCRISCgphY2NvdW50X25vGAkgASgJEhwKD2F2YWlsYWJsZV9mdW5kcxgKIAEoA0gAiAEBEg8KB3Byb2R1Y3QYCyABKAkSFgoOaW5zdGl0dXRpb25faWQYDCABKAkSFQoNY29ubmVjdGlvbl9pZBgNIAEoCRI1CgxsYXN0X3VwZGF0ZWQYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAGIAQFCEgoQX2F2YWlsYWJsZV9mdW5kc0IPCg1fbGFzdF91cGRhdGVkIm0KFENyZWF0ZUFjY291bnRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEiMKBHR5cGUYAyABKA4yFS5idWRneS52MS5BY2NvdW50VHlwZRIPCgdiYWxhbmNlGAQgASgDIjsKFUNyZWF0ZUFjY291bnRSZXNwb25zZRIiCgdhY2NvdW50GAEgASgLMhEuYnVkZ3kudjEuQWNjb3VudCIoChNMaXN0QWNjb3VudHNSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSI7ChRMaXN0QWNjb3VudHNSZXNwb25zZRIjCghhY2NvdW50cxgBIAMoCzIRLmJ1ZGd5LnYxLkFjY291bnQi7gMKFFVwZGF0ZUFjY291bnRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRISCgphY2NvdW50X2lkGAIgASgJEhEKBG5hbWUYAyABKAlIAIgBARIoCgR0eXBlGAQgASgOMhUuYnVkZ3kudjEuQWNjb3VudFR5cGVIAYgBARIUCgdiYWxhbmNlGAUgASgDSAKIAQESEgoFY2xhc3MYBiABKAlIA4gBARIXCgphY2NvdW50X25vGAcgASgJSASIAQESHAoPYXZhaWxhYmxlX2Z1bmRzGAggASgDSAWIAQESFAoHcHJvZHVjdBgJIAEoCUgGiAEBEhsKDmluc3RpdHV0aW9uX2lkGAogASgJSAeIAQESGgoNY29ubmVjdGlvbl9pZBgLIAEoCUgIiAEBEjUKDGxhc3RfdXBkYXRlZBgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBICYgBAUIHCgVfbmFtZUIHCgVfdHlwZUIKCghfYmFsYW5jZUIICgZfY2xhc3NCDQoLX2FjY291bnRfbm9CEgoQX2F2YWlsYWJsZV9mdW5kc0IKCghfcHJvZHVjdEIRCg9faW5zdGl0dXRpb25faWRCEAoOX2Nvbm5lY3Rpb25faWRCDwoNX2xhc3RfdXBkYXRlZCI7ChVVcGRhdGVBY2NvdW50UmVzcG9uc2USIgoHYWNjb3VudBgBIAEoCzIRLmJ1ZGd5LnYxLkFjY291bnQiPQoURGVsZXRlQWNjb3VudFJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJEhIKCmFjY291bnRfaWQYAiABKAkiFwoVRGVsZXRlQWNjb3VudFJlc3BvbnNlKpUBCgtBY2NvdW50VHlwZRIcChhBQ0NPVU5UX1RZUEVfVU5TUEVDSUZJRUQQABIZChVBQ0NPVU5UX1RZUEVfQ0hFQ0tJTkcQARIYChRBQ0NPVU5UX1RZUEVfU0FWSU5HUxACEhwKGEFDQ09VTlRfVFlQRV9DUkVESVRfQ0FSRBADEhUKEUFDQ09VTlRfVFlQRV9DQVNIEAQy1QIKDkFjY291bnRTZXJ2aWNlElAKDUNyZWF0ZUFjY291bnQSHi5idWRneS52MS5DcmVhdGVBY2NvdW50UmVxdWVzdBofLmJ1ZGd5LnYxLkNyZWF0ZUFjY291bnRSZXNwb25zZRJNCgxMaXN0QWNjb3VudHMSHS5idWRneS52MS5MaXN0QWNjb3VudHNSZXF1ZXN0Gh4uYnVkZ3kudjEuTGlzdEFjY291bnRzUmVzcG9uc2USUAoNVXBkYXRlQWNjb3VudBIeLmJ1ZGd5LnYxLlVwZGF0ZUFjY291bnRSZXF1ZXN0Gh8uYnVkZ3kudjEuVXBkYXRlQWNjb3VudFJlc3BvbnNlElAKDURlbGV0ZUFjY291bnQSHi5idWRneS52MS5EZWxldGVBY2NvdW50UmVxdWVzdBofLmJ1ZGd5LnYxLkRlbGV0ZUFjY291bnRSZXNwb25zZUIwWi5idWRnZXRpbmdfc3lzdGVtL2ludGVybmFsL2dlbi9idWRneS92MTtidWRneXYxYgZwcm90bzM",
+    "ChZidWRneS92MS9hY2NvdW50LnByb3RvEghidWRneS52MSKnAwoHQWNjb3VudBIKCgJpZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEgwKBG5hbWUYAyABKAkSIwoEdHlwZRgEIAEoDjIVLmJ1ZGd5LnYxLkFjY291bnRUeXBlEg8KB2JhbGFuY2UYBSABKAMSLgoKY3JlYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFY2xhc3MYCCABKAkSEgoKYWNjb3VudF9ubxgJIAEoCRIcCg9hdmFpbGFibGVfZnVuZHMYCiABKANIAIgBARIPCgdwcm9kdWN0GAsgASgJEhYKDmluc3RpdHV0aW9uX2lkGAwgASgJEhUKDWNvbm5lY3Rpb25faWQYDSABKAkSNQoMbGFzdF91cGRhdGVkGA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgBiAEBQhIKEF9hdmFpbGFibGVfZnVuZHNCDwoNX2xhc3RfdXBkYXRlZCJaChRDcmVhdGVBY2NvdW50UmVxdWVzdBIMCgRuYW1lGAEgASgJEiMKBHR5cGUYAiABKA4yFS5idWRneS52MS5BY2NvdW50VHlwZRIPCgdiYWxhbmNlGAMgASgDIjsKFUNyZWF0ZUFjY291bnRSZXNwb25zZRIiCgdhY2NvdW50GAEgASgLMhEuYnVkZ3kudjEuQWNjb3VudCIVChNMaXN0QWNjb3VudHNSZXF1ZXN0IjsKFExpc3RBY2NvdW50c1Jlc3BvbnNlEiMKCGFjY291bnRzGAEgAygLMhEuYnVkZ3kudjEuQWNjb3VudCLbAwoUVXBkYXRlQWNjb3VudFJlcXVlc3QSEgoKYWNjb3VudF9pZBgBIAEoCRIRCgRuYW1lGAIgASgJSACIAQESKAoEdHlwZRgDIAEoDjIVLmJ1ZGd5LnYxLkFjY291bnRUeXBlSAGIAQESFAoHYmFsYW5jZRgEIAEoA0gCiAEBEhIKBWNsYXNzGAUgASgJSAOIAQESFwoKYWNjb3VudF9ubxgGIAEoCUgEiAEBEhwKD2F2YWlsYWJsZV9mdW5kcxgHIAEoA0gFiAEBEhQKB3Byb2R1Y3QYCCABKAlIBogBARIbCg5pbnN0aXR1dGlvbl9pZBgJIAEoCUgHiAEBEhoKDWNvbm5lY3Rpb25faWQYCiABKAlICIgBARI1CgxsYXN0X3VwZGF0ZWQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAmIAQFCBwoFX25hbWVCBwoFX3R5cGVCCgoIX2JhbGFuY2VCCAoGX2NsYXNzQg0KC19hY2NvdW50X25vQhIKEF9hdmFpbGFibGVfZnVuZHNCCgoIX3Byb2R1Y3RCEQoPX2luc3RpdHV0aW9uX2lkQhAKDl9jb25uZWN0aW9uX2lkQg8KDV9sYXN0X3VwZGF0ZWQiOwoVVXBkYXRlQWNjb3VudFJlc3BvbnNlEiIKB2FjY291bnQYASABKAsyES5idWRneS52MS5BY2NvdW50IioKFERlbGV0ZUFjY291bnRSZXF1ZXN0EhIKCmFjY291bnRfaWQYASABKAkiFwoVRGVsZXRlQWNjb3VudFJlc3BvbnNlIkMKGkxpbmtBY2NvdW50VG9CdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRISCgphY2NvdW50X2lkGAIgASgJIh0KG0xpbmtBY2NvdW50VG9CdWRnZXRSZXNwb25zZSJHCh5VbmxpbmtBY2NvdW50RnJvbUJ1ZGdldFJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJEhIKCmFjY291bnRfaWQYAiABKAkiIQofVW5saW5rQWNjb3VudEZyb21CdWRnZXRSZXNwb25zZSIuChlMaXN0QnVkZ2V0QWNjb3VudHNSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSJBChpMaXN0QnVkZ2V0QWNjb3VudHNSZXNwb25zZRIjCghhY2NvdW50cxgBIAMoCzIRLmJ1ZGd5LnYxLkFjY291bnQqlQEKC0FjY291bnRUeXBlEhwKGEFDQ09VTlRfVFlQRV9VTlNQRUNJRklFRBAAEhkKFUFDQ09VTlRfVFlQRV9DSEVDS0lORxABEhgKFEFDQ09VTlRfVFlQRV9TQVZJTkdTEAISHAoYQUNDT1VOVF9UWVBFX0NSRURJVF9DQVJEEAMSFQoRQUNDT1VOVF9UWVBFX0NBU0gQBDKKBQoOQWNjb3VudFNlcnZpY2USUAoNQ3JlYXRlQWNjb3VudBIeLmJ1ZGd5LnYxLkNyZWF0ZUFjY291bnRSZXF1ZXN0Gh8uYnVkZ3kudjEuQ3JlYXRlQWNjb3VudFJlc3BvbnNlEk0KDExpc3RBY2NvdW50cxIdLmJ1ZGd5LnYxLkxpc3RBY2NvdW50c1JlcXVlc3QaHi5idWRneS52MS5MaXN0QWNjb3VudHNSZXNwb25zZRJQCg1VcGRhdGVBY2NvdW50Eh4uYnVkZ3kudjEuVXBkYXRlQWNjb3VudFJlcXVlc3QaHy5idWRneS52MS5VcGRhdGVBY2NvdW50UmVzcG9uc2USUAoNRGVsZXRlQWNjb3VudBIeLmJ1ZGd5LnYxLkRlbGV0ZUFjY291bnRSZXF1ZXN0Gh8uYnVkZ3kudjEuRGVsZXRlQWNjb3VudFJlc3BvbnNlEmIKE0xpbmtBY2NvdW50VG9CdWRnZXQSJC5idWRneS52MS5MaW5rQWNjb3VudFRvQnVkZ2V0UmVxdWVzdBolLmJ1ZGd5LnYxLkxpbmtBY2NvdW50VG9CdWRnZXRSZXNwb25zZRJuChdVbmxpbmtBY2NvdW50RnJvbUJ1ZGdldBIoLmJ1ZGd5LnYxLlVubGlua0FjY291bnRGcm9tQnVkZ2V0UmVxdWVzdBopLmJ1ZGd5LnYxLlVubGlua0FjY291bnRGcm9tQnVkZ2V0UmVzcG9uc2USXwoSTGlzdEJ1ZGdldEFjY291bnRzEiMuYnVkZ3kudjEuTGlzdEJ1ZGdldEFjY291bnRzUmVxdWVzdBokLmJ1ZGd5LnYxLkxpc3RCdWRnZXRBY2NvdW50c1Jlc3BvbnNlQjBaLmJ1ZGdldGluZ19zeXN0ZW0vaW50ZXJuYWwvZ2VuL2J1ZGd5L3YxO2J1ZGd5djFiBnByb3RvMw",
     [file_google_protobuf_timestamp],
   );
 
@@ -28,9 +28,9 @@ export type Account = Message<"budgy.v1.Account"> & {
   id: string;
 
   /**
-   * @generated from field: string budget_id = 2;
+   * @generated from field: string user_id = 2;
    */
-  budgetId: string;
+  userId: string;
 
   /**
    * @generated from field: string name = 3;
@@ -106,22 +106,17 @@ export const AccountSchema: GenMessage<Account> =
  */
 export type CreateAccountRequest = Message<"budgy.v1.CreateAccountRequest"> & {
   /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-
-  /**
-   * @generated from field: string name = 2;
+   * @generated from field: string name = 1;
    */
   name: string;
 
   /**
-   * @generated from field: budgy.v1.AccountType type = 3;
+   * @generated from field: budgy.v1.AccountType type = 2;
    */
   type: AccountType;
 
   /**
-   * @generated from field: int64 balance = 4;
+   * @generated from field: int64 balance = 3;
    */
   balance: bigint;
 };
@@ -155,12 +150,7 @@ export const CreateAccountResponseSchema: GenMessage<CreateAccountResponse> =
 /**
  * @generated from message budgy.v1.ListAccountsRequest
  */
-export type ListAccountsRequest = Message<"budgy.v1.ListAccountsRequest"> & {
-  /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-};
+export type ListAccountsRequest = Message<"budgy.v1.ListAccountsRequest"> & {};
 
 /**
  * Describes the message budgy.v1.ListAccountsRequest.
@@ -193,62 +183,57 @@ export const ListAccountsResponseSchema: GenMessage<ListAccountsResponse> =
  */
 export type UpdateAccountRequest = Message<"budgy.v1.UpdateAccountRequest"> & {
   /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-
-  /**
-   * @generated from field: string account_id = 2;
+   * @generated from field: string account_id = 1;
    */
   accountId: string;
 
   /**
-   * @generated from field: optional string name = 3;
+   * @generated from field: optional string name = 2;
    */
   name?: string | undefined;
 
   /**
-   * @generated from field: optional budgy.v1.AccountType type = 4;
+   * @generated from field: optional budgy.v1.AccountType type = 3;
    */
   type?: AccountType | undefined;
 
   /**
-   * @generated from field: optional int64 balance = 5;
+   * @generated from field: optional int64 balance = 4;
    */
   balance?: bigint | undefined;
 
   /**
-   * @generated from field: optional string class = 6;
+   * @generated from field: optional string class = 5;
    */
   class?: string | undefined;
 
   /**
-   * @generated from field: optional string account_no = 7;
+   * @generated from field: optional string account_no = 6;
    */
   accountNo?: string | undefined;
 
   /**
-   * @generated from field: optional int64 available_funds = 8;
+   * @generated from field: optional int64 available_funds = 7;
    */
   availableFunds?: bigint | undefined;
 
   /**
-   * @generated from field: optional string product = 9;
+   * @generated from field: optional string product = 8;
    */
   product?: string | undefined;
 
   /**
-   * @generated from field: optional string institution_id = 10;
+   * @generated from field: optional string institution_id = 9;
    */
   institutionId?: string | undefined;
 
   /**
-   * @generated from field: optional string connection_id = 11;
+   * @generated from field: optional string connection_id = 10;
    */
   connectionId?: string | undefined;
 
   /**
-   * @generated from field: optional google.protobuf.Timestamp last_updated = 12;
+   * @generated from field: optional google.protobuf.Timestamp last_updated = 11;
    */
   lastUpdated?: Timestamp | undefined;
 };
@@ -284,12 +269,7 @@ export const UpdateAccountResponseSchema: GenMessage<UpdateAccountResponse> =
  */
 export type DeleteAccountRequest = Message<"budgy.v1.DeleteAccountRequest"> & {
   /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-
-  /**
-   * @generated from field: string account_id = 2;
+   * @generated from field: string account_id = 1;
    */
   accountId: string;
 };
@@ -314,6 +294,115 @@ export type DeleteAccountResponse = Message<"budgy.v1.DeleteAccountResponse"> & 
 export const DeleteAccountResponseSchema: GenMessage<DeleteAccountResponse> =
   /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 8);
+
+/**
+ * @generated from message budgy.v1.LinkAccountToBudgetRequest
+ */
+export type LinkAccountToBudgetRequest = Message<"budgy.v1.LinkAccountToBudgetRequest"> & {
+  /**
+   * @generated from field: string budget_id = 1;
+   */
+  budgetId: string;
+
+  /**
+   * @generated from field: string account_id = 2;
+   */
+  accountId: string;
+};
+
+/**
+ * Describes the message budgy.v1.LinkAccountToBudgetRequest.
+ * Use `create(LinkAccountToBudgetRequestSchema)` to create a new message.
+ */
+export const LinkAccountToBudgetRequestSchema: GenMessage<LinkAccountToBudgetRequest> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_account, 9);
+
+/**
+ * @generated from message budgy.v1.LinkAccountToBudgetResponse
+ */
+export type LinkAccountToBudgetResponse = Message<"budgy.v1.LinkAccountToBudgetResponse"> & {};
+
+/**
+ * Describes the message budgy.v1.LinkAccountToBudgetResponse.
+ * Use `create(LinkAccountToBudgetResponseSchema)` to create a new message.
+ */
+export const LinkAccountToBudgetResponseSchema: GenMessage<LinkAccountToBudgetResponse> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_account, 10);
+
+/**
+ * @generated from message budgy.v1.UnlinkAccountFromBudgetRequest
+ */
+export type UnlinkAccountFromBudgetRequest = Message<"budgy.v1.UnlinkAccountFromBudgetRequest"> & {
+  /**
+   * @generated from field: string budget_id = 1;
+   */
+  budgetId: string;
+
+  /**
+   * @generated from field: string account_id = 2;
+   */
+  accountId: string;
+};
+
+/**
+ * Describes the message budgy.v1.UnlinkAccountFromBudgetRequest.
+ * Use `create(UnlinkAccountFromBudgetRequestSchema)` to create a new message.
+ */
+export const UnlinkAccountFromBudgetRequestSchema: GenMessage<UnlinkAccountFromBudgetRequest> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_account, 11);
+
+/**
+ * @generated from message budgy.v1.UnlinkAccountFromBudgetResponse
+ */
+export type UnlinkAccountFromBudgetResponse =
+  Message<"budgy.v1.UnlinkAccountFromBudgetResponse"> & {};
+
+/**
+ * Describes the message budgy.v1.UnlinkAccountFromBudgetResponse.
+ * Use `create(UnlinkAccountFromBudgetResponseSchema)` to create a new message.
+ */
+export const UnlinkAccountFromBudgetResponseSchema: GenMessage<UnlinkAccountFromBudgetResponse> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_account, 12);
+
+/**
+ * @generated from message budgy.v1.ListBudgetAccountsRequest
+ */
+export type ListBudgetAccountsRequest = Message<"budgy.v1.ListBudgetAccountsRequest"> & {
+  /**
+   * @generated from field: string budget_id = 1;
+   */
+  budgetId: string;
+};
+
+/**
+ * Describes the message budgy.v1.ListBudgetAccountsRequest.
+ * Use `create(ListBudgetAccountsRequestSchema)` to create a new message.
+ */
+export const ListBudgetAccountsRequestSchema: GenMessage<ListBudgetAccountsRequest> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_account, 13);
+
+/**
+ * @generated from message budgy.v1.ListBudgetAccountsResponse
+ */
+export type ListBudgetAccountsResponse = Message<"budgy.v1.ListBudgetAccountsResponse"> & {
+  /**
+   * @generated from field: repeated budgy.v1.Account accounts = 1;
+   */
+  accounts: Account[];
+};
+
+/**
+ * Describes the message budgy.v1.ListBudgetAccountsResponse.
+ * Use `create(ListBudgetAccountsResponseSchema)` to create a new message.
+ */
+export const ListBudgetAccountsResponseSchema: GenMessage<ListBudgetAccountsResponse> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_account, 14);
 
 /**
  * @generated from enum budgy.v1.AccountType
@@ -387,5 +476,29 @@ export const AccountService: GenService<{
     methodKind: "unary";
     input: typeof DeleteAccountRequestSchema;
     output: typeof DeleteAccountResponseSchema;
+  };
+  /**
+   * @generated from rpc budgy.v1.AccountService.LinkAccountToBudget
+   */
+  linkAccountToBudget: {
+    methodKind: "unary";
+    input: typeof LinkAccountToBudgetRequestSchema;
+    output: typeof LinkAccountToBudgetResponseSchema;
+  };
+  /**
+   * @generated from rpc budgy.v1.AccountService.UnlinkAccountFromBudget
+   */
+  unlinkAccountFromBudget: {
+    methodKind: "unary";
+    input: typeof UnlinkAccountFromBudgetRequestSchema;
+    output: typeof UnlinkAccountFromBudgetResponseSchema;
+  };
+  /**
+   * @generated from rpc budgy.v1.AccountService.ListBudgetAccounts
+   */
+  listBudgetAccounts: {
+    methodKind: "unary";
+    input: typeof ListBudgetAccountsRequestSchema;
+    output: typeof ListBudgetAccountsResponseSchema;
   };
 }> = /*@__PURE__*/ serviceDesc(file_budgy_v1_account, 0);

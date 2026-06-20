@@ -3,8 +3,8 @@
 /* eslint-disable */
 
 import type { Message } from "@bufbuild/protobuf";
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 
@@ -14,7 +14,7 @@ import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 export const file_budgy_v1_category: GenFile =
   /*@__PURE__*/
   fileDesc(
-    "ChdidWRneS92MS9jYXRlZ29yeS5wcm90bxIIYnVkZ3kudjEi0AEKCENhdGVnb3J5EgoKAmlkGAEgASgJEhEKCWJ1ZGdldF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhAKCGJ1ZGdldGVkGAQgASgDEg8KB2JhbGFuY2UYBSABKAMSFAoMdGFyZ2V0X2xpbWl0GAYgASgDEi4KCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wImcKEkZ1bmRFbnZlbG9wZVJlc3VsdBISCgphY2NvdW50X2lkGAEgASgJEhcKD2FjY291bnRfYmFsYW5jZRgCIAEoAxIkCghlbnZlbG9wZRgDIAEoCzISLmJ1ZGd5LnYxLkNhdGVnb3J5Ik4KFUNyZWF0ZUNhdGVnb3J5UmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkSDAoEbmFtZRgCIAEoCRIUCgx0YXJnZXRfbGltaXQYAyABKAMiPgoWQ3JlYXRlQ2F0ZWdvcnlSZXNwb25zZRIkCghjYXRlZ29yeRgBIAEoCzISLmJ1ZGd5LnYxLkNhdGVnb3J5IioKFUxpc3RDYXRlZ29yaWVzUmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkiQAoWTGlzdENhdGVnb3JpZXNSZXNwb25zZRImCgpjYXRlZ29yaWVzGAEgAygLMhIuYnVkZ3kudjEuQ2F0ZWdvcnkizQEKFVVwZGF0ZUNhdGVnb3J5UmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkSEwoLY2F0ZWdvcnlfaWQYAiABKAkSEQoEbmFtZRgDIAEoCUgAiAEBEhUKCGJ1ZGdldGVkGAQgASgDSAGIAQESFAoHYmFsYW5jZRgFIAEoA0gCiAEBEhkKDHRhcmdldF9saW1pdBgGIAEoA0gDiAEBQgcKBV9uYW1lQgsKCV9idWRnZXRlZEIKCghfYmFsYW5jZUIPCg1fdGFyZ2V0X2xpbWl0Ij4KFlVwZGF0ZUNhdGVnb3J5UmVzcG9uc2USJAoIY2F0ZWdvcnkYASABKAsyEi5idWRneS52MS5DYXRlZ29yeSI/ChVEZWxldGVDYXRlZ29yeVJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJEhMKC2NhdGVnb3J5X2lkGAIgASgJIhgKFkRlbGV0ZUNhdGVnb3J5UmVzcG9uc2UiVAoaQXNzaWduQ2F0ZWdvcnlGdW5kc1JlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJEhMKC2NhdGVnb3J5X2lkGAIgASgJEg4KBmFtb3VudBgDIAEoAyJDChtBc3NpZ25DYXRlZ29yeUZ1bmRzUmVzcG9uc2USJAoIY2F0ZWdvcnkYASABKAsyEi5idWRneS52MS5DYXRlZ29yeSJhChNGdW5kRW52ZWxvcGVSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRITCgtjYXRlZ29yeV9pZBgCIAEoCRISCgphY2NvdW50X2lkGAMgASgJEg4KBmFtb3VudBgEIAEoAyJEChRGdW5kRW52ZWxvcGVSZXNwb25zZRIsCgZyZXN1bHQYASABKAsyHC5idWRneS52MS5GdW5kRW52ZWxvcGVSZXN1bHQymAQKD0NhdGVnb3J5U2VydmljZRJTCg5DcmVhdGVDYXRlZ29yeRIfLmJ1ZGd5LnYxLkNyZWF0ZUNhdGVnb3J5UmVxdWVzdBogLmJ1ZGd5LnYxLkNyZWF0ZUNhdGVnb3J5UmVzcG9uc2USUwoOTGlzdENhdGVnb3JpZXMSHy5idWRneS52MS5MaXN0Q2F0ZWdvcmllc1JlcXVlc3QaIC5idWRneS52MS5MaXN0Q2F0ZWdvcmllc1Jlc3BvbnNlElMKDlVwZGF0ZUNhdGVnb3J5Eh8uYnVkZ3kudjEuVXBkYXRlQ2F0ZWdvcnlSZXF1ZXN0GiAuYnVkZ3kudjEuVXBkYXRlQ2F0ZWdvcnlSZXNwb25zZRJTCg5EZWxldGVDYXRlZ29yeRIfLmJ1ZGd5LnYxLkRlbGV0ZUNhdGVnb3J5UmVxdWVzdBogLmJ1ZGd5LnYxLkRlbGV0ZUNhdGVnb3J5UmVzcG9uc2USYgoTQXNzaWduQ2F0ZWdvcnlGdW5kcxIkLmJ1ZGd5LnYxLkFzc2lnbkNhdGVnb3J5RnVuZHNSZXF1ZXN0GiUuYnVkZ3kudjEuQXNzaWduQ2F0ZWdvcnlGdW5kc1Jlc3BvbnNlEk0KDEZ1bmRFbnZlbG9wZRIdLmJ1ZGd5LnYxLkZ1bmRFbnZlbG9wZVJlcXVlc3QaHi5idWRneS52MS5GdW5kRW52ZWxvcGVSZXNwb25zZUIwWi5idWRnZXRpbmdfc3lzdGVtL2ludGVybmFsL2dlbi9idWRneS92MTtidWRneXYxYgZwcm90bzM",
+    "ChdidWRneS92MS9jYXRlZ29yeS5wcm90bxIIYnVkZ3kudjEi2QIKCENhdGVnb3J5EgoKAmlkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSEQoJcGFyZW50X2lkGAMgASgJEgwKBG5hbWUYBCABKAkSJAoEdHlwZRgFIAEoDjIWLmJ1ZGd5LnYxLkNhdGVnb3J5VHlwZRINCgVjb2xvchgGIAEoCRIMCgRpY29uGAcgASgJEhIKCnNvcnRfb3JkZXIYCCABKAUSEAoIYXJjaGl2ZWQYCSABKAgSDgoGc3lzdGVtGAogASgIEhsKE2Jhc2lxX3N1YmNsYXNzX2NvZGUYCyABKAkSGQoRYW56c2ljX2NsYXNzX2NvZGUYDCABKAkSLgoKY3JlYXRlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAibwoOQnVkZ2V0Q2F0ZWdvcnkSJAoIY2F0ZWdvcnkYASABKAsyEi5idWRneS52MS5DYXRlZ29yeRIQCghidWRnZXRlZBgCIAEoAxIPCgdiYWxhbmNlGAMgASgDEhQKDHRhcmdldF9saW1pdBgEIAEoAyJtChJGdW5kRW52ZWxvcGVSZXN1bHQSEgoKYWNjb3VudF9pZBgBIAEoCRIXCg9hY2NvdW50X2JhbGFuY2UYAiABKAMSKgoIZW52ZWxvcGUYAyABKAsyGC5idWRneS52MS5CdWRnZXRDYXRlZ29yeSKPAQoVQ3JlYXRlQ2F0ZWdvcnlSZXF1ZXN0EgwKBG5hbWUYASABKAkSJAoEdHlwZRgCIAEoDjIWLmJ1ZGd5LnYxLkNhdGVnb3J5VHlwZRIRCglwYXJlbnRfaWQYAyABKAkSDQoFY29sb3IYBCABKAkSDAoEaWNvbhgFIAEoCRISCgpzb3J0X29yZGVyGAYgASgFIj4KFkNyZWF0ZUNhdGVnb3J5UmVzcG9uc2USJAoIY2F0ZWdvcnkYASABKAsyEi5idWRneS52MS5DYXRlZ29yeSIXChVMaXN0Q2F0ZWdvcmllc1JlcXVlc3QiQAoWTGlzdENhdGVnb3JpZXNSZXNwb25zZRImCgpjYXRlZ29yaWVzGAEgAygLMhIuYnVkZ3kudjEuQ2F0ZWdvcnkiqAIKFVVwZGF0ZUNhdGVnb3J5UmVxdWVzdBITCgtjYXRlZ29yeV9pZBgBIAEoCRIRCgRuYW1lGAIgASgJSACIAQESKQoEdHlwZRgDIAEoDjIWLmJ1ZGd5LnYxLkNhdGVnb3J5VHlwZUgBiAEBEhYKCXBhcmVudF9pZBgEIAEoCUgCiAEBEhIKBWNvbG9yGAUgASgJSAOIAQESEQoEaWNvbhgGIAEoCUgEiAEBEhcKCnNvcnRfb3JkZXIYByABKAVIBYgBARIVCghhcmNoaXZlZBgIIAEoCEgGiAEBQgcKBV9uYW1lQgcKBV90eXBlQgwKCl9wYXJlbnRfaWRCCAoGX2NvbG9yQgcKBV9pY29uQg0KC19zb3J0X29yZGVyQgsKCV9hcmNoaXZlZCI+ChZVcGRhdGVDYXRlZ29yeVJlc3BvbnNlEiQKCGNhdGVnb3J5GAEgASgLMhIuYnVkZ3kudjEuQ2F0ZWdvcnkiLAoVRGVsZXRlQ2F0ZWdvcnlSZXF1ZXN0EhMKC2NhdGVnb3J5X2lkGAEgASgJIhgKFkRlbGV0ZUNhdGVnb3J5UmVzcG9uc2UqfgoMQ2F0ZWdvcnlUeXBlEh0KGUNBVEVHT1JZX1RZUEVfVU5TUEVDSUZJRUQQABIYChRDQVRFR09SWV9UWVBFX0lOQ09NRRABEhkKFUNBVEVHT1JZX1RZUEVfRVhQRU5TRRACEhoKFkNBVEVHT1JZX1RZUEVfVFJBTlNGRVIQAzLlAgoPQ2F0ZWdvcnlTZXJ2aWNlElMKDkNyZWF0ZUNhdGVnb3J5Eh8uYnVkZ3kudjEuQ3JlYXRlQ2F0ZWdvcnlSZXF1ZXN0GiAuYnVkZ3kudjEuQ3JlYXRlQ2F0ZWdvcnlSZXNwb25zZRJTCg5MaXN0Q2F0ZWdvcmllcxIfLmJ1ZGd5LnYxLkxpc3RDYXRlZ29yaWVzUmVxdWVzdBogLmJ1ZGd5LnYxLkxpc3RDYXRlZ29yaWVzUmVzcG9uc2USUwoOVXBkYXRlQ2F0ZWdvcnkSHy5idWRneS52MS5VcGRhdGVDYXRlZ29yeVJlcXVlc3QaIC5idWRneS52MS5VcGRhdGVDYXRlZ29yeVJlc3BvbnNlElMKDkRlbGV0ZUNhdGVnb3J5Eh8uYnVkZ3kudjEuRGVsZXRlQ2F0ZWdvcnlSZXF1ZXN0GiAuYnVkZ3kudjEuRGVsZXRlQ2F0ZWdvcnlSZXNwb25zZUIwWi5idWRnZXRpbmdfc3lzdGVtL2ludGVybmFsL2dlbi9idWRneS92MTtidWRneXYxYgZwcm90bzM",
     [file_google_protobuf_timestamp],
   );
 
@@ -28,37 +28,67 @@ export type Category = Message<"budgy.v1.Category"> & {
   id: string;
 
   /**
-   * @generated from field: string budget_id = 2;
+   * @generated from field: string user_id = 2;
    */
-  budgetId: string;
+  userId: string;
 
   /**
-   * @generated from field: string name = 3;
+   * @generated from field: string parent_id = 3;
+   */
+  parentId: string;
+
+  /**
+   * @generated from field: string name = 4;
    */
   name: string;
 
   /**
-   * @generated from field: int64 budgeted = 4;
+   * @generated from field: budgy.v1.CategoryType type = 5;
    */
-  budgeted: bigint;
+  type: CategoryType;
 
   /**
-   * @generated from field: int64 balance = 5;
+   * @generated from field: string color = 6;
    */
-  balance: bigint;
+  color: string;
 
   /**
-   * @generated from field: int64 target_limit = 6;
+   * @generated from field: string icon = 7;
    */
-  targetLimit: bigint;
+  icon: string;
 
   /**
-   * @generated from field: google.protobuf.Timestamp created_at = 7;
+   * @generated from field: int32 sort_order = 8;
+   */
+  sortOrder: number;
+
+  /**
+   * @generated from field: bool archived = 9;
+   */
+  archived: boolean;
+
+  /**
+   * @generated from field: bool system = 10;
+   */
+  system: boolean;
+
+  /**
+   * @generated from field: string basiq_subclass_code = 11;
+   */
+  basiqSubclassCode: string;
+
+  /**
+   * @generated from field: string anzsic_class_code = 12;
+   */
+  anzsicClassCode: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 13;
    */
   createdAt?: Timestamp | undefined;
 
   /**
-   * @generated from field: google.protobuf.Timestamp updated_at = 8;
+   * @generated from field: google.protobuf.Timestamp updated_at = 14;
    */
   updatedAt?: Timestamp | undefined;
 };
@@ -72,12 +102,43 @@ export const CategorySchema: GenMessage<Category> =
   messageDesc(file_budgy_v1_category, 0);
 
 /**
+ * @generated from message budgy.v1.BudgetCategory
+ */
+export type BudgetCategory = Message<"budgy.v1.BudgetCategory"> & {
+  /**
+   * @generated from field: budgy.v1.Category category = 1;
+   */
+  category?: Category | undefined;
+
+  /**
+   * @generated from field: int64 budgeted = 2;
+   */
+  budgeted: bigint;
+
+  /**
+   * @generated from field: int64 balance = 3;
+   */
+  balance: bigint;
+
+  /**
+   * @generated from field: int64 target_limit = 4;
+   */
+  targetLimit: bigint;
+};
+
+/**
+ * Describes the message budgy.v1.BudgetCategory.
+ * Use `create(BudgetCategorySchema)` to create a new message.
+ */
+export const BudgetCategorySchema: GenMessage<BudgetCategory> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_category, 1);
+
+/**
  * @generated from message budgy.v1.FundEnvelopeResult
  */
 export type FundEnvelopeResult = Message<"budgy.v1.FundEnvelopeResult"> & {
   /**
-   * The updated account after funding the envelope
-   *
    * @generated from field: string account_id = 1;
    */
   accountId: string;
@@ -88,11 +149,9 @@ export type FundEnvelopeResult = Message<"budgy.v1.FundEnvelopeResult"> & {
   accountBalance: bigint;
 
   /**
-   * The updated envelope/category
-   *
-   * @generated from field: budgy.v1.Category envelope = 3;
+   * @generated from field: budgy.v1.BudgetCategory envelope = 3;
    */
-  envelope?: Category | undefined;
+  envelope?: BudgetCategory | undefined;
 };
 
 /**
@@ -101,26 +160,41 @@ export type FundEnvelopeResult = Message<"budgy.v1.FundEnvelopeResult"> & {
  */
 export const FundEnvelopeResultSchema: GenMessage<FundEnvelopeResult> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 1);
+  messageDesc(file_budgy_v1_category, 2);
 
 /**
  * @generated from message budgy.v1.CreateCategoryRequest
  */
 export type CreateCategoryRequest = Message<"budgy.v1.CreateCategoryRequest"> & {
   /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-
-  /**
-   * @generated from field: string name = 2;
+   * @generated from field: string name = 1;
    */
   name: string;
 
   /**
-   * @generated from field: int64 target_limit = 3;
+   * @generated from field: budgy.v1.CategoryType type = 2;
    */
-  targetLimit: bigint;
+  type: CategoryType;
+
+  /**
+   * @generated from field: string parent_id = 3;
+   */
+  parentId: string;
+
+  /**
+   * @generated from field: string color = 4;
+   */
+  color: string;
+
+  /**
+   * @generated from field: string icon = 5;
+   */
+  icon: string;
+
+  /**
+   * @generated from field: int32 sort_order = 6;
+   */
+  sortOrder: number;
 };
 
 /**
@@ -129,7 +203,7 @@ export type CreateCategoryRequest = Message<"budgy.v1.CreateCategoryRequest"> & 
  */
 export const CreateCategoryRequestSchema: GenMessage<CreateCategoryRequest> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 2);
+  messageDesc(file_budgy_v1_category, 3);
 
 /**
  * @generated from message budgy.v1.CreateCategoryResponse
@@ -147,17 +221,12 @@ export type CreateCategoryResponse = Message<"budgy.v1.CreateCategoryResponse"> 
  */
 export const CreateCategoryResponseSchema: GenMessage<CreateCategoryResponse> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 3);
+  messageDesc(file_budgy_v1_category, 4);
 
 /**
  * @generated from message budgy.v1.ListCategoriesRequest
  */
-export type ListCategoriesRequest = Message<"budgy.v1.ListCategoriesRequest"> & {
-  /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-};
+export type ListCategoriesRequest = Message<"budgy.v1.ListCategoriesRequest"> & {};
 
 /**
  * Describes the message budgy.v1.ListCategoriesRequest.
@@ -165,7 +234,7 @@ export type ListCategoriesRequest = Message<"budgy.v1.ListCategoriesRequest"> & 
  */
 export const ListCategoriesRequestSchema: GenMessage<ListCategoriesRequest> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 4);
+  messageDesc(file_budgy_v1_category, 5);
 
 /**
  * @generated from message budgy.v1.ListCategoriesResponse
@@ -183,41 +252,51 @@ export type ListCategoriesResponse = Message<"budgy.v1.ListCategoriesResponse"> 
  */
 export const ListCategoriesResponseSchema: GenMessage<ListCategoriesResponse> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 5);
+  messageDesc(file_budgy_v1_category, 6);
 
 /**
  * @generated from message budgy.v1.UpdateCategoryRequest
  */
 export type UpdateCategoryRequest = Message<"budgy.v1.UpdateCategoryRequest"> & {
   /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-
-  /**
-   * @generated from field: string category_id = 2;
+   * @generated from field: string category_id = 1;
    */
   categoryId: string;
 
   /**
-   * @generated from field: optional string name = 3;
+   * @generated from field: optional string name = 2;
    */
   name?: string | undefined;
 
   /**
-   * @generated from field: optional int64 budgeted = 4;
+   * @generated from field: optional budgy.v1.CategoryType type = 3;
    */
-  budgeted?: bigint | undefined;
+  type?: CategoryType | undefined;
 
   /**
-   * @generated from field: optional int64 balance = 5;
+   * @generated from field: optional string parent_id = 4;
    */
-  balance?: bigint | undefined;
+  parentId?: string | undefined;
 
   /**
-   * @generated from field: optional int64 target_limit = 6;
+   * @generated from field: optional string color = 5;
    */
-  targetLimit?: bigint | undefined;
+  color?: string | undefined;
+
+  /**
+   * @generated from field: optional string icon = 6;
+   */
+  icon?: string | undefined;
+
+  /**
+   * @generated from field: optional int32 sort_order = 7;
+   */
+  sortOrder?: number | undefined;
+
+  /**
+   * @generated from field: optional bool archived = 8;
+   */
+  archived?: boolean | undefined;
 };
 
 /**
@@ -226,7 +305,7 @@ export type UpdateCategoryRequest = Message<"budgy.v1.UpdateCategoryRequest"> & 
  */
 export const UpdateCategoryRequestSchema: GenMessage<UpdateCategoryRequest> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 6);
+  messageDesc(file_budgy_v1_category, 7);
 
 /**
  * @generated from message budgy.v1.UpdateCategoryResponse
@@ -244,19 +323,14 @@ export type UpdateCategoryResponse = Message<"budgy.v1.UpdateCategoryResponse"> 
  */
 export const UpdateCategoryResponseSchema: GenMessage<UpdateCategoryResponse> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 7);
+  messageDesc(file_budgy_v1_category, 8);
 
 /**
  * @generated from message budgy.v1.DeleteCategoryRequest
  */
 export type DeleteCategoryRequest = Message<"budgy.v1.DeleteCategoryRequest"> & {
   /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-
-  /**
-   * @generated from field: string category_id = 2;
+   * @generated from field: string category_id = 1;
    */
   categoryId: string;
 };
@@ -267,7 +341,7 @@ export type DeleteCategoryRequest = Message<"budgy.v1.DeleteCategoryRequest"> & 
  */
 export const DeleteCategoryRequestSchema: GenMessage<DeleteCategoryRequest> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 8);
+  messageDesc(file_budgy_v1_category, 9);
 
 /**
  * @generated from message budgy.v1.DeleteCategoryResponse
@@ -280,104 +354,39 @@ export type DeleteCategoryResponse = Message<"budgy.v1.DeleteCategoryResponse"> 
  */
 export const DeleteCategoryResponseSchema: GenMessage<DeleteCategoryResponse> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 9);
-
-/**
- * @generated from message budgy.v1.AssignCategoryFundsRequest
- */
-export type AssignCategoryFundsRequest = Message<"budgy.v1.AssignCategoryFundsRequest"> & {
-  /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-
-  /**
-   * @generated from field: string category_id = 2;
-   */
-  categoryId: string;
-
-  /**
-   * @generated from field: int64 amount = 3;
-   */
-  amount: bigint;
-};
-
-/**
- * Describes the message budgy.v1.AssignCategoryFundsRequest.
- * Use `create(AssignCategoryFundsRequestSchema)` to create a new message.
- */
-export const AssignCategoryFundsRequestSchema: GenMessage<AssignCategoryFundsRequest> =
-  /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 10);
 
 /**
- * @generated from message budgy.v1.AssignCategoryFundsResponse
+ * @generated from enum budgy.v1.CategoryType
  */
-export type AssignCategoryFundsResponse = Message<"budgy.v1.AssignCategoryFundsResponse"> & {
+export enum CategoryType {
   /**
-   * @generated from field: budgy.v1.Category category = 1;
+   * @generated from enum value: CATEGORY_TYPE_UNSPECIFIED = 0;
    */
-  category?: Category | undefined;
-};
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: CATEGORY_TYPE_INCOME = 1;
+   */
+  INCOME = 1,
+
+  /**
+   * @generated from enum value: CATEGORY_TYPE_EXPENSE = 2;
+   */
+  EXPENSE = 2,
+
+  /**
+   * @generated from enum value: CATEGORY_TYPE_TRANSFER = 3;
+   */
+  TRANSFER = 3,
+}
 
 /**
- * Describes the message budgy.v1.AssignCategoryFundsResponse.
- * Use `create(AssignCategoryFundsResponseSchema)` to create a new message.
+ * Describes the enum budgy.v1.CategoryType.
  */
-export const AssignCategoryFundsResponseSchema: GenMessage<AssignCategoryFundsResponse> =
+export const CategoryTypeSchema: GenEnum<CategoryType> =
   /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 11);
-
-/**
- * @generated from message budgy.v1.FundEnvelopeRequest
- */
-export type FundEnvelopeRequest = Message<"budgy.v1.FundEnvelopeRequest"> & {
-  /**
-   * @generated from field: string budget_id = 1;
-   */
-  budgetId: string;
-
-  /**
-   * @generated from field: string category_id = 2;
-   */
-  categoryId: string;
-
-  /**
-   * @generated from field: string account_id = 3;
-   */
-  accountId: string;
-
-  /**
-   * @generated from field: int64 amount = 4;
-   */
-  amount: bigint;
-};
-
-/**
- * Describes the message budgy.v1.FundEnvelopeRequest.
- * Use `create(FundEnvelopeRequestSchema)` to create a new message.
- */
-export const FundEnvelopeRequestSchema: GenMessage<FundEnvelopeRequest> =
-  /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 12);
-
-/**
- * @generated from message budgy.v1.FundEnvelopeResponse
- */
-export type FundEnvelopeResponse = Message<"budgy.v1.FundEnvelopeResponse"> & {
-  /**
-   * @generated from field: budgy.v1.FundEnvelopeResult result = 1;
-   */
-  result?: FundEnvelopeResult | undefined;
-};
-
-/**
- * Describes the message budgy.v1.FundEnvelopeResponse.
- * Use `create(FundEnvelopeResponseSchema)` to create a new message.
- */
-export const FundEnvelopeResponseSchema: GenMessage<FundEnvelopeResponse> =
-  /*@__PURE__*/
-  messageDesc(file_budgy_v1_category, 13);
+  enumDesc(file_budgy_v1_category, 0);
 
 /**
  * @generated from service budgy.v1.CategoryService
@@ -414,21 +423,5 @@ export const CategoryService: GenService<{
     methodKind: "unary";
     input: typeof DeleteCategoryRequestSchema;
     output: typeof DeleteCategoryResponseSchema;
-  };
-  /**
-   * @generated from rpc budgy.v1.CategoryService.AssignCategoryFunds
-   */
-  assignCategoryFunds: {
-    methodKind: "unary";
-    input: typeof AssignCategoryFundsRequestSchema;
-    output: typeof AssignCategoryFundsResponseSchema;
-  };
-  /**
-   * @generated from rpc budgy.v1.CategoryService.FundEnvelope
-   */
-  fundEnvelope: {
-    methodKind: "unary";
-    input: typeof FundEnvelopeRequestSchema;
-    output: typeof FundEnvelopeResponseSchema;
   };
 }> = /*@__PURE__*/ serviceDesc(file_budgy_v1_category, 0);

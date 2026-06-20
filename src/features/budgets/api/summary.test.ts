@@ -11,8 +11,10 @@ import type { BackendAccount, BackendCategory } from "./types";
 
 const cat = (overrides: Partial<BackendCategory> = {}): BackendCategory => ({
   id: "c1",
-  budgetId: "b1",
   name: "Groceries",
+  type: "expense",
+  parentId: null,
+  system: false,
   budgeted: cents(50000),
   balance: cents(30000),
   targetLimit: cents(40000),
@@ -21,7 +23,6 @@ const cat = (overrides: Partial<BackendCategory> = {}): BackendCategory => ({
 
 const acc = (overrides: Partial<BackendAccount> = {}): BackendAccount => ({
   id: "a1",
-  budgetId: "b1",
   name: "Checking",
   balance: cents(100000),
   ...overrides,

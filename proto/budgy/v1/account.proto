@@ -6,8 +6,6 @@ option go_package = "budgeting_system/internal/gen/budgy/v1;budgyv1";
 
 import "google/protobuf/timestamp.proto";
 
-// ─── Enums ───────────────────────────────────────────────────────────────────
-
 enum AccountType {
   ACCOUNT_TYPE_UNSPECIFIED  = 0;
   ACCOUNT_TYPE_CHECKING     = 1;
@@ -16,11 +14,9 @@ enum AccountType {
   ACCOUNT_TYPE_CASH         = 4;
 }
 
-// ─── Messages ────────────────────────────────────────────────────────────────
-
 message Account {
   string      id              = 1;
-  string      budget_id       = 2;
+  string      user_id         = 2;
   string      name            = 3;
   AccountType type            = 4;
   int64       balance         = 5;
@@ -35,40 +31,34 @@ message Account {
   optional google.protobuf.Timestamp last_updated = 14;
 }
 
-// ─── Requests / Responses ─────────────────────────────────────────────────────
-
 message CreateAccountRequest {
-  string      budget_id = 1;
-  string      name      = 2;
-  AccountType type      = 3;
-  int64       balance   = 4;
+  string      name    = 1;
+  AccountType type    = 2;
+  int64       balance = 3;
 }
 
 message CreateAccountResponse {
   Account account = 1;
 }
 
-message ListAccountsRequest {
-  string budget_id = 1;
-}
+message ListAccountsRequest {}
 
 message ListAccountsResponse {
   repeated Account accounts = 1;
 }
 
 message UpdateAccountRequest {
-  string      budget_id       = 1;
-  string      account_id      = 2;
-  optional string name            = 3;
-  optional AccountType type       = 4;
-  optional int64  balance         = 5;
-  optional string class           = 6;
-  optional string account_no      = 7;
-  optional int64  available_funds = 8;
-  optional string product         = 9;
-  optional string institution_id  = 10;
-  optional string connection_id   = 11;
-  optional google.protobuf.Timestamp last_updated = 12;
+  string      account_id      = 1;
+  optional string name            = 2;
+  optional AccountType type       = 3;
+  optional int64  balance         = 4;
+  optional string class           = 5;
+  optional string account_no      = 6;
+  optional int64  available_funds = 7;
+  optional string product         = 8;
+  optional string institution_id  = 9;
+  optional string connection_id   = 10;
+  optional google.protobuf.Timestamp last_updated = 11;
 }
 
 message UpdateAccountResponse {
@@ -76,17 +66,39 @@ message UpdateAccountResponse {
 }
 
 message DeleteAccountRequest {
-  string budget_id  = 1;
-  string account_id = 2;
+  string account_id = 1;
 }
 
 message DeleteAccountResponse {}
 
-// ─── Service ──────────────────────────────────────────────────────────────────
+message LinkAccountToBudgetRequest {
+  string budget_id  = 1;
+  string account_id = 2;
+}
+
+message LinkAccountToBudgetResponse {}
+
+message UnlinkAccountFromBudgetRequest {
+  string budget_id  = 1;
+  string account_id = 2;
+}
+
+message UnlinkAccountFromBudgetResponse {}
+
+message ListBudgetAccountsRequest {
+  string budget_id = 1;
+}
+
+message ListBudgetAccountsResponse {
+  repeated Account accounts = 1;
+}
 
 service AccountService {
   rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
   rpc ListAccounts(ListAccountsRequest)   returns (ListAccountsResponse);
   rpc UpdateAccount(UpdateAccountRequest) returns (UpdateAccountResponse);
   rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
+  rpc LinkAccountToBudget(LinkAccountToBudgetRequest) returns (LinkAccountToBudgetResponse);
+  rpc UnlinkAccountFromBudget(UnlinkAccountFromBudgetRequest) returns (UnlinkAccountFromBudgetResponse);
+  rpc ListBudgetAccounts(ListBudgetAccountsRequest) returns (ListBudgetAccountsResponse);
 }

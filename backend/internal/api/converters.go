@@ -90,6 +90,19 @@ func (m *Mappers) Category(ctx context.Context, c *domain.Category) *budgyv1.Cat
 	return &p
 }
 
+// BudgetCategory converts domain.BudgetCategory to budgyv1.BudgetCategory.
+func (m *Mappers) BudgetCategory(ctx context.Context, bc *domain.BudgetCategory) *budgyv1.BudgetCategory {
+	if bc == nil {
+		return nil
+	}
+	return &budgyv1.BudgetCategory{
+		Category:    m.Category(ctx, &bc.Category),
+		Budgeted:    bc.Budgeted,
+		Balance:     bc.Balance,
+		TargetLimit: bc.TargetLimit,
+	}
+}
+
 // TransactionProto converts domain.Transaction to budgyv1.Transaction.
 func (m *Mappers) TransactionProto(ctx context.Context, t *domain.Transaction) *budgyv1.Transaction {
 	if t == nil {
@@ -174,5 +187,30 @@ func (c *EnumConverter) ProtoToAccountType(ctx context.Context, source *budgyv1.
 		return domain.AccountCash, false, nil
 	default:
 		return domain.AccountChecking, false, nil
+	}
+}
+
+func (c *EnumConverter) CategoryTypeToProto(ctx context.Context, source *domain.CategoryType) (budgyv1.CategoryType, bool, error) {
+	if source == nil {
+		return budgyv1.CategoryType_CATEGORY_TYPE_EXPENSE, true, nil
+	}
+	switch *source {
+	case domain.CategoryIncome:
+		return budgyv1.CategoryType_CATEGORY_TYPE_INCOME, false, nil
+	case domain.CategoryTransfer:
+		return budgyv1.CategoryType_CATEGORY_TYPE_TRANSFER, false, nil
+	default:
+		return budgyv1.CategoryType_CATEGORY_TYPE_EXPENSE, false, nil
+	}
+}
+
+func domainCategoryType(ct budgyv1.CategoryType) domain.CategoryType {
+	switch ct {
+	case budgyv1.CategoryType_CATEGORY_TYPE_INCOME:
+		return domain.CategoryIncome
+	case budgyv1.CategoryType_CATEGORY_TYPE_TRANSFER:
+		return domain.CategoryTransfer
+	default:
+		return domain.CategoryExpense
 	}
 }

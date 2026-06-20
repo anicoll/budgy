@@ -45,12 +45,6 @@ const (
 	// CategoryServiceDeleteCategoryProcedure is the fully-qualified name of the CategoryService's
 	// DeleteCategory RPC.
 	CategoryServiceDeleteCategoryProcedure = "/budgy.v1.CategoryService/DeleteCategory"
-	// CategoryServiceAssignCategoryFundsProcedure is the fully-qualified name of the CategoryService's
-	// AssignCategoryFunds RPC.
-	CategoryServiceAssignCategoryFundsProcedure = "/budgy.v1.CategoryService/AssignCategoryFunds"
-	// CategoryServiceFundEnvelopeProcedure is the fully-qualified name of the CategoryService's
-	// FundEnvelope RPC.
-	CategoryServiceFundEnvelopeProcedure = "/budgy.v1.CategoryService/FundEnvelope"
 )
 
 // CategoryServiceClient is a client for the budgy.v1.CategoryService service.
@@ -59,8 +53,6 @@ type CategoryServiceClient interface {
 	ListCategories(context.Context, *connect.Request[v1.ListCategoriesRequest]) (*connect.Response[v1.ListCategoriesResponse], error)
 	UpdateCategory(context.Context, *connect.Request[v1.UpdateCategoryRequest]) (*connect.Response[v1.UpdateCategoryResponse], error)
 	DeleteCategory(context.Context, *connect.Request[v1.DeleteCategoryRequest]) (*connect.Response[v1.DeleteCategoryResponse], error)
-	AssignCategoryFunds(context.Context, *connect.Request[v1.AssignCategoryFundsRequest]) (*connect.Response[v1.AssignCategoryFundsResponse], error)
-	FundEnvelope(context.Context, *connect.Request[v1.FundEnvelopeRequest]) (*connect.Response[v1.FundEnvelopeResponse], error)
 }
 
 // NewCategoryServiceClient constructs a client for the budgy.v1.CategoryService service. By
@@ -98,29 +90,15 @@ func NewCategoryServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(categoryServiceMethods.ByName("DeleteCategory")),
 			connect.WithClientOptions(opts...),
 		),
-		assignCategoryFunds: connect.NewClient[v1.AssignCategoryFundsRequest, v1.AssignCategoryFundsResponse](
-			httpClient,
-			baseURL+CategoryServiceAssignCategoryFundsProcedure,
-			connect.WithSchema(categoryServiceMethods.ByName("AssignCategoryFunds")),
-			connect.WithClientOptions(opts...),
-		),
-		fundEnvelope: connect.NewClient[v1.FundEnvelopeRequest, v1.FundEnvelopeResponse](
-			httpClient,
-			baseURL+CategoryServiceFundEnvelopeProcedure,
-			connect.WithSchema(categoryServiceMethods.ByName("FundEnvelope")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
 // categoryServiceClient implements CategoryServiceClient.
 type categoryServiceClient struct {
-	createCategory      *connect.Client[v1.CreateCategoryRequest, v1.CreateCategoryResponse]
-	listCategories      *connect.Client[v1.ListCategoriesRequest, v1.ListCategoriesResponse]
-	updateCategory      *connect.Client[v1.UpdateCategoryRequest, v1.UpdateCategoryResponse]
-	deleteCategory      *connect.Client[v1.DeleteCategoryRequest, v1.DeleteCategoryResponse]
-	assignCategoryFunds *connect.Client[v1.AssignCategoryFundsRequest, v1.AssignCategoryFundsResponse]
-	fundEnvelope        *connect.Client[v1.FundEnvelopeRequest, v1.FundEnvelopeResponse]
+	createCategory *connect.Client[v1.CreateCategoryRequest, v1.CreateCategoryResponse]
+	listCategories *connect.Client[v1.ListCategoriesRequest, v1.ListCategoriesResponse]
+	updateCategory *connect.Client[v1.UpdateCategoryRequest, v1.UpdateCategoryResponse]
+	deleteCategory *connect.Client[v1.DeleteCategoryRequest, v1.DeleteCategoryResponse]
 }
 
 // CreateCategory calls budgy.v1.CategoryService.CreateCategory.
@@ -143,24 +121,12 @@ func (c *categoryServiceClient) DeleteCategory(ctx context.Context, req *connect
 	return c.deleteCategory.CallUnary(ctx, req)
 }
 
-// AssignCategoryFunds calls budgy.v1.CategoryService.AssignCategoryFunds.
-func (c *categoryServiceClient) AssignCategoryFunds(ctx context.Context, req *connect.Request[v1.AssignCategoryFundsRequest]) (*connect.Response[v1.AssignCategoryFundsResponse], error) {
-	return c.assignCategoryFunds.CallUnary(ctx, req)
-}
-
-// FundEnvelope calls budgy.v1.CategoryService.FundEnvelope.
-func (c *categoryServiceClient) FundEnvelope(ctx context.Context, req *connect.Request[v1.FundEnvelopeRequest]) (*connect.Response[v1.FundEnvelopeResponse], error) {
-	return c.fundEnvelope.CallUnary(ctx, req)
-}
-
 // CategoryServiceHandler is an implementation of the budgy.v1.CategoryService service.
 type CategoryServiceHandler interface {
 	CreateCategory(context.Context, *connect.Request[v1.CreateCategoryRequest]) (*connect.Response[v1.CreateCategoryResponse], error)
 	ListCategories(context.Context, *connect.Request[v1.ListCategoriesRequest]) (*connect.Response[v1.ListCategoriesResponse], error)
 	UpdateCategory(context.Context, *connect.Request[v1.UpdateCategoryRequest]) (*connect.Response[v1.UpdateCategoryResponse], error)
 	DeleteCategory(context.Context, *connect.Request[v1.DeleteCategoryRequest]) (*connect.Response[v1.DeleteCategoryResponse], error)
-	AssignCategoryFunds(context.Context, *connect.Request[v1.AssignCategoryFundsRequest]) (*connect.Response[v1.AssignCategoryFundsResponse], error)
-	FundEnvelope(context.Context, *connect.Request[v1.FundEnvelopeRequest]) (*connect.Response[v1.FundEnvelopeResponse], error)
 }
 
 // NewCategoryServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -194,18 +160,6 @@ func NewCategoryServiceHandler(svc CategoryServiceHandler, opts ...connect.Handl
 		connect.WithSchema(categoryServiceMethods.ByName("DeleteCategory")),
 		connect.WithHandlerOptions(opts...),
 	)
-	categoryServiceAssignCategoryFundsHandler := connect.NewUnaryHandler(
-		CategoryServiceAssignCategoryFundsProcedure,
-		svc.AssignCategoryFunds,
-		connect.WithSchema(categoryServiceMethods.ByName("AssignCategoryFunds")),
-		connect.WithHandlerOptions(opts...),
-	)
-	categoryServiceFundEnvelopeHandler := connect.NewUnaryHandler(
-		CategoryServiceFundEnvelopeProcedure,
-		svc.FundEnvelope,
-		connect.WithSchema(categoryServiceMethods.ByName("FundEnvelope")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/budgy.v1.CategoryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case CategoryServiceCreateCategoryProcedure:
@@ -216,10 +170,6 @@ func NewCategoryServiceHandler(svc CategoryServiceHandler, opts ...connect.Handl
 			categoryServiceUpdateCategoryHandler.ServeHTTP(w, r)
 		case CategoryServiceDeleteCategoryProcedure:
 			categoryServiceDeleteCategoryHandler.ServeHTTP(w, r)
-		case CategoryServiceAssignCategoryFundsProcedure:
-			categoryServiceAssignCategoryFundsHandler.ServeHTTP(w, r)
-		case CategoryServiceFundEnvelopeProcedure:
-			categoryServiceFundEnvelopeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -243,12 +193,4 @@ func (UnimplementedCategoryServiceHandler) UpdateCategory(context.Context, *conn
 
 func (UnimplementedCategoryServiceHandler) DeleteCategory(context.Context, *connect.Request[v1.DeleteCategoryRequest]) (*connect.Response[v1.DeleteCategoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.CategoryService.DeleteCategory is not implemented"))
-}
-
-func (UnimplementedCategoryServiceHandler) AssignCategoryFunds(context.Context, *connect.Request[v1.AssignCategoryFundsRequest]) (*connect.Response[v1.AssignCategoryFundsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.CategoryService.AssignCategoryFunds is not implemented"))
-}
-
-func (UnimplementedCategoryServiceHandler) FundEnvelope(context.Context, *connect.Request[v1.FundEnvelopeRequest]) (*connect.Response[v1.FundEnvelopeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.CategoryService.FundEnvelope is not implemented"))
 }

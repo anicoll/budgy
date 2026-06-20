@@ -96,8 +96,8 @@ mappings:
     fields:
       - a: ID
         b: Id
-      - a: BudgetID
-        b: BudgetId
+      - a: UserID
+        b: UserId
       - a: Type
         b: Type
         converter: EnumConverter
@@ -132,8 +132,19 @@ mappings:
     fields:
       - a: ID
         b: Id
-      - a: BudgetID
-        b: BudgetId
+      - a: UserID
+        b: UserId
+      - a: ParentID
+        b: ParentId
+      - a: Type
+        b: Type
+        converter: EnumConverter
+      - a: BasiqSubClassCode
+        b: BasiqSubclassCode
+      - a: AnzsicClassCode
+        b: AnzsicClassCode
+      - a: SortOrder
+        b: SortOrder
       - a: CreatedAt
         b: CreatedAt
         converter: TimestampConverter
@@ -289,9 +300,8 @@ mappings:
     ignore-case: true
     allow-unmapped: true
     fields:
-      - a: BudgetID
-        b: BudgetID
-        converter: NullStringConverter
+      - a: UserID
+        b: UserID
       - a: Class
         b: Class
         converter: NullStringConverter
@@ -328,8 +338,17 @@ mappings:
     ignore-case: true
     allow-unmapped: true
     fields:
-      - a: BudgetID
-        b: BudgetID
+      - a: ParentID
+        b: ParentID
+        converter: NullStringConverter
+      - a: Icon
+        b: Icon
+        converter: NullStringConverter
+      - a: BasiqSubclassCode
+        b: BasiqSubClassCode
+        converter: NullStringConverter
+      - a: AnzsicClassCode
+        b: AnzsicClassCode
         converter: NullStringConverter
 
   - id: budgeting_system/internal/mappings.DBJobMapper

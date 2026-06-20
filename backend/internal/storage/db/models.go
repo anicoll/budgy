@@ -11,7 +11,7 @@ import (
 
 type Account struct {
 	ID             string
-	BudgetID       sql.NullString
+	UserID         string
 	Name           string
 	Type           string
 	Balance        int64
@@ -49,15 +49,36 @@ type Budget struct {
 	UserID    sql.NullString
 }
 
-type Category struct {
-	ID          string
-	BudgetID    sql.NullString
-	Name        string
+type BudgetAccount struct {
+	BudgetID  string
+	AccountID string
+}
+
+type BudgetCategoryLine struct {
+	BudgetID    string
+	CategoryID  string
 	Budgeted    int64
 	Balance     int64
 	TargetLimit int64
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+type Category struct {
+	ID                string
+	UserID            string
+	ParentID          sql.NullString
+	Name              string
+	Type              string
+	Color             string
+	Icon              sql.NullString
+	SortOrder         int64
+	Archived          int64
+	System            int64
+	BasiqSubclassCode sql.NullString
+	AnzsicClassCode   sql.NullString
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type EnvelopeAllocation struct {

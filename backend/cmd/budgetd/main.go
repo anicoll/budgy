@@ -80,16 +80,18 @@ func main() {
 		zap.S().Warn("Warning: BASIQ_API_KEY is not configured. Basiq service will be disabled.")
 	}
 
-	authSvc := service.NewAuthService(usersRepo)
-	budgetSvc := service.NewBudgetService(budgetsRepo, accountsRepo, categoriesRepo)
-	accountSvc := service.NewAccountService(accountsRepo, budgetsRepo, allocationsRepo, transactionsRepo)
-	categorySvc := service.NewCategoryService(categoriesRepo, accountsRepo, allocationsRepo, transactionsRepo)
-	txSvc := service.NewTransactionService(transactionsRepo, accountsRepo, categoriesRepo, budgetsRepo)
+	authSvc := service.NewAuthService(usersRepo, store)
+	budgetAcctsRepo := store.BudgetAccounts()
+	budgetLinesRepo := store.BudgetCategoryLines()
+	budgetSvc := service.NewBudgetService(budgetsRepo, accountsRepo, budgetAcctsRepo, budgetLinesRepo, allocationsRepo, transactionsRepo)
+	accountSvc := service.NewAccountService(accountsRepo, budgetsRepo, budgetAcctsRepo, allocationsRepo, transactionsRepo)
+	categorySvc := service.NewCategoryService(categoriesRepo)
+	txSvc := service.NewTransactionService(transactionsRepo, accountsRepo, categoriesRepo, budgetsRepo, budgetAcctsRepo, budgetLinesRepo)
 
 	var bankSyncSvc service.BankSyncService
 	var jobQueue service.JobQueue
 	if basiqService != nil {
-		bankSyncSvc = service.NewBankSyncService(usersRepo, budgetsRepo, accountsRepo, transactionsRepo, basiqService)
+		bankSyncSvc = service.NewBankSyncService(usersRepo, budgetsRepo, accountsRepo, budgetAcctsRepo, transactionsRepo, categoriesRepo, basiqService)
 		jobsRepo := store.Jobs()
 		jobQueue = service.NewJobQueue(jobsRepo, bankSyncSvc)
 		jobQueue.Start(context.Background())

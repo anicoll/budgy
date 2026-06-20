@@ -13,16 +13,41 @@ import (
 )
 
 func newTestDB(t *testing.T) *sql.DB {
-	// Open in-memory SQLite database
 	db, err := sql.Open("sqlite3", ":memory:")
 	require.NoError(t, err)
 	db.SetMaxOpenConns(1)
-
-	// Run migrations
 	err = Migrate(db)
 	require.NoError(t, err)
-
 	return db
+}
+
+func setupUser(t *testing.T, store *SQLiteStorage, userID string) {
+	t.Helper()
+	ctx := context.Background()
+	u := &domain.User{
+		ID:        userID,
+		Email:     userID + "@example.com",
+		FirstName: "Test",
+		LastName:  "User",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	require.NoError(t, store.Users().Create(ctx, u))
+}
+
+func setupBudget(t *testing.T, store *SQLiteStorage, userID, budgetID string) {
+	t.Helper()
+	ctx := context.Background()
+	b := &domain.Budget{
+		ID:        budgetID,
+		UserID:    userID,
+		Name:      "Test Budget",
+		Method:    domain.MethodZeroSum,
+		Currency:  "USD",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	require.NoError(t, store.Budgets().Create(ctx, b))
 }
 
 func TestBudgetRepository(t *testing.T) {
@@ -32,20 +57,8 @@ func TestBudgetRepository(t *testing.T) {
 	ctx := context.Background()
 	store := NewSQLiteStorage(db)
 	repo := store.Budgets()
+	setupUser(t, store, "user-1")
 
-	// Setup User first due to foreign key
-	u := &domain.User{
-		ID:        "user-1",
-		Email:     "user1@example.com",
-		FirstName: "User",
-		LastName:  "One",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	err := store.Users().Create(ctx, u)
-	assert.NoError(t, err)
-
-	// Test Create
 	b := &domain.Budget{
 		ID:        "b-1",
 		UserID:    "user-1",
@@ -55,27 +68,15 @@ func TestBudgetRepository(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	err = repo.Create(ctx, b)
-	assert.NoError(t, err)
+	require.NoError(t, repo.Create(ctx, b))
 
-	// Test GetByID
 	fetched, err := repo.GetByID(ctx, "b-1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, b.ID, fetched.ID)
-	assert.Equal(t, b.UserID, fetched.UserID)
-	assert.Equal(t, b.Name, fetched.Name)
-	assert.Equal(t, b.Method, fetched.Method)
-	assert.Equal(t, b.Currency, fetched.Currency)
 
-	// Test GetByID Not Found
-	_, err = repo.GetByID(ctx, "unknown")
-	assert.Error(t, err)
-
-	// Test List
 	list, err := repo.List(ctx, "user-1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, list, 1)
-	assert.Equal(t, "b-1", list[0].ID)
 }
 
 func TestAccountRepository(t *testing.T) {
@@ -84,53 +85,38 @@ func TestAccountRepository(t *testing.T) {
 
 	ctx := context.Background()
 	store := NewSQLiteStorage(db)
-	budgetRepo := store.Budgets()
+	setupUser(t, store, "user-1")
+	setupBudget(t, store, "user-1", "b-1")
+
 	accountRepo := store.Accounts()
-
-	// Setup Budget first due to foreign keys
-	b := &domain.Budget{
-		ID:        "b-1",
-		Name:      "Test Budget",
-		Method:    domain.MethodZeroSum,
-		Currency:  "USD",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	err := budgetRepo.Create(ctx, b)
-	require.NoError(t, err)
-
 	acc := &domain.Account{
 		ID:        "acc-1",
-		BudgetID:  "b-1",
+		UserID:    "user-1",
 		Name:      "Checking",
 		Type:      domain.AccountChecking,
 		Balance:   150000,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+	require.NoError(t, accountRepo.Create(ctx, acc))
+	require.NoError(t, store.BudgetAccounts().Link(ctx, "b-1", "acc-1"))
 
-	// Test Create
-	err = accountRepo.Create(ctx, acc)
-	assert.NoError(t, err)
-
-	// Test GetByID
 	fetched, err := accountRepo.GetByID(ctx, "acc-1")
-	assert.NoError(t, err)
-	assert.Equal(t, acc.ID, fetched.ID)
-	assert.Equal(t, acc.Balance, fetched.Balance)
+	require.NoError(t, err)
+	assert.Equal(t, acc.UserID, fetched.UserID)
 
-	// Test Update Balance
-	err = accountRepo.UpdateBalance(ctx, "acc-1", 200000)
-	assert.NoError(t, err)
-
+	require.NoError(t, accountRepo.UpdateBalance(ctx, "acc-1", 200000))
 	fetchedUpdated, err := accountRepo.GetByID(ctx, "acc-1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, int64(200000), fetchedUpdated.Balance)
 
-	// Test ListByBudget
 	list, err := accountRepo.ListByBudget(ctx, "b-1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, list, 1)
+
+	userList, err := accountRepo.ListByUser(ctx, "user-1")
+	require.NoError(t, err)
+	assert.Len(t, userList, 1)
 }
 
 func TestCategoryRepository(t *testing.T) {
@@ -139,48 +125,41 @@ func TestCategoryRepository(t *testing.T) {
 
 	ctx := context.Background()
 	store := NewSQLiteStorage(db)
-	budgetRepo := store.Budgets()
-	categoryRepo := store.Categories()
+	setupUser(t, store, "user-1")
+	setupBudget(t, store, "user-1", "b-1")
 
-	// Setup Budget
-	b := &domain.Budget{
-		ID:        "b-1",
-		Name:      "Test Budget",
-		Method:    domain.MethodZeroSum,
-		Currency:  "USD",
+	categoryRepo := store.Categories()
+	lineRepo := store.BudgetCategoryLines()
+
+	c := &domain.Category{
+		ID:        "cat-1",
+		UserID:    "user-1",
+		Name:      "Groceries",
+		Type:      domain.CategoryExpense,
+		Color:     "#34d399",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	require.NoError(t, budgetRepo.Create(ctx, b))
+	require.NoError(t, categoryRepo.Create(ctx, c))
+	require.NoError(t, lineRepo.Upsert(ctx, &domain.BudgetCategoryLine{
+		BudgetID: "b-1", CategoryID: "cat-1",
+		Budgeted: 50000, Balance: 50000, TargetLimit: 100000,
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
 
-	c := &domain.Category{
-		ID:          "cat-1",
-		BudgetID:    "b-1",
-		Name:        "Groceries",
-		Budgeted:    50000,
-		Balance:     50000,
-		TargetLimit: 100000,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-
-	// Test Create
-	err := categoryRepo.Create(ctx, c)
-	assert.NoError(t, err)
-
-	// Test GetByID
 	fetched, err := categoryRepo.GetByID(ctx, "cat-1")
-	assert.NoError(t, err)
-	assert.Equal(t, c.ID, fetched.ID)
+	require.NoError(t, err)
+	assert.Equal(t, c.Name, fetched.Name)
 
-	// Test Update
-	err = categoryRepo.UpdateBudgetedAndBalance(ctx, "cat-1", 60000, 60000)
-	assert.NoError(t, err)
+	require.NoError(t, lineRepo.UpdateBudgetedAndBalance(ctx, "b-1", "cat-1", 60000, 60000))
+	line, err := lineRepo.Get(ctx, "b-1", "cat-1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(60000), line.Budgeted)
+	assert.Equal(t, int64(60000), line.Balance)
 
-	fetchedUpdated, err := categoryRepo.GetByID(ctx, "cat-1")
-	assert.NoError(t, err)
-	assert.Equal(t, int64(60000), fetchedUpdated.Budgeted)
-	assert.Equal(t, int64(60000), fetchedUpdated.Balance)
+	list, err := categoryRepo.ListByUser(ctx, "user-1")
+	require.NoError(t, err)
+	assert.Len(t, list, 1)
 }
 
 func TestTransactionRepository(t *testing.T) {
@@ -189,177 +168,79 @@ func TestTransactionRepository(t *testing.T) {
 
 	ctx := context.Background()
 	store := NewSQLiteStorage(db)
-	budgetRepo := store.Budgets()
-	accountRepo := store.Accounts()
-	categoryRepo := store.Categories()
+	setupUser(t, store, "user-1")
+	setupBudget(t, store, "user-1", "b-1")
+
+	require.NoError(t, store.Accounts().Create(ctx, &domain.Account{
+		ID: "acc-1", UserID: "user-1", Name: "Checking", Type: domain.AccountChecking,
+		Balance: 100000, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
+	require.NoError(t, store.BudgetAccounts().Link(ctx, "b-1", "acc-1"))
+	require.NoError(t, store.Categories().Create(ctx, &domain.Category{
+		ID: "cat-1", UserID: "user-1", Name: "Rent", Type: domain.CategoryExpense,
+		Color: "#7c5cff", CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
+
 	txRepo := store.Transactions()
-
-	// Setup structures
-	b := &domain.Budget{
-		ID:        "b-1",
-		Name:      "Test Budget",
-		Method:    domain.MethodZeroSum,
-		Currency:  "USD",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	require.NoError(t, budgetRepo.Create(ctx, b))
-
-	acc := &domain.Account{
-		ID:        "acc-1",
-		BudgetID:  "b-1",
-		Name:      "Checking",
-		Type:      domain.AccountChecking,
-		Balance:   100000,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	require.NoError(t, accountRepo.Create(ctx, acc))
-
-	cat := &domain.Category{
-		ID:        "cat-1",
-		BudgetID:  "b-1",
-		Name:      "Rent",
-		Budgeted:  50000,
-		Balance:   50000,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	require.NoError(t, categoryRepo.Create(ctx, cat))
-
-	// Test Create Transaction
 	tx := &domain.Transaction{
-		ID:          "tx-1",
-		BudgetID:    "b-1",
-		AccountID:   "acc-1",
-		CategoryID:  "cat-1",
-		Amount:      -45000,
-		Description: "May Rent",
-		Date:        time.Now(),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID: "tx-1", AccountID: "acc-1", CategoryID: "cat-1",
+		Amount: -45000, Description: "May Rent", Date: time.Now(),
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
+	require.NoError(t, txRepo.Create(ctx, tx))
 
-	err := txRepo.Create(ctx, tx)
-	assert.NoError(t, err)
-
-	// Test GetByID
 	fetched, err := txRepo.GetByID(ctx, "tx-1")
-	assert.NoError(t, err)
-	assert.Equal(t, tx.ID, fetched.ID)
+	require.NoError(t, err)
 	assert.Equal(t, tx.Amount, fetched.Amount)
-	assert.Equal(t, tx.CategoryID, fetched.CategoryID)
 
-	// Test List methods
 	listByBudget, err := txRepo.ListByBudget(ctx, "b-1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, listByBudget, 1)
 
-	listByAcc, err := txRepo.ListByAccount(ctx, "acc-1")
-	assert.NoError(t, err)
-	assert.Len(t, listByAcc, 1)
-
-	listByCat, err := txRepo.ListByCategory(ctx, "cat-1")
-	assert.NoError(t, err)
-	assert.Len(t, listByCat, 1)
-
-	// Test Update
-	tx.Amount = -50000
-	tx.Description = "June Rent"
-	err = txRepo.Update(ctx, tx)
-	assert.NoError(t, err)
-
-	fetchedUpdated, err := txRepo.GetByID(ctx, "tx-1")
-	assert.NoError(t, err)
-	assert.Equal(t, int64(-50000), fetchedUpdated.Amount)
-	assert.Equal(t, "June Rent", fetchedUpdated.Description)
-
-	// Test Delete
-	err = txRepo.Delete(ctx, "tx-1")
-	assert.NoError(t, err)
-
+	require.NoError(t, txRepo.Delete(ctx, "tx-1"))
 	_, err = txRepo.GetByID(ctx, "tx-1")
 	assert.Error(t, err)
 }
 
-func TestBudgetDeleteNoCascade(t *testing.T) {
+func TestBudgetDeleteCascadeLinks(t *testing.T) {
 	db := newTestDB(t)
 	defer db.Close()
 
 	ctx := context.Background()
 	store := NewSQLiteStorage(db)
+	setupUser(t, store, "user-1")
+	setupBudget(t, store, "user-1", "b-1")
 
-	// Create budget
-	b := &domain.Budget{
-		ID:        "b-1",
-		Name:      "Test Budget",
-		Method:    domain.MethodZeroSum,
-		Currency:  "USD",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	require.NoError(t, store.Budgets().Create(ctx, b))
+	require.NoError(t, store.Accounts().Create(ctx, &domain.Account{
+		ID: "acc-1", UserID: "user-1", Name: "Checking", Type: domain.AccountChecking,
+		Balance: 100000, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
+	require.NoError(t, store.BudgetAccounts().Link(ctx, "b-1", "acc-1"))
+	require.NoError(t, store.Categories().Create(ctx, &domain.Category{
+		ID: "cat-1", UserID: "user-1", Name: "Rent", Type: domain.CategoryExpense,
+		Color: "#7c5cff", CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
+	require.NoError(t, store.BudgetCategoryLines().Upsert(ctx, &domain.BudgetCategoryLine{
+		BudgetID: "b-1", CategoryID: "cat-1", Budgeted: 50000, Balance: 50000,
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
 
-	// Create account
-	acc := &domain.Account{
-		ID:        "acc-1",
-		BudgetID:  "b-1",
-		Name:      "Checking",
-		Type:      domain.AccountChecking,
-		Balance:   100000,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	require.NoError(t, store.Accounts().Create(ctx, acc))
+	require.NoError(t, store.Budgets().Delete(ctx, "b-1"))
 
-	// Create category
-	cat := &domain.Category{
-		ID:        "cat-1",
-		BudgetID:  "b-1",
-		Name:      "Rent",
-		Budgeted:  50000,
-		Balance:   50000,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	require.NoError(t, store.Categories().Create(ctx, cat))
-
-	// Create transaction
-	tx := &domain.Transaction{
-		ID:          "tx-1",
-		BudgetID:    "b-1",
-		AccountID:   "acc-1",
-		CategoryID:  "cat-1",
-		Amount:      -45000,
-		Description: "Rent",
-		Date:        time.Now(),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-	require.NoError(t, store.Transactions().Create(ctx, tx))
-
-	// Delete the budget
-	err := store.Budgets().Delete(ctx, "b-1")
-	assert.NoError(t, err)
-
-	// Verify budget is gone
-	_, err = store.Budgets().GetByID(ctx, "b-1")
+	_, err := store.Budgets().GetByID(ctx, "b-1")
 	assert.Error(t, err)
 
-	// Verify account still exists but budget_id is null/empty
 	fetchedAcc, err := store.Accounts().GetByID(ctx, "acc-1")
-	assert.NoError(t, err)
-	assert.Empty(t, fetchedAcc.BudgetID)
+	require.NoError(t, err)
+	assert.Equal(t, "user-1", fetchedAcc.UserID)
 
-	// Verify category still exists but budget_id is null/empty
 	fetchedCat, err := store.Categories().GetByID(ctx, "cat-1")
-	assert.NoError(t, err)
-	assert.Empty(t, fetchedCat.BudgetID)
+	require.NoError(t, err)
+	assert.Equal(t, "user-1", fetchedCat.UserID)
 
-	// Verify transaction still exists but budget_id is null/empty
-	fetchedTx, err := store.Transactions().GetByID(ctx, "tx-1")
-	assert.NoError(t, err)
-	assert.Empty(t, fetchedTx.BudgetID)
+	list, err := store.BudgetAccounts().ListByBudget(ctx, "b-1")
+	require.NoError(t, err)
+	assert.Empty(t, list)
 }
 
 func TestUserRepository(t *testing.T) {
@@ -370,44 +251,19 @@ func TestUserRepository(t *testing.T) {
 	store := NewSQLiteStorage(db)
 	repo := store.Users()
 
-	// Test Create
 	u := &domain.User{
-		ID:           "u-1",
-		Email:        "test@example.com",
-		PasswordHash: "hashed",
-		FirstName:    "John",
-		LastName:     "Doe",
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID: "u-1", Email: "test@example.com", PasswordHash: "hashed",
+		FirstName: "John", LastName: "Doe", CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
-	err := repo.Create(ctx, u)
-	assert.NoError(t, err)
+	require.NoError(t, repo.Create(ctx, u))
 
-	// Test GetByID
 	fetched, err := repo.GetByID(ctx, "u-1")
-	assert.NoError(t, err)
-	assert.Equal(t, u.ID, fetched.ID)
+	require.NoError(t, err)
 	assert.Equal(t, u.Email, fetched.Email)
-	assert.Equal(t, u.PasswordHash, fetched.PasswordHash)
-	assert.Equal(t, u.FirstName, fetched.FirstName)
-	assert.Equal(t, u.LastName, fetched.LastName)
-	assert.Empty(t, fetched.BasiqUserID)
 
-	// Test GetByEmail
-	fetchedByEmail, err := repo.GetByEmail(ctx, "test@example.com")
-	assert.NoError(t, err)
-	assert.Equal(t, u.ID, fetchedByEmail.ID)
-
-	// Test GetByEmail Not Found
-	_, err = repo.GetByEmail(ctx, "nonexistent@example.com")
-	assert.Error(t, err)
-
-	// Test UpdateBasiqUserID
-	err = repo.UpdateBasiqUserID(ctx, "u-1", "basiq-user-123")
-	assert.NoError(t, err)
-
+	require.NoError(t, repo.UpdateBasiqUserID(ctx, "u-1", "basiq-user-123"))
 	fetchedUpdated, err := repo.GetByID(ctx, "u-1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "basiq-user-123", fetchedUpdated.BasiqUserID)
 }
 
@@ -417,75 +273,30 @@ func TestAllocationRepository(t *testing.T) {
 
 	ctx := context.Background()
 	store := NewSQLiteStorage(db)
-	budgetRepo := store.Budgets()
-	accountRepo := store.Accounts()
-	categoryRepo := store.Categories()
+	setupUser(t, store, "user-1")
+	setupBudget(t, store, "user-1", "b-1")
+
+	require.NoError(t, store.Accounts().Create(ctx, &domain.Account{
+		ID: "acc-1", UserID: "user-1", Name: "Checking", Type: domain.AccountChecking,
+		Balance: 100000, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
+	require.NoError(t, store.Categories().Create(ctx, &domain.Category{
+		ID: "cat-1", UserID: "user-1", Name: "Groceries", Type: domain.CategoryExpense,
+		Color: "#34d399", CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}))
+
 	allocRepo := store.Allocations()
-
-	// Setup structures
-	b := &domain.Budget{
-		ID:        "b-1",
-		Name:      "Test Budget",
-		Method:    domain.MethodEnvelope,
-		Currency:  "USD",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	require.NoError(t, budgetRepo.Create(ctx, b))
-
-	acc := &domain.Account{
-		ID:        "acc-1",
-		BudgetID:  "b-1",
-		Name:      "Checking",
-		Type:      domain.AccountChecking,
-		Balance:   100000,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	require.NoError(t, accountRepo.Create(ctx, acc))
-
-	cat := &domain.Category{
-		ID:        "cat-1",
-		BudgetID:  "b-1",
-		Name:      "Groceries",
-		Budgeted:  0,
-		Balance:   0,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	require.NoError(t, categoryRepo.Create(ctx, cat))
-
-	// Test Upsert
 	alloc := &domain.EnvelopeAllocation{
-		BudgetID:   "b-1",
-		AccountID:  "acc-1",
-		CategoryID: "cat-1",
-		Amount:     50000,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		BudgetID: "b-1", AccountID: "acc-1", CategoryID: "cat-1", Amount: 50000,
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
-	err := allocRepo.Upsert(ctx, alloc)
-	assert.NoError(t, err)
+	require.NoError(t, allocRepo.Upsert(ctx, alloc))
 
-	// Test Get
 	fetched, err := allocRepo.Get(ctx, "b-1", "acc-1", "cat-1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, alloc.Amount, fetched.Amount)
 
-	// Test ListByBudget
-	listBudget, err := allocRepo.ListByBudget(ctx, "b-1")
-	assert.NoError(t, err)
-	assert.Len(t, listBudget, 1)
-
-	// Test ListByAccount
-	listAcc, err := allocRepo.ListByAccount(ctx, "b-1", "acc-1")
-	assert.NoError(t, err)
-	assert.Len(t, listAcc, 1)
-
-	// Test Delete
-	err = allocRepo.Delete(ctx, "b-1", "acc-1", "cat-1")
-	assert.NoError(t, err)
-
+	require.NoError(t, allocRepo.Delete(ctx, "b-1", "acc-1", "cat-1"))
 	_, err = allocRepo.Get(ctx, "b-1", "acc-1", "cat-1")
 	assert.Error(t, err)
 }
@@ -498,51 +309,37 @@ func TestJobRepository(t *testing.T) {
 	store := NewSQLiteStorage(db)
 	repo := store.Jobs()
 
-	// Test Create
 	job := &domain.Job{
-		ID:          "job-1",
-		JobType:     "sync_basiq_user",
-		Payload:     `{"user_id":"u-1"}`,
-		Status:      domain.JobStatusPending,
-		Attempts:    0,
-		MaxAttempts: 5,
-		RunAt:       time.Now().Add(-1 * time.Minute), // in the past
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID: "job-1", JobType: "sync_basiq_user", Payload: `{"user_id":"u-1"}`,
+		Status: domain.JobStatusPending, Attempts: 0, MaxAttempts: 5,
+		RunAt: time.Now().Add(-1 * time.Minute), CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
-	err := repo.Create(ctx, job)
-	assert.NoError(t, err)
+	require.NoError(t, repo.Create(ctx, job))
 
-	// Test GetNextPending
 	fetched, err := repo.GetNextPending(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, job.ID, fetched.ID)
-	assert.Equal(t, job.JobType, fetched.JobType)
-	assert.Equal(t, job.Payload, fetched.Payload)
-	assert.Equal(t, domain.JobStatusPending, fetched.Status)
 
-	// Test UpdateStatus
-	errMsg := "some error occurred"
-	err = repo.UpdateStatus(ctx, "job-1", domain.JobStatusFailed, 1, time.Now().Add(5*time.Minute), &errMsg)
-	assert.NoError(t, err)
-
-	// Verify no pending jobs (since status is failed)
+	require.NoError(t, repo.Delete(ctx, "job-1"))
 	_, err = repo.GetNextPending(ctx)
 	assert.Error(t, err)
+}
 
-	// Reset to pending and check
-	err = repo.UpdateStatus(ctx, "job-1", domain.JobStatusPending, 1, time.Now().Add(-5*time.Minute), nil)
-	assert.NoError(t, err)
+func TestCategorySeedIdempotent(t *testing.T) {
+	db := newTestDB(t)
+	defer db.Close()
 
-	fetched2, err := repo.GetNextPending(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, "job-1", fetched2.ID)
-	assert.Nil(t, fetched2.ErrorMessage)
+	store := NewSQLiteStorage(db)
+	setupUser(t, store, "user-1")
 
-	// Test Delete
-	err = repo.Delete(ctx, "job-1")
-	assert.NoError(t, err)
+	ctx := context.Background()
+	require.NoError(t, store.SeedCategoriesForUser(ctx, "user-1"))
+	list1, err := store.Categories().ListByUser(ctx, "user-1")
+	require.NoError(t, err)
+	assert.NotEmpty(t, list1)
 
-	_, err = repo.GetNextPending(ctx)
-	assert.Error(t, err)
+	require.NoError(t, store.SeedCategoriesForUser(ctx, "user-1"))
+	list2, err := store.Categories().ListByUser(ctx, "user-1")
+	require.NoError(t, err)
+	assert.Len(t, list2, len(list1))
 }

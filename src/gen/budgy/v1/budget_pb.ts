@@ -7,6 +7,8 @@ import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobu
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { BudgetCategory, FundEnvelopeResult } from "./category_pb";
+import { file_budgy_v1_category } from "./category_pb";
 
 /**
  * Describes the file budgy/v1/budget.proto.
@@ -14,8 +16,8 @@ import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 export const file_budgy_v1_budget: GenFile =
   /*@__PURE__*/
   fileDesc(
-    "ChVidWRneS92MS9idWRnZXQucHJvdG8SCGJ1ZGd5LnYxIs0BCgZCdWRnZXQSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEiYKBm1ldGhvZBgEIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldE1ldGhvZBIQCghjdXJyZW5jeRgFIAEoCRIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJoCg1CdWRnZXRTdW1tYXJ5EhEKCWJ1ZGdldF9pZBgBIAEoCRIWCg50b3RhbF9idWRnZXRlZBgCIAEoAxITCgt0b3RhbF9zcGVudBgDIAEoAxIXCg90b3RhbF9yZW1haW5pbmcYBCABKAMiXQoTQ3JlYXRlQnVkZ2V0UmVxdWVzdBIMCgRuYW1lGAEgASgJEiYKBm1ldGhvZBgCIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldE1ldGhvZBIQCghjdXJyZW5jeRgDIAEoCSI4ChRDcmVhdGVCdWRnZXRSZXNwb25zZRIgCgZidWRnZXQYASABKAsyEC5idWRneS52MS5CdWRnZXQiFAoSTGlzdEJ1ZGdldHNSZXF1ZXN0IjgKE0xpc3RCdWRnZXRzUmVzcG9uc2USIQoHYnVkZ2V0cxgBIAMoCzIQLmJ1ZGd5LnYxLkJ1ZGdldCIlChBHZXRCdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSI1ChFHZXRCdWRnZXRSZXNwb25zZRIgCgZidWRnZXQYASABKAsyEC5idWRneS52MS5CdWRnZXQiLAoXR2V0QnVkZ2V0U3VtbWFyeVJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJIkQKGEdldEJ1ZGdldFN1bW1hcnlSZXNwb25zZRIoCgdzdW1tYXJ5GAEgASgLMhcuYnVkZ3kudjEuQnVkZ2V0U3VtbWFyeSJwChNVcGRhdGVCdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEiYKBm1ldGhvZBgDIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldE1ldGhvZBIQCghjdXJyZW5jeRgEIAEoCSI4ChRVcGRhdGVCdWRnZXRSZXNwb25zZRIgCgZidWRnZXQYASABKAsyEC5idWRneS52MS5CdWRnZXQiKAoTRGVsZXRlQnVkZ2V0UmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkiFgoURGVsZXRlQnVkZ2V0UmVzcG9uc2UqZQoMQnVkZ2V0TWV0aG9kEh0KGUJVREdFVF9NRVRIT0RfVU5TUEVDSUZJRUQQABIaChZCVURHRVRfTUVUSE9EX1pFUk9fU1VNEAESGgoWQlVER0VUX01FVEhPRF9FTlZFTE9QRRACMukDCg1CdWRnZXRTZXJ2aWNlEk0KDENyZWF0ZUJ1ZGdldBIdLmJ1ZGd5LnYxLkNyZWF0ZUJ1ZGdldFJlcXVlc3QaHi5idWRneS52MS5DcmVhdGVCdWRnZXRSZXNwb25zZRJKCgtMaXN0QnVkZ2V0cxIcLmJ1ZGd5LnYxLkxpc3RCdWRnZXRzUmVxdWVzdBodLmJ1ZGd5LnYxLkxpc3RCdWRnZXRzUmVzcG9uc2USRAoJR2V0QnVkZ2V0EhouYnVkZ3kudjEuR2V0QnVkZ2V0UmVxdWVzdBobLmJ1ZGd5LnYxLkdldEJ1ZGdldFJlc3BvbnNlElkKEEdldEJ1ZGdldFN1bW1hcnkSIS5idWRneS52MS5HZXRCdWRnZXRTdW1tYXJ5UmVxdWVzdBoiLmJ1ZGd5LnYxLkdldEJ1ZGdldFN1bW1hcnlSZXNwb25zZRJNCgxVcGRhdGVCdWRnZXQSHS5idWRneS52MS5VcGRhdGVCdWRnZXRSZXF1ZXN0Gh4uYnVkZ3kudjEuVXBkYXRlQnVkZ2V0UmVzcG9uc2USTQoMRGVsZXRlQnVkZ2V0Eh0uYnVkZ3kudjEuRGVsZXRlQnVkZ2V0UmVxdWVzdBoeLmJ1ZGd5LnYxLkRlbGV0ZUJ1ZGdldFJlc3BvbnNlQjBaLmJ1ZGdldGluZ19zeXN0ZW0vaW50ZXJuYWwvZ2VuL2J1ZGd5L3YxO2J1ZGd5djFiBnByb3RvMw",
-    [file_google_protobuf_timestamp],
+    "ChVidWRneS92MS9idWRnZXQucHJvdG8SCGJ1ZGd5LnYxIs0BCgZCdWRnZXQSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEiYKBm1ldGhvZBgEIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldE1ldGhvZBIQCghjdXJyZW5jeRgFIAEoCRIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJoCg1CdWRnZXRTdW1tYXJ5EhEKCWJ1ZGdldF9pZBgBIAEoCRIWCg50b3RhbF9idWRnZXRlZBgCIAEoAxITCgt0b3RhbF9zcGVudBgDIAEoAxIXCg90b3RhbF9yZW1haW5pbmcYBCABKAMiXQoTQ3JlYXRlQnVkZ2V0UmVxdWVzdBIMCgRuYW1lGAEgASgJEiYKBm1ldGhvZBgCIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldE1ldGhvZBIQCghjdXJyZW5jeRgDIAEoCSI4ChRDcmVhdGVCdWRnZXRSZXNwb25zZRIgCgZidWRnZXQYASABKAsyEC5idWRneS52MS5CdWRnZXQiFAoSTGlzdEJ1ZGdldHNSZXF1ZXN0IjgKE0xpc3RCdWRnZXRzUmVzcG9uc2USIQoHYnVkZ2V0cxgBIAMoCzIQLmJ1ZGd5LnYxLkJ1ZGdldCIlChBHZXRCdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSI1ChFHZXRCdWRnZXRSZXNwb25zZRIgCgZidWRnZXQYASABKAsyEC5idWRneS52MS5CdWRnZXQiLAoXR2V0QnVkZ2V0U3VtbWFyeVJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJIkQKGEdldEJ1ZGdldFN1bW1hcnlSZXNwb25zZRIoCgdzdW1tYXJ5GAEgASgLMhcuYnVkZ3kudjEuQnVkZ2V0U3VtbWFyeSJwChNVcGRhdGVCdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEiYKBm1ldGhvZBgDIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldE1ldGhvZBIQCghjdXJyZW5jeRgEIAEoCSI4ChRVcGRhdGVCdWRnZXRSZXNwb25zZRIgCgZidWRnZXQYASABKAsyEC5idWRneS52MS5CdWRnZXQiKAoTRGVsZXRlQnVkZ2V0UmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkiFgoURGVsZXRlQnVkZ2V0UmVzcG9uc2UiMAobTGlzdEJ1ZGdldENhdGVnb3JpZXNSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSJMChxMaXN0QnVkZ2V0Q2F0ZWdvcmllc1Jlc3BvbnNlEiwKCmNhdGVnb3JpZXMYASADKAsyGC5idWRneS52MS5CdWRnZXRDYXRlZ29yeSJUChpBc3NpZ25DYXRlZ29yeUZ1bmRzUmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkSEwoLY2F0ZWdvcnlfaWQYAiABKAkSDgoGYW1vdW50GAMgASgDIkkKG0Fzc2lnbkNhdGVnb3J5RnVuZHNSZXNwb25zZRIqCghjYXRlZ29yeRgBIAEoCzIYLmJ1ZGd5LnYxLkJ1ZGdldENhdGVnb3J5ImEKE0Z1bmRFbnZlbG9wZVJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJEhMKC2NhdGVnb3J5X2lkGAIgASgJEhIKCmFjY291bnRfaWQYAyABKAkSDgoGYW1vdW50GAQgASgDIkQKFEZ1bmRFbnZlbG9wZVJlc3BvbnNlEiwKBnJlc3VsdBgBIAEoCzIcLmJ1ZGd5LnYxLkZ1bmRFbnZlbG9wZVJlc3VsdCplCgxCdWRnZXRNZXRob2QSHQoZQlVER0VUX01FVEhPRF9VTlNQRUNJRklFRBAAEhoKFkJVREdFVF9NRVRIT0RfWkVST19TVU0QARIaChZCVURHRVRfTUVUSE9EX0VOVkVMT1BFEAIygwYKDUJ1ZGdldFNlcnZpY2USTQoMQ3JlYXRlQnVkZ2V0Eh0uYnVkZ3kudjEuQ3JlYXRlQnVkZ2V0UmVxdWVzdBoeLmJ1ZGd5LnYxLkNyZWF0ZUJ1ZGdldFJlc3BvbnNlEkoKC0xpc3RCdWRnZXRzEhwuYnVkZ3kudjEuTGlzdEJ1ZGdldHNSZXF1ZXN0Gh0uYnVkZ3kudjEuTGlzdEJ1ZGdldHNSZXNwb25zZRJECglHZXRCdWRnZXQSGi5idWRneS52MS5HZXRCdWRnZXRSZXF1ZXN0GhsuYnVkZ3kudjEuR2V0QnVkZ2V0UmVzcG9uc2USWQoQR2V0QnVkZ2V0U3VtbWFyeRIhLmJ1ZGd5LnYxLkdldEJ1ZGdldFN1bW1hcnlSZXF1ZXN0GiIuYnVkZ3kudjEuR2V0QnVkZ2V0U3VtbWFyeVJlc3BvbnNlEk0KDFVwZGF0ZUJ1ZGdldBIdLmJ1ZGd5LnYxLlVwZGF0ZUJ1ZGdldFJlcXVlc3QaHi5idWRneS52MS5VcGRhdGVCdWRnZXRSZXNwb25zZRJNCgxEZWxldGVCdWRnZXQSHS5idWRneS52MS5EZWxldGVCdWRnZXRSZXF1ZXN0Gh4uYnVkZ3kudjEuRGVsZXRlQnVkZ2V0UmVzcG9uc2USZQoUTGlzdEJ1ZGdldENhdGVnb3JpZXMSJS5idWRneS52MS5MaXN0QnVkZ2V0Q2F0ZWdvcmllc1JlcXVlc3QaJi5idWRneS52MS5MaXN0QnVkZ2V0Q2F0ZWdvcmllc1Jlc3BvbnNlEmIKE0Fzc2lnbkNhdGVnb3J5RnVuZHMSJC5idWRneS52MS5Bc3NpZ25DYXRlZ29yeUZ1bmRzUmVxdWVzdBolLmJ1ZGd5LnYxLkFzc2lnbkNhdGVnb3J5RnVuZHNSZXNwb25zZRJNCgxGdW5kRW52ZWxvcGUSHS5idWRneS52MS5GdW5kRW52ZWxvcGVSZXF1ZXN0Gh4uYnVkZ3kudjEuRnVuZEVudmVsb3BlUmVzcG9uc2VCMFouYnVkZ2V0aW5nX3N5c3RlbS9pbnRlcm5hbC9nZW4vYnVkZ3kvdjE7YnVkZ3l2MWIGcHJvdG8z",
+    [file_google_protobuf_timestamp, file_budgy_v1_category],
   );
 
 /**
@@ -329,6 +331,139 @@ export const DeleteBudgetResponseSchema: GenMessage<DeleteBudgetResponse> =
   messageDesc(file_budgy_v1_budget, 13);
 
 /**
+ * @generated from message budgy.v1.ListBudgetCategoriesRequest
+ */
+export type ListBudgetCategoriesRequest = Message<"budgy.v1.ListBudgetCategoriesRequest"> & {
+  /**
+   * @generated from field: string budget_id = 1;
+   */
+  budgetId: string;
+};
+
+/**
+ * Describes the message budgy.v1.ListBudgetCategoriesRequest.
+ * Use `create(ListBudgetCategoriesRequestSchema)` to create a new message.
+ */
+export const ListBudgetCategoriesRequestSchema: GenMessage<ListBudgetCategoriesRequest> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_budget, 14);
+
+/**
+ * @generated from message budgy.v1.ListBudgetCategoriesResponse
+ */
+export type ListBudgetCategoriesResponse = Message<"budgy.v1.ListBudgetCategoriesResponse"> & {
+  /**
+   * @generated from field: repeated budgy.v1.BudgetCategory categories = 1;
+   */
+  categories: BudgetCategory[];
+};
+
+/**
+ * Describes the message budgy.v1.ListBudgetCategoriesResponse.
+ * Use `create(ListBudgetCategoriesResponseSchema)` to create a new message.
+ */
+export const ListBudgetCategoriesResponseSchema: GenMessage<ListBudgetCategoriesResponse> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_budget, 15);
+
+/**
+ * @generated from message budgy.v1.AssignCategoryFundsRequest
+ */
+export type AssignCategoryFundsRequest = Message<"budgy.v1.AssignCategoryFundsRequest"> & {
+  /**
+   * @generated from field: string budget_id = 1;
+   */
+  budgetId: string;
+
+  /**
+   * @generated from field: string category_id = 2;
+   */
+  categoryId: string;
+
+  /**
+   * @generated from field: int64 amount = 3;
+   */
+  amount: bigint;
+};
+
+/**
+ * Describes the message budgy.v1.AssignCategoryFundsRequest.
+ * Use `create(AssignCategoryFundsRequestSchema)` to create a new message.
+ */
+export const AssignCategoryFundsRequestSchema: GenMessage<AssignCategoryFundsRequest> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_budget, 16);
+
+/**
+ * @generated from message budgy.v1.AssignCategoryFundsResponse
+ */
+export type AssignCategoryFundsResponse = Message<"budgy.v1.AssignCategoryFundsResponse"> & {
+  /**
+   * @generated from field: budgy.v1.BudgetCategory category = 1;
+   */
+  category?: BudgetCategory | undefined;
+};
+
+/**
+ * Describes the message budgy.v1.AssignCategoryFundsResponse.
+ * Use `create(AssignCategoryFundsResponseSchema)` to create a new message.
+ */
+export const AssignCategoryFundsResponseSchema: GenMessage<AssignCategoryFundsResponse> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_budget, 17);
+
+/**
+ * @generated from message budgy.v1.FundEnvelopeRequest
+ */
+export type FundEnvelopeRequest = Message<"budgy.v1.FundEnvelopeRequest"> & {
+  /**
+   * @generated from field: string budget_id = 1;
+   */
+  budgetId: string;
+
+  /**
+   * @generated from field: string category_id = 2;
+   */
+  categoryId: string;
+
+  /**
+   * @generated from field: string account_id = 3;
+   */
+  accountId: string;
+
+  /**
+   * @generated from field: int64 amount = 4;
+   */
+  amount: bigint;
+};
+
+/**
+ * Describes the message budgy.v1.FundEnvelopeRequest.
+ * Use `create(FundEnvelopeRequestSchema)` to create a new message.
+ */
+export const FundEnvelopeRequestSchema: GenMessage<FundEnvelopeRequest> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_budget, 18);
+
+/**
+ * @generated from message budgy.v1.FundEnvelopeResponse
+ */
+export type FundEnvelopeResponse = Message<"budgy.v1.FundEnvelopeResponse"> & {
+  /**
+   * @generated from field: budgy.v1.FundEnvelopeResult result = 1;
+   */
+  result?: FundEnvelopeResult | undefined;
+};
+
+/**
+ * Describes the message budgy.v1.FundEnvelopeResponse.
+ * Use `create(FundEnvelopeResponseSchema)` to create a new message.
+ */
+export const FundEnvelopeResponseSchema: GenMessage<FundEnvelopeResponse> =
+  /*@__PURE__*/
+  messageDesc(file_budgy_v1_budget, 19);
+
+/**
  * @generated from enum budgy.v1.BudgetMethod
  */
 export enum BudgetMethod {
@@ -406,5 +541,29 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof DeleteBudgetRequestSchema;
     output: typeof DeleteBudgetResponseSchema;
+  };
+  /**
+   * @generated from rpc budgy.v1.BudgetService.ListBudgetCategories
+   */
+  listBudgetCategories: {
+    methodKind: "unary";
+    input: typeof ListBudgetCategoriesRequestSchema;
+    output: typeof ListBudgetCategoriesResponseSchema;
+  };
+  /**
+   * @generated from rpc budgy.v1.BudgetService.AssignCategoryFunds
+   */
+  assignCategoryFunds: {
+    methodKind: "unary";
+    input: typeof AssignCategoryFundsRequestSchema;
+    output: typeof AssignCategoryFundsResponseSchema;
+  };
+  /**
+   * @generated from rpc budgy.v1.BudgetService.FundEnvelope
+   */
+  fundEnvelope: {
+    methodKind: "unary";
+    input: typeof FundEnvelopeRequestSchema;
+    output: typeof FundEnvelopeResponseSchema;
   };
 }> = /*@__PURE__*/ serviceDesc(file_budgy_v1_budget, 0);

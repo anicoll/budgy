@@ -14,8 +14,8 @@ type EnvelopeSummary struct {
 	UnderfundedAmount int64  `json:"underfunded_amount"` // TargetLimit - Balance (if Balance < TargetLimit)
 }
 
-// GetEnvelopeSummary computes the summary metrics for an envelope (represented as a Category).
-func GetEnvelopeSummary(c *Category) EnvelopeSummary {
+// GetEnvelopeSummary computes the summary metrics for a budget category line.
+func GetEnvelopeSummary(c *BudgetCategory) EnvelopeSummary {
 	underfunded := int64(0)
 	if c.TargetLimit > 0 && c.Balance < c.TargetLimit {
 		underfunded = c.TargetLimit - c.Balance
@@ -31,9 +31,8 @@ func GetEnvelopeSummary(c *Category) EnvelopeSummary {
 	}
 }
 
-// FundEnvelope deposits a specified amount of money from an Account into an Envelope (Category).
-// It returns the updated Account and Category, or an error if the account has insufficient funds.
-func FundEnvelope(acc *Account, env *Category, amount int64) (*Account, *Category, error) {
+// FundEnvelope deposits a specified amount of money from an Account into an envelope line.
+func FundEnvelope(acc *Account, env *BudgetCategory, amount int64) (*Account, *BudgetCategory, error) {
 	if amount <= 0 {
 		return nil, nil, errors.New("funding amount must be greater than zero")
 	}
@@ -50,9 +49,8 @@ func FundEnvelope(acc *Account, env *Category, amount int64) (*Account, *Categor
 	return &updatedAcc, &updatedEnv, nil
 }
 
-// SpendFromEnvelope records a transaction against an envelope, reducing both the account and envelope balances.
-// If the envelope balance goes negative, it succeeds but indicates an overdrawn warning.
-func SpendFromEnvelope(acc *Account, env *Category, amount int64) (*Account, *Category, error) {
+// SpendFromEnvelope records a transaction against an envelope line.
+func SpendFromEnvelope(acc *Account, env *BudgetCategory, amount int64) (*Account, *BudgetCategory, error) {
 	if amount <= 0 {
 		return nil, nil, errors.New("spending amount must be greater than zero")
 	}

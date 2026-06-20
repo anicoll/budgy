@@ -1,3 +1,4 @@
+import { reorderCategoriesApi } from "@/features/categories/api/client";
 import { ulid } from "@/lib/id/ulid";
 import { getRepositories } from "@/lib/storage";
 import type { CategoryFormValues } from "./schema";
@@ -70,6 +71,18 @@ export async function deleteCategory(id: string): Promise<void> {
  * Pass the new ordered list of IDs (all sharing the same parentId + type).
  */
 export async function reorderCategories(ids: string[]): Promise<void> {
+  if (typeof window !== "undefined") {
+    try {
+      const { usePrefs } = await import("@/lib/state/prefs-store");
+      if ((usePrefs.getState().storageMode || "online") === "online") {
+        await reorderCategoriesApi(ids);
+        return;
+      }
+    } catch {
+      // fall through to local
+    }
+  }
+
   const repo = categoriesRepo();
   const updates: Category[] = [];
   for (let i = 0; i < ids.length; i++) {

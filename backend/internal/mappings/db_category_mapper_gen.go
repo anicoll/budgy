@@ -37,6 +37,21 @@ func NewDBCategoryMapper(mapperGetter interface {
 			m.converter00000 = v
 		}
 	}
+	if obj, err := mapperGetter.GetFuncByTypeName("", "string", "budgeting_system/internal/domain#CategoryType"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.CategoryType, bool, error)); ok {
+			m.converter00001 = v
+		}
+	}
+	if obj, err := mapperGetter.GetFuncByTypeName("", "int64", "int"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *int64) (int, bool, error)); ok {
+			m.converter00002 = v
+		}
+	}
+	if obj, err := mapperGetter.GetFuncByTypeName("", "int64", "bool"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *int64) (bool, bool, error)); ok {
+			m.converter00003 = v
+		}
+	}
 	return m
 }
 
@@ -49,25 +64,108 @@ type dbcategorymapper struct {
 	}
 	helper         DBCategoryMapperHelper
 	converter00000 func(pkg_context.Context, *pkg_database_sql.NullString) (string, bool, error)
+	converter00001 func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.CategoryType, bool, error)
+	converter00002 func(pkg_context.Context, *int64) (int, bool, error)
+	converter00003 func(pkg_context.Context, *int64) (bool, bool, error)
 }
 
 func (m *dbcategorymapper) CategoryToCategory(ctx pkg_context.Context, source *pkg_budgeting_system_internal_storage_db.Category, dest *pkg_budgeting_system_internal_domain.Category) error {
 	dest.ID = source.ID
-	done1 := false
-	if m.converter00000 != nil && !done1 {
-		done1 = true
-		if converted, isnil, err := m.converter00000(ctx, &(source.BudgetID)); err != nil {
+	dest.UserID = source.UserID
+	done2 := false
+	if m.converter00000 != nil && !done2 {
+		done2 = true
+		if converted, isnil, err := m.converter00000(ctx, &(source.ParentID)); err != nil {
 			return err
 		} else {
 			if !isnil {
-				dest.BudgetID = converted
+				dest.ParentID = converted
 			}
 		}
 	}
 	dest.Name = source.Name
-	dest.Budgeted = source.Budgeted
-	dest.Balance = source.Balance
-	dest.TargetLimit = source.TargetLimit
+	done4 := false
+	if m.converter00001 != nil && !done4 {
+		done4 = true
+		if converted, isnil, err := m.converter00001(ctx, &(source.Type)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.Type = converted
+			}
+		}
+	}
+	if !done4 {
+		done4 = true
+		dest.Type = pkg_budgeting_system_internal_domain.CategoryType(source.Type)
+	}
+	dest.Color = source.Color
+	done7 := false
+	if m.converter00000 != nil && !done7 {
+		done7 = true
+		if converted, isnil, err := m.converter00000(ctx, &(source.Icon)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.Icon = converted
+			}
+		}
+	}
+	done8 := false
+	if m.converter00002 != nil && !done8 {
+		done8 = true
+		if converted, isnil, err := m.converter00002(ctx, &(source.SortOrder)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.SortOrder = converted
+			}
+		}
+	}
+	done9 := false
+	if m.converter00003 != nil && !done9 {
+		done9 = true
+		if converted, isnil, err := m.converter00003(ctx, &(source.Archived)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.Archived = converted
+			}
+		}
+	}
+	done10 := false
+	if m.converter00003 != nil && !done10 {
+		done10 = true
+		if converted, isnil, err := m.converter00003(ctx, &(source.System)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.System = converted
+			}
+		}
+	}
+	done11 := false
+	if m.converter00000 != nil && !done11 {
+		done11 = true
+		if converted, isnil, err := m.converter00000(ctx, &(source.BasiqSubclassCode)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.BasiqSubClassCode = converted
+			}
+		}
+	}
+	done12 := false
+	if m.converter00000 != nil && !done12 {
+		done12 = true
+		if converted, isnil, err := m.converter00000(ctx, &(source.AnzsicClassCode)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.AnzsicClassCode = converted
+			}
+		}
+	}
 	dest.CreatedAt = source.CreatedAt
 	dest.UpdatedAt = source.UpdatedAt
 	if m.helper != nil {

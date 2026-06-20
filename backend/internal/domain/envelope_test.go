@@ -7,16 +7,15 @@ import (
 func TestGetEnvelopeSummary(t *testing.T) {
 	tests := []struct {
 		name     string
-		category *Category
+		category *BudgetCategory
 		expected EnvelopeSummary
 	}{
 		{
 			name: "Normal state under capacity",
-			category: &Category{
-				ID:          "1",
-				Name:        "Groceries",
-				Balance:     20000, // $200.00
-				TargetLimit: 50000, // $500.00 target
+			category: &BudgetCategory{
+				Category:    Category{ID: "1", Name: "Groceries"},
+				Balance:     20000,
+				TargetLimit: 50000,
 			},
 			expected: EnvelopeSummary{
 				CategoryID:        "1",
@@ -24,14 +23,13 @@ func TestGetEnvelopeSummary(t *testing.T) {
 				Balance:           20000,
 				TargetLimit:       50000,
 				IsOverdrawn:       false,
-				UnderfundedAmount: 30000, // $300.00 underfunded
+				UnderfundedAmount: 30000,
 			},
 		},
 		{
 			name: "Fully funded envelope",
-			category: &Category{
-				ID:          "2",
-				Name:        "Rent",
+			category: &BudgetCategory{
+				Category:    Category{ID: "2", Name: "Rent"},
 				Balance:     150000,
 				TargetLimit: 150000,
 			},
@@ -46,10 +44,9 @@ func TestGetEnvelopeSummary(t *testing.T) {
 		},
 		{
 			name: "Overdrawn envelope",
-			category: &Category{
-				ID:          "3",
-				Name:        "Dining Out",
-				Balance:     -5000, // Overspent by $50.00
+			category: &BudgetCategory{
+				Category:    Category{ID: "3", Name: "Dining Out"},
+				Balance:     -5000,
 				TargetLimit: 10000,
 			},
 			expected: EnvelopeSummary{
@@ -58,7 +55,7 @@ func TestGetEnvelopeSummary(t *testing.T) {
 				Balance:           -5000,
 				TargetLimit:       10000,
 				IsOverdrawn:       true,
-				UnderfundedAmount: 15000, // Needs 15000 to reach target
+				UnderfundedAmount: 15000,
 			},
 		},
 	}
@@ -83,20 +80,13 @@ func TestGetEnvelopeSummary(t *testing.T) {
 }
 
 func TestFundEnvelope(t *testing.T) {
-	acc := &Account{
-		ID:      "acc-1",
-		Balance: 100000, // $1000.00
-	}
-	env := &Category{
-		ID:      "env-1",
-		Balance: 5000, // $50.00
-	}
+	acc := &Account{ID: "acc-1", Balance: 100000}
+	env := &BudgetCategory{Category: Category{ID: "env-1"}, Balance: 5000}
 
-	updatedAcc, updatedEnv, err := FundEnvelope(acc, env, 30000) // move $300.00
+	updatedAcc, updatedEnv, err := FundEnvelope(acc, env, 30000)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
 	if updatedAcc.Balance != 70000 {
 		t.Errorf("expected account balance 70000, got %d", updatedAcc.Balance)
 	}
@@ -104,7 +94,6 @@ func TestFundEnvelope(t *testing.T) {
 		t.Errorf("expected envelope balance 35000, got %d", updatedEnv.Balance)
 	}
 
-	// Insufficient funds test
 	_, _, err = FundEnvelope(acc, env, 200000)
 	if err == nil {
 		t.Error("expected error for funding greater than account balance, got nil")
@@ -112,24 +101,16 @@ func TestFundEnvelope(t *testing.T) {
 }
 
 func TestSpendFromEnvelope(t *testing.T) {
-	acc := &Account{
-		ID:      "acc-1",
-		Balance: 100000,
-	}
-	env := &Category{
-		ID:      "env-1",
-		Balance: 10000, // $100.00 inside
-	}
+	acc := &Account{ID: "acc-1", Balance: 100000}
+	env := &BudgetCategory{Category: Category{ID: "env-1"}, Balance: 10000}
 
-	updatedAcc, updatedEnv, err := SpendFromEnvelope(acc, env, 15000) // Spend $150.00
+	updatedAcc, updatedEnv, err := SpendFromEnvelope(acc, env, 15000)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
 	if updatedAcc.Balance != 85000 {
 		t.Errorf("expected account balance 85000, got %d", updatedAcc.Balance)
 	}
-	// Envelopes can go negative (overdrawn)
 	if updatedEnv.Balance != -5000 {
 		t.Errorf("expected envelope balance -5000, got %d", updatedEnv.Balance)
 	}

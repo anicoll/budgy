@@ -80,7 +80,7 @@ func (AccountType) EnumDescriptor() ([]byte, []int) {
 type Account struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	BudgetId       string                 `protobuf:"bytes,2,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Name           string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	Type           AccountType            `protobuf:"varint,4,opt,name=type,proto3,enum=budgy.v1.AccountType" json:"type,omitempty"`
 	Balance        int64                  `protobuf:"varint,5,opt,name=balance,proto3" json:"balance,omitempty"`
@@ -134,9 +134,9 @@ func (x *Account) GetId() string {
 	return ""
 }
 
-func (x *Account) GetBudgetId() string {
+func (x *Account) GetUserId() string {
 	if x != nil {
-		return x.BudgetId
+		return x.UserId
 	}
 	return ""
 }
@@ -227,10 +227,9 @@ func (x *Account) GetLastUpdated() *timestamppb.Timestamp {
 
 type CreateAccountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Type          AccountType            `protobuf:"varint,3,opt,name=type,proto3,enum=budgy.v1.AccountType" json:"type,omitempty"`
-	Balance       int64                  `protobuf:"varint,4,opt,name=balance,proto3" json:"balance,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Type          AccountType            `protobuf:"varint,2,opt,name=type,proto3,enum=budgy.v1.AccountType" json:"type,omitempty"`
+	Balance       int64                  `protobuf:"varint,3,opt,name=balance,proto3" json:"balance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -263,13 +262,6 @@ func (x *CreateAccountRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateAccountRequest.ProtoReflect.Descriptor instead.
 func (*CreateAccountRequest) Descriptor() ([]byte, []int) {
 	return file_budgy_v1_account_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *CreateAccountRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
 }
 
 func (x *CreateAccountRequest) GetName() string {
@@ -339,7 +331,6 @@ func (x *CreateAccountResponse) GetAccount() *Account {
 
 type ListAccountsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -372,13 +363,6 @@ func (x *ListAccountsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListAccountsRequest.ProtoReflect.Descriptor instead.
 func (*ListAccountsRequest) Descriptor() ([]byte, []int) {
 	return file_budgy_v1_account_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *ListAccountsRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
 }
 
 type ListAccountsResponse struct {
@@ -427,18 +411,17 @@ func (x *ListAccountsResponse) GetAccounts() []*Account {
 
 type UpdateAccountRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId       string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	AccountId      string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	Name           *string                `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Type           *AccountType           `protobuf:"varint,4,opt,name=type,proto3,enum=budgy.v1.AccountType,oneof" json:"type,omitempty"`
-	Balance        *int64                 `protobuf:"varint,5,opt,name=balance,proto3,oneof" json:"balance,omitempty"`
-	Class          *string                `protobuf:"bytes,6,opt,name=class,proto3,oneof" json:"class,omitempty"`
-	AccountNo      *string                `protobuf:"bytes,7,opt,name=account_no,json=accountNo,proto3,oneof" json:"account_no,omitempty"`
-	AvailableFunds *int64                 `protobuf:"varint,8,opt,name=available_funds,json=availableFunds,proto3,oneof" json:"available_funds,omitempty"`
-	Product        *string                `protobuf:"bytes,9,opt,name=product,proto3,oneof" json:"product,omitempty"`
-	InstitutionId  *string                `protobuf:"bytes,10,opt,name=institution_id,json=institutionId,proto3,oneof" json:"institution_id,omitempty"`
-	ConnectionId   *string                `protobuf:"bytes,11,opt,name=connection_id,json=connectionId,proto3,oneof" json:"connection_id,omitempty"`
-	LastUpdated    *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=last_updated,json=lastUpdated,proto3,oneof" json:"last_updated,omitempty"`
+	AccountId      string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Name           *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Type           *AccountType           `protobuf:"varint,3,opt,name=type,proto3,enum=budgy.v1.AccountType,oneof" json:"type,omitempty"`
+	Balance        *int64                 `protobuf:"varint,4,opt,name=balance,proto3,oneof" json:"balance,omitempty"`
+	Class          *string                `protobuf:"bytes,5,opt,name=class,proto3,oneof" json:"class,omitempty"`
+	AccountNo      *string                `protobuf:"bytes,6,opt,name=account_no,json=accountNo,proto3,oneof" json:"account_no,omitempty"`
+	AvailableFunds *int64                 `protobuf:"varint,7,opt,name=available_funds,json=availableFunds,proto3,oneof" json:"available_funds,omitempty"`
+	Product        *string                `protobuf:"bytes,8,opt,name=product,proto3,oneof" json:"product,omitempty"`
+	InstitutionId  *string                `protobuf:"bytes,9,opt,name=institution_id,json=institutionId,proto3,oneof" json:"institution_id,omitempty"`
+	ConnectionId   *string                `protobuf:"bytes,10,opt,name=connection_id,json=connectionId,proto3,oneof" json:"connection_id,omitempty"`
+	LastUpdated    *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=last_updated,json=lastUpdated,proto3,oneof" json:"last_updated,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -471,13 +454,6 @@ func (x *UpdateAccountRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UpdateAccountRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAccountRequest) Descriptor() ([]byte, []int) {
 	return file_budgy_v1_account_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *UpdateAccountRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
 }
 
 func (x *UpdateAccountRequest) GetAccountId() string {
@@ -603,8 +579,7 @@ func (x *UpdateAccountResponse) GetAccount() *Account {
 
 type DeleteAccountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -637,13 +612,6 @@ func (x *DeleteAccountRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteAccountRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAccountRequest) Descriptor() ([]byte, []int) {
 	return file_budgy_v1_account_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *DeleteAccountRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
 }
 
 func (x *DeleteAccountRequest) GetAccountId() string {
@@ -689,14 +657,278 @@ func (*DeleteAccountResponse) Descriptor() ([]byte, []int) {
 	return file_budgy_v1_account_proto_rawDescGZIP(), []int{8}
 }
 
+type LinkAccountToBudgetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LinkAccountToBudgetRequest) Reset() {
+	*x = LinkAccountToBudgetRequest{}
+	mi := &file_budgy_v1_account_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LinkAccountToBudgetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LinkAccountToBudgetRequest) ProtoMessage() {}
+
+func (x *LinkAccountToBudgetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_account_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LinkAccountToBudgetRequest.ProtoReflect.Descriptor instead.
+func (*LinkAccountToBudgetRequest) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_account_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *LinkAccountToBudgetRequest) GetBudgetId() string {
+	if x != nil {
+		return x.BudgetId
+	}
+	return ""
+}
+
+func (x *LinkAccountToBudgetRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+type LinkAccountToBudgetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LinkAccountToBudgetResponse) Reset() {
+	*x = LinkAccountToBudgetResponse{}
+	mi := &file_budgy_v1_account_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LinkAccountToBudgetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LinkAccountToBudgetResponse) ProtoMessage() {}
+
+func (x *LinkAccountToBudgetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_account_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LinkAccountToBudgetResponse.ProtoReflect.Descriptor instead.
+func (*LinkAccountToBudgetResponse) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_account_proto_rawDescGZIP(), []int{10}
+}
+
+type UnlinkAccountFromBudgetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnlinkAccountFromBudgetRequest) Reset() {
+	*x = UnlinkAccountFromBudgetRequest{}
+	mi := &file_budgy_v1_account_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnlinkAccountFromBudgetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnlinkAccountFromBudgetRequest) ProtoMessage() {}
+
+func (x *UnlinkAccountFromBudgetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_account_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnlinkAccountFromBudgetRequest.ProtoReflect.Descriptor instead.
+func (*UnlinkAccountFromBudgetRequest) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_account_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *UnlinkAccountFromBudgetRequest) GetBudgetId() string {
+	if x != nil {
+		return x.BudgetId
+	}
+	return ""
+}
+
+func (x *UnlinkAccountFromBudgetRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+type UnlinkAccountFromBudgetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnlinkAccountFromBudgetResponse) Reset() {
+	*x = UnlinkAccountFromBudgetResponse{}
+	mi := &file_budgy_v1_account_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnlinkAccountFromBudgetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnlinkAccountFromBudgetResponse) ProtoMessage() {}
+
+func (x *UnlinkAccountFromBudgetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_account_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnlinkAccountFromBudgetResponse.ProtoReflect.Descriptor instead.
+func (*UnlinkAccountFromBudgetResponse) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_account_proto_rawDescGZIP(), []int{12}
+}
+
+type ListBudgetAccountsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBudgetAccountsRequest) Reset() {
+	*x = ListBudgetAccountsRequest{}
+	mi := &file_budgy_v1_account_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBudgetAccountsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBudgetAccountsRequest) ProtoMessage() {}
+
+func (x *ListBudgetAccountsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_account_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBudgetAccountsRequest.ProtoReflect.Descriptor instead.
+func (*ListBudgetAccountsRequest) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_account_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ListBudgetAccountsRequest) GetBudgetId() string {
+	if x != nil {
+		return x.BudgetId
+	}
+	return ""
+}
+
+type ListBudgetAccountsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accounts      []*Account             `protobuf:"bytes,1,rep,name=accounts,proto3" json:"accounts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBudgetAccountsResponse) Reset() {
+	*x = ListBudgetAccountsResponse{}
+	mi := &file_budgy_v1_account_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBudgetAccountsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBudgetAccountsResponse) ProtoMessage() {}
+
+func (x *ListBudgetAccountsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_account_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBudgetAccountsResponse.ProtoReflect.Descriptor instead.
+func (*ListBudgetAccountsResponse) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_account_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ListBudgetAccountsResponse) GetAccounts() []*Account {
+	if x != nil {
+		return x.Accounts
+	}
+	return nil
+}
+
 var File_budgy_v1_account_proto protoreflect.FileDescriptor
 
 const file_budgy_v1_account_proto_rawDesc = "" +
 	"\n" +
-	"\x16budgy/v1/account.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb7\x04\n" +
+	"\x16budgy/v1/account.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb3\x04\n" +
 	"\aAccount\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
-	"\tbudget_id\x18\x02 \x01(\tR\bbudgetId\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12)\n" +
 	"\x04type\x18\x04 \x01(\x0e2\x15.budgy.v1.AccountTypeR\x04type\x12\x18\n" +
 	"\abalance\x18\x05 \x01(\x03R\abalance\x129\n" +
@@ -714,34 +946,31 @@ const file_budgy_v1_account_proto_rawDesc = "" +
 	"\rconnection_id\x18\r \x01(\tR\fconnectionId\x12B\n" +
 	"\flast_updated\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampH\x01R\vlastUpdated\x88\x01\x01B\x12\n" +
 	"\x10_available_fundsB\x0f\n" +
-	"\r_last_updated\"\x8c\x01\n" +
-	"\x14CreateAccountRequest\x12\x1b\n" +
-	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12)\n" +
-	"\x04type\x18\x03 \x01(\x0e2\x15.budgy.v1.AccountTypeR\x04type\x12\x18\n" +
-	"\abalance\x18\x04 \x01(\x03R\abalance\"D\n" +
+	"\r_last_updated\"o\n" +
+	"\x14CreateAccountRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12)\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x15.budgy.v1.AccountTypeR\x04type\x12\x18\n" +
+	"\abalance\x18\x03 \x01(\x03R\abalance\"D\n" +
 	"\x15CreateAccountResponse\x12+\n" +
-	"\aaccount\x18\x01 \x01(\v2\x11.budgy.v1.AccountR\aaccount\"2\n" +
-	"\x13ListAccountsRequest\x12\x1b\n" +
-	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\"E\n" +
+	"\aaccount\x18\x01 \x01(\v2\x11.budgy.v1.AccountR\aaccount\"\x15\n" +
+	"\x13ListAccountsRequest\"E\n" +
 	"\x14ListAccountsResponse\x12-\n" +
-	"\baccounts\x18\x01 \x03(\v2\x11.budgy.v1.AccountR\baccounts\"\xed\x04\n" +
-	"\x14UpdateAccountRequest\x12\x1b\n" +
-	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1d\n" +
+	"\baccounts\x18\x01 \x03(\v2\x11.budgy.v1.AccountR\baccounts\"\xd0\x04\n" +
+	"\x14UpdateAccountRequest\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x02 \x01(\tR\taccountId\x12\x17\n" +
-	"\x04name\x18\x03 \x01(\tH\x00R\x04name\x88\x01\x01\x12.\n" +
-	"\x04type\x18\x04 \x01(\x0e2\x15.budgy.v1.AccountTypeH\x01R\x04type\x88\x01\x01\x12\x1d\n" +
-	"\abalance\x18\x05 \x01(\x03H\x02R\abalance\x88\x01\x01\x12\x19\n" +
-	"\x05class\x18\x06 \x01(\tH\x03R\x05class\x88\x01\x01\x12\"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\x12\x17\n" +
+	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12.\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x15.budgy.v1.AccountTypeH\x01R\x04type\x88\x01\x01\x12\x1d\n" +
+	"\abalance\x18\x04 \x01(\x03H\x02R\abalance\x88\x01\x01\x12\x19\n" +
+	"\x05class\x18\x05 \x01(\tH\x03R\x05class\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"account_no\x18\a \x01(\tH\x04R\taccountNo\x88\x01\x01\x12,\n" +
-	"\x0favailable_funds\x18\b \x01(\x03H\x05R\x0eavailableFunds\x88\x01\x01\x12\x1d\n" +
-	"\aproduct\x18\t \x01(\tH\x06R\aproduct\x88\x01\x01\x12*\n" +
-	"\x0einstitution_id\x18\n" +
-	" \x01(\tH\aR\rinstitutionId\x88\x01\x01\x12(\n" +
-	"\rconnection_id\x18\v \x01(\tH\bR\fconnectionId\x88\x01\x01\x12B\n" +
-	"\flast_updated\x18\f \x01(\v2\x1a.google.protobuf.TimestampH\tR\vlastUpdated\x88\x01\x01B\a\n" +
+	"account_no\x18\x06 \x01(\tH\x04R\taccountNo\x88\x01\x01\x12,\n" +
+	"\x0favailable_funds\x18\a \x01(\x03H\x05R\x0eavailableFunds\x88\x01\x01\x12\x1d\n" +
+	"\aproduct\x18\b \x01(\tH\x06R\aproduct\x88\x01\x01\x12*\n" +
+	"\x0einstitution_id\x18\t \x01(\tH\aR\rinstitutionId\x88\x01\x01\x12(\n" +
+	"\rconnection_id\x18\n" +
+	" \x01(\tH\bR\fconnectionId\x88\x01\x01\x12B\n" +
+	"\flast_updated\x18\v \x01(\v2\x1a.google.protobuf.TimestampH\tR\vlastUpdated\x88\x01\x01B\a\n" +
 	"\x05_nameB\a\n" +
 	"\x05_typeB\n" +
 	"\n" +
@@ -755,23 +984,39 @@ const file_budgy_v1_account_proto_rawDesc = "" +
 	"\x0e_connection_idB\x0f\n" +
 	"\r_last_updated\"D\n" +
 	"\x15UpdateAccountResponse\x12+\n" +
-	"\aaccount\x18\x01 \x01(\v2\x11.budgy.v1.AccountR\aaccount\"R\n" +
-	"\x14DeleteAccountRequest\x12\x1b\n" +
+	"\aaccount\x18\x01 \x01(\v2\x11.budgy.v1.AccountR\aaccount\"5\n" +
+	"\x14DeleteAccountRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\"\x17\n" +
+	"\x15DeleteAccountResponse\"X\n" +
+	"\x1aLinkAccountToBudgetRequest\x12\x1b\n" +
 	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x02 \x01(\tR\taccountId\"\x17\n" +
-	"\x15DeleteAccountResponse*\x95\x01\n" +
+	"account_id\x18\x02 \x01(\tR\taccountId\"\x1d\n" +
+	"\x1bLinkAccountToBudgetResponse\"\\\n" +
+	"\x1eUnlinkAccountFromBudgetRequest\x12\x1b\n" +
+	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x02 \x01(\tR\taccountId\"!\n" +
+	"\x1fUnlinkAccountFromBudgetResponse\"8\n" +
+	"\x19ListBudgetAccountsRequest\x12\x1b\n" +
+	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\"K\n" +
+	"\x1aListBudgetAccountsResponse\x12-\n" +
+	"\baccounts\x18\x01 \x03(\v2\x11.budgy.v1.AccountR\baccounts*\x95\x01\n" +
 	"\vAccountType\x12\x1c\n" +
 	"\x18ACCOUNT_TYPE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15ACCOUNT_TYPE_CHECKING\x10\x01\x12\x18\n" +
 	"\x14ACCOUNT_TYPE_SAVINGS\x10\x02\x12\x1c\n" +
 	"\x18ACCOUNT_TYPE_CREDIT_CARD\x10\x03\x12\x15\n" +
-	"\x11ACCOUNT_TYPE_CASH\x10\x042\xd5\x02\n" +
+	"\x11ACCOUNT_TYPE_CASH\x10\x042\x8a\x05\n" +
 	"\x0eAccountService\x12P\n" +
 	"\rCreateAccount\x12\x1e.budgy.v1.CreateAccountRequest\x1a\x1f.budgy.v1.CreateAccountResponse\x12M\n" +
 	"\fListAccounts\x12\x1d.budgy.v1.ListAccountsRequest\x1a\x1e.budgy.v1.ListAccountsResponse\x12P\n" +
 	"\rUpdateAccount\x12\x1e.budgy.v1.UpdateAccountRequest\x1a\x1f.budgy.v1.UpdateAccountResponse\x12P\n" +
-	"\rDeleteAccount\x12\x1e.budgy.v1.DeleteAccountRequest\x1a\x1f.budgy.v1.DeleteAccountResponseB0Z.budgeting_system/internal/gen/budgy/v1;budgyv1b\x06proto3"
+	"\rDeleteAccount\x12\x1e.budgy.v1.DeleteAccountRequest\x1a\x1f.budgy.v1.DeleteAccountResponse\x12b\n" +
+	"\x13LinkAccountToBudget\x12$.budgy.v1.LinkAccountToBudgetRequest\x1a%.budgy.v1.LinkAccountToBudgetResponse\x12n\n" +
+	"\x17UnlinkAccountFromBudget\x12(.budgy.v1.UnlinkAccountFromBudgetRequest\x1a).budgy.v1.UnlinkAccountFromBudgetResponse\x12_\n" +
+	"\x12ListBudgetAccounts\x12#.budgy.v1.ListBudgetAccountsRequest\x1a$.budgy.v1.ListBudgetAccountsResponseB0Z.budgeting_system/internal/gen/budgy/v1;budgyv1b\x06proto3"
 
 var (
 	file_budgy_v1_account_proto_rawDescOnce sync.Once
@@ -786,44 +1031,57 @@ func file_budgy_v1_account_proto_rawDescGZIP() []byte {
 }
 
 var file_budgy_v1_account_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_budgy_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_budgy_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_budgy_v1_account_proto_goTypes = []any{
-	(AccountType)(0),              // 0: budgy.v1.AccountType
-	(*Account)(nil),               // 1: budgy.v1.Account
-	(*CreateAccountRequest)(nil),  // 2: budgy.v1.CreateAccountRequest
-	(*CreateAccountResponse)(nil), // 3: budgy.v1.CreateAccountResponse
-	(*ListAccountsRequest)(nil),   // 4: budgy.v1.ListAccountsRequest
-	(*ListAccountsResponse)(nil),  // 5: budgy.v1.ListAccountsResponse
-	(*UpdateAccountRequest)(nil),  // 6: budgy.v1.UpdateAccountRequest
-	(*UpdateAccountResponse)(nil), // 7: budgy.v1.UpdateAccountResponse
-	(*DeleteAccountRequest)(nil),  // 8: budgy.v1.DeleteAccountRequest
-	(*DeleteAccountResponse)(nil), // 9: budgy.v1.DeleteAccountResponse
-	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
+	(AccountType)(0),                        // 0: budgy.v1.AccountType
+	(*Account)(nil),                         // 1: budgy.v1.Account
+	(*CreateAccountRequest)(nil),            // 2: budgy.v1.CreateAccountRequest
+	(*CreateAccountResponse)(nil),           // 3: budgy.v1.CreateAccountResponse
+	(*ListAccountsRequest)(nil),             // 4: budgy.v1.ListAccountsRequest
+	(*ListAccountsResponse)(nil),            // 5: budgy.v1.ListAccountsResponse
+	(*UpdateAccountRequest)(nil),            // 6: budgy.v1.UpdateAccountRequest
+	(*UpdateAccountResponse)(nil),           // 7: budgy.v1.UpdateAccountResponse
+	(*DeleteAccountRequest)(nil),            // 8: budgy.v1.DeleteAccountRequest
+	(*DeleteAccountResponse)(nil),           // 9: budgy.v1.DeleteAccountResponse
+	(*LinkAccountToBudgetRequest)(nil),      // 10: budgy.v1.LinkAccountToBudgetRequest
+	(*LinkAccountToBudgetResponse)(nil),     // 11: budgy.v1.LinkAccountToBudgetResponse
+	(*UnlinkAccountFromBudgetRequest)(nil),  // 12: budgy.v1.UnlinkAccountFromBudgetRequest
+	(*UnlinkAccountFromBudgetResponse)(nil), // 13: budgy.v1.UnlinkAccountFromBudgetResponse
+	(*ListBudgetAccountsRequest)(nil),       // 14: budgy.v1.ListBudgetAccountsRequest
+	(*ListBudgetAccountsResponse)(nil),      // 15: budgy.v1.ListBudgetAccountsResponse
+	(*timestamppb.Timestamp)(nil),           // 16: google.protobuf.Timestamp
 }
 var file_budgy_v1_account_proto_depIdxs = []int32{
 	0,  // 0: budgy.v1.Account.type:type_name -> budgy.v1.AccountType
-	10, // 1: budgy.v1.Account.created_at:type_name -> google.protobuf.Timestamp
-	10, // 2: budgy.v1.Account.updated_at:type_name -> google.protobuf.Timestamp
-	10, // 3: budgy.v1.Account.last_updated:type_name -> google.protobuf.Timestamp
+	16, // 1: budgy.v1.Account.created_at:type_name -> google.protobuf.Timestamp
+	16, // 2: budgy.v1.Account.updated_at:type_name -> google.protobuf.Timestamp
+	16, // 3: budgy.v1.Account.last_updated:type_name -> google.protobuf.Timestamp
 	0,  // 4: budgy.v1.CreateAccountRequest.type:type_name -> budgy.v1.AccountType
 	1,  // 5: budgy.v1.CreateAccountResponse.account:type_name -> budgy.v1.Account
 	1,  // 6: budgy.v1.ListAccountsResponse.accounts:type_name -> budgy.v1.Account
 	0,  // 7: budgy.v1.UpdateAccountRequest.type:type_name -> budgy.v1.AccountType
-	10, // 8: budgy.v1.UpdateAccountRequest.last_updated:type_name -> google.protobuf.Timestamp
+	16, // 8: budgy.v1.UpdateAccountRequest.last_updated:type_name -> google.protobuf.Timestamp
 	1,  // 9: budgy.v1.UpdateAccountResponse.account:type_name -> budgy.v1.Account
-	2,  // 10: budgy.v1.AccountService.CreateAccount:input_type -> budgy.v1.CreateAccountRequest
-	4,  // 11: budgy.v1.AccountService.ListAccounts:input_type -> budgy.v1.ListAccountsRequest
-	6,  // 12: budgy.v1.AccountService.UpdateAccount:input_type -> budgy.v1.UpdateAccountRequest
-	8,  // 13: budgy.v1.AccountService.DeleteAccount:input_type -> budgy.v1.DeleteAccountRequest
-	3,  // 14: budgy.v1.AccountService.CreateAccount:output_type -> budgy.v1.CreateAccountResponse
-	5,  // 15: budgy.v1.AccountService.ListAccounts:output_type -> budgy.v1.ListAccountsResponse
-	7,  // 16: budgy.v1.AccountService.UpdateAccount:output_type -> budgy.v1.UpdateAccountResponse
-	9,  // 17: budgy.v1.AccountService.DeleteAccount:output_type -> budgy.v1.DeleteAccountResponse
-	14, // [14:18] is the sub-list for method output_type
-	10, // [10:14] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	1,  // 10: budgy.v1.ListBudgetAccountsResponse.accounts:type_name -> budgy.v1.Account
+	2,  // 11: budgy.v1.AccountService.CreateAccount:input_type -> budgy.v1.CreateAccountRequest
+	4,  // 12: budgy.v1.AccountService.ListAccounts:input_type -> budgy.v1.ListAccountsRequest
+	6,  // 13: budgy.v1.AccountService.UpdateAccount:input_type -> budgy.v1.UpdateAccountRequest
+	8,  // 14: budgy.v1.AccountService.DeleteAccount:input_type -> budgy.v1.DeleteAccountRequest
+	10, // 15: budgy.v1.AccountService.LinkAccountToBudget:input_type -> budgy.v1.LinkAccountToBudgetRequest
+	12, // 16: budgy.v1.AccountService.UnlinkAccountFromBudget:input_type -> budgy.v1.UnlinkAccountFromBudgetRequest
+	14, // 17: budgy.v1.AccountService.ListBudgetAccounts:input_type -> budgy.v1.ListBudgetAccountsRequest
+	3,  // 18: budgy.v1.AccountService.CreateAccount:output_type -> budgy.v1.CreateAccountResponse
+	5,  // 19: budgy.v1.AccountService.ListAccounts:output_type -> budgy.v1.ListAccountsResponse
+	7,  // 20: budgy.v1.AccountService.UpdateAccount:output_type -> budgy.v1.UpdateAccountResponse
+	9,  // 21: budgy.v1.AccountService.DeleteAccount:output_type -> budgy.v1.DeleteAccountResponse
+	11, // 22: budgy.v1.AccountService.LinkAccountToBudget:output_type -> budgy.v1.LinkAccountToBudgetResponse
+	13, // 23: budgy.v1.AccountService.UnlinkAccountFromBudget:output_type -> budgy.v1.UnlinkAccountFromBudgetResponse
+	15, // 24: budgy.v1.AccountService.ListBudgetAccounts:output_type -> budgy.v1.ListBudgetAccountsResponse
+	18, // [18:25] is the sub-list for method output_type
+	11, // [11:18] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_budgy_v1_account_proto_init() }
@@ -839,7 +1097,7 @@ func file_budgy_v1_account_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_budgy_v1_account_proto_rawDesc), len(file_budgy_v1_account_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

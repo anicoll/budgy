@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { Plus, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +37,6 @@ import {
   useReorderCategories,
   useUpdateCategory,
 } from "../hooks";
-import { seedDefaultCategories } from "../repository";
 import type { CategoryFormValues } from "../schema";
 import { CATEGORY_TYPE_LABEL, type Category, type CategoryType } from "../types";
 import { CategoryCard } from "./CategoryCard";
@@ -62,11 +61,6 @@ export function CategoriesPageClient() {
   const updateMutation = useUpdateCategory();
   const deleteMutation = useDeleteCategory();
   const reorderMutation = useReorderCategories();
-
-  // Seed defaults on first load
-  useEffect(() => {
-    seedDefaultCategories().catch(() => {});
-  }, []);
 
   // Group categories by type, then by parent
   const grouped = useMemo(() => {

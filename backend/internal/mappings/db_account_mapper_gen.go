@@ -38,13 +38,13 @@ func NewDBAccountMapper(mapperGetter interface {
 			m.mapper00000 = v
 		}
 	}
-	if obj, err := mapperGetter.GetFuncByTypeName("", "database/sql#NullString", "string"); err == nil {
-		if v, ok := obj.(func(pkg_context.Context, *pkg_database_sql.NullString) (string, bool, error)); ok {
+	if obj, err := mapperGetter.GetFuncByTypeName("", "string", "budgeting_system/internal/domain#AccountType"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.AccountType, bool, error)); ok {
 			m.converter00000 = v
 		}
 	}
-	if obj, err := mapperGetter.GetFuncByTypeName("", "string", "budgeting_system/internal/domain#AccountType"); err == nil {
-		if v, ok := obj.(func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.AccountType, bool, error)); ok {
+	if obj, err := mapperGetter.GetFuncByTypeName("", "database/sql#NullString", "string"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *pkg_database_sql.NullString) (string, bool, error)); ok {
 			m.converter00001 = v
 		}
 	}
@@ -70,30 +70,20 @@ type dbaccountmapper struct {
 	}
 	helper         DBAccountMapperHelper
 	mapper00000    func(pkg_context.Context, *pkg_database_sql.NullTime, *pkg_time.Time) error
-	converter00000 func(pkg_context.Context, *pkg_database_sql.NullString) (string, bool, error)
-	converter00001 func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.AccountType, bool, error)
+	converter00000 func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.AccountType, bool, error)
+	converter00001 func(pkg_context.Context, *pkg_database_sql.NullString) (string, bool, error)
 	converter00002 func(pkg_context.Context, *pkg_database_sql.NullInt64) (int64, bool, error)
 	converter00003 func(pkg_context.Context, *pkg_database_sql.NullTime) (*pkg_time.Time, error)
 }
 
 func (m *dbaccountmapper) AccountToAccount(ctx pkg_context.Context, source *pkg_budgeting_system_internal_storage_db.Account, dest *pkg_budgeting_system_internal_domain.Account) error {
 	dest.ID = source.ID
-	done1 := false
-	if m.converter00000 != nil && !done1 {
-		done1 = true
-		if converted, isnil, err := m.converter00000(ctx, &(source.BudgetID)); err != nil {
-			return err
-		} else {
-			if !isnil {
-				dest.BudgetID = converted
-			}
-		}
-	}
+	dest.UserID = source.UserID
 	dest.Name = source.Name
 	done3 := false
-	if m.converter00001 != nil && !done3 {
+	if m.converter00000 != nil && !done3 {
 		done3 = true
-		if converted, isnil, err := m.converter00001(ctx, &(source.Type)); err != nil {
+		if converted, isnil, err := m.converter00000(ctx, &(source.Type)); err != nil {
 			return err
 		} else {
 			if !isnil {
@@ -109,9 +99,9 @@ func (m *dbaccountmapper) AccountToAccount(ctx pkg_context.Context, source *pkg_
 	dest.CreatedAt = source.CreatedAt
 	dest.UpdatedAt = source.UpdatedAt
 	done8 := false
-	if m.converter00000 != nil && !done8 {
+	if m.converter00001 != nil && !done8 {
 		done8 = true
-		if converted, isnil, err := m.converter00000(ctx, &(source.Class)); err != nil {
+		if converted, isnil, err := m.converter00001(ctx, &(source.Class)); err != nil {
 			return err
 		} else {
 			if !isnil {
@@ -120,9 +110,9 @@ func (m *dbaccountmapper) AccountToAccount(ctx pkg_context.Context, source *pkg_
 		}
 	}
 	done9 := false
-	if m.converter00000 != nil && !done9 {
+	if m.converter00001 != nil && !done9 {
 		done9 = true
-		if converted, isnil, err := m.converter00000(ctx, &(source.AccountNo)); err != nil {
+		if converted, isnil, err := m.converter00001(ctx, &(source.AccountNo)); err != nil {
 			return err
 		} else {
 			if !isnil {
@@ -144,9 +134,9 @@ func (m *dbaccountmapper) AccountToAccount(ctx pkg_context.Context, source *pkg_
 		}
 	}
 	done11 := false
-	if m.converter00000 != nil && !done11 {
+	if m.converter00001 != nil && !done11 {
 		done11 = true
-		if converted, isnil, err := m.converter00000(ctx, &(source.Product)); err != nil {
+		if converted, isnil, err := m.converter00001(ctx, &(source.Product)); err != nil {
 			return err
 		} else {
 			if !isnil {
@@ -155,9 +145,9 @@ func (m *dbaccountmapper) AccountToAccount(ctx pkg_context.Context, source *pkg_
 		}
 	}
 	done12 := false
-	if m.converter00000 != nil && !done12 {
+	if m.converter00001 != nil && !done12 {
 		done12 = true
-		if converted, isnil, err := m.converter00000(ctx, &(source.InstitutionID)); err != nil {
+		if converted, isnil, err := m.converter00001(ctx, &(source.InstitutionID)); err != nil {
 			return err
 		} else {
 			if !isnil {
@@ -166,9 +156,9 @@ func (m *dbaccountmapper) AccountToAccount(ctx pkg_context.Context, source *pkg_
 		}
 	}
 	done13 := false
-	if m.converter00000 != nil && !done13 {
+	if m.converter00001 != nil && !done13 {
 		done13 = true
-		if converted, isnil, err := m.converter00000(ctx, &(source.ConnectionID)); err != nil {
+		if converted, isnil, err := m.converter00001(ctx, &(source.ConnectionID)); err != nil {
 			return err
 		} else {
 			if !isnil {

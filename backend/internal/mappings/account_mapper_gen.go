@@ -66,8 +66,8 @@ type accountmapper struct {
 }
 
 func (m *accountmapper) ToProto(ctx pkg_context.Context, source *pkg_budgeting_system_internal_domain.Account, dest *pkg_budgeting_system_internal_gen_budgy_v1.Account) error {
+	dest.UserId = source.UserID
 	dest.Id = source.ID
-	dest.BudgetId = source.BudgetID
 	dest.Name = source.Name
 	done3 := false
 	if m.converter00000 != nil && !done3 {

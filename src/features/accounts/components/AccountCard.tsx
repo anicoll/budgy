@@ -8,6 +8,7 @@ import {
   GripVertical,
   MoreHorizontal,
   Pencil,
+  PiggyBank,
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
@@ -29,9 +30,16 @@ interface AccountCardProps {
   onEdit: (account: Account) => void;
   onArchiveToggle: (account: Account) => void;
   onDelete: (account: Account) => void;
+  onManageBudgets?: (account: Account) => void;
 }
 
-export function AccountCard({ account, onEdit, onArchiveToggle, onDelete }: AccountCardProps) {
+export function AccountCard({
+  account,
+  onEdit,
+  onArchiveToggle,
+  onDelete,
+  onManageBudgets,
+}: AccountCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: account.id,
   });
@@ -77,9 +85,24 @@ export function AccountCard({ account, onEdit, onArchiveToggle, onDelete }: Acco
         )}
 
         {isSynced ? (
-          <span className="inline-flex h-7 px-2.5 items-center justify-center rounded-md bg-indigo-500/10 text-indigo-400 text-[10px] font-semibold uppercase tracking-wider select-none border border-indigo-500/20">
-            Synced
-          </span>
+          onManageBudgets ? (
+            <DropdownMenu onOpenChange={setMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Actions">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={() => onManageBudgets(account)}>
+                  <PiggyBank className="mr-2 h-4 w-4" /> Add to budget
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <span className="inline-flex h-7 px-2.5 items-center justify-center rounded-md bg-indigo-500/10 text-indigo-400 text-[10px] font-semibold uppercase tracking-wider select-none border border-indigo-500/20">
+              Synced
+            </span>
+          )
         ) : (
           <DropdownMenu onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
@@ -91,6 +114,11 @@ export function AccountCard({ account, onEdit, onArchiveToggle, onDelete }: Acco
               <DropdownMenuItem onClick={() => onEdit(account)}>
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
+              {onManageBudgets ? (
+                <DropdownMenuItem onClick={() => onManageBudgets(account)}>
+                  <PiggyBank className="mr-2 h-4 w-4" /> Add to budget
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem onClick={() => onArchiveToggle(account)}>
                 {account.archived ? (
                   <>

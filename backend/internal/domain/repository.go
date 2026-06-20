@@ -19,18 +19,19 @@ type BudgetRepository interface {
 type AccountRepository interface {
 	Create(ctx context.Context, acc *Account) error
 	GetByID(ctx context.Context, id string) (*Account, error)
+	ListByUser(ctx context.Context, userID string) ([]*Account, error)
 	ListByBudget(ctx context.Context, budgetID string) ([]*Account, error)
 	UpdateBalance(ctx context.Context, id string, balance int64) error
 	Update(ctx context.Context, acc *Account) error
 	Delete(ctx context.Context, id string) error
 }
 
-// CategoryRepository defines storage operations for categories/envelopes.
+// CategoryRepository defines storage operations for user categories.
 type CategoryRepository interface {
 	Create(ctx context.Context, c *Category) error
 	GetByID(ctx context.Context, id string) (*Category, error)
-	ListByBudget(ctx context.Context, budgetID string) ([]*Category, error)
-	UpdateBudgetedAndBalance(ctx context.Context, id string, budgeted int64, balance int64) error
+	GetByBasiqSubClassCode(ctx context.Context, userID, code string) (*Category, error)
+	ListByUser(ctx context.Context, userID string) ([]*Category, error)
 	Update(ctx context.Context, c *Category) error
 	Delete(ctx context.Context, id string) error
 }
