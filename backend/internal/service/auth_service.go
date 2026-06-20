@@ -11,11 +11,12 @@ import (
 )
 
 type authService struct {
-	users domain.UserRepository
+	users  domain.UserRepository
+	seeder CategorySeeder
 }
 
-func NewAuthService(users domain.UserRepository) AuthService {
-	return &authService{users: users}
+func NewAuthService(users domain.UserRepository, seeder CategorySeeder) AuthService {
+	return &authService{users: users, seeder: seeder}
 }
 
 func (s *authService) Register(ctx context.Context, email, password, firstName, lastName string) (*domain.User, error) {
@@ -42,6 +43,9 @@ func (s *authService) Register(ctx context.Context, email, password, firstName, 
 	if err := s.users.Create(ctx, user); err != nil {
 		return nil, err
 	}
+	if s.seeder != nil {
+		_ = s.seeder.SeedCategoriesForUser(ctx, user.ID)
+	}
 	return user, nil
 }
 
@@ -50,12 +54,9 @@ func (s *authService) Login(ctx context.Context, email, password string) (*domai
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid credentials", ErrUnauthorized)
 	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
-	if err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, fmt.Errorf("%w: invalid credentials", ErrUnauthorized)
 	}
-
 	return user, nil
 }
 

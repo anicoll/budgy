@@ -2,18 +2,20 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "storage",
-    srcs = ["sqlite.go"],
+    srcs = [
+        "budget_links.go",
+        "category_scan.go",
+        "seed.go",
+        "sqlite.go",
+    ],
     embedsrcs = [
         "migrations/0001_init.sql",
-        "migrations/0002_add_users.sql",
-        "migrations/0003_envelope_allocations.sql",
-        "migrations/0004_create_background_jobs.sql",
-        "migrations/0005_add_transaction_enrichment_columns.sql",
     ],
     importpath = "budgeting_system/internal/storage",
     visibility = ["//backend:__subpackages__"],
     deps = [
         "//backend/internal/domain",
+        "//backend/internal/domain/categoryseed",
         "//backend/internal/mappings",
         "//backend/internal/storage/db",
         "//backend/pkg/utils",

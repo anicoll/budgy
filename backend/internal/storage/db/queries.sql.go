@@ -10,7 +10,7 @@ import (
 )
 
 const getBudget = `-- name: GetBudget :one
-SELECT id, name, method, currency, created_at, updated_at, user_id FROM budgets
+SELECT id, user_id, name, method, currency, created_at, updated_at FROM budgets
 WHERE id = $1 LIMIT 1
 `
 
@@ -19,12 +19,12 @@ func (q *Queries) GetBudget(ctx context.Context, id string) (Budget, error) {
 	var i Budget
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Name,
 		&i.Method,
 		&i.Currency,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.UserID,
 	)
 	return i, err
 }

@@ -45,6 +45,15 @@ const (
 	// AccountServiceDeleteAccountProcedure is the fully-qualified name of the AccountService's
 	// DeleteAccount RPC.
 	AccountServiceDeleteAccountProcedure = "/budgy.v1.AccountService/DeleteAccount"
+	// AccountServiceLinkAccountToBudgetProcedure is the fully-qualified name of the AccountService's
+	// LinkAccountToBudget RPC.
+	AccountServiceLinkAccountToBudgetProcedure = "/budgy.v1.AccountService/LinkAccountToBudget"
+	// AccountServiceUnlinkAccountFromBudgetProcedure is the fully-qualified name of the
+	// AccountService's UnlinkAccountFromBudget RPC.
+	AccountServiceUnlinkAccountFromBudgetProcedure = "/budgy.v1.AccountService/UnlinkAccountFromBudget"
+	// AccountServiceListBudgetAccountsProcedure is the fully-qualified name of the AccountService's
+	// ListBudgetAccounts RPC.
+	AccountServiceListBudgetAccountsProcedure = "/budgy.v1.AccountService/ListBudgetAccounts"
 )
 
 // AccountServiceClient is a client for the budgy.v1.AccountService service.
@@ -53,6 +62,9 @@ type AccountServiceClient interface {
 	ListAccounts(context.Context, *connect.Request[v1.ListAccountsRequest]) (*connect.Response[v1.ListAccountsResponse], error)
 	UpdateAccount(context.Context, *connect.Request[v1.UpdateAccountRequest]) (*connect.Response[v1.UpdateAccountResponse], error)
 	DeleteAccount(context.Context, *connect.Request[v1.DeleteAccountRequest]) (*connect.Response[v1.DeleteAccountResponse], error)
+	LinkAccountToBudget(context.Context, *connect.Request[v1.LinkAccountToBudgetRequest]) (*connect.Response[v1.LinkAccountToBudgetResponse], error)
+	UnlinkAccountFromBudget(context.Context, *connect.Request[v1.UnlinkAccountFromBudgetRequest]) (*connect.Response[v1.UnlinkAccountFromBudgetResponse], error)
+	ListBudgetAccounts(context.Context, *connect.Request[v1.ListBudgetAccountsRequest]) (*connect.Response[v1.ListBudgetAccountsResponse], error)
 }
 
 // NewAccountServiceClient constructs a client for the budgy.v1.AccountService service. By default,
@@ -90,15 +102,36 @@ func NewAccountServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(accountServiceMethods.ByName("DeleteAccount")),
 			connect.WithClientOptions(opts...),
 		),
+		linkAccountToBudget: connect.NewClient[v1.LinkAccountToBudgetRequest, v1.LinkAccountToBudgetResponse](
+			httpClient,
+			baseURL+AccountServiceLinkAccountToBudgetProcedure,
+			connect.WithSchema(accountServiceMethods.ByName("LinkAccountToBudget")),
+			connect.WithClientOptions(opts...),
+		),
+		unlinkAccountFromBudget: connect.NewClient[v1.UnlinkAccountFromBudgetRequest, v1.UnlinkAccountFromBudgetResponse](
+			httpClient,
+			baseURL+AccountServiceUnlinkAccountFromBudgetProcedure,
+			connect.WithSchema(accountServiceMethods.ByName("UnlinkAccountFromBudget")),
+			connect.WithClientOptions(opts...),
+		),
+		listBudgetAccounts: connect.NewClient[v1.ListBudgetAccountsRequest, v1.ListBudgetAccountsResponse](
+			httpClient,
+			baseURL+AccountServiceListBudgetAccountsProcedure,
+			connect.WithSchema(accountServiceMethods.ByName("ListBudgetAccounts")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // accountServiceClient implements AccountServiceClient.
 type accountServiceClient struct {
-	createAccount *connect.Client[v1.CreateAccountRequest, v1.CreateAccountResponse]
-	listAccounts  *connect.Client[v1.ListAccountsRequest, v1.ListAccountsResponse]
-	updateAccount *connect.Client[v1.UpdateAccountRequest, v1.UpdateAccountResponse]
-	deleteAccount *connect.Client[v1.DeleteAccountRequest, v1.DeleteAccountResponse]
+	createAccount           *connect.Client[v1.CreateAccountRequest, v1.CreateAccountResponse]
+	listAccounts            *connect.Client[v1.ListAccountsRequest, v1.ListAccountsResponse]
+	updateAccount           *connect.Client[v1.UpdateAccountRequest, v1.UpdateAccountResponse]
+	deleteAccount           *connect.Client[v1.DeleteAccountRequest, v1.DeleteAccountResponse]
+	linkAccountToBudget     *connect.Client[v1.LinkAccountToBudgetRequest, v1.LinkAccountToBudgetResponse]
+	unlinkAccountFromBudget *connect.Client[v1.UnlinkAccountFromBudgetRequest, v1.UnlinkAccountFromBudgetResponse]
+	listBudgetAccounts      *connect.Client[v1.ListBudgetAccountsRequest, v1.ListBudgetAccountsResponse]
 }
 
 // CreateAccount calls budgy.v1.AccountService.CreateAccount.
@@ -121,12 +154,30 @@ func (c *accountServiceClient) DeleteAccount(ctx context.Context, req *connect.R
 	return c.deleteAccount.CallUnary(ctx, req)
 }
 
+// LinkAccountToBudget calls budgy.v1.AccountService.LinkAccountToBudget.
+func (c *accountServiceClient) LinkAccountToBudget(ctx context.Context, req *connect.Request[v1.LinkAccountToBudgetRequest]) (*connect.Response[v1.LinkAccountToBudgetResponse], error) {
+	return c.linkAccountToBudget.CallUnary(ctx, req)
+}
+
+// UnlinkAccountFromBudget calls budgy.v1.AccountService.UnlinkAccountFromBudget.
+func (c *accountServiceClient) UnlinkAccountFromBudget(ctx context.Context, req *connect.Request[v1.UnlinkAccountFromBudgetRequest]) (*connect.Response[v1.UnlinkAccountFromBudgetResponse], error) {
+	return c.unlinkAccountFromBudget.CallUnary(ctx, req)
+}
+
+// ListBudgetAccounts calls budgy.v1.AccountService.ListBudgetAccounts.
+func (c *accountServiceClient) ListBudgetAccounts(ctx context.Context, req *connect.Request[v1.ListBudgetAccountsRequest]) (*connect.Response[v1.ListBudgetAccountsResponse], error) {
+	return c.listBudgetAccounts.CallUnary(ctx, req)
+}
+
 // AccountServiceHandler is an implementation of the budgy.v1.AccountService service.
 type AccountServiceHandler interface {
 	CreateAccount(context.Context, *connect.Request[v1.CreateAccountRequest]) (*connect.Response[v1.CreateAccountResponse], error)
 	ListAccounts(context.Context, *connect.Request[v1.ListAccountsRequest]) (*connect.Response[v1.ListAccountsResponse], error)
 	UpdateAccount(context.Context, *connect.Request[v1.UpdateAccountRequest]) (*connect.Response[v1.UpdateAccountResponse], error)
 	DeleteAccount(context.Context, *connect.Request[v1.DeleteAccountRequest]) (*connect.Response[v1.DeleteAccountResponse], error)
+	LinkAccountToBudget(context.Context, *connect.Request[v1.LinkAccountToBudgetRequest]) (*connect.Response[v1.LinkAccountToBudgetResponse], error)
+	UnlinkAccountFromBudget(context.Context, *connect.Request[v1.UnlinkAccountFromBudgetRequest]) (*connect.Response[v1.UnlinkAccountFromBudgetResponse], error)
+	ListBudgetAccounts(context.Context, *connect.Request[v1.ListBudgetAccountsRequest]) (*connect.Response[v1.ListBudgetAccountsResponse], error)
 }
 
 // NewAccountServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -160,6 +211,24 @@ func NewAccountServiceHandler(svc AccountServiceHandler, opts ...connect.Handler
 		connect.WithSchema(accountServiceMethods.ByName("DeleteAccount")),
 		connect.WithHandlerOptions(opts...),
 	)
+	accountServiceLinkAccountToBudgetHandler := connect.NewUnaryHandler(
+		AccountServiceLinkAccountToBudgetProcedure,
+		svc.LinkAccountToBudget,
+		connect.WithSchema(accountServiceMethods.ByName("LinkAccountToBudget")),
+		connect.WithHandlerOptions(opts...),
+	)
+	accountServiceUnlinkAccountFromBudgetHandler := connect.NewUnaryHandler(
+		AccountServiceUnlinkAccountFromBudgetProcedure,
+		svc.UnlinkAccountFromBudget,
+		connect.WithSchema(accountServiceMethods.ByName("UnlinkAccountFromBudget")),
+		connect.WithHandlerOptions(opts...),
+	)
+	accountServiceListBudgetAccountsHandler := connect.NewUnaryHandler(
+		AccountServiceListBudgetAccountsProcedure,
+		svc.ListBudgetAccounts,
+		connect.WithSchema(accountServiceMethods.ByName("ListBudgetAccounts")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/budgy.v1.AccountService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AccountServiceCreateAccountProcedure:
@@ -170,6 +239,12 @@ func NewAccountServiceHandler(svc AccountServiceHandler, opts ...connect.Handler
 			accountServiceUpdateAccountHandler.ServeHTTP(w, r)
 		case AccountServiceDeleteAccountProcedure:
 			accountServiceDeleteAccountHandler.ServeHTTP(w, r)
+		case AccountServiceLinkAccountToBudgetProcedure:
+			accountServiceLinkAccountToBudgetHandler.ServeHTTP(w, r)
+		case AccountServiceUnlinkAccountFromBudgetProcedure:
+			accountServiceUnlinkAccountFromBudgetHandler.ServeHTTP(w, r)
+		case AccountServiceListBudgetAccountsProcedure:
+			accountServiceListBudgetAccountsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -193,4 +268,16 @@ func (UnimplementedAccountServiceHandler) UpdateAccount(context.Context, *connec
 
 func (UnimplementedAccountServiceHandler) DeleteAccount(context.Context, *connect.Request[v1.DeleteAccountRequest]) (*connect.Response[v1.DeleteAccountResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.AccountService.DeleteAccount is not implemented"))
+}
+
+func (UnimplementedAccountServiceHandler) LinkAccountToBudget(context.Context, *connect.Request[v1.LinkAccountToBudgetRequest]) (*connect.Response[v1.LinkAccountToBudgetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.AccountService.LinkAccountToBudget is not implemented"))
+}
+
+func (UnimplementedAccountServiceHandler) UnlinkAccountFromBudget(context.Context, *connect.Request[v1.UnlinkAccountFromBudgetRequest]) (*connect.Response[v1.UnlinkAccountFromBudgetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.AccountService.UnlinkAccountFromBudget is not implemented"))
+}
+
+func (UnimplementedAccountServiceHandler) ListBudgetAccounts(context.Context, *connect.Request[v1.ListBudgetAccountsRequest]) (*connect.Response[v1.ListBudgetAccountsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.AccountService.ListBudgetAccounts is not implemented"))
 }

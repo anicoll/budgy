@@ -39,9 +39,19 @@ func NewCategoryMapper(mapperGetter interface {
 			m.mapper00000 = v
 		}
 	}
+	if obj, err := mapperGetter.GetFuncByTypeName("", "budgeting_system/internal/domain#CategoryType", "budgeting_system/internal/gen/budgy/v1#CategoryType"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *pkg_budgeting_system_internal_domain.CategoryType) (pkg_budgeting_system_internal_gen_budgy_v1.CategoryType, bool, error)); ok {
+			m.converter00000 = v
+		}
+	}
+	if obj, err := mapperGetter.GetFuncByTypeName("", "int", "int32"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *int) (int32, bool, error)); ok {
+			m.converter00001 = v
+		}
+	}
 	if obj, err := mapperGetter.GetFuncByTypeName("", "time#Time", "google.golang.org/protobuf/types/known/timestamppb#Timestamp"); err == nil {
 		if v, ok := obj.(func(pkg_context.Context, *pkg_time.Time) (*pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp, error)); ok {
-			m.converter00000 = v
+			m.converter00002 = v
 		}
 	}
 	return m
@@ -56,27 +66,55 @@ type categorymapper struct {
 	}
 	helper         CategoryMapperHelper
 	mapper00000    func(pkg_context.Context, *pkg_time.Time, *pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp) error
-	converter00000 func(pkg_context.Context, *pkg_time.Time) (*pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp, error)
+	converter00000 func(pkg_context.Context, *pkg_budgeting_system_internal_domain.CategoryType) (pkg_budgeting_system_internal_gen_budgy_v1.CategoryType, bool, error)
+	converter00001 func(pkg_context.Context, *int) (int32, bool, error)
+	converter00002 func(pkg_context.Context, *pkg_time.Time) (*pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp, error)
 }
 
 func (m *categorymapper) ToProto(ctx pkg_context.Context, source *pkg_budgeting_system_internal_domain.Category, dest *pkg_budgeting_system_internal_gen_budgy_v1.Category) error {
 	dest.Id = source.ID
-	dest.BudgetId = source.BudgetID
+	dest.UserId = source.UserID
+	dest.ParentId = source.ParentID
 	dest.Name = source.Name
-	dest.Budgeted = source.Budgeted
-	dest.Balance = source.Balance
-	dest.TargetLimit = source.TargetLimit
-	done6 := false
-	if m.converter00000 != nil && !done6 {
-		done6 = true
-		if converted, err := m.converter00000(ctx, &(source.CreatedAt)); err != nil {
+	done4 := false
+	if m.converter00000 != nil && !done4 {
+		done4 = true
+		if converted, isnil, err := m.converter00000(ctx, &(source.Type)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.Type = converted
+			}
+		}
+	}
+	dest.Color = source.Color
+	dest.Icon = source.Icon
+	done7 := false
+	if m.converter00001 != nil && !done7 {
+		done7 = true
+		if converted, isnil, err := m.converter00001(ctx, &(source.SortOrder)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.SortOrder = converted
+			}
+		}
+	}
+	dest.Archived = source.Archived
+	dest.System = source.System
+	dest.BasiqSubclassCode = source.BasiqSubClassCode
+	dest.AnzsicClassCode = source.AnzsicClassCode
+	done12 := false
+	if m.converter00002 != nil && !done12 {
+		done12 = true
+		if converted, err := m.converter00002(ctx, &(source.CreatedAt)); err != nil {
 			return err
 		} else {
 			dest.CreatedAt = converted
 		}
 	}
-	if m.mapper00000 != nil && !done6 {
-		done6 = true
+	if m.mapper00000 != nil && !done12 {
+		done12 = true
 		if dest.CreatedAt == nil {
 			dest.CreatedAt = new(pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp)
 		}
@@ -84,17 +122,17 @@ func (m *categorymapper) ToProto(ctx pkg_context.Context, source *pkg_budgeting_
 			return err
 		}
 	}
-	done7 := false
-	if m.converter00000 != nil && !done7 {
-		done7 = true
-		if converted, err := m.converter00000(ctx, &(source.UpdatedAt)); err != nil {
+	done13 := false
+	if m.converter00002 != nil && !done13 {
+		done13 = true
+		if converted, err := m.converter00002(ctx, &(source.UpdatedAt)); err != nil {
 			return err
 		} else {
 			dest.UpdatedAt = converted
 		}
 	}
-	if m.mapper00000 != nil && !done7 {
-		done7 = true
+	if m.mapper00000 != nil && !done13 {
+		done13 = true
 		if dest.UpdatedAt == nil {
 			dest.UpdatedAt = new(pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp)
 		}

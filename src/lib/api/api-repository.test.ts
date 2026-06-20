@@ -64,12 +64,28 @@ describe("getActiveBudgetId", () => {
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
-  it("caches the budget id after the first call", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("cached-id")] }));
+  it("revalidates against the budget list on each call", async () => {
+    mockFetch.mockResolvedValue(connectResponse({ budgets: [budgetMsg("cached-id")] }));
     await getActiveBudgetId();
     const id2 = await getActiveBudgetId();
     expect(id2).toBe("cached-id");
-    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("prefers the selected budget from session storage when it exists", async () => {
+    sessionStorage.setItem("budgy.selectedBudgetId", "b2");
+    mockFetch.mockResolvedValueOnce(
+      connectResponse({ budgets: [budgetMsg("b1"), budgetMsg("b2", "Second")] }),
+    );
+    const id = await getActiveBudgetId();
+    expect(id).toBe("b2");
+  });
+
+  it("falls back when the cached budget no longer exists", async () => {
+    sessionStorage.setItem("budgy.selectedBudgetId", "deleted-budget");
+    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
+    const id = await getActiveBudgetId();
+    expect(id).toBe("b1");
   });
 });
 
@@ -120,7 +136,7 @@ describe("ApiAccountRepository", () => {
   function accountMsg(id: string, name: string, type = 1, balance = 50000, extra = {}) {
     return {
       id,
-      budgetId: "b1",
+      userId: "u1",
       name,
       type,
       balance: String(balance),
@@ -131,7 +147,6 @@ describe("ApiAccountRepository", () => {
   }
 
   it("list maps proto accounts to frontend Account type", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(connectResponse({ accounts: [accountMsg("a1", "Checking")] }));
 
     const result = await repo.list();
@@ -143,7 +158,6 @@ describe("ApiAccountRepository", () => {
   });
 
   it("list parses metadata suffix from the account name", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
       connectResponse({
         accounts: [
@@ -166,7 +180,6 @@ describe("ApiAccountRepository", () => {
   });
 
   it("list defaults metadata for synced accounts without suffix", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
       connectResponse({
         accounts: [
@@ -187,7 +200,6 @@ describe("ApiAccountRepository", () => {
   });
 
   it("list handles empty name synced accounts by falling back to product name and maps class to frontend type", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
       connectResponse({
         accounts: [
@@ -206,10 +218,7 @@ describe("ApiAccountRepository", () => {
     expect(result[0].type).toBe("loan"); // mapped from mortgage class
   });
   it("upsert serializes metadata into name field suffix", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
-    // get() for existing check inside upsert
     mockFetch.mockResolvedValueOnce(connectResponse({ accounts: [] }));
-    // createAccount call response mock
     mockFetch.mockResolvedValueOnce(
       connectResponse({
         account: accountMsg(
@@ -239,7 +248,6 @@ describe("ApiAccountRepository", () => {
     expect(result.color).toBe("#00ff00");
     expect(result.sortOrder).toBe(2);
 
-    // Verify last fetch call body contained formatted name
     const lastCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
     const rawBody = lastCall[1].body;
     const decoded = typeof rawBody === "string" ? rawBody : new TextDecoder().decode(rawBody);
@@ -250,7 +258,6 @@ describe("ApiAccountRepository", () => {
   });
 
   it("list returns empty array when API returns no accounts", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(connectResponse({ accounts: [] }));
 
     const result = await repo.list();
@@ -258,7 +265,6 @@ describe("ApiAccountRepository", () => {
   });
 
   it("get returns null for nonexistent account", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(connectResponse({ accounts: [] }));
 
     const result = await repo.get("nonexistent");
@@ -272,18 +278,19 @@ describe("ApiCategoryRepository", () => {
   function categoryMsg(id: string, name: string) {
     return {
       id,
-      budgetId: "b1",
+      userId: "u1",
       name,
-      budgeted: "10000",
-      balance: "5000",
-      targetLimit: "15000",
+      type: 2, // EXPENSE
+      color: "#7c5cff",
+      sortOrder: 0,
+      archived: false,
+      system: false,
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-01-01T00:00:00Z",
     };
   }
 
   it("list maps proto categories to frontend Category type", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
       connectResponse({ categories: [categoryMsg("c1", "Groceries")] }),
     );
@@ -315,7 +322,6 @@ describe("ApiTransactionRepository", () => {
   }
 
   it("list maps proto transactions to frontend Transaction type (debit)", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
       connectResponse({ transactions: [txMsg("t1", "-5000", "Woolworths")] }),
     );
@@ -331,7 +337,6 @@ describe("ApiTransactionRepository", () => {
   });
 
   it("maps positive amounts to credit type", async () => {
-    mockFetch.mockResolvedValueOnce(connectResponse({ budgets: [budgetMsg("b1")] }));
     mockFetch.mockResolvedValueOnce(
       connectResponse({ transactions: [txMsg("t2", "150000", "Salary", "")] }),
     );

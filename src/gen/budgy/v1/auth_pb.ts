@@ -2,21 +2,17 @@
 // @generated from file budgy/v1/auth.proto (package budgy.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file budgy/v1/auth.proto.
  */
-export const file_budgy_v1_auth: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChNidWRneS92MS9hdXRoLnByb3RvEghidWRneS52MSK/AQoEVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRISCgpmaXJzdF9uYW1lGAMgASgJEhEKCWxhc3RfbmFtZRgEIAEoCRIVCg1iYXNpcV91c2VyX2lkGAUgASgJEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlkKD1JlZ2lzdGVyUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRISCgpmaXJzdF9uYW1lGAMgASgJEhEKCWxhc3RfbmFtZRgEIAEoCSIwChBSZWdpc3RlclJlc3BvbnNlEhwKBHVzZXIYASABKAsyDi5idWRneS52MS5Vc2VyIi8KDExvZ2luUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCSItCg1Mb2dpblJlc3BvbnNlEhwKBHVzZXIYASABKAsyDi5idWRneS52MS5Vc2VyIg8KDUxvZ291dFJlcXVlc3QiEAoOTG9nb3V0UmVzcG9uc2UiDgoMR2V0TWVSZXF1ZXN0Ii0KDUdldE1lUmVzcG9uc2USHAoEdXNlchgBIAEoCzIOLmJ1ZGd5LnYxLlVzZXIygQIKC0F1dGhTZXJ2aWNlEkEKCFJlZ2lzdGVyEhkuYnVkZ3kudjEuUmVnaXN0ZXJSZXF1ZXN0GhouYnVkZ3kudjEuUmVnaXN0ZXJSZXNwb25zZRI4CgVMb2dpbhIWLmJ1ZGd5LnYxLkxvZ2luUmVxdWVzdBoXLmJ1ZGd5LnYxLkxvZ2luUmVzcG9uc2USOwoGTG9nb3V0EhcuYnVkZ3kudjEuTG9nb3V0UmVxdWVzdBoYLmJ1ZGd5LnYxLkxvZ291dFJlc3BvbnNlEjgKBUdldE1lEhYuYnVkZ3kudjEuR2V0TWVSZXF1ZXN0GhcuYnVkZ3kudjEuR2V0TWVSZXNwb25zZUIwWi5idWRnZXRpbmdfc3lzdGVtL2ludGVybmFsL2dlbi9idWRneS92MTtidWRneXYxYgZwcm90bzM",
-    [file_google_protobuf_timestamp],
-  );
+export const file_budgy_v1_auth: GenFile = /*@__PURE__*/
+  fileDesc("ChNidWRneS92MS9hdXRoLnByb3RvEghidWRneS52MSK/AQoEVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRISCgpmaXJzdF9uYW1lGAMgASgJEhEKCWxhc3RfbmFtZRgEIAEoCRIVCg1iYXNpcV91c2VyX2lkGAUgASgJEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlkKD1JlZ2lzdGVyUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRISCgpmaXJzdF9uYW1lGAMgASgJEhEKCWxhc3RfbmFtZRgEIAEoCSIwChBSZWdpc3RlclJlc3BvbnNlEhwKBHVzZXIYASABKAsyDi5idWRneS52MS5Vc2VyIi8KDExvZ2luUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCSItCg1Mb2dpblJlc3BvbnNlEhwKBHVzZXIYASABKAsyDi5idWRneS52MS5Vc2VyIg8KDUxvZ291dFJlcXVlc3QiEAoOTG9nb3V0UmVzcG9uc2UiDgoMR2V0TWVSZXF1ZXN0Ii0KDUdldE1lUmVzcG9uc2USHAoEdXNlchgBIAEoCzIOLmJ1ZGd5LnYxLlVzZXIygQIKC0F1dGhTZXJ2aWNlEkEKCFJlZ2lzdGVyEhkuYnVkZ3kudjEuUmVnaXN0ZXJSZXF1ZXN0GhouYnVkZ3kudjEuUmVnaXN0ZXJSZXNwb25zZRI4CgVMb2dpbhIWLmJ1ZGd5LnYxLkxvZ2luUmVxdWVzdBoXLmJ1ZGd5LnYxLkxvZ2luUmVzcG9uc2USOwoGTG9nb3V0EhcuYnVkZ3kudjEuTG9nb3V0UmVxdWVzdBoYLmJ1ZGd5LnYxLkxvZ291dFJlc3BvbnNlEjgKBUdldE1lEhYuYnVkZ3kudjEuR2V0TWVSZXF1ZXN0GhcuYnVkZ3kudjEuR2V0TWVSZXNwb25zZUIwWi5idWRnZXRpbmdfc3lzdGVtL2ludGVybmFsL2dlbi9idWRneS92MTtidWRneXYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message budgy.v1.User
@@ -62,7 +58,8 @@ export type User = Message<"budgy.v1.User"> & {
  * Describes the message budgy.v1.User.
  * Use `create(UserSchema)` to create a new message.
  */
-export const UserSchema: GenMessage<User> = /*@__PURE__*/ messageDesc(file_budgy_v1_auth, 0);
+export const UserSchema: GenMessage<User> = /*@__PURE__*/
+  messageDesc(file_budgy_v1_auth, 0);
 
 /**
  * @generated from message budgy.v1.RegisterRequest
@@ -93,8 +90,7 @@ export type RegisterRequest = Message<"budgy.v1.RegisterRequest"> & {
  * Describes the message budgy.v1.RegisterRequest.
  * Use `create(RegisterRequestSchema)` to create a new message.
  */
-export const RegisterRequestSchema: GenMessage<RegisterRequest> =
-  /*@__PURE__*/
+export const RegisterRequestSchema: GenMessage<RegisterRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_auth, 1);
 
 /**
@@ -111,8 +107,7 @@ export type RegisterResponse = Message<"budgy.v1.RegisterResponse"> & {
  * Describes the message budgy.v1.RegisterResponse.
  * Use `create(RegisterResponseSchema)` to create a new message.
  */
-export const RegisterResponseSchema: GenMessage<RegisterResponse> =
-  /*@__PURE__*/
+export const RegisterResponseSchema: GenMessage<RegisterResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_auth, 2);
 
 /**
@@ -134,8 +129,7 @@ export type LoginRequest = Message<"budgy.v1.LoginRequest"> & {
  * Describes the message budgy.v1.LoginRequest.
  * Use `create(LoginRequestSchema)` to create a new message.
  */
-export const LoginRequestSchema: GenMessage<LoginRequest> =
-  /*@__PURE__*/
+export const LoginRequestSchema: GenMessage<LoginRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_auth, 3);
 
 /**
@@ -152,47 +146,46 @@ export type LoginResponse = Message<"budgy.v1.LoginResponse"> & {
  * Describes the message budgy.v1.LoginResponse.
  * Use `create(LoginResponseSchema)` to create a new message.
  */
-export const LoginResponseSchema: GenMessage<LoginResponse> =
-  /*@__PURE__*/
+export const LoginResponseSchema: GenMessage<LoginResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_auth, 4);
 
 /**
  * @generated from message budgy.v1.LogoutRequest
  */
-export type LogoutRequest = Message<"budgy.v1.LogoutRequest"> & {};
+export type LogoutRequest = Message<"budgy.v1.LogoutRequest"> & {
+};
 
 /**
  * Describes the message budgy.v1.LogoutRequest.
  * Use `create(LogoutRequestSchema)` to create a new message.
  */
-export const LogoutRequestSchema: GenMessage<LogoutRequest> =
-  /*@__PURE__*/
+export const LogoutRequestSchema: GenMessage<LogoutRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_auth, 5);
 
 /**
  * @generated from message budgy.v1.LogoutResponse
  */
-export type LogoutResponse = Message<"budgy.v1.LogoutResponse"> & {};
+export type LogoutResponse = Message<"budgy.v1.LogoutResponse"> & {
+};
 
 /**
  * Describes the message budgy.v1.LogoutResponse.
  * Use `create(LogoutResponseSchema)` to create a new message.
  */
-export const LogoutResponseSchema: GenMessage<LogoutResponse> =
-  /*@__PURE__*/
+export const LogoutResponseSchema: GenMessage<LogoutResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_auth, 6);
 
 /**
  * @generated from message budgy.v1.GetMeRequest
  */
-export type GetMeRequest = Message<"budgy.v1.GetMeRequest"> & {};
+export type GetMeRequest = Message<"budgy.v1.GetMeRequest"> & {
+};
 
 /**
  * Describes the message budgy.v1.GetMeRequest.
  * Use `create(GetMeRequestSchema)` to create a new message.
  */
-export const GetMeRequestSchema: GenMessage<GetMeRequest> =
-  /*@__PURE__*/
+export const GetMeRequestSchema: GenMessage<GetMeRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_auth, 7);
 
 /**
@@ -209,8 +202,7 @@ export type GetMeResponse = Message<"budgy.v1.GetMeResponse"> & {
  * Describes the message budgy.v1.GetMeResponse.
  * Use `create(GetMeResponseSchema)` to create a new message.
  */
-export const GetMeResponseSchema: GenMessage<GetMeResponse> =
-  /*@__PURE__*/
+export const GetMeResponseSchema: GenMessage<GetMeResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_auth, 8);
 
 /**
@@ -224,7 +216,7 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof RegisterRequestSchema;
     output: typeof RegisterResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.AuthService.Login
    */
@@ -232,7 +224,7 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof LoginRequestSchema;
     output: typeof LoginResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.AuthService.Logout
    */
@@ -240,7 +232,7 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof LogoutRequestSchema;
     output: typeof LogoutResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.AuthService.GetMe
    */
@@ -248,5 +240,7 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof GetMeRequestSchema;
     output: typeof GetMeResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_budgy_v1_auth, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_budgy_v1_auth, 0);
+

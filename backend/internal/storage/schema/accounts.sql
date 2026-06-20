@@ -27,7 +27,7 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.accounts (
     id text NOT NULL,
-    budget_id text,
+    user_id text NOT NULL,
     name text NOT NULL,
     type text NOT NULL,
     balance bigint DEFAULT 0 NOT NULL,
@@ -52,11 +52,11 @@ ALTER TABLE ONLY public.accounts
 
 
 --
--- Name: accounts accounts_budget_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: accounts accounts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.accounts
-    ADD CONSTRAINT accounts_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE SET NULL;
+    ADD CONSTRAINT accounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

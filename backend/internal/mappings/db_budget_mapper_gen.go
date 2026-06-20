@@ -5,7 +5,6 @@ import (
 	pkg_budgeting_system_internal_domain "budgeting_system/internal/domain"
 	pkg_budgeting_system_internal_storage_db "budgeting_system/internal/storage/db"
 	pkg_context "context"
-	pkg_database_sql "database/sql"
 	"reflect"
 )
 
@@ -37,11 +36,6 @@ func NewDBBudgetMapper(mapperGetter interface {
 			m.converter00000 = v
 		}
 	}
-	if obj, err := mapperGetter.GetFuncByTypeName("", "database/sql#NullString", "string"); err == nil {
-		if v, ok := obj.(func(pkg_context.Context, *pkg_database_sql.NullString) (string, bool, error)); ok {
-			m.converter00001 = v
-		}
-	}
 	return m
 }
 
@@ -54,15 +48,15 @@ type dbbudgetmapper struct {
 	}
 	helper         DBBudgetMapperHelper
 	converter00000 func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.BudgetMethod, bool, error)
-	converter00001 func(pkg_context.Context, *pkg_database_sql.NullString) (string, bool, error)
 }
 
 func (m *dbbudgetmapper) BudgetToBudget(ctx pkg_context.Context, source *pkg_budgeting_system_internal_storage_db.Budget, dest *pkg_budgeting_system_internal_domain.Budget) error {
 	dest.ID = source.ID
+	dest.UserID = source.UserID
 	dest.Name = source.Name
-	done2 := false
-	if m.converter00000 != nil && !done2 {
-		done2 = true
+	done3 := false
+	if m.converter00000 != nil && !done3 {
+		done3 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.Method)); err != nil {
 			return err
 		} else {
@@ -71,24 +65,13 @@ func (m *dbbudgetmapper) BudgetToBudget(ctx pkg_context.Context, source *pkg_bud
 			}
 		}
 	}
-	if !done2 {
-		done2 = true
+	if !done3 {
+		done3 = true
 		dest.Method = pkg_budgeting_system_internal_domain.BudgetMethod(source.Method)
 	}
 	dest.Currency = source.Currency
 	dest.CreatedAt = source.CreatedAt
 	dest.UpdatedAt = source.UpdatedAt
-	done7 := false
-	if m.converter00001 != nil && !done7 {
-		done7 = true
-		if converted, isnil, err := m.converter00001(ctx, &(source.UserID)); err != nil {
-			return err
-		} else {
-			if !isnil {
-				dest.UserID = converted
-			}
-		}
-	}
 	if m.helper != nil {
 		if err := m.helper.BudgetToBudget(ctx, source, dest); err != nil {
 			return err

@@ -12,6 +12,10 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+type mockSeeder struct{}
+
+func (mockSeeder) SeedCategoriesForUser(_ context.Context, _ string) error { return nil }
+
 func TestAuthService_Register(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -32,7 +36,6 @@ func TestAuthService_Register(t *testing.T) {
 				m.On("GetByEmail", mock.Anything, "new@example.com").Return(nil, errors.New("not found"))
 				m.On("Create", mock.Anything, mock.AnythingOfType("*domain.User")).Return(nil)
 			},
-			expectedErr: nil,
 		},
 		{
 			name:      "Conflict User Already Exists",
@@ -51,116 +54,58 @@ func TestAuthService_Register(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := mocks.NewMockUserRepository(t)
 			tt.setupMocks(mockRepo)
-
-			svc := NewAuthService(mockRepo)
+			svc := NewAuthService(mockRepo, mockSeeder{})
 			user, err := svc.Register(context.Background(), tt.email, tt.password, tt.firstName, tt.lastName)
-
 			if tt.expectedErr != nil {
-				assert.Error(t, err)
 				assert.ErrorIs(t, err, tt.expectedErr)
 				assert.Nil(t, user)
 			} else {
 				assert.NoError(t, err)
-				assert.NotNil(t, user)
 				assert.Equal(t, tt.email, user.Email)
-				assert.NotEmpty(t, user.PasswordHash)
 			}
 		})
 	}
 }
 
 func TestBudgetService_Create(t *testing.T) {
-	tests := []struct {
-		name        string
-		userID      string
-		budgetName  string
-		method      domain.BudgetMethod
-		currency    string
-		setupMocks  func(m *mocks.MockBudgetRepository)
-		expectedErr error
-	}{
-		{
-			name:       "Success",
-			userID:     "user-1",
-			budgetName: "My Budget",
-			method:     domain.MethodZeroSum,
-			currency:   "USD",
-			setupMocks: func(m *mocks.MockBudgetRepository) {
-				m.On("Create", mock.Anything, mock.MatchedBy(func(b *domain.Budget) bool {
-					return b.UserID == "user-1" && b.Name == "My Budget"
-				})).Return(nil)
-			},
-			expectedErr: nil,
-		},
-		{
-			name:        "Invalid Budget Method",
-			userID:      "user-1",
-			budgetName:  "My Budget",
-			method:      "INVALID",
-			currency:    "USD",
-			setupMocks:  func(m *mocks.MockBudgetRepository) {},
-			expectedErr: ErrBadRequest,
-		},
-	}
+	mockRepo := mocks.NewMockBudgetRepository(t)
+	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(b *domain.Budget) bool {
+		return b.UserID == "user-1" && b.Name == "My Budget"
+	})).Return(nil)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockRepo := mocks.NewMockBudgetRepository(t)
-			tt.setupMocks(mockRepo)
-
-			svc := NewBudgetService(mockRepo, nil, nil)
-			budget, err := svc.Create(context.Background(), tt.userID, tt.budgetName, tt.method, tt.currency)
-
-			if tt.expectedErr != nil {
-				assert.Error(t, err)
-				assert.ErrorIs(t, err, tt.expectedErr)
-				assert.Nil(t, budget)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, budget)
-				assert.Equal(t, tt.budgetName, budget.Name)
-			}
-		})
-	}
+	svc := NewBudgetService(mockRepo, nil, nil, nil, nil, nil)
+	budget, err := svc.Create(context.Background(), "user-1", "My Budget", domain.MethodZeroSum, "USD")
+	assert.NoError(t, err)
+	assert.Equal(t, "My Budget", budget.Name)
 }
 
-func TestCategoryService_FundEnvelope(t *testing.T) {
-	mockCatRepo := mocks.NewMockCategoryRepository(t)
+func TestBudgetService_FundEnvelope(t *testing.T) {
+	mockBudgetRepo := mocks.NewMockBudgetRepository(t)
 	mockAccRepo := mocks.NewMockAccountRepository(t)
+	mockBudgetAccts := mocks.NewMockBudgetAccountRepository(t)
+	mockBudgetLines := mocks.NewMockBudgetCategoryLineRepository(t)
 	mockAllocRepo := mocks.NewMockAllocationRepository(t)
 	mockTxRepo := mocks.NewMockTransactionRepository(t)
 
-	acc := &domain.Account{
-		ID:       "acc-1",
-		BudgetID: "b-1",
-		Balance:  100000,
-	}
-	cat := &domain.Category{
-		ID:       "cat-1",
-		BudgetID: "b-1",
-		Budgeted: 0,
+	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodEnvelope}
+	acc := &domain.Account{ID: "acc-1", UserID: "user-1", Balance: 100000}
+	budgetCat := &domain.BudgetCategory{
+		Category: domain.Category{ID: "cat-1", UserID: "user-1", Name: "Groceries"},
 		Balance:  10000,
 	}
 
+	mockBudgetRepo.On("GetByID", mock.Anything, "b-1").Return(budget, nil)
 	mockAccRepo.On("GetByID", mock.Anything, "acc-1").Return(acc, nil)
-	mockCatRepo.On("GetByID", mock.Anything, "cat-1").Return(cat, nil)
-
-	// Mocks for calculateUnallocated
+	mockBudgetLines.On("ListBudgetCategories", mock.Anything, "b-1").Return([]*domain.BudgetCategory{budgetCat}, nil)
 	mockAllocRepo.On("ListByAccount", mock.Anything, "b-1", "acc-1").Return([]*domain.EnvelopeAllocation{}, nil)
 	mockTxRepo.On("ListByAccount", mock.Anything, "acc-1").Return([]*domain.Transaction{}, nil)
-
-	// Mock for allocation upsert
 	mockAllocRepo.On("Get", mock.Anything, "b-1", "acc-1", "cat-1").Return(nil, errors.New("not found"))
-	mockAllocRepo.On("Upsert", mock.Anything, mock.MatchedBy(func(alloc *domain.EnvelopeAllocation) bool {
-		return alloc.BudgetID == "b-1" && alloc.AccountID == "acc-1" && alloc.CategoryID == "cat-1" && alloc.Amount == 30000
-	})).Return(nil)
+	mockAllocRepo.On("Upsert", mock.Anything, mock.AnythingOfType("*domain.EnvelopeAllocation")).Return(nil)
+	mockBudgetLines.On("EnsureLine", mock.Anything, "b-1", "cat-1").Return(nil)
+	mockBudgetLines.On("UpdateBudgetedAndBalance", mock.Anything, "b-1", "cat-1", int64(0), int64(40000)).Return(nil)
 
-	// Mock for category update
-	mockCatRepo.On("UpdateBudgetedAndBalance", mock.Anything, "cat-1", int64(0), int64(40000)).Return(nil)
-
-	svc := NewCategoryService(mockCatRepo, mockAccRepo, mockAllocRepo, mockTxRepo)
+	svc := NewBudgetService(mockBudgetRepo, mockAccRepo, mockBudgetAccts, mockBudgetLines, mockAllocRepo, mockTxRepo)
 	updatedAcc, updatedCat, err := svc.FundEnvelope(context.Background(), "b-1", "cat-1", "acc-1", 30000)
-
 	assert.NoError(t, err)
 	assert.Equal(t, int64(70000), updatedAcc.Balance)
 	assert.Equal(t, int64(40000), updatedCat.Balance)

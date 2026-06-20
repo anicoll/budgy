@@ -1,6 +1,8 @@
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { BudgetMethod } from "@/gen/budgy/v1/budget_pb";
-import { accountClient, budgetClient, categoryClient } from "@/lib/api/connect-client";
+import { CategoryType as ProtoCategoryType } from "@/gen/budgy/v1/category_pb";
+import { clearActiveBudgetIdCache } from "@/lib/api/api-repository";
+import { accountClient, budgetClient } from "@/lib/api/connect-client";
 import { cents } from "@/lib/money/cents";
 import type { BackendAccount, BackendBudget, BackendBudgetMethod, BackendCategory } from "./types";
 
@@ -40,34 +42,41 @@ function mapBudget(b: {
   };
 }
 
-function mapCategory(c: {
-  id: string;
-  budgetId: string;
-  name: string;
+function mapBudgetCategory(bc: {
+  category?: {
+    id: string;
+    name: string;
+    type: ProtoCategoryType;
+    parentId: string;
+    system: boolean;
+  };
   budgeted: bigint;
   balance: bigint;
   targetLimit: bigint;
 }): BackendCategory {
+  const c = bc.category;
+  if (!c) throw new Error("Missing category in budget line");
   return {
     id: c.id,
-    budgetId: c.budgetId,
     name: c.name,
-    budgeted: bigintToCents(c.budgeted),
-    balance: bigintToCents(c.balance),
-    targetLimit: bigintToCents(c.targetLimit),
+    type:
+      c.type === ProtoCategoryType.INCOME
+        ? "income"
+        : c.type === ProtoCategoryType.TRANSFER
+          ? "transfer"
+          : "expense",
+    parentId: c.parentId || null,
+    system: c.system,
+    budgeted: bigintToCents(bc.budgeted),
+    balance: bigintToCents(bc.balance),
+    targetLimit: bigintToCents(bc.targetLimit),
   };
 }
 
-function mapAccount(a: {
-  id: string;
-  budgetId: string;
-  name: string;
-  balance: bigint;
-}): BackendAccount {
+function mapAccount(a: { id: string; name: string; balance: bigint }): BackendAccount {
   const cleanName = a.name.split(" ||")[0];
   return {
     id: a.id,
-    budgetId: a.budgetId,
     name: cleanName,
     balance: bigintToCents(a.balance),
   };
@@ -108,15 +117,16 @@ export async function updateBudget(
 
 export async function deleteBudget(budgetId: string): Promise<void> {
   await budgetClient.deleteBudget({ budgetId });
+  clearActiveBudgetIdCache();
 }
 
 export async function fetchCategories(budgetId: string): Promise<BackendCategory[]> {
-  const res = await categoryClient.listCategories({ budgetId });
-  return (res.categories ?? []).map(mapCategory);
+  const res = await budgetClient.listBudgetCategories({ budgetId });
+  return (res.categories ?? []).map(mapBudgetCategory);
 }
 
 export async function fetchAccounts(budgetId: string): Promise<BackendAccount[]> {
-  const res = await accountClient.listAccounts({ budgetId });
+  const res = await accountClient.listBudgetAccounts({ budgetId });
   return (res.accounts ?? []).map(mapAccount);
 }
 
@@ -125,13 +135,13 @@ export async function assignCategoryFunds(
   categoryId: string,
   amountCents: number,
 ): Promise<BackendCategory> {
-  const res = await categoryClient.assignCategoryFunds({
+  const res = await budgetClient.assignCategoryFunds({
     budgetId,
     categoryId,
     amount: BigInt(amountCents),
   });
   if (!res.category) throw new Error("Failed to assign funds");
-  return mapCategory(res.category);
+  return mapBudgetCategory(res.category);
 }
 
 export async function fundEnvelope(
@@ -140,7 +150,7 @@ export async function fundEnvelope(
   accountId: string,
   amountCents: number,
 ): Promise<BackendCategory> {
-  const res = await categoryClient.fundEnvelope({
+  const res = await budgetClient.fundEnvelope({
     budgetId,
     categoryId,
     accountId,
@@ -148,5 +158,5 @@ export async function fundEnvelope(
   });
   const envelope = res.result?.envelope;
   if (!envelope) throw new Error("Failed to fund envelope");
-  return mapCategory(envelope);
+  return mapBudgetCategory(envelope);
 }

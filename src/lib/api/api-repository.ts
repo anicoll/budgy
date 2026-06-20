@@ -1,18 +1,33 @@
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { Code, ConnectError } from "@connectrpc/connect";
+import {
+  createAccountApi,
+  deleteAccountApi,
+  updateAccountApi,
+} from "@/features/accounts/api/client";
 import { ACCOUNT_DEFAULT_COLOR, type Account, type AccountType } from "@/features/accounts/types";
 import type { Budget } from "@/features/budgets/types";
+import {
+  createCategoryApi,
+  deleteCategoryApi,
+  fetchCategories as fetchCategoriesApi,
+  updateCategoryApi,
+} from "@/features/categories/api/client";
+import type { CategoryFormValues } from "@/features/categories/schema";
 import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
 import { AccountType as ProtoAccountType } from "@/gen/budgy/v1/account_pb";
 import { BudgetMethod } from "@/gen/budgy/v1/budget_pb";
 import {
-  accountClient,
-  budgetClient,
-  categoryClient,
-  transactionClient,
-} from "@/lib/api/connect-client";
+  clearSelectedBudgetId,
+  readSelectedBudgetId,
+  writeSelectedBudgetId,
+} from "@/lib/api/active-budget";
+import { accountClient, budgetClient, transactionClient } from "@/lib/api/connect-client";
 import type { Cents } from "@/lib/money/cents";
 import type { ListQuery, Repository } from "@/lib/storage/repository";
+
+export { SELECTED_BUDGET_KEY } from "@/lib/api/active-budget";
 
 // ─── Timestamp helpers ────────────────────────────────────────────────────────
 
@@ -31,18 +46,35 @@ function tsToDateStr(ts: Timestamp | null | undefined): string {
 let activeBudgetIdCache: string | null = null;
 
 export async function getActiveBudgetId(): Promise<string> {
-  if (activeBudgetIdCache) return activeBudgetIdCache;
+  let budgets: { id: string }[] = [];
   try {
     const res = await budgetClient.listBudgets({});
-    const budgets = res.budgets ?? [];
+    budgets = res.budgets ?? [];
+
     if (budgets.length > 0) {
+      const candidates = [activeBudgetIdCache, readSelectedBudgetId()];
+      for (const id of candidates) {
+        if (id && budgets.some((b) => b.id === id)) {
+          activeBudgetIdCache = id;
+          writeSelectedBudgetId(id);
+          return id;
+        }
+      }
+
       activeBudgetIdCache = budgets[0].id;
+      writeSelectedBudgetId(budgets[0].id);
       return budgets[0].id;
     }
   } catch (e) {
+    if (e instanceof ConnectError && e.code === Code.Unauthenticated) {
+      throw e;
+    }
     console.error("Error fetching budgets, attempting to create default:", e);
   }
-  // Create default budget if none exists
+
+  activeBudgetIdCache = null;
+  clearSelectedBudgetId();
+
   const createRes = await budgetClient.createBudget({
     name: "Default Budget",
     method: BudgetMethod.ZERO_SUM,
@@ -50,11 +82,13 @@ export async function getActiveBudgetId(): Promise<string> {
   });
   if (!createRes.budget) throw new Error("Failed to create default budget");
   activeBudgetIdCache = createRes.budget.id;
+  writeSelectedBudgetId(createRes.budget.id);
   return createRes.budget.id;
 }
 
 export function clearActiveBudgetIdCache() {
   activeBudgetIdCache = null;
+  clearSelectedBudgetId();
 }
 
 // ─── Type mappers ─────────────────────────────────────────────────────────────
@@ -71,21 +105,6 @@ function mapProtoTypeToFrontend(type: ProtoAccountType): AccountType {
       return "cash";
     default:
       return "checking";
-  }
-}
-
-function mapFrontendTypeToProto(type: AccountType): ProtoAccountType {
-  switch (type) {
-    case "checking":
-      return ProtoAccountType.CHECKING;
-    case "savings":
-      return ProtoAccountType.SAVINGS;
-    case "credit":
-      return ProtoAccountType.CREDIT_CARD;
-    case "cash":
-      return ProtoAccountType.CASH;
-    default:
-      return ProtoAccountType.CHECKING;
   }
 }
 
@@ -128,17 +147,18 @@ export class ApiBudgetRepository implements Repository<Budget> {
         // Fetch categories to build targets
         let targets: Budget["targets"] = [];
         try {
-          const catRes = await categoryClient.listCategories({ budgetId: b.id });
+          const catRes = await budgetClient.listBudgetCategories({ budgetId: b.id });
           const cats = catRes.categories ?? [];
           targets = cats
             .filter((c) => c.targetLimit > 0n)
             .map((c) => ({
-              categoryId: c.id,
+              categoryId: c.category?.id ?? "",
               amount: Number(c.targetLimit) as Cents,
               frequency: "monthly" as const,
               mode: "envelope" as const,
               openedAt: tsToDateStr(b.createdAt),
-            }));
+            }))
+            .filter((t) => t.categoryId);
         } catch {}
 
         return {
@@ -163,17 +183,18 @@ export class ApiBudgetRepository implements Repository<Budget> {
 
       let targets: Budget["targets"] = [];
       try {
-        const catRes = await categoryClient.listCategories({ budgetId: b.id });
+        const catRes = await budgetClient.listBudgetCategories({ budgetId: b.id });
         const cats = catRes.categories ?? [];
         targets = cats
           .filter((c) => c.targetLimit > 0n)
           .map((c) => ({
-            categoryId: c.id,
+            categoryId: c.category?.id ?? "",
             amount: Number(c.targetLimit) as Cents,
             frequency: "monthly" as const,
             mode: "envelope" as const,
             openedAt: tsToDateStr(b.createdAt),
-          }));
+          }))
+          .filter((t) => t.categoryId);
       } catch {}
 
       return {
@@ -215,23 +236,8 @@ export class ApiBudgetRepository implements Repository<Budget> {
       budgetId = res.budget.id;
     }
 
-    // Sync targets to backend categories' target_limits
-    if (entity.targets && entity.targets.length > 0) {
-      for (const target of entity.targets) {
-        try {
-          const catRes = await categoryClient.listCategories({ budgetId });
-          const cats = catRes.categories ?? [];
-          const existingCat = cats.find((c) => c.id === target.categoryId);
-          if (existingCat) {
-            await categoryClient.updateCategory({
-              budgetId,
-              categoryId: target.categoryId,
-              targetLimit: BigInt(target.amount),
-            });
-          }
-        } catch {}
-      }
-    }
+    // Target limits are managed via budget category lines on the budgets page.
+    void entity.targets;
 
     return {
       id: budgetId,
@@ -312,10 +318,8 @@ function resolveAccount(a: any): Account {
 
 export class ApiAccountRepository implements Repository<Account> {
   async list(_query?: ListQuery<Account>): Promise<Account[]> {
-    const budgetId = await getActiveBudgetId();
-    const res = await accountClient.listAccounts({ budgetId });
-    const accs = res.accounts ?? [];
-    return accs.map(resolveAccount);
+    const res = await accountClient.listAccounts({});
+    return (res.accounts ?? []).map((a) => resolveAccount(a));
   }
 
   async get(id: string): Promise<Account | null> {
@@ -325,37 +329,29 @@ export class ApiAccountRepository implements Repository<Account> {
 
   async upsert(entity: Account): Promise<Account> {
     const existing = await this.get(entity.id);
-    const budgetId = await getActiveBudgetId();
-
-    const rawName = formatNameWithMetadata(entity.name, {
+    const metadata: AccountMetadata = {
       color: entity.color,
       sortOrder: entity.sortOrder,
       archived: entity.archived,
       institution: entity.institution,
       icon: entity.icon,
       type: entity.type,
-    });
-
+    };
+    const name = formatNameWithMetadata(entity.name, metadata);
+    const values = {
+      name,
+      type: entity.type,
+      openingBalance: entity.openingBalance,
+      color: entity.color,
+      institution: entity.institution ?? "",
+      archived: entity.archived,
+    };
     if (existing) {
-      const res = await accountClient.updateAccount({
-        budgetId,
-        accountId: entity.id,
-        name: rawName,
-        type: mapFrontendTypeToProto(entity.type),
-        balance: BigInt(entity.openingBalance),
-      });
-      const a = res.account!;
-      return resolveAccount(a);
-    } else {
-      const res = await accountClient.createAccount({
-        budgetId,
-        name: rawName,
-        type: mapFrontendTypeToProto(entity.type),
-        balance: BigInt(entity.openingBalance),
-      });
-      const a = res.account!;
-      return resolveAccount(a);
+      const updated = await updateAccountApi(entity.id, values as any);
+      return { ...updated, ...entity, name: entity.name };
     }
+    const created = await createAccountApi(values as any);
+    return { ...created, ...entity, name: entity.name };
   }
 
   async bulkUpsert(entities: Account[]): Promise<Account[]> {
@@ -363,8 +359,7 @@ export class ApiAccountRepository implements Repository<Account> {
   }
 
   async delete(id: string): Promise<void> {
-    const budgetId = await getActiveBudgetId();
-    await accountClient.deleteAccount({ budgetId, accountId: id });
+    await deleteAccountApi(id);
   }
 
   async count(_query?: ListQuery<Account>): Promise<number> {
@@ -376,20 +371,7 @@ export class ApiAccountRepository implements Repository<Account> {
 
 export class ApiCategoryRepository implements Repository<Category> {
   async list(_query?: ListQuery<Category>): Promise<Category[]> {
-    const budgetId = await getActiveBudgetId();
-    const res = await categoryClient.listCategories({ budgetId });
-    const cats = res.categories ?? [];
-
-    return cats.map((c) => ({
-      id: c.id,
-      name: c.name,
-      parentId: null,
-      type: "expense" as const,
-      color: "#7c5cff",
-      archived: false,
-      sortOrder: 0,
-      system: false,
-    }));
+    return fetchCategoriesApi();
   }
 
   async get(id: string): Promise<Category | null> {
@@ -399,44 +381,18 @@ export class ApiCategoryRepository implements Repository<Category> {
 
   async upsert(entity: Category): Promise<Category> {
     const existing = await this.get(entity.id);
-    const budgetId = await getActiveBudgetId();
-
+    const values: CategoryFormValues = {
+      name: entity.name,
+      type: entity.type,
+      parentId: entity.parentId,
+      icon: entity.icon ?? "",
+      color: entity.color,
+      archived: entity.archived,
+    };
     if (existing) {
-      const res = await categoryClient.updateCategory({
-        budgetId,
-        categoryId: entity.id,
-        name: entity.name,
-        targetLimit: 0n,
-      });
-      const c = res.category!;
-      return {
-        id: c.id,
-        name: c.name,
-        parentId: null,
-        type: "expense",
-        color: entity.color || "#7c5cff",
-        archived: false,
-        sortOrder: entity.sortOrder || 0,
-        system: entity.system || false,
-      };
-    } else {
-      const res = await categoryClient.createCategory({
-        budgetId,
-        name: entity.name,
-        targetLimit: 0n,
-      });
-      const c = res.category!;
-      return {
-        id: c.id,
-        name: c.name,
-        parentId: null,
-        type: "expense",
-        color: entity.color || "#7c5cff",
-        archived: false,
-        sortOrder: entity.sortOrder || 0,
-        system: entity.system || false,
-      };
+      return updateCategoryApi(entity.id, values);
     }
+    return createCategoryApi(values);
   }
 
   async bulkUpsert(entities: Category[]): Promise<Category[]> {
@@ -444,8 +400,7 @@ export class ApiCategoryRepository implements Repository<Category> {
   }
 
   async delete(id: string): Promise<void> {
-    const budgetId = await getActiveBudgetId();
-    await categoryClient.deleteCategory({ budgetId, categoryId: id });
+    await deleteCategoryApi(id);
   }
 
   async count(_query?: ListQuery<Category>): Promise<number> {
@@ -457,8 +412,7 @@ export class ApiCategoryRepository implements Repository<Category> {
 
 export class ApiTransactionRepository implements Repository<Transaction> {
   async list(_query?: ListQuery<Transaction>): Promise<Transaction[]> {
-    const budgetId = await getActiveBudgetId();
-    const res = await transactionClient.listTransactions({ budgetId });
+    const res = await transactionClient.listTransactions({ budgetId: "" });
     const txns = res.transactions ?? [];
 
     return txns.map((t) => ({

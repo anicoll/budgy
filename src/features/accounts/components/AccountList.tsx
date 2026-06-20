@@ -25,9 +25,17 @@ interface Props {
   onArchiveToggle: (a: Account) => void;
   onDelete: (a: Account) => void;
   onReorder: (ids: string[]) => void;
+  onManageBudgets?: (a: Account) => void;
 }
 
-export function AccountList({ accounts, onEdit, onArchiveToggle, onDelete, onReorder }: Props) {
+export function AccountList({
+  accounts,
+  onEdit,
+  onArchiveToggle,
+  onDelete,
+  onReorder,
+  onManageBudgets,
+}: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -75,6 +83,7 @@ export function AccountList({ accounts, onEdit, onArchiveToggle, onDelete, onReo
                       onEdit={onEdit}
                       onArchiveToggle={onArchiveToggle}
                       onDelete={onDelete}
+                      onManageBudgets={onManageBudgets}
                     />
                   ))}
                 </div>

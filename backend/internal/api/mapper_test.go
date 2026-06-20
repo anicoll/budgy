@@ -193,7 +193,7 @@ func TestAccountMapper(t *testing.T) {
 	funds := int64(1000)
 	a := &domain.Account{
 		ID:             "a-1",
-		BudgetID:       "b-1",
+		UserID:         "user-1",
 		Name:           "Savings",
 		Type:           domain.AccountSavings,
 		Balance:        5000,
@@ -211,7 +211,7 @@ func TestAccountMapper(t *testing.T) {
 	p := mappers.Account(ctx, a)
 	require.NotNil(t, p)
 	assert.Equal(t, a.ID, p.Id)
-	assert.Equal(t, a.BudgetID, p.BudgetId)
+	assert.Equal(t, a.UserID, p.UserId)
 	assert.Equal(t, a.Name, p.Name)
 	assert.Equal(t, budgyv1.AccountType_ACCOUNT_TYPE_SAVINGS, p.Type)
 	assert.Equal(t, a.Balance, p.Balance)
@@ -232,24 +232,22 @@ func TestCategoryMapper(t *testing.T) {
 
 	now := time.Now().UTC().Truncate(time.Second)
 	c := &domain.Category{
-		ID:          "c-1",
-		BudgetID:    "b-1",
-		Name:        "Groceries",
-		Budgeted:    200,
-		Balance:     150,
-		TargetLimit: 500,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:        "c-1",
+		UserID:    "user-1",
+		Name:      "Groceries",
+		Type:      domain.CategoryExpense,
+		Color:     "#34d399",
+		SortOrder: 1,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 
 	p := mappers.Category(ctx, c)
 	require.NotNil(t, p)
 	assert.Equal(t, c.ID, p.Id)
-	assert.Equal(t, c.BudgetID, p.BudgetId)
+	assert.Equal(t, c.UserID, p.UserId)
 	assert.Equal(t, c.Name, p.Name)
-	assert.Equal(t, c.Budgeted, p.Budgeted)
-	assert.Equal(t, c.Balance, p.Balance)
-	assert.Equal(t, c.TargetLimit, p.TargetLimit)
+	assert.Equal(t, budgyv1.CategoryType_CATEGORY_TYPE_EXPENSE, p.Type)
 	assert.Equal(t, c.CreatedAt, p.CreatedAt.AsTime())
 	assert.Equal(t, c.UpdatedAt, p.UpdatedAt.AsTime())
 }

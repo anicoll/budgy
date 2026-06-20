@@ -79,6 +79,13 @@ func (h *authConnectHandler) Register(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, toConnectError(err)
 	}
+	if w, ok := ctx.Value(responseWriterKey).(http.ResponseWriter); ok {
+		cookie, err := NewAuthTokenCookie(u.ID)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		http.SetCookie(w, cookie)
+	}
 	return connect.NewResponse(&budgyv1.RegisterResponse{User: h.mappers.User(ctx, u)}), nil
 }
 
@@ -88,35 +95,19 @@ func (h *authConnectHandler) Login(ctx context.Context, req *connect.Request[bud
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	token, err := GenerateJWT(u.ID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	// Set cookie on the underlying http.ResponseWriter
 	if w, ok := ctx.Value(responseWriterKey).(http.ResponseWriter); ok {
-		http.SetCookie(w, &http.Cookie{
-			Name:     "token",
-			Value:    token,
-			Expires:  time.Now().Add(24 * time.Hour),
-			HttpOnly: true,
-			Path:     "/",
-			SameSite: http.SameSiteLaxMode,
-		})
+		cookie, err := NewAuthTokenCookie(u.ID)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		http.SetCookie(w, cookie)
 	}
 	return connect.NewResponse(&budgyv1.LoginResponse{User: h.mappers.User(ctx, u)}), nil
 }
 
 func (h *authConnectHandler) Logout(ctx context.Context, req *connect.Request[budgyv1.LogoutRequest]) (*connect.Response[budgyv1.LogoutResponse], error) {
 	if w, ok := ctx.Value(responseWriterKey).(http.ResponseWriter); ok {
-		http.SetCookie(w, &http.Cookie{
-			Name:     "token",
-			Value:    "",
-			Expires:  time.Unix(0, 0),
-			MaxAge:   -1,
-			HttpOnly: true,
-			Path:     "/",
-			SameSite: http.SameSiteLaxMode,
-		})
+		http.SetCookie(w, ClearAuthTokenCookie())
 	}
 	return connect.NewResponse(&budgyv1.LogoutResponse{}), nil
 }
@@ -237,6 +228,64 @@ func (h *budgetConnectHandler) DeleteBudget(ctx context.Context, req *connect.Re
 	return connect.NewResponse(&budgyv1.DeleteBudgetResponse{}), nil
 }
 
+func (h *budgetConnectHandler) ListBudgetCategories(ctx context.Context, req *connect.Request[budgyv1.ListBudgetCategoriesRequest]) (*connect.Response[budgyv1.ListBudgetCategoriesResponse], error) {
+	b, err := h.budgets.GetByID(ctx, req.Msg.BudgetId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	userID := getUserID(ctx)
+	if b.UserID != userID {
+		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
+	}
+	list, err := h.budgets.ListBudgetCategories(ctx, req.Msg.BudgetId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	pb := make([]*budgyv1.BudgetCategory, len(list))
+	for i, c := range list {
+		pb[i] = h.mappers.BudgetCategory(ctx, c)
+	}
+	return connect.NewResponse(&budgyv1.ListBudgetCategoriesResponse{Categories: pb}), nil
+}
+
+func (h *budgetConnectHandler) AssignCategoryFunds(ctx context.Context, req *connect.Request[budgyv1.AssignCategoryFundsRequest]) (*connect.Response[budgyv1.AssignCategoryFundsResponse], error) {
+	b, err := h.budgets.GetByID(ctx, req.Msg.BudgetId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	userID := getUserID(ctx)
+	if b.UserID != userID {
+		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
+	}
+	c, err := h.budgets.AssignCategoryFunds(ctx, req.Msg.BudgetId, req.Msg.CategoryId, req.Msg.Amount)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	return connect.NewResponse(&budgyv1.AssignCategoryFundsResponse{Category: h.mappers.BudgetCategory(ctx, c)}), nil
+}
+
+func (h *budgetConnectHandler) FundEnvelope(ctx context.Context, req *connect.Request[budgyv1.FundEnvelopeRequest]) (*connect.Response[budgyv1.FundEnvelopeResponse], error) {
+	b, err := h.budgets.GetByID(ctx, req.Msg.BudgetId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	userID := getUserID(ctx)
+	if b.UserID != userID {
+		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
+	}
+	updatedAcc, updatedEnv, err := h.budgets.FundEnvelope(ctx, req.Msg.BudgetId, req.Msg.CategoryId, req.Msg.AccountId, req.Msg.Amount)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	return connect.NewResponse(&budgyv1.FundEnvelopeResponse{
+		Result: &budgyv1.FundEnvelopeResult{
+			AccountId:      updatedAcc.ID,
+			AccountBalance: updatedAcc.Balance,
+			Envelope:       h.mappers.BudgetCategory(ctx, updatedEnv),
+		},
+	}), nil
+}
+
 // ─── AccountServiceHandler ────────────────────────────────────────────────────
 
 type accountConnectHandler struct {
@@ -259,11 +308,12 @@ func (h *accountConnectHandler) verifyBudgetOwner(ctx context.Context, budgetID 
 }
 
 func (h *accountConnectHandler) CreateAccount(ctx context.Context, req *connect.Request[budgyv1.CreateAccountRequest]) (*connect.Response[budgyv1.CreateAccountResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
-	acc, err := h.accounts.Create(ctx, r.BudgetId, r.Name, domainAccountType(r.Type), r.Balance)
+	r := req.Msg
+	acc, err := h.accounts.Create(ctx, userID, r.Name, domainAccountType(r.Type), r.Balance)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
@@ -271,11 +321,11 @@ func (h *accountConnectHandler) CreateAccount(ctx context.Context, req *connect.
 }
 
 func (h *accountConnectHandler) ListAccounts(ctx context.Context, req *connect.Request[budgyv1.ListAccountsRequest]) (*connect.Response[budgyv1.ListAccountsResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
-	list, err := h.accounts.List(ctx, r.BudgetId)
+	list, err := h.accounts.List(ctx, userID)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
@@ -287,16 +337,17 @@ func (h *accountConnectHandler) ListAccounts(ctx context.Context, req *connect.R
 }
 
 func (h *accountConnectHandler) UpdateAccount(ctx context.Context, req *connect.Request[budgyv1.UpdateAccountRequest]) (*connect.Response[budgyv1.UpdateAccountResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
+	r := req.Msg
 	acc, err := h.accounts.GetByID(ctx, r.AccountId)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	if acc.BudgetID != r.BudgetId {
-		return nil, connect.NewError(connect.CodeInvalidArgument, service.ErrBadRequest)
+	if acc.UserID != userID {
+		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
 	}
 	if r.Name != nil {
 		acc.Name = *r.Name
@@ -337,21 +388,58 @@ func (h *accountConnectHandler) UpdateAccount(ctx context.Context, req *connect.
 }
 
 func (h *accountConnectHandler) DeleteAccount(ctx context.Context, req *connect.Request[budgyv1.DeleteAccountRequest]) (*connect.Response[budgyv1.DeleteAccountResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
-	acc, err := h.accounts.GetByID(ctx, r.AccountId)
+	acc, err := h.accounts.GetByID(ctx, req.Msg.AccountId)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	if acc.BudgetID != r.BudgetId {
-		return nil, connect.NewError(connect.CodeInvalidArgument, service.ErrBadRequest)
+	if acc.UserID != userID {
+		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
 	}
-	if err := h.accounts.Delete(ctx, r.AccountId); err != nil {
+	if err := h.accounts.Delete(ctx, req.Msg.AccountId); err != nil {
 		return nil, toConnectError(err)
 	}
 	return connect.NewResponse(&budgyv1.DeleteAccountResponse{}), nil
+}
+
+func (h *accountConnectHandler) LinkAccountToBudget(ctx context.Context, req *connect.Request[budgyv1.LinkAccountToBudgetRequest]) (*connect.Response[budgyv1.LinkAccountToBudgetResponse], error) {
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
+	}
+	if err := h.accounts.LinkToBudget(ctx, req.Msg.BudgetId, req.Msg.AccountId, userID); err != nil {
+		return nil, toConnectError(err)
+	}
+	return connect.NewResponse(&budgyv1.LinkAccountToBudgetResponse{}), nil
+}
+
+func (h *accountConnectHandler) UnlinkAccountFromBudget(ctx context.Context, req *connect.Request[budgyv1.UnlinkAccountFromBudgetRequest]) (*connect.Response[budgyv1.UnlinkAccountFromBudgetResponse], error) {
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
+	}
+	if err := h.accounts.UnlinkFromBudget(ctx, req.Msg.BudgetId, req.Msg.AccountId, userID); err != nil {
+		return nil, toConnectError(err)
+	}
+	return connect.NewResponse(&budgyv1.UnlinkAccountFromBudgetResponse{}), nil
+}
+
+func (h *accountConnectHandler) ListBudgetAccounts(ctx context.Context, req *connect.Request[budgyv1.ListBudgetAccountsRequest]) (*connect.Response[budgyv1.ListBudgetAccountsResponse], error) {
+	if err := h.verifyBudgetOwner(ctx, req.Msg.BudgetId); err != nil {
+		return nil, err
+	}
+	list, err := h.accounts.ListByBudget(ctx, req.Msg.BudgetId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	pb := make([]*budgyv1.Account, len(list))
+	for i, a := range list {
+		pb[i] = h.mappers.Account(ctx, a)
+	}
+	return connect.NewResponse(&budgyv1.ListBudgetAccountsResponse{Accounts: pb}), nil
 }
 
 // ─── CategoryServiceHandler ───────────────────────────────────────────────────
@@ -376,11 +464,20 @@ func (h *categoryConnectHandler) verifyBudgetOwner(ctx context.Context, budgetID
 }
 
 func (h *categoryConnectHandler) CreateCategory(ctx context.Context, req *connect.Request[budgyv1.CreateCategoryRequest]) (*connect.Response[budgyv1.CreateCategoryResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
-	c, err := h.categories.Create(ctx, r.BudgetId, r.Name, r.TargetLimit)
+	r := req.Msg
+	input := &domain.Category{
+		Name:      r.Name,
+		Type:      domainCategoryType(r.Type),
+		ParentID:  r.ParentId,
+		Color:     r.Color,
+		Icon:      r.Icon,
+		SortOrder: int(r.SortOrder),
+	}
+	c, err := h.categories.Create(ctx, userID, input)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
@@ -388,11 +485,11 @@ func (h *categoryConnectHandler) CreateCategory(ctx context.Context, req *connec
 }
 
 func (h *categoryConnectHandler) ListCategories(ctx context.Context, req *connect.Request[budgyv1.ListCategoriesRequest]) (*connect.Response[budgyv1.ListCategoriesResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
-	list, err := h.categories.List(ctx, r.BudgetId)
+	list, err := h.categories.List(ctx, userID)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
@@ -404,28 +501,38 @@ func (h *categoryConnectHandler) ListCategories(ctx context.Context, req *connec
 }
 
 func (h *categoryConnectHandler) UpdateCategory(ctx context.Context, req *connect.Request[budgyv1.UpdateCategoryRequest]) (*connect.Response[budgyv1.UpdateCategoryResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
+	r := req.Msg
 	c, err := h.categories.GetByID(ctx, r.CategoryId)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	if c.BudgetID != r.BudgetId {
-		return nil, connect.NewError(connect.CodeInvalidArgument, service.ErrBadRequest)
+	if c.UserID != userID {
+		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
 	}
 	if r.Name != nil {
 		c.Name = *r.Name
 	}
-	if r.Budgeted != nil {
-		c.Budgeted = *r.Budgeted
+	if r.Type != nil {
+		c.Type = domainCategoryType(*r.Type)
 	}
-	if r.Balance != nil {
-		c.Balance = *r.Balance
+	if r.ParentId != nil {
+		c.ParentID = *r.ParentId
 	}
-	if r.TargetLimit != nil {
-		c.TargetLimit = *r.TargetLimit
+	if r.Color != nil {
+		c.Color = *r.Color
+	}
+	if r.Icon != nil {
+		c.Icon = *r.Icon
+	}
+	if r.SortOrder != nil {
+		c.SortOrder = int(*r.SortOrder)
+	}
+	if r.Archived != nil {
+		c.Archived = *r.Archived
 	}
 	updated, err := h.categories.Update(ctx, c)
 	if err != nil {
@@ -435,51 +542,21 @@ func (h *categoryConnectHandler) UpdateCategory(ctx context.Context, req *connec
 }
 
 func (h *categoryConnectHandler) DeleteCategory(ctx context.Context, req *connect.Request[budgyv1.DeleteCategoryRequest]) (*connect.Response[budgyv1.DeleteCategoryResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
-	c, err := h.categories.GetByID(ctx, r.CategoryId)
+	c, err := h.categories.GetByID(ctx, req.Msg.CategoryId)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
-	if c.BudgetID != r.BudgetId {
-		return nil, connect.NewError(connect.CodeInvalidArgument, service.ErrBadRequest)
+	if c.UserID != userID {
+		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
 	}
-	if err := h.categories.Delete(ctx, r.CategoryId); err != nil {
+	if err := h.categories.Delete(ctx, req.Msg.CategoryId); err != nil {
 		return nil, toConnectError(err)
 	}
 	return connect.NewResponse(&budgyv1.DeleteCategoryResponse{}), nil
-}
-
-func (h *categoryConnectHandler) AssignCategoryFunds(ctx context.Context, req *connect.Request[budgyv1.AssignCategoryFundsRequest]) (*connect.Response[budgyv1.AssignCategoryFundsResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
-	}
-	c, err := h.categories.AssignFunds(ctx, r.BudgetId, r.CategoryId, r.Amount)
-	if err != nil {
-		return nil, toConnectError(err)
-	}
-	return connect.NewResponse(&budgyv1.AssignCategoryFundsResponse{Category: h.mappers.Category(ctx, c)}), nil
-}
-
-func (h *categoryConnectHandler) FundEnvelope(ctx context.Context, req *connect.Request[budgyv1.FundEnvelopeRequest]) (*connect.Response[budgyv1.FundEnvelopeResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
-	}
-	updatedAcc, updatedEnv, err := h.categories.FundEnvelope(ctx, r.BudgetId, r.CategoryId, r.AccountId, r.Amount)
-	if err != nil {
-		return nil, toConnectError(err)
-	}
-	return connect.NewResponse(&budgyv1.FundEnvelopeResponse{
-		Result: &budgyv1.FundEnvelopeResult{
-			AccountId:      updatedAcc.ID,
-			AccountBalance: updatedAcc.Balance,
-			Envelope:       h.mappers.Category(ctx, updatedEnv),
-		},
-	}), nil
 }
 
 // ─── TransactionServiceHandler ────────────────────────────────────────────────
@@ -522,11 +599,21 @@ func (h *transactionConnectHandler) CreateTransaction(ctx context.Context, req *
 }
 
 func (h *transactionConnectHandler) ListTransactions(ctx context.Context, req *connect.Request[budgyv1.ListTransactionsRequest]) (*connect.Response[budgyv1.ListTransactionsResponse], error) {
-	r := req.Msg
-	if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
-		return nil, err
+	userID := getUserID(ctx)
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
-	list, err := h.transactions.List(ctx, r.BudgetId)
+	r := req.Msg
+	var list []*domain.Transaction
+	var err error
+	if r.BudgetId == "" {
+		list, err = h.transactions.ListByUser(ctx, userID)
+	} else {
+		if err := h.verifyBudgetOwner(ctx, r.BudgetId); err != nil {
+			return nil, err
+		}
+		list, err = h.transactions.List(ctx, r.BudgetId)
+	}
 	if err != nil {
 		return nil, toConnectError(err)
 	}
@@ -648,7 +735,7 @@ func (s *APIServer) withConnectAuth(next http.Handler) http.Handler {
 		// Inject ResponseWriter into context for cookie setting
 		ctx := context.WithValue(r.Context(), responseWriterKey, w)
 
-		cookie, err := r.Cookie("token")
+		cookie, err := r.Cookie(AuthTokenCookieName)
 		if err == nil {
 			claims := &Claims{}
 			token, err := parseJWT(cookie.Value, claims)

@@ -50,6 +50,15 @@ const (
 	// BudgetServiceDeleteBudgetProcedure is the fully-qualified name of the BudgetService's
 	// DeleteBudget RPC.
 	BudgetServiceDeleteBudgetProcedure = "/budgy.v1.BudgetService/DeleteBudget"
+	// BudgetServiceListBudgetCategoriesProcedure is the fully-qualified name of the BudgetService's
+	// ListBudgetCategories RPC.
+	BudgetServiceListBudgetCategoriesProcedure = "/budgy.v1.BudgetService/ListBudgetCategories"
+	// BudgetServiceAssignCategoryFundsProcedure is the fully-qualified name of the BudgetService's
+	// AssignCategoryFunds RPC.
+	BudgetServiceAssignCategoryFundsProcedure = "/budgy.v1.BudgetService/AssignCategoryFunds"
+	// BudgetServiceFundEnvelopeProcedure is the fully-qualified name of the BudgetService's
+	// FundEnvelope RPC.
+	BudgetServiceFundEnvelopeProcedure = "/budgy.v1.BudgetService/FundEnvelope"
 )
 
 // BudgetServiceClient is a client for the budgy.v1.BudgetService service.
@@ -60,6 +69,9 @@ type BudgetServiceClient interface {
 	GetBudgetSummary(context.Context, *connect.Request[v1.GetBudgetSummaryRequest]) (*connect.Response[v1.GetBudgetSummaryResponse], error)
 	UpdateBudget(context.Context, *connect.Request[v1.UpdateBudgetRequest]) (*connect.Response[v1.UpdateBudgetResponse], error)
 	DeleteBudget(context.Context, *connect.Request[v1.DeleteBudgetRequest]) (*connect.Response[v1.DeleteBudgetResponse], error)
+	ListBudgetCategories(context.Context, *connect.Request[v1.ListBudgetCategoriesRequest]) (*connect.Response[v1.ListBudgetCategoriesResponse], error)
+	AssignCategoryFunds(context.Context, *connect.Request[v1.AssignCategoryFundsRequest]) (*connect.Response[v1.AssignCategoryFundsResponse], error)
+	FundEnvelope(context.Context, *connect.Request[v1.FundEnvelopeRequest]) (*connect.Response[v1.FundEnvelopeResponse], error)
 }
 
 // NewBudgetServiceClient constructs a client for the budgy.v1.BudgetService service. By default, it
@@ -109,17 +121,38 @@ func NewBudgetServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(budgetServiceMethods.ByName("DeleteBudget")),
 			connect.WithClientOptions(opts...),
 		),
+		listBudgetCategories: connect.NewClient[v1.ListBudgetCategoriesRequest, v1.ListBudgetCategoriesResponse](
+			httpClient,
+			baseURL+BudgetServiceListBudgetCategoriesProcedure,
+			connect.WithSchema(budgetServiceMethods.ByName("ListBudgetCategories")),
+			connect.WithClientOptions(opts...),
+		),
+		assignCategoryFunds: connect.NewClient[v1.AssignCategoryFundsRequest, v1.AssignCategoryFundsResponse](
+			httpClient,
+			baseURL+BudgetServiceAssignCategoryFundsProcedure,
+			connect.WithSchema(budgetServiceMethods.ByName("AssignCategoryFunds")),
+			connect.WithClientOptions(opts...),
+		),
+		fundEnvelope: connect.NewClient[v1.FundEnvelopeRequest, v1.FundEnvelopeResponse](
+			httpClient,
+			baseURL+BudgetServiceFundEnvelopeProcedure,
+			connect.WithSchema(budgetServiceMethods.ByName("FundEnvelope")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // budgetServiceClient implements BudgetServiceClient.
 type budgetServiceClient struct {
-	createBudget     *connect.Client[v1.CreateBudgetRequest, v1.CreateBudgetResponse]
-	listBudgets      *connect.Client[v1.ListBudgetsRequest, v1.ListBudgetsResponse]
-	getBudget        *connect.Client[v1.GetBudgetRequest, v1.GetBudgetResponse]
-	getBudgetSummary *connect.Client[v1.GetBudgetSummaryRequest, v1.GetBudgetSummaryResponse]
-	updateBudget     *connect.Client[v1.UpdateBudgetRequest, v1.UpdateBudgetResponse]
-	deleteBudget     *connect.Client[v1.DeleteBudgetRequest, v1.DeleteBudgetResponse]
+	createBudget         *connect.Client[v1.CreateBudgetRequest, v1.CreateBudgetResponse]
+	listBudgets          *connect.Client[v1.ListBudgetsRequest, v1.ListBudgetsResponse]
+	getBudget            *connect.Client[v1.GetBudgetRequest, v1.GetBudgetResponse]
+	getBudgetSummary     *connect.Client[v1.GetBudgetSummaryRequest, v1.GetBudgetSummaryResponse]
+	updateBudget         *connect.Client[v1.UpdateBudgetRequest, v1.UpdateBudgetResponse]
+	deleteBudget         *connect.Client[v1.DeleteBudgetRequest, v1.DeleteBudgetResponse]
+	listBudgetCategories *connect.Client[v1.ListBudgetCategoriesRequest, v1.ListBudgetCategoriesResponse]
+	assignCategoryFunds  *connect.Client[v1.AssignCategoryFundsRequest, v1.AssignCategoryFundsResponse]
+	fundEnvelope         *connect.Client[v1.FundEnvelopeRequest, v1.FundEnvelopeResponse]
 }
 
 // CreateBudget calls budgy.v1.BudgetService.CreateBudget.
@@ -152,6 +185,21 @@ func (c *budgetServiceClient) DeleteBudget(ctx context.Context, req *connect.Req
 	return c.deleteBudget.CallUnary(ctx, req)
 }
 
+// ListBudgetCategories calls budgy.v1.BudgetService.ListBudgetCategories.
+func (c *budgetServiceClient) ListBudgetCategories(ctx context.Context, req *connect.Request[v1.ListBudgetCategoriesRequest]) (*connect.Response[v1.ListBudgetCategoriesResponse], error) {
+	return c.listBudgetCategories.CallUnary(ctx, req)
+}
+
+// AssignCategoryFunds calls budgy.v1.BudgetService.AssignCategoryFunds.
+func (c *budgetServiceClient) AssignCategoryFunds(ctx context.Context, req *connect.Request[v1.AssignCategoryFundsRequest]) (*connect.Response[v1.AssignCategoryFundsResponse], error) {
+	return c.assignCategoryFunds.CallUnary(ctx, req)
+}
+
+// FundEnvelope calls budgy.v1.BudgetService.FundEnvelope.
+func (c *budgetServiceClient) FundEnvelope(ctx context.Context, req *connect.Request[v1.FundEnvelopeRequest]) (*connect.Response[v1.FundEnvelopeResponse], error) {
+	return c.fundEnvelope.CallUnary(ctx, req)
+}
+
 // BudgetServiceHandler is an implementation of the budgy.v1.BudgetService service.
 type BudgetServiceHandler interface {
 	CreateBudget(context.Context, *connect.Request[v1.CreateBudgetRequest]) (*connect.Response[v1.CreateBudgetResponse], error)
@@ -160,6 +208,9 @@ type BudgetServiceHandler interface {
 	GetBudgetSummary(context.Context, *connect.Request[v1.GetBudgetSummaryRequest]) (*connect.Response[v1.GetBudgetSummaryResponse], error)
 	UpdateBudget(context.Context, *connect.Request[v1.UpdateBudgetRequest]) (*connect.Response[v1.UpdateBudgetResponse], error)
 	DeleteBudget(context.Context, *connect.Request[v1.DeleteBudgetRequest]) (*connect.Response[v1.DeleteBudgetResponse], error)
+	ListBudgetCategories(context.Context, *connect.Request[v1.ListBudgetCategoriesRequest]) (*connect.Response[v1.ListBudgetCategoriesResponse], error)
+	AssignCategoryFunds(context.Context, *connect.Request[v1.AssignCategoryFundsRequest]) (*connect.Response[v1.AssignCategoryFundsResponse], error)
+	FundEnvelope(context.Context, *connect.Request[v1.FundEnvelopeRequest]) (*connect.Response[v1.FundEnvelopeResponse], error)
 }
 
 // NewBudgetServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -205,6 +256,24 @@ func NewBudgetServiceHandler(svc BudgetServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(budgetServiceMethods.ByName("DeleteBudget")),
 		connect.WithHandlerOptions(opts...),
 	)
+	budgetServiceListBudgetCategoriesHandler := connect.NewUnaryHandler(
+		BudgetServiceListBudgetCategoriesProcedure,
+		svc.ListBudgetCategories,
+		connect.WithSchema(budgetServiceMethods.ByName("ListBudgetCategories")),
+		connect.WithHandlerOptions(opts...),
+	)
+	budgetServiceAssignCategoryFundsHandler := connect.NewUnaryHandler(
+		BudgetServiceAssignCategoryFundsProcedure,
+		svc.AssignCategoryFunds,
+		connect.WithSchema(budgetServiceMethods.ByName("AssignCategoryFunds")),
+		connect.WithHandlerOptions(opts...),
+	)
+	budgetServiceFundEnvelopeHandler := connect.NewUnaryHandler(
+		BudgetServiceFundEnvelopeProcedure,
+		svc.FundEnvelope,
+		connect.WithSchema(budgetServiceMethods.ByName("FundEnvelope")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/budgy.v1.BudgetService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BudgetServiceCreateBudgetProcedure:
@@ -219,6 +288,12 @@ func NewBudgetServiceHandler(svc BudgetServiceHandler, opts ...connect.HandlerOp
 			budgetServiceUpdateBudgetHandler.ServeHTTP(w, r)
 		case BudgetServiceDeleteBudgetProcedure:
 			budgetServiceDeleteBudgetHandler.ServeHTTP(w, r)
+		case BudgetServiceListBudgetCategoriesProcedure:
+			budgetServiceListBudgetCategoriesHandler.ServeHTTP(w, r)
+		case BudgetServiceAssignCategoryFundsProcedure:
+			budgetServiceAssignCategoryFundsHandler.ServeHTTP(w, r)
+		case BudgetServiceFundEnvelopeProcedure:
+			budgetServiceFundEnvelopeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -250,4 +325,16 @@ func (UnimplementedBudgetServiceHandler) UpdateBudget(context.Context, *connect.
 
 func (UnimplementedBudgetServiceHandler) DeleteBudget(context.Context, *connect.Request[v1.DeleteBudgetRequest]) (*connect.Response[v1.DeleteBudgetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.BudgetService.DeleteBudget is not implemented"))
+}
+
+func (UnimplementedBudgetServiceHandler) ListBudgetCategories(context.Context, *connect.Request[v1.ListBudgetCategoriesRequest]) (*connect.Response[v1.ListBudgetCategoriesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.BudgetService.ListBudgetCategories is not implemented"))
+}
+
+func (UnimplementedBudgetServiceHandler) AssignCategoryFunds(context.Context, *connect.Request[v1.AssignCategoryFundsRequest]) (*connect.Response[v1.AssignCategoryFundsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.BudgetService.AssignCategoryFunds is not implemented"))
+}
+
+func (UnimplementedBudgetServiceHandler) FundEnvelope(context.Context, *connect.Request[v1.FundEnvelopeRequest]) (*connect.Response[v1.FundEnvelopeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("budgy.v1.BudgetService.FundEnvelope is not implemented"))
 }

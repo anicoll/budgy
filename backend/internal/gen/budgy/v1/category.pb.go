@@ -22,18 +22,76 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type CategoryType int32
+
+const (
+	CategoryType_CATEGORY_TYPE_UNSPECIFIED CategoryType = 0
+	CategoryType_CATEGORY_TYPE_INCOME      CategoryType = 1
+	CategoryType_CATEGORY_TYPE_EXPENSE     CategoryType = 2
+	CategoryType_CATEGORY_TYPE_TRANSFER    CategoryType = 3
+)
+
+// Enum value maps for CategoryType.
+var (
+	CategoryType_name = map[int32]string{
+		0: "CATEGORY_TYPE_UNSPECIFIED",
+		1: "CATEGORY_TYPE_INCOME",
+		2: "CATEGORY_TYPE_EXPENSE",
+		3: "CATEGORY_TYPE_TRANSFER",
+	}
+	CategoryType_value = map[string]int32{
+		"CATEGORY_TYPE_UNSPECIFIED": 0,
+		"CATEGORY_TYPE_INCOME":      1,
+		"CATEGORY_TYPE_EXPENSE":     2,
+		"CATEGORY_TYPE_TRANSFER":    3,
+	}
+)
+
+func (x CategoryType) Enum() *CategoryType {
+	p := new(CategoryType)
+	*p = x
+	return p
+}
+
+func (x CategoryType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CategoryType) Descriptor() protoreflect.EnumDescriptor {
+	return file_budgy_v1_category_proto_enumTypes[0].Descriptor()
+}
+
+func (CategoryType) Type() protoreflect.EnumType {
+	return &file_budgy_v1_category_proto_enumTypes[0]
+}
+
+func (x CategoryType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CategoryType.Descriptor instead.
+func (CategoryType) EnumDescriptor() ([]byte, []int) {
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{0}
+}
+
 type Category struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	BudgetId      string                 `protobuf:"bytes,2,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Budgeted      int64                  `protobuf:"varint,4,opt,name=budgeted,proto3" json:"budgeted,omitempty"`
-	Balance       int64                  `protobuf:"varint,5,opt,name=balance,proto3" json:"balance,omitempty"`
-	TargetLimit   int64                  `protobuf:"varint,6,opt,name=target_limit,json=targetLimit,proto3" json:"target_limit,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId            string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ParentId          string                 `protobuf:"bytes,3,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	Name              string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	Type              CategoryType           `protobuf:"varint,5,opt,name=type,proto3,enum=budgy.v1.CategoryType" json:"type,omitempty"`
+	Color             string                 `protobuf:"bytes,6,opt,name=color,proto3" json:"color,omitempty"`
+	Icon              string                 `protobuf:"bytes,7,opt,name=icon,proto3" json:"icon,omitempty"`
+	SortOrder         int32                  `protobuf:"varint,8,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	Archived          bool                   `protobuf:"varint,9,opt,name=archived,proto3" json:"archived,omitempty"`
+	System            bool                   `protobuf:"varint,10,opt,name=system,proto3" json:"system,omitempty"`
+	BasiqSubclassCode string                 `protobuf:"bytes,11,opt,name=basiq_subclass_code,json=basiqSubclassCode,proto3" json:"basiq_subclass_code,omitempty"`
+	AnzsicClassCode   string                 `protobuf:"bytes,12,opt,name=anzsic_class_code,json=anzsicClassCode,proto3" json:"anzsic_class_code,omitempty"`
+	CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Category) Reset() {
@@ -73,9 +131,16 @@ func (x *Category) GetId() string {
 	return ""
 }
 
-func (x *Category) GetBudgetId() string {
+func (x *Category) GetUserId() string {
 	if x != nil {
-		return x.BudgetId
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *Category) GetParentId() string {
+	if x != nil {
+		return x.ParentId
 	}
 	return ""
 }
@@ -87,25 +152,60 @@ func (x *Category) GetName() string {
 	return ""
 }
 
-func (x *Category) GetBudgeted() int64 {
+func (x *Category) GetType() CategoryType {
 	if x != nil {
-		return x.Budgeted
+		return x.Type
+	}
+	return CategoryType_CATEGORY_TYPE_UNSPECIFIED
+}
+
+func (x *Category) GetColor() string {
+	if x != nil {
+		return x.Color
+	}
+	return ""
+}
+
+func (x *Category) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *Category) GetSortOrder() int32 {
+	if x != nil {
+		return x.SortOrder
 	}
 	return 0
 }
 
-func (x *Category) GetBalance() int64 {
+func (x *Category) GetArchived() bool {
 	if x != nil {
-		return x.Balance
+		return x.Archived
 	}
-	return 0
+	return false
 }
 
-func (x *Category) GetTargetLimit() int64 {
+func (x *Category) GetSystem() bool {
 	if x != nil {
-		return x.TargetLimit
+		return x.System
 	}
-	return 0
+	return false
+}
+
+func (x *Category) GetBasiqSubclassCode() string {
+	if x != nil {
+		return x.BasiqSubclassCode
+	}
+	return ""
+}
+
+func (x *Category) GetAnzsicClassCode() string {
+	if x != nil {
+		return x.AnzsicClassCode
+	}
+	return ""
 }
 
 func (x *Category) GetCreatedAt() *timestamppb.Timestamp {
@@ -122,20 +222,86 @@ func (x *Category) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-type FundEnvelopeResult struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The updated account after funding the envelope
-	AccountId      string `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	AccountBalance int64  `protobuf:"varint,2,opt,name=account_balance,json=accountBalance,proto3" json:"account_balance,omitempty"`
-	// The updated envelope/category
-	Envelope      *Category `protobuf:"bytes,3,opt,name=envelope,proto3" json:"envelope,omitempty"`
+type BudgetCategory struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Category      *Category              `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
+	Budgeted      int64                  `protobuf:"varint,2,opt,name=budgeted,proto3" json:"budgeted,omitempty"`
+	Balance       int64                  `protobuf:"varint,3,opt,name=balance,proto3" json:"balance,omitempty"`
+	TargetLimit   int64                  `protobuf:"varint,4,opt,name=target_limit,json=targetLimit,proto3" json:"target_limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *BudgetCategory) Reset() {
+	*x = BudgetCategory{}
+	mi := &file_budgy_v1_category_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BudgetCategory) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BudgetCategory) ProtoMessage() {}
+
+func (x *BudgetCategory) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_category_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BudgetCategory.ProtoReflect.Descriptor instead.
+func (*BudgetCategory) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *BudgetCategory) GetCategory() *Category {
+	if x != nil {
+		return x.Category
+	}
+	return nil
+}
+
+func (x *BudgetCategory) GetBudgeted() int64 {
+	if x != nil {
+		return x.Budgeted
+	}
+	return 0
+}
+
+func (x *BudgetCategory) GetBalance() int64 {
+	if x != nil {
+		return x.Balance
+	}
+	return 0
+}
+
+func (x *BudgetCategory) GetTargetLimit() int64 {
+	if x != nil {
+		return x.TargetLimit
+	}
+	return 0
+}
+
+type FundEnvelopeResult struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AccountId      string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	AccountBalance int64                  `protobuf:"varint,2,opt,name=account_balance,json=accountBalance,proto3" json:"account_balance,omitempty"`
+	Envelope       *BudgetCategory        `protobuf:"bytes,3,opt,name=envelope,proto3" json:"envelope,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
 func (x *FundEnvelopeResult) Reset() {
 	*x = FundEnvelopeResult{}
-	mi := &file_budgy_v1_category_proto_msgTypes[1]
+	mi := &file_budgy_v1_category_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -147,7 +313,7 @@ func (x *FundEnvelopeResult) String() string {
 func (*FundEnvelopeResult) ProtoMessage() {}
 
 func (x *FundEnvelopeResult) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[1]
+	mi := &file_budgy_v1_category_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -160,7 +326,7 @@ func (x *FundEnvelopeResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FundEnvelopeResult.ProtoReflect.Descriptor instead.
 func (*FundEnvelopeResult) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{1}
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *FundEnvelopeResult) GetAccountId() string {
@@ -177,7 +343,7 @@ func (x *FundEnvelopeResult) GetAccountBalance() int64 {
 	return 0
 }
 
-func (x *FundEnvelopeResult) GetEnvelope() *Category {
+func (x *FundEnvelopeResult) GetEnvelope() *BudgetCategory {
 	if x != nil {
 		return x.Envelope
 	}
@@ -186,16 +352,19 @@ func (x *FundEnvelopeResult) GetEnvelope() *Category {
 
 type CreateCategoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	TargetLimit   int64                  `protobuf:"varint,3,opt,name=target_limit,json=targetLimit,proto3" json:"target_limit,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Type          CategoryType           `protobuf:"varint,2,opt,name=type,proto3,enum=budgy.v1.CategoryType" json:"type,omitempty"`
+	ParentId      string                 `protobuf:"bytes,3,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	Color         string                 `protobuf:"bytes,4,opt,name=color,proto3" json:"color,omitempty"`
+	Icon          string                 `protobuf:"bytes,5,opt,name=icon,proto3" json:"icon,omitempty"`
+	SortOrder     int32                  `protobuf:"varint,6,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateCategoryRequest) Reset() {
 	*x = CreateCategoryRequest{}
-	mi := &file_budgy_v1_category_proto_msgTypes[2]
+	mi := &file_budgy_v1_category_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -207,7 +376,7 @@ func (x *CreateCategoryRequest) String() string {
 func (*CreateCategoryRequest) ProtoMessage() {}
 
 func (x *CreateCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[2]
+	mi := &file_budgy_v1_category_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -220,14 +389,7 @@ func (x *CreateCategoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCategoryRequest.ProtoReflect.Descriptor instead.
 func (*CreateCategoryRequest) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *CreateCategoryRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateCategoryRequest) GetName() string {
@@ -237,9 +399,37 @@ func (x *CreateCategoryRequest) GetName() string {
 	return ""
 }
 
-func (x *CreateCategoryRequest) GetTargetLimit() int64 {
+func (x *CreateCategoryRequest) GetType() CategoryType {
 	if x != nil {
-		return x.TargetLimit
+		return x.Type
+	}
+	return CategoryType_CATEGORY_TYPE_UNSPECIFIED
+}
+
+func (x *CreateCategoryRequest) GetParentId() string {
+	if x != nil {
+		return x.ParentId
+	}
+	return ""
+}
+
+func (x *CreateCategoryRequest) GetColor() string {
+	if x != nil {
+		return x.Color
+	}
+	return ""
+}
+
+func (x *CreateCategoryRequest) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *CreateCategoryRequest) GetSortOrder() int32 {
+	if x != nil {
+		return x.SortOrder
 	}
 	return 0
 }
@@ -253,7 +443,7 @@ type CreateCategoryResponse struct {
 
 func (x *CreateCategoryResponse) Reset() {
 	*x = CreateCategoryResponse{}
-	mi := &file_budgy_v1_category_proto_msgTypes[3]
+	mi := &file_budgy_v1_category_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -265,7 +455,7 @@ func (x *CreateCategoryResponse) String() string {
 func (*CreateCategoryResponse) ProtoMessage() {}
 
 func (x *CreateCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[3]
+	mi := &file_budgy_v1_category_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -278,7 +468,7 @@ func (x *CreateCategoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCategoryResponse.ProtoReflect.Descriptor instead.
 func (*CreateCategoryResponse) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{3}
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CreateCategoryResponse) GetCategory() *Category {
@@ -290,14 +480,13 @@ func (x *CreateCategoryResponse) GetCategory() *Category {
 
 type ListCategoriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListCategoriesRequest) Reset() {
 	*x = ListCategoriesRequest{}
-	mi := &file_budgy_v1_category_proto_msgTypes[4]
+	mi := &file_budgy_v1_category_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -309,7 +498,7 @@ func (x *ListCategoriesRequest) String() string {
 func (*ListCategoriesRequest) ProtoMessage() {}
 
 func (x *ListCategoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[4]
+	mi := &file_budgy_v1_category_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -322,14 +511,7 @@ func (x *ListCategoriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCategoriesRequest.ProtoReflect.Descriptor instead.
 func (*ListCategoriesRequest) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ListCategoriesRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{5}
 }
 
 type ListCategoriesResponse struct {
@@ -341,7 +523,7 @@ type ListCategoriesResponse struct {
 
 func (x *ListCategoriesResponse) Reset() {
 	*x = ListCategoriesResponse{}
-	mi := &file_budgy_v1_category_proto_msgTypes[5]
+	mi := &file_budgy_v1_category_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -353,7 +535,7 @@ func (x *ListCategoriesResponse) String() string {
 func (*ListCategoriesResponse) ProtoMessage() {}
 
 func (x *ListCategoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[5]
+	mi := &file_budgy_v1_category_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -366,7 +548,7 @@ func (x *ListCategoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCategoriesResponse.ProtoReflect.Descriptor instead.
 func (*ListCategoriesResponse) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{5}
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListCategoriesResponse) GetCategories() []*Category {
@@ -378,19 +560,21 @@ func (x *ListCategoriesResponse) GetCategories() []*Category {
 
 type UpdateCategoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	CategoryId    string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	Name          *string                `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Budgeted      *int64                 `protobuf:"varint,4,opt,name=budgeted,proto3,oneof" json:"budgeted,omitempty"`
-	Balance       *int64                 `protobuf:"varint,5,opt,name=balance,proto3,oneof" json:"balance,omitempty"`
-	TargetLimit   *int64                 `protobuf:"varint,6,opt,name=target_limit,json=targetLimit,proto3,oneof" json:"target_limit,omitempty"`
+	CategoryId    string                 `protobuf:"bytes,1,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Type          *CategoryType          `protobuf:"varint,3,opt,name=type,proto3,enum=budgy.v1.CategoryType,oneof" json:"type,omitempty"`
+	ParentId      *string                `protobuf:"bytes,4,opt,name=parent_id,json=parentId,proto3,oneof" json:"parent_id,omitempty"`
+	Color         *string                `protobuf:"bytes,5,opt,name=color,proto3,oneof" json:"color,omitempty"`
+	Icon          *string                `protobuf:"bytes,6,opt,name=icon,proto3,oneof" json:"icon,omitempty"`
+	SortOrder     *int32                 `protobuf:"varint,7,opt,name=sort_order,json=sortOrder,proto3,oneof" json:"sort_order,omitempty"`
+	Archived      *bool                  `protobuf:"varint,8,opt,name=archived,proto3,oneof" json:"archived,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateCategoryRequest) Reset() {
 	*x = UpdateCategoryRequest{}
-	mi := &file_budgy_v1_category_proto_msgTypes[6]
+	mi := &file_budgy_v1_category_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +586,7 @@ func (x *UpdateCategoryRequest) String() string {
 func (*UpdateCategoryRequest) ProtoMessage() {}
 
 func (x *UpdateCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[6]
+	mi := &file_budgy_v1_category_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,14 +599,7 @@ func (x *UpdateCategoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCategoryRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCategoryRequest) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *UpdateCategoryRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdateCategoryRequest) GetCategoryId() string {
@@ -439,25 +616,46 @@ func (x *UpdateCategoryRequest) GetName() string {
 	return ""
 }
 
-func (x *UpdateCategoryRequest) GetBudgeted() int64 {
-	if x != nil && x.Budgeted != nil {
-		return *x.Budgeted
+func (x *UpdateCategoryRequest) GetType() CategoryType {
+	if x != nil && x.Type != nil {
+		return *x.Type
+	}
+	return CategoryType_CATEGORY_TYPE_UNSPECIFIED
+}
+
+func (x *UpdateCategoryRequest) GetParentId() string {
+	if x != nil && x.ParentId != nil {
+		return *x.ParentId
+	}
+	return ""
+}
+
+func (x *UpdateCategoryRequest) GetColor() string {
+	if x != nil && x.Color != nil {
+		return *x.Color
+	}
+	return ""
+}
+
+func (x *UpdateCategoryRequest) GetIcon() string {
+	if x != nil && x.Icon != nil {
+		return *x.Icon
+	}
+	return ""
+}
+
+func (x *UpdateCategoryRequest) GetSortOrder() int32 {
+	if x != nil && x.SortOrder != nil {
+		return *x.SortOrder
 	}
 	return 0
 }
 
-func (x *UpdateCategoryRequest) GetBalance() int64 {
-	if x != nil && x.Balance != nil {
-		return *x.Balance
+func (x *UpdateCategoryRequest) GetArchived() bool {
+	if x != nil && x.Archived != nil {
+		return *x.Archived
 	}
-	return 0
-}
-
-func (x *UpdateCategoryRequest) GetTargetLimit() int64 {
-	if x != nil && x.TargetLimit != nil {
-		return *x.TargetLimit
-	}
-	return 0
+	return false
 }
 
 type UpdateCategoryResponse struct {
@@ -469,7 +667,7 @@ type UpdateCategoryResponse struct {
 
 func (x *UpdateCategoryResponse) Reset() {
 	*x = UpdateCategoryResponse{}
-	mi := &file_budgy_v1_category_proto_msgTypes[7]
+	mi := &file_budgy_v1_category_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -481,7 +679,7 @@ func (x *UpdateCategoryResponse) String() string {
 func (*UpdateCategoryResponse) ProtoMessage() {}
 
 func (x *UpdateCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[7]
+	mi := &file_budgy_v1_category_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -494,7 +692,7 @@ func (x *UpdateCategoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCategoryResponse.ProtoReflect.Descriptor instead.
 func (*UpdateCategoryResponse) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{7}
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateCategoryResponse) GetCategory() *Category {
@@ -506,15 +704,14 @@ func (x *UpdateCategoryResponse) GetCategory() *Category {
 
 type DeleteCategoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	CategoryId    string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	CategoryId    string                 `protobuf:"bytes,1,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeleteCategoryRequest) Reset() {
 	*x = DeleteCategoryRequest{}
-	mi := &file_budgy_v1_category_proto_msgTypes[8]
+	mi := &file_budgy_v1_category_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -526,7 +723,7 @@ func (x *DeleteCategoryRequest) String() string {
 func (*DeleteCategoryRequest) ProtoMessage() {}
 
 func (x *DeleteCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[8]
+	mi := &file_budgy_v1_category_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -539,14 +736,7 @@ func (x *DeleteCategoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCategoryRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCategoryRequest) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *DeleteCategoryRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DeleteCategoryRequest) GetCategoryId() string {
@@ -564,7 +754,7 @@ type DeleteCategoryResponse struct {
 
 func (x *DeleteCategoryResponse) Reset() {
 	*x = DeleteCategoryResponse{}
-	mi := &file_budgy_v1_category_proto_msgTypes[9]
+	mi := &file_budgy_v1_category_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -576,7 +766,7 @@ func (x *DeleteCategoryResponse) String() string {
 func (*DeleteCategoryResponse) ProtoMessage() {}
 
 func (x *DeleteCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[9]
+	mi := &file_budgy_v1_category_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -589,301 +779,93 @@ func (x *DeleteCategoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCategoryResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCategoryResponse) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{9}
-}
-
-type AssignCategoryFundsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	CategoryId    string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	Amount        int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AssignCategoryFundsRequest) Reset() {
-	*x = AssignCategoryFundsRequest{}
-	mi := &file_budgy_v1_category_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AssignCategoryFundsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AssignCategoryFundsRequest) ProtoMessage() {}
-
-func (x *AssignCategoryFundsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AssignCategoryFundsRequest.ProtoReflect.Descriptor instead.
-func (*AssignCategoryFundsRequest) Descriptor() ([]byte, []int) {
 	return file_budgy_v1_category_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *AssignCategoryFundsRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
-}
-
-func (x *AssignCategoryFundsRequest) GetCategoryId() string {
-	if x != nil {
-		return x.CategoryId
-	}
-	return ""
-}
-
-func (x *AssignCategoryFundsRequest) GetAmount() int64 {
-	if x != nil {
-		return x.Amount
-	}
-	return 0
-}
-
-type AssignCategoryFundsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Category      *Category              `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AssignCategoryFundsResponse) Reset() {
-	*x = AssignCategoryFundsResponse{}
-	mi := &file_budgy_v1_category_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AssignCategoryFundsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AssignCategoryFundsResponse) ProtoMessage() {}
-
-func (x *AssignCategoryFundsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AssignCategoryFundsResponse.ProtoReflect.Descriptor instead.
-func (*AssignCategoryFundsResponse) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *AssignCategoryFundsResponse) GetCategory() *Category {
-	if x != nil {
-		return x.Category
-	}
-	return nil
-}
-
-type FundEnvelopeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	CategoryId    string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	AccountId     string                 `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	Amount        int64                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FundEnvelopeRequest) Reset() {
-	*x = FundEnvelopeRequest{}
-	mi := &file_budgy_v1_category_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FundEnvelopeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FundEnvelopeRequest) ProtoMessage() {}
-
-func (x *FundEnvelopeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FundEnvelopeRequest.ProtoReflect.Descriptor instead.
-func (*FundEnvelopeRequest) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *FundEnvelopeRequest) GetBudgetId() string {
-	if x != nil {
-		return x.BudgetId
-	}
-	return ""
-}
-
-func (x *FundEnvelopeRequest) GetCategoryId() string {
-	if x != nil {
-		return x.CategoryId
-	}
-	return ""
-}
-
-func (x *FundEnvelopeRequest) GetAccountId() string {
-	if x != nil {
-		return x.AccountId
-	}
-	return ""
-}
-
-func (x *FundEnvelopeRequest) GetAmount() int64 {
-	if x != nil {
-		return x.Amount
-	}
-	return 0
-}
-
-type FundEnvelopeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Result        *FundEnvelopeResult    `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FundEnvelopeResponse) Reset() {
-	*x = FundEnvelopeResponse{}
-	mi := &file_budgy_v1_category_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FundEnvelopeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FundEnvelopeResponse) ProtoMessage() {}
-
-func (x *FundEnvelopeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_category_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FundEnvelopeResponse.ProtoReflect.Descriptor instead.
-func (*FundEnvelopeResponse) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_category_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *FundEnvelopeResponse) GetResult() *FundEnvelopeResult {
-	if x != nil {
-		return x.Result
-	}
-	return nil
 }
 
 var File_budgy_v1_category_proto protoreflect.FileDescriptor
 
 const file_budgy_v1_category_proto_rawDesc = "" +
 	"\n" +
-	"\x17budgy/v1/category.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9a\x02\n" +
+	"\x17budgy/v1/category.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdf\x03\n" +
 	"\bCategory\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
-	"\tbudget_id\x18\x02 \x01(\tR\bbudgetId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1a\n" +
-	"\bbudgeted\x18\x04 \x01(\x03R\bbudgeted\x12\x18\n" +
-	"\abalance\x18\x05 \x01(\x03R\abalance\x12!\n" +
-	"\ftarget_limit\x18\x06 \x01(\x03R\vtargetLimit\x129\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tparent_id\x18\x03 \x01(\tR\bparentId\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12*\n" +
+	"\x04type\x18\x05 \x01(\x0e2\x16.budgy.v1.CategoryTypeR\x04type\x12\x14\n" +
+	"\x05color\x18\x06 \x01(\tR\x05color\x12\x12\n" +
+	"\x04icon\x18\a \x01(\tR\x04icon\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"sort_order\x18\b \x01(\x05R\tsortOrder\x12\x1a\n" +
+	"\barchived\x18\t \x01(\bR\barchived\x12\x16\n" +
+	"\x06system\x18\n" +
+	" \x01(\bR\x06system\x12.\n" +
+	"\x13basiq_subclass_code\x18\v \x01(\tR\x11basiqSubclassCode\x12*\n" +
+	"\x11anzsic_class_code\x18\f \x01(\tR\x0fanzsicClassCode\x129\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x8c\x01\n" +
+	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x99\x01\n" +
+	"\x0eBudgetCategory\x12.\n" +
+	"\bcategory\x18\x01 \x01(\v2\x12.budgy.v1.CategoryR\bcategory\x12\x1a\n" +
+	"\bbudgeted\x18\x02 \x01(\x03R\bbudgeted\x12\x18\n" +
+	"\abalance\x18\x03 \x01(\x03R\abalance\x12!\n" +
+	"\ftarget_limit\x18\x04 \x01(\x03R\vtargetLimit\"\x92\x01\n" +
 	"\x12FundEnvelopeResult\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12'\n" +
-	"\x0faccount_balance\x18\x02 \x01(\x03R\x0eaccountBalance\x12.\n" +
-	"\benvelope\x18\x03 \x01(\v2\x12.budgy.v1.CategoryR\benvelope\"k\n" +
-	"\x15CreateCategoryRequest\x12\x1b\n" +
-	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
-	"\ftarget_limit\x18\x03 \x01(\x03R\vtargetLimit\"H\n" +
+	"\x0faccount_balance\x18\x02 \x01(\x03R\x0eaccountBalance\x124\n" +
+	"\benvelope\x18\x03 \x01(\v2\x18.budgy.v1.BudgetCategoryR\benvelope\"\xbd\x01\n" +
+	"\x15CreateCategoryRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12*\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x16.budgy.v1.CategoryTypeR\x04type\x12\x1b\n" +
+	"\tparent_id\x18\x03 \x01(\tR\bparentId\x12\x14\n" +
+	"\x05color\x18\x04 \x01(\tR\x05color\x12\x12\n" +
+	"\x04icon\x18\x05 \x01(\tR\x04icon\x12\x1d\n" +
+	"\n" +
+	"sort_order\x18\x06 \x01(\x05R\tsortOrder\"H\n" +
 	"\x16CreateCategoryResponse\x12.\n" +
-	"\bcategory\x18\x01 \x01(\v2\x12.budgy.v1.CategoryR\bcategory\"4\n" +
-	"\x15ListCategoriesRequest\x12\x1b\n" +
-	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\"L\n" +
+	"\bcategory\x18\x01 \x01(\v2\x12.budgy.v1.CategoryR\bcategory\"\x17\n" +
+	"\x15ListCategoriesRequest\"L\n" +
 	"\x16ListCategoriesResponse\x122\n" +
 	"\n" +
 	"categories\x18\x01 \x03(\v2\x12.budgy.v1.CategoryR\n" +
-	"categories\"\x89\x02\n" +
-	"\x15UpdateCategoryRequest\x12\x1b\n" +
-	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1f\n" +
-	"\vcategory_id\x18\x02 \x01(\tR\n" +
+	"categories\"\xec\x02\n" +
+	"\x15UpdateCategoryRequest\x12\x1f\n" +
+	"\vcategory_id\x18\x01 \x01(\tR\n" +
 	"categoryId\x12\x17\n" +
-	"\x04name\x18\x03 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1f\n" +
-	"\bbudgeted\x18\x04 \x01(\x03H\x01R\bbudgeted\x88\x01\x01\x12\x1d\n" +
-	"\abalance\x18\x05 \x01(\x03H\x02R\abalance\x88\x01\x01\x12&\n" +
-	"\ftarget_limit\x18\x06 \x01(\x03H\x03R\vtargetLimit\x88\x01\x01B\a\n" +
-	"\x05_nameB\v\n" +
-	"\t_budgetedB\n" +
+	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12/\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x16.budgy.v1.CategoryTypeH\x01R\x04type\x88\x01\x01\x12 \n" +
+	"\tparent_id\x18\x04 \x01(\tH\x02R\bparentId\x88\x01\x01\x12\x19\n" +
+	"\x05color\x18\x05 \x01(\tH\x03R\x05color\x88\x01\x01\x12\x17\n" +
+	"\x04icon\x18\x06 \x01(\tH\x04R\x04icon\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"\b_balanceB\x0f\n" +
-	"\r_target_limit\"H\n" +
+	"sort_order\x18\a \x01(\x05H\x05R\tsortOrder\x88\x01\x01\x12\x1f\n" +
+	"\barchived\x18\b \x01(\bH\x06R\barchived\x88\x01\x01B\a\n" +
+	"\x05_nameB\a\n" +
+	"\x05_typeB\f\n" +
+	"\n" +
+	"_parent_idB\b\n" +
+	"\x06_colorB\a\n" +
+	"\x05_iconB\r\n" +
+	"\v_sort_orderB\v\n" +
+	"\t_archived\"H\n" +
 	"\x16UpdateCategoryResponse\x12.\n" +
-	"\bcategory\x18\x01 \x01(\v2\x12.budgy.v1.CategoryR\bcategory\"U\n" +
-	"\x15DeleteCategoryRequest\x12\x1b\n" +
-	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1f\n" +
-	"\vcategory_id\x18\x02 \x01(\tR\n" +
+	"\bcategory\x18\x01 \x01(\v2\x12.budgy.v1.CategoryR\bcategory\"8\n" +
+	"\x15DeleteCategoryRequest\x12\x1f\n" +
+	"\vcategory_id\x18\x01 \x01(\tR\n" +
 	"categoryId\"\x18\n" +
-	"\x16DeleteCategoryResponse\"r\n" +
-	"\x1aAssignCategoryFundsRequest\x12\x1b\n" +
-	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1f\n" +
-	"\vcategory_id\x18\x02 \x01(\tR\n" +
-	"categoryId\x12\x16\n" +
-	"\x06amount\x18\x03 \x01(\x03R\x06amount\"M\n" +
-	"\x1bAssignCategoryFundsResponse\x12.\n" +
-	"\bcategory\x18\x01 \x01(\v2\x12.budgy.v1.CategoryR\bcategory\"\x8a\x01\n" +
-	"\x13FundEnvelopeRequest\x12\x1b\n" +
-	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1f\n" +
-	"\vcategory_id\x18\x02 \x01(\tR\n" +
-	"categoryId\x12\x1d\n" +
-	"\n" +
-	"account_id\x18\x03 \x01(\tR\taccountId\x12\x16\n" +
-	"\x06amount\x18\x04 \x01(\x03R\x06amount\"L\n" +
-	"\x14FundEnvelopeResponse\x124\n" +
-	"\x06result\x18\x01 \x01(\v2\x1c.budgy.v1.FundEnvelopeResultR\x06result2\x98\x04\n" +
+	"\x16DeleteCategoryResponse*~\n" +
+	"\fCategoryType\x12\x1d\n" +
+	"\x19CATEGORY_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14CATEGORY_TYPE_INCOME\x10\x01\x12\x19\n" +
+	"\x15CATEGORY_TYPE_EXPENSE\x10\x02\x12\x1a\n" +
+	"\x16CATEGORY_TYPE_TRANSFER\x10\x032\xe5\x02\n" +
 	"\x0fCategoryService\x12S\n" +
 	"\x0eCreateCategory\x12\x1f.budgy.v1.CreateCategoryRequest\x1a .budgy.v1.CreateCategoryResponse\x12S\n" +
 	"\x0eListCategories\x12\x1f.budgy.v1.ListCategoriesRequest\x1a .budgy.v1.ListCategoriesResponse\x12S\n" +
 	"\x0eUpdateCategory\x12\x1f.budgy.v1.UpdateCategoryRequest\x1a .budgy.v1.UpdateCategoryResponse\x12S\n" +
-	"\x0eDeleteCategory\x12\x1f.budgy.v1.DeleteCategoryRequest\x1a .budgy.v1.DeleteCategoryResponse\x12b\n" +
-	"\x13AssignCategoryFunds\x12$.budgy.v1.AssignCategoryFundsRequest\x1a%.budgy.v1.AssignCategoryFundsResponse\x12M\n" +
-	"\fFundEnvelope\x12\x1d.budgy.v1.FundEnvelopeRequest\x1a\x1e.budgy.v1.FundEnvelopeResponseB0Z.budgeting_system/internal/gen/budgy/v1;budgyv1b\x06proto3"
+	"\x0eDeleteCategory\x12\x1f.budgy.v1.DeleteCategoryRequest\x1a .budgy.v1.DeleteCategoryResponseB0Z.budgeting_system/internal/gen/budgy/v1;budgyv1b\x06proto3"
 
 var (
 	file_budgy_v1_category_proto_rawDescOnce sync.Once
@@ -897,50 +879,47 @@ func file_budgy_v1_category_proto_rawDescGZIP() []byte {
 	return file_budgy_v1_category_proto_rawDescData
 }
 
-var file_budgy_v1_category_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_budgy_v1_category_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_budgy_v1_category_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_budgy_v1_category_proto_goTypes = []any{
-	(*Category)(nil),                    // 0: budgy.v1.Category
-	(*FundEnvelopeResult)(nil),          // 1: budgy.v1.FundEnvelopeResult
-	(*CreateCategoryRequest)(nil),       // 2: budgy.v1.CreateCategoryRequest
-	(*CreateCategoryResponse)(nil),      // 3: budgy.v1.CreateCategoryResponse
-	(*ListCategoriesRequest)(nil),       // 4: budgy.v1.ListCategoriesRequest
-	(*ListCategoriesResponse)(nil),      // 5: budgy.v1.ListCategoriesResponse
-	(*UpdateCategoryRequest)(nil),       // 6: budgy.v1.UpdateCategoryRequest
-	(*UpdateCategoryResponse)(nil),      // 7: budgy.v1.UpdateCategoryResponse
-	(*DeleteCategoryRequest)(nil),       // 8: budgy.v1.DeleteCategoryRequest
-	(*DeleteCategoryResponse)(nil),      // 9: budgy.v1.DeleteCategoryResponse
-	(*AssignCategoryFundsRequest)(nil),  // 10: budgy.v1.AssignCategoryFundsRequest
-	(*AssignCategoryFundsResponse)(nil), // 11: budgy.v1.AssignCategoryFundsResponse
-	(*FundEnvelopeRequest)(nil),         // 12: budgy.v1.FundEnvelopeRequest
-	(*FundEnvelopeResponse)(nil),        // 13: budgy.v1.FundEnvelopeResponse
-	(*timestamppb.Timestamp)(nil),       // 14: google.protobuf.Timestamp
+	(CategoryType)(0),              // 0: budgy.v1.CategoryType
+	(*Category)(nil),               // 1: budgy.v1.Category
+	(*BudgetCategory)(nil),         // 2: budgy.v1.BudgetCategory
+	(*FundEnvelopeResult)(nil),     // 3: budgy.v1.FundEnvelopeResult
+	(*CreateCategoryRequest)(nil),  // 4: budgy.v1.CreateCategoryRequest
+	(*CreateCategoryResponse)(nil), // 5: budgy.v1.CreateCategoryResponse
+	(*ListCategoriesRequest)(nil),  // 6: budgy.v1.ListCategoriesRequest
+	(*ListCategoriesResponse)(nil), // 7: budgy.v1.ListCategoriesResponse
+	(*UpdateCategoryRequest)(nil),  // 8: budgy.v1.UpdateCategoryRequest
+	(*UpdateCategoryResponse)(nil), // 9: budgy.v1.UpdateCategoryResponse
+	(*DeleteCategoryRequest)(nil),  // 10: budgy.v1.DeleteCategoryRequest
+	(*DeleteCategoryResponse)(nil), // 11: budgy.v1.DeleteCategoryResponse
+	(*timestamppb.Timestamp)(nil),  // 12: google.protobuf.Timestamp
 }
 var file_budgy_v1_category_proto_depIdxs = []int32{
-	14, // 0: budgy.v1.Category.created_at:type_name -> google.protobuf.Timestamp
-	14, // 1: budgy.v1.Category.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 2: budgy.v1.FundEnvelopeResult.envelope:type_name -> budgy.v1.Category
-	0,  // 3: budgy.v1.CreateCategoryResponse.category:type_name -> budgy.v1.Category
-	0,  // 4: budgy.v1.ListCategoriesResponse.categories:type_name -> budgy.v1.Category
-	0,  // 5: budgy.v1.UpdateCategoryResponse.category:type_name -> budgy.v1.Category
-	0,  // 6: budgy.v1.AssignCategoryFundsResponse.category:type_name -> budgy.v1.Category
-	1,  // 7: budgy.v1.FundEnvelopeResponse.result:type_name -> budgy.v1.FundEnvelopeResult
-	2,  // 8: budgy.v1.CategoryService.CreateCategory:input_type -> budgy.v1.CreateCategoryRequest
-	4,  // 9: budgy.v1.CategoryService.ListCategories:input_type -> budgy.v1.ListCategoriesRequest
-	6,  // 10: budgy.v1.CategoryService.UpdateCategory:input_type -> budgy.v1.UpdateCategoryRequest
-	8,  // 11: budgy.v1.CategoryService.DeleteCategory:input_type -> budgy.v1.DeleteCategoryRequest
-	10, // 12: budgy.v1.CategoryService.AssignCategoryFunds:input_type -> budgy.v1.AssignCategoryFundsRequest
-	12, // 13: budgy.v1.CategoryService.FundEnvelope:input_type -> budgy.v1.FundEnvelopeRequest
-	3,  // 14: budgy.v1.CategoryService.CreateCategory:output_type -> budgy.v1.CreateCategoryResponse
-	5,  // 15: budgy.v1.CategoryService.ListCategories:output_type -> budgy.v1.ListCategoriesResponse
-	7,  // 16: budgy.v1.CategoryService.UpdateCategory:output_type -> budgy.v1.UpdateCategoryResponse
-	9,  // 17: budgy.v1.CategoryService.DeleteCategory:output_type -> budgy.v1.DeleteCategoryResponse
-	11, // 18: budgy.v1.CategoryService.AssignCategoryFunds:output_type -> budgy.v1.AssignCategoryFundsResponse
-	13, // 19: budgy.v1.CategoryService.FundEnvelope:output_type -> budgy.v1.FundEnvelopeResponse
-	14, // [14:20] is the sub-list for method output_type
-	8,  // [8:14] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	0,  // 0: budgy.v1.Category.type:type_name -> budgy.v1.CategoryType
+	12, // 1: budgy.v1.Category.created_at:type_name -> google.protobuf.Timestamp
+	12, // 2: budgy.v1.Category.updated_at:type_name -> google.protobuf.Timestamp
+	1,  // 3: budgy.v1.BudgetCategory.category:type_name -> budgy.v1.Category
+	2,  // 4: budgy.v1.FundEnvelopeResult.envelope:type_name -> budgy.v1.BudgetCategory
+	0,  // 5: budgy.v1.CreateCategoryRequest.type:type_name -> budgy.v1.CategoryType
+	1,  // 6: budgy.v1.CreateCategoryResponse.category:type_name -> budgy.v1.Category
+	1,  // 7: budgy.v1.ListCategoriesResponse.categories:type_name -> budgy.v1.Category
+	0,  // 8: budgy.v1.UpdateCategoryRequest.type:type_name -> budgy.v1.CategoryType
+	1,  // 9: budgy.v1.UpdateCategoryResponse.category:type_name -> budgy.v1.Category
+	4,  // 10: budgy.v1.CategoryService.CreateCategory:input_type -> budgy.v1.CreateCategoryRequest
+	6,  // 11: budgy.v1.CategoryService.ListCategories:input_type -> budgy.v1.ListCategoriesRequest
+	8,  // 12: budgy.v1.CategoryService.UpdateCategory:input_type -> budgy.v1.UpdateCategoryRequest
+	10, // 13: budgy.v1.CategoryService.DeleteCategory:input_type -> budgy.v1.DeleteCategoryRequest
+	5,  // 14: budgy.v1.CategoryService.CreateCategory:output_type -> budgy.v1.CreateCategoryResponse
+	7,  // 15: budgy.v1.CategoryService.ListCategories:output_type -> budgy.v1.ListCategoriesResponse
+	9,  // 16: budgy.v1.CategoryService.UpdateCategory:output_type -> budgy.v1.UpdateCategoryResponse
+	11, // 17: budgy.v1.CategoryService.DeleteCategory:output_type -> budgy.v1.DeleteCategoryResponse
+	14, // [14:18] is the sub-list for method output_type
+	10, // [10:14] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_budgy_v1_category_proto_init() }
@@ -948,19 +927,20 @@ func file_budgy_v1_category_proto_init() {
 	if File_budgy_v1_category_proto != nil {
 		return
 	}
-	file_budgy_v1_category_proto_msgTypes[6].OneofWrappers = []any{}
+	file_budgy_v1_category_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_budgy_v1_category_proto_rawDesc), len(file_budgy_v1_category_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   14,
+			NumEnums:      1,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_budgy_v1_category_proto_goTypes,
 		DependencyIndexes: file_budgy_v1_category_proto_depIdxs,
+		EnumInfos:         file_budgy_v1_category_proto_enumTypes,
 		MessageInfos:      file_budgy_v1_category_proto_msgTypes,
 	}.Build()
 	File_budgy_v1_category_proto = out.File

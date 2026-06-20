@@ -4,6 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
+  clearSelectedBudgetId,
+  readSelectedBudgetId,
+  writeSelectedBudgetId,
+} from "@/lib/api/active-budget";
+import { useOnlineQueryEnabled } from "@/lib/query/use-online-query-enabled";
+import {
   assignCategoryFunds,
   createBudget,
   deleteBudget,
@@ -17,20 +23,17 @@ import { backendBudgetKeys } from "./keys";
 import { computeBudgetSummary } from "./summary";
 import type { BackendBudget, BackendBudgetMethod } from "./types";
 
-const SELECTED_BUDGET_KEY = "budgy.selectedBudgetId";
-
 export function useBackendBudgets() {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: backendBudgetKeys.list(),
     queryFn: fetchBudgets,
+    enabled,
   });
 }
 
 export function useSelectedBudgetId(budgets: BackendBudget[] | undefined) {
-  const [selectedId, setSelectedId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return sessionStorage.getItem(SELECTED_BUDGET_KEY);
-  });
+  const [selectedId, setSelectedId] = useState<string | null>(() => readSelectedBudgetId());
 
   useEffect(() => {
     if (!budgets?.length) {
@@ -40,36 +43,38 @@ export function useSelectedBudgetId(budgets: BackendBudget[] | undefined) {
     if (selectedId && budgets.some((b) => b.id === selectedId)) return;
     const next = budgets[0].id;
     setSelectedId(next);
-    sessionStorage.setItem(SELECTED_BUDGET_KEY, next);
+    writeSelectedBudgetId(next);
   }, [budgets, selectedId]);
 
   const selectBudget = useCallback((id: string) => {
     setSelectedId(id);
-    sessionStorage.setItem(SELECTED_BUDGET_KEY, id);
+    writeSelectedBudgetId(id);
   }, []);
 
   return { selectedId, selectBudget };
 }
 
 export function useBackendCategories(budgetId: string | null) {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: backendBudgetKeys.categories(budgetId ?? ""),
     queryFn: () => {
       if (!budgetId) throw new Error("budgetId is required");
       return fetchCategories(budgetId);
     },
-    enabled: !!budgetId,
+    enabled: enabled && !!budgetId,
   });
 }
 
 export function useBackendAccounts(budgetId: string | null) {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: backendBudgetKeys.accounts(budgetId ?? ""),
     queryFn: () => {
       if (!budgetId) throw new Error("budgetId is required");
       return fetchAccounts(budgetId);
     },
-    enabled: !!budgetId,
+    enabled: enabled && !!budgetId,
   });
 }
 
@@ -98,7 +103,7 @@ export function useCreateBackendBudget() {
     mutationFn: createBudget,
     onSuccess: (b) => {
       invalidateBudgetQueries(qc);
-      sessionStorage.setItem(SELECTED_BUDGET_KEY, b.id);
+      writeSelectedBudgetId(b.id);
       toast.success(`${b.name} created`);
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to create budget"),
@@ -130,7 +135,7 @@ export function useDeleteBackendBudget() {
   return useMutation({
     mutationFn: deleteBudget,
     onSuccess: () => {
-      sessionStorage.removeItem(SELECTED_BUDGET_KEY);
+      clearSelectedBudgetId();
       invalidateBudgetQueries(qc);
       toast.success("Budget deleted");
     },

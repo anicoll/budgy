@@ -2,6 +2,7 @@ package api
 
 import (
 	"os"
+	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -39,4 +40,36 @@ func parseJWT(tokenStr string, claims *Claims) (*jwt.Token, error) {
 	return jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (any, error) {
 		return jwtSecretKey, nil
 	})
+}
+
+// AuthTokenCookieName is the session cookie set on login/register.
+const AuthTokenCookieName = "token"
+
+// NewAuthTokenCookie builds the HTTP-only session cookie for a user.
+func NewAuthTokenCookie(userID string) (*http.Cookie, error) {
+	token, err := GenerateJWT(userID)
+	if err != nil {
+		return nil, err
+	}
+	return &http.Cookie{
+		Name:     AuthTokenCookieName,
+		Value:    token,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	}, nil
+}
+
+// ClearAuthTokenCookie returns a cookie that removes the session.
+func ClearAuthTokenCookie() *http.Cookie {
+	return &http.Cookie{
+		Name:     AuthTokenCookieName,
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	}
 }

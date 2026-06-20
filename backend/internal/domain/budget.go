@@ -53,8 +53,8 @@ const (
 
 // Account represents a physical or digital account holding money.
 type Account struct {
+	UserID         string      `json:"user_id"`
 	ID             string      `json:"id"`
-	BudgetID       string      `json:"budget_id"`
 	Name           string      `json:"name"`
 	Type           AccountType `json:"type"`
 	Balance        int64       `json:"balance"` // Stored in minor units (e.g. cents) to avoid float issues
@@ -71,8 +71,8 @@ type Account struct {
 
 // Validate validates the Account fields.
 func (a *Account) Validate() error {
-	if a.BudgetID == "" {
-		return errors.New("budget ID is required")
+	if a.UserID == "" {
+		return errors.New("user ID is required")
 	}
 	if a.Name == "" {
 		return errors.New("account name cannot be empty")
@@ -86,31 +86,45 @@ func (a *Account) Validate() error {
 	return nil
 }
 
-// Category represents a budget category (or "envelope") where funds are allocated.
+// CategoryType classifies categories for reporting.
+type CategoryType string
+
+const (
+	CategoryIncome   CategoryType = "income"
+	CategoryExpense  CategoryType = "expense"
+	CategoryTransfer CategoryType = "transfer"
+)
+
+// Category represents a user-owned nested taxonomy for labelling transactions.
 type Category struct {
-	ID          string    `json:"id"`
-	BudgetID    string    `json:"budget_id"`
-	Name        string    `json:"name"`
-	Budgeted    int64     `json:"budgeted"`     // Allocated amount (e.g. monthly budgeted) in cents
-	Balance     int64     `json:"balance"`      // Virtual balance (e.g. envelope contents) in cents
-	TargetLimit int64     `json:"target_limit"` // Optional Target capacity (specifically for Envelope budgeting)
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID                string       `json:"id"`
+	UserID            string       `json:"user_id"`
+	ParentID          string       `json:"parent_id,omitempty"`
+	Name              string       `json:"name"`
+	Type              CategoryType `json:"type"`
+	Color             string       `json:"color"`
+	Icon              string       `json:"icon,omitempty"`
+	SortOrder         int          `json:"sort_order"`
+	Archived          bool         `json:"archived"`
+	System            bool         `json:"system"`
+	BasiqSubClassCode string       `json:"basiq_subclass_code,omitempty"`
+	AnzsicClassCode   string       `json:"anzsic_class_code,omitempty"`
+	CreatedAt         time.Time    `json:"created_at"`
+	UpdatedAt         time.Time    `json:"updated_at"`
 }
 
 // Validate validates the Category fields.
 func (c *Category) Validate() error {
-	if c.BudgetID == "" {
-		return errors.New("budget ID is required")
+	if c.UserID == "" {
+		return errors.New("user ID is required")
 	}
 	if c.Name == "" {
 		return errors.New("category name cannot be empty")
 	}
-	if c.Budgeted < 0 {
-		return errors.New("budgeted amount cannot be negative")
-	}
-	if c.TargetLimit < 0 {
-		return errors.New("target limit cannot be negative")
+	switch c.Type {
+	case CategoryIncome, CategoryExpense, CategoryTransfer:
+	default:
+		return errors.New("invalid category type")
 	}
 	return nil
 }
@@ -144,9 +158,6 @@ type Transaction struct {
 
 // Validate validates the Transaction fields.
 func (t *Transaction) Validate() error {
-	if t.BudgetID == "" {
-		return errors.New("budget ID is required")
-	}
 	if t.AccountID == "" {
 		return errors.New("account ID is required")
 	}

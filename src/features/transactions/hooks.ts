@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { DateRange } from "@/lib/date/periods";
 import { queryKeys } from "@/lib/query/keys";
+import { useOnlineQueryEnabled } from "@/lib/query/use-online-query-enabled";
 import {
   bulkImportTransactions,
   bulkSetCategory,
@@ -25,9 +26,11 @@ interface ListOpts {
 }
 
 export function useTransactions(opts?: ListOpts) {
+  const enabled = useOnlineQueryEnabled();
   return useQuery({
     queryKey: queryKeys.transactions.list(opts),
     queryFn: () => listTransactions(opts),
+    enabled,
   });
 }
 

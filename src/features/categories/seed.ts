@@ -1,5 +1,11 @@
 import type { Category } from "./types";
 
+/**
+ * Reference taxonomy for local/offline mode only.
+ * Online users receive the Basiq-aligned tree from the backend
+ * (categoryseed/au_basiq.go + migration seed).
+ */
+
 type SeedEntry = Omit<Category, "id"> & { seedId: string };
 
 export const DEFAULT_CATEGORIES: SeedEntry[] = [

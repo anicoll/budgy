@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"budgeting_system/internal/domain"
+	"budgeting_system/internal/domain/categoryseed"
 	"budgeting_system/internal/mappings"
 	"budgeting_system/internal/storage/db"
 	"budgeting_system/pkg/utils"
@@ -54,7 +55,10 @@ func MigrateWithDialect(db *sql.DB, dialect string) error {
 	if err := goose.SetDialect(dialect); err != nil {
 		return err
 	}
-	return goose.Up(db, "migrations")
+	if err := goose.Up(db, "migrations"); err != nil {
+		return err
+	}
+	return categoryseed.ApplyForAllUsers(context.Background(), db)
 }
 
 // SQLiteStorage encapsulates the SQL database connection.
@@ -87,6 +91,14 @@ func (s *SQLiteStorage) Allocations() domain.AllocationRepository {
 
 func (s *SQLiteStorage) Jobs() domain.JobRepository {
 	return &jobRepository{db: s.db}
+}
+
+func (s *SQLiteStorage) BudgetAccounts() domain.BudgetAccountRepository {
+	return &budgetAccountRepository{db: s.db}
+}
+
+func (s *SQLiteStorage) BudgetCategoryLines() domain.BudgetCategoryLineRepository {
+	return &budgetCategoryLineRepository{db: s.db}
 }
 
 func (r *budgetRepository) Create(ctx context.Context, b *domain.Budget) error {
@@ -170,57 +182,38 @@ func (s *SQLiteStorage) Accounts() domain.AccountRepository {
 }
 
 func (r *accountRepository) Create(ctx context.Context, acc *domain.Account) error {
-	query := `INSERT INTO accounts (id, budget_id, name, type, balance, created_at, updated_at, class, account_no, available_funds, product, institution_id, connection_id, last_updated)
+	query := `INSERT INTO accounts (id, user_id, name, type, balance, created_at, updated_at, class, account_no, available_funds, product, institution_id, connection_id, last_updated)
 	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	var budgetID any = acc.BudgetID
-	if acc.BudgetID == "" {
-		budgetID = nil
-	}
-	_, err := r.db.ExecContext(ctx, query, acc.ID, budgetID, acc.Name, string(acc.Type), acc.Balance, acc.CreatedAt, acc.UpdatedAt, acc.Class, acc.AccountNo, acc.AvailableFunds, acc.Product, acc.InstitutionID, acc.ConnectionID, acc.LastUpdated)
+	_, err := r.db.ExecContext(ctx, query, acc.ID, acc.UserID, acc.Name, string(acc.Type), acc.Balance, acc.CreatedAt, acc.UpdatedAt, acc.Class, acc.AccountNo, acc.AvailableFunds, acc.Product, acc.InstitutionID, acc.ConnectionID, acc.LastUpdated)
 	return err
 }
 
 func (r *accountRepository) GetByID(ctx context.Context, id string) (*domain.Account, error) {
-	query := `SELECT id, budget_id, name, type, balance, created_at, updated_at, class, account_no, available_funds, product, institution_id, connection_id, last_updated FROM accounts WHERE id = ?`
+	query := `SELECT ` + accountSelectCols + ` FROM accounts WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
-
-	var dbAcc db.Account
-	err := row.Scan(&dbAcc.ID, &dbAcc.BudgetID, &dbAcc.Name, &dbAcc.Type, &dbAcc.Balance, &dbAcc.CreatedAt, &dbAcc.UpdatedAt, &dbAcc.Class, &dbAcc.AccountNo, &dbAcc.AvailableFunds, &dbAcc.Product, &dbAcc.InstitutionID, &dbAcc.ConnectionID, &dbAcc.LastUpdated)
+	acc, err := scanAccountRow(ctx, row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("account not found")
 		}
 		return nil, err
 	}
-	var acc domain.Account
-	if err := dbAccountMapper.AccountToAccount(ctx, &dbAcc, &acc); err != nil {
-		return nil, err
-	}
-	return &acc, nil
+	return acc, nil
 }
 
-func (r *accountRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Account, error) {
-	query := `SELECT id, budget_id, name, type, balance, created_at, updated_at, class, account_no, available_funds, product, institution_id, connection_id, last_updated FROM accounts WHERE budget_id = ?`
-	rows, err := r.db.QueryContext(ctx, query, budgetID)
+func (r *accountRepository) ListByUser(ctx context.Context, userID string) ([]*domain.Account, error) {
+	query := `SELECT ` + accountSelectCols + ` FROM accounts WHERE user_id = ?`
+	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+	return scanAccounts(ctx, rows)
+}
 
-	var list []*domain.Account
-	for rows.Next() {
-		var dbAcc db.Account
-		err := rows.Scan(&dbAcc.ID, &dbAcc.BudgetID, &dbAcc.Name, &dbAcc.Type, &dbAcc.Balance, &dbAcc.CreatedAt, &dbAcc.UpdatedAt, &dbAcc.Class, &dbAcc.AccountNo, &dbAcc.AvailableFunds, &dbAcc.Product, &dbAcc.InstitutionID, &dbAcc.ConnectionID, &dbAcc.LastUpdated)
-		if err != nil {
-			return nil, err
-		}
-		var acc domain.Account
-		if err := dbAccountMapper.AccountToAccount(ctx, &dbAcc, &acc); err != nil {
-			return nil, err
-		}
-		list = append(list, &acc)
-	}
-	return list, nil
+func (r *accountRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Account, error) {
+	repo := &budgetAccountRepository{db: r.db}
+	return repo.ListAccountsByBudget(ctx, budgetID)
 }
 
 func (r *accountRepository) UpdateBalance(ctx context.Context, id string, balance int64) error {
@@ -230,12 +223,8 @@ func (r *accountRepository) UpdateBalance(ctx context.Context, id string, balanc
 }
 
 func (r *accountRepository) Update(ctx context.Context, acc *domain.Account) error {
-	query := `UPDATE accounts SET budget_id = ?, name = ?, type = ?, balance = ?, updated_at = ?, class = ?, account_no = ?, available_funds = ?, product = ?, institution_id = ?, connection_id = ?, last_updated = ? WHERE id = ?`
-	var budgetID any = acc.BudgetID
-	if acc.BudgetID == "" {
-		budgetID = nil
-	}
-	_, err := r.db.ExecContext(ctx, query, budgetID, acc.Name, string(acc.Type), acc.Balance, acc.UpdatedAt, acc.Class, acc.AccountNo, acc.AvailableFunds, acc.Product, acc.InstitutionID, acc.ConnectionID, acc.LastUpdated, acc.ID)
+	query := `UPDATE accounts SET user_id = ?, name = ?, type = ?, balance = ?, updated_at = ?, class = ?, account_no = ?, available_funds = ?, product = ?, institution_id = ?, connection_id = ?, last_updated = ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, acc.UserID, acc.Name, string(acc.Type), acc.Balance, acc.UpdatedAt, acc.Class, acc.AccountNo, acc.AvailableFunds, acc.Product, acc.InstitutionID, acc.ConnectionID, acc.LastUpdated, acc.ID)
 	return err
 }
 
@@ -256,68 +245,95 @@ func (s *SQLiteStorage) Categories() domain.CategoryRepository {
 }
 
 func (r *categoryRepository) Create(ctx context.Context, c *domain.Category) error {
-	query := `INSERT INTO categories (id, budget_id, name, budgeted, balance, target_limit, created_at, updated_at)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err := r.db.ExecContext(ctx, query, c.ID, c.BudgetID, c.Name, c.Budgeted, c.Balance, c.TargetLimit, c.CreatedAt, c.UpdatedAt)
+	var parentID any
+	if c.ParentID != "" {
+		parentID = c.ParentID
+	}
+	archived := 0
+	if c.Archived {
+		archived = 1
+	}
+	system := 0
+	if c.System {
+		system = 1
+	}
+	var icon, basiqCode, anzsic any
+	if c.Icon != "" {
+		icon = c.Icon
+	}
+	if c.BasiqSubClassCode != "" {
+		basiqCode = c.BasiqSubClassCode
+	}
+	if c.AnzsicClassCode != "" {
+		anzsic = c.AnzsicClassCode
+	}
+	query := `INSERT INTO categories (id, user_id, parent_id, name, type, color, icon, sort_order, archived, system, basiq_subclass_code, anzsic_class_code, created_at, updated_at)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := r.db.ExecContext(ctx, query, c.ID, c.UserID, parentID, c.Name, string(c.Type), c.Color, icon, c.SortOrder, archived, system, basiqCode, anzsic, c.CreatedAt, c.UpdatedAt)
 	return err
 }
 
 func (r *categoryRepository) GetByID(ctx context.Context, id string) (*domain.Category, error) {
-	query := `SELECT id, budget_id, name, budgeted, balance, target_limit, created_at, updated_at FROM categories WHERE id = ?`
+	query := `SELECT ` + categorySelectCols + ` FROM categories WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
-
-	var dbC db.Category
-	err := row.Scan(&dbC.ID, &dbC.BudgetID, &dbC.Name, &dbC.Budgeted, &dbC.Balance, &dbC.TargetLimit, &dbC.CreatedAt, &dbC.UpdatedAt)
+	c, err := scanCategoryRow(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("category not found")
 		}
 		return nil, err
 	}
-	var c domain.Category
-	if err := dbCategoryMapper.CategoryToCategory(ctx, &dbC, &c); err != nil {
-		return nil, err
-	}
-	return &c, nil
+	return c, nil
 }
 
-func (r *categoryRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Category, error) {
-	query := `SELECT id, budget_id, name, budgeted, balance, target_limit, created_at, updated_at FROM categories WHERE budget_id = ?`
-	rows, err := r.db.QueryContext(ctx, query, budgetID)
+func (r *categoryRepository) GetByBasiqSubClassCode(ctx context.Context, userID, code string) (*domain.Category, error) {
+	query := `SELECT ` + categorySelectCols + ` FROM categories WHERE user_id = ? AND basiq_subclass_code = ? LIMIT 1`
+	row := r.db.QueryRowContext(ctx, query, userID, code)
+	c, err := scanCategoryRow(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("category not found")
+		}
+		return nil, err
+	}
+	return c, nil
+}
+
+func (r *categoryRepository) ListByUser(ctx context.Context, userID string) ([]*domain.Category, error) {
+	query := `SELECT ` + categorySelectCols + ` FROM categories WHERE user_id = ? ORDER BY sort_order, name`
+	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	var list []*domain.Category
-	for rows.Next() {
-		var dbC db.Category
-		err := rows.Scan(&dbC.ID, &dbC.BudgetID, &dbC.Name, &dbC.Budgeted, &dbC.Balance, &dbC.TargetLimit, &dbC.CreatedAt, &dbC.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		var c domain.Category
-		if err := dbCategoryMapper.CategoryToCategory(ctx, &dbC, &c); err != nil {
-			return nil, err
-		}
-		list = append(list, &c)
-	}
-	return list, nil
-}
-
-func (r *categoryRepository) UpdateBudgetedAndBalance(ctx context.Context, id string, budgeted int64, balance int64) error {
-	query := `UPDATE categories SET budgeted = ?, balance = ?, updated_at = ? WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, budgeted, balance, time.Now(), id)
-	return err
+	return scanCategories(rows)
 }
 
 func (r *categoryRepository) Update(ctx context.Context, c *domain.Category) error {
-	query := `UPDATE categories SET budget_id = ?, name = ?, budgeted = ?, balance = ?, target_limit = ?, updated_at = ? WHERE id = ?`
-	var budgetID any = c.BudgetID
-	if c.BudgetID == "" {
-		budgetID = nil
+	var parentID any
+	if c.ParentID != "" {
+		parentID = c.ParentID
 	}
-	_, err := r.db.ExecContext(ctx, query, budgetID, c.Name, c.Budgeted, c.Balance, c.TargetLimit, c.UpdatedAt, c.ID)
+	archived := 0
+	if c.Archived {
+		archived = 1
+	}
+	system := 0
+	if c.System {
+		system = 1
+	}
+	var icon, basiqCode, anzsic any
+	if c.Icon != "" {
+		icon = c.Icon
+	}
+	if c.BasiqSubClassCode != "" {
+		basiqCode = c.BasiqSubClassCode
+	}
+	if c.AnzsicClassCode != "" {
+		anzsic = c.AnzsicClassCode
+	}
+	query := `UPDATE categories SET user_id = ?, parent_id = ?, name = ?, type = ?, color = ?, icon = ?, sort_order = ?, archived = ?, system = ?, basiq_subclass_code = ?, anzsic_class_code = ?, updated_at = ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, c.UserID, parentID, c.Name, string(c.Type), c.Color, icon, c.SortOrder, archived, system, basiqCode, anzsic, c.UpdatedAt, c.ID)
 	return err
 }
 
@@ -348,18 +364,53 @@ func (r *transactionRepository) Create(ctx context.Context, tx *domain.Transacti
 	return err
 }
 
-func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain.Transaction, error) {
-	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title 
-	          FROM transactions t
-	          JOIN accounts a ON t.account_id = a.id
-	          WHERE t.id = ?`
-	row := r.db.QueryRowContext(ctx, query, id)
+const txSelectCols = `t.id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title`
 
+func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain.Transaction, error) {
+	query := `SELECT ` + txSelectCols + ` FROM transactions t WHERE t.id = ?`
+	row := r.db.QueryRowContext(ctx, query, id)
+	tx, err := scanTransactionRow(ctx, row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("transaction not found")
+		}
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (r *transactionRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Transaction, error) {
+	query := `SELECT ` + txSelectCols + `
+	          FROM transactions t
+	          INNER JOIN budget_accounts ba ON ba.account_id = t.account_id
+	          WHERE ba.budget_id = ?`
+	return r.listQuery(ctx, query, budgetID)
+}
+
+func (r *transactionRepository) ListByUser(ctx context.Context, userID string) ([]*domain.Transaction, error) {
+	query := `SELECT ` + txSelectCols + `
+	          FROM transactions t
+	          INNER JOIN accounts a ON a.id = t.account_id
+	          WHERE a.user_id = ?`
+	return r.listQuery(ctx, query, userID)
+}
+
+func (r *transactionRepository) ListByAccount(ctx context.Context, accountID string) ([]*domain.Transaction, error) {
+	query := `SELECT ` + txSelectCols + ` FROM transactions t WHERE t.account_id = ?`
+	return r.listQuery(ctx, query, accountID)
+}
+
+func (r *transactionRepository) ListByCategory(ctx context.Context, categoryID string) ([]*domain.Transaction, error) {
+	query := `SELECT ` + txSelectCols + ` FROM transactions t WHERE t.category_id = ?`
+	return r.listQuery(ctx, query, categoryID)
+}
+
+func scanTransactionRow(ctx context.Context, row interface {
+	Scan(dest ...any) error
+}) (*domain.Transaction, error) {
 	var dbTx db.Transaction
-	var budgetIDNull sql.NullString
 	err := row.Scan(
 		&dbTx.ID,
-		&budgetIDNull,
 		&dbTx.AccountID,
 		&dbTx.CategoryID,
 		&dbTx.Amount,
@@ -383,41 +434,13 @@ func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain
 		&dbTx.CategoryTitle,
 	)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("transaction not found")
-		}
 		return nil, err
 	}
 	var tx domain.Transaction
 	if err := dbTxMapper.TransactionToTransaction(ctx, &dbTx, &tx); err != nil {
 		return nil, err
 	}
-	tx.BudgetID = budgetIDNull.String
 	return &tx, nil
-}
-
-func (r *transactionRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Transaction, error) {
-	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title 
-	          FROM transactions t
-	          JOIN accounts a ON t.account_id = a.id
-	          WHERE a.budget_id = ?`
-	return r.listQuery(ctx, query, budgetID)
-}
-
-func (r *transactionRepository) ListByAccount(ctx context.Context, accountID string) ([]*domain.Transaction, error) {
-	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title 
-	          FROM transactions t
-	          JOIN accounts a ON t.account_id = a.id
-	          WHERE t.account_id = ?`
-	return r.listQuery(ctx, query, accountID)
-}
-
-func (r *transactionRepository) ListByCategory(ctx context.Context, categoryID string) ([]*domain.Transaction, error) {
-	query := `SELECT t.id, a.budget_id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title 
-	          FROM transactions t
-	          JOIN accounts a ON t.account_id = a.id
-	          WHERE t.category_id = ?`
-	return r.listQuery(ctx, query, categoryID)
 }
 
 func (r *transactionRepository) listQuery(ctx context.Context, query string, arg any) ([]*domain.Transaction, error) {
@@ -429,44 +452,13 @@ func (r *transactionRepository) listQuery(ctx context.Context, query string, arg
 
 	var list []*domain.Transaction
 	for rows.Next() {
-		var dbTx db.Transaction
-		var budgetIDNull sql.NullString
-		err := rows.Scan(
-			&dbTx.ID,
-			&budgetIDNull,
-			&dbTx.AccountID,
-			&dbTx.CategoryID,
-			&dbTx.Amount,
-			&dbTx.Description,
-			&dbTx.Date,
-			&dbTx.CreatedAt,
-			&dbTx.UpdatedAt,
-			&dbTx.Direction,
-			&dbTx.Status,
-			&dbTx.Class,
-			&dbTx.PostDate,
-			&dbTx.SubClass,
-			&dbTx.RawDescription,
-			&dbTx.MerchantName,
-			&dbTx.MerchantWebsite,
-			&dbTx.MerchantLogoUrl,
-			&dbTx.LocationAddress,
-			&dbTx.LocationLat,
-			&dbTx.LocationLng,
-			&dbTx.CategoryCode,
-			&dbTx.CategoryTitle,
-		)
+		tx, err := scanTransactionRow(ctx, rows)
 		if err != nil {
 			return nil, err
 		}
-		var tx domain.Transaction
-		if err := dbTxMapper.TransactionToTransaction(ctx, &dbTx, &tx); err != nil {
-			return nil, err
-		}
-		tx.BudgetID = budgetIDNull.String
-		list = append(list, &tx)
+		list = append(list, tx)
 	}
-	return list, nil
+	return list, rows.Err()
 }
 
 func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transaction) error {

@@ -4,6 +4,8 @@ go_library(
     name = "domain",
     srcs = [
         "budget.go",
+        "budget_links.go",
+        "budget_links_repository.go",
         "envelope.go",
         "external.go",
         "job.go",

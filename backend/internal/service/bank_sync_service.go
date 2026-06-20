@@ -12,7 +12,9 @@ type bankSyncService struct {
 	users        domain.UserRepository
 	budgets      domain.BudgetRepository
 	accounts     domain.AccountRepository
+	budgetAccts  domain.BudgetAccountRepository
 	transactions domain.TransactionRepository
+	categories   domain.CategoryRepository
 	provider     domain.BankSyncProvider
 }
 
@@ -20,14 +22,18 @@ func NewBankSyncService(
 	users domain.UserRepository,
 	budgets domain.BudgetRepository,
 	accounts domain.AccountRepository,
+	budgetAccts domain.BudgetAccountRepository,
 	transactions domain.TransactionRepository,
+	categories domain.CategoryRepository,
 	provider domain.BankSyncProvider,
 ) BankSyncService {
 	return &bankSyncService{
 		users:        users,
 		budgets:      budgets,
 		accounts:     accounts,
+		budgetAccts:  budgetAccts,
 		transactions: transactions,
+		categories:   categories,
 		provider:     provider,
 	}
 }
@@ -36,12 +42,10 @@ func (s *bankSyncService) GetAuthLink(ctx context.Context, userID string) (strin
 	if s.provider == nil {
 		return "", "", fmt.Errorf("bank sync service is not configured")
 	}
-
 	user, err := s.users.GetByID(ctx, userID)
 	if err != nil {
 		return "", "", fmt.Errorf("%w: user not found", ErrNotFound)
 	}
-
 	basiqUserID := user.BasiqUserID
 	if basiqUserID == "" {
 		id, err := s.provider.CreateBasiqUser(ctx, user.Email, user.FirstName, user.LastName)
@@ -53,12 +57,10 @@ func (s *bankSyncService) GetAuthLink(ctx context.Context, userID string) (strin
 			return "", "", fmt.Errorf("failed to save Basiq User ID: %w", err)
 		}
 	}
-
 	token, err := s.provider.GetClientToken(ctx, basiqUserID)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate client token: %w", err)
 	}
-
 	connectURL := fmt.Sprintf("https://consent.basiq.io/home?token=%s", token)
 	return token, connectURL, nil
 }
@@ -67,23 +69,26 @@ func (s *bankSyncService) SyncUser(ctx context.Context, userID string) error {
 	if s.provider == nil {
 		return fmt.Errorf("bank sync service is not configured")
 	}
-
 	user, err := s.users.GetByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("%w: user not found", ErrNotFound)
 	}
-
-	basiqUserID := user.BasiqUserID
-	if basiqUserID == "" {
+	if user.BasiqUserID == "" {
 		return fmt.Errorf("%w: no connected Basiq account found", ErrBadRequest)
 	}
 
-	accounts, transactions, err := s.provider.FetchAccountsAndTransactions(ctx, basiqUserID)
+	budgetID, err := s.ensureDefaultBudget(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	accounts, transactions, err := s.provider.FetchAccountsAndTransactions(ctx, user.BasiqUserID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch bank data: %w", err)
 	}
 
 	for _, acc := range accounts {
+		acc.UserID = userID
 		existing, err := s.accounts.GetByID(ctx, acc.ID)
 		if err != nil {
 			if err := s.accounts.Create(ctx, acc); err != nil {
@@ -104,9 +109,22 @@ func (s *bankSyncService) SyncUser(ctx context.Context, userID string) error {
 				return fmt.Errorf("failed to update account %s: %w", acc.ID, err)
 			}
 		}
+		_ = s.budgetAccts.Link(ctx, budgetID, acc.ID)
 	}
 
 	for _, tx := range transactions {
+		tx.BudgetID = budgetID
+		if tx.CategoryID == "" {
+			code := tx.SubClass
+			if code == "" {
+				code = tx.Class
+			}
+			if code != "" {
+				if cat, err := s.categories.GetByBasiqSubClassCode(ctx, userID, code); err == nil {
+					tx.CategoryID = cat.ID
+				}
+			}
+		}
 		_, err := s.transactions.GetByID(ctx, tx.ID)
 		if err != nil {
 			if err := s.transactions.Create(ctx, tx); err != nil {
@@ -119,6 +137,28 @@ func (s *bankSyncService) SyncUser(ctx context.Context, userID string) error {
 			}
 		}
 	}
-
 	return nil
+}
+
+func (s *bankSyncService) ensureDefaultBudget(ctx context.Context, userID string) (string, error) {
+	budgetsList, err := s.budgets.List(ctx, userID)
+	if err != nil {
+		return "", fmt.Errorf("failed to list budgets: %w", err)
+	}
+	if len(budgetsList) > 0 {
+		return budgetsList[0].ID, nil
+	}
+	defaultBudget := &domain.Budget{
+		ID:        generateID(),
+		UserID:    userID,
+		Name:      "Default Budget",
+		Method:    domain.MethodZeroSum,
+		Currency:  "AUD",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	if err := s.budgets.Create(ctx, defaultBudget); err != nil {
+		return "", fmt.Errorf("failed to create default budget: %w", err)
+	}
+	return defaultBudget.ID, nil
 }

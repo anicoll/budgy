@@ -13,8 +13,10 @@ export interface BackendBudget {
 
 export interface BackendCategory {
   id: string;
-  budgetId: string;
   name: string;
+  type: "income" | "expense" | "transfer";
+  parentId: string | null;
+  system: boolean;
   budgeted: Cents;
   balance: Cents;
   targetLimit: Cents;
@@ -22,7 +24,6 @@ export interface BackendCategory {
 
 export interface BackendAccount {
   id: string;
-  budgetId: string;
   name: string;
   balance: Cents;
 }
