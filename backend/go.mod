@@ -5,6 +5,7 @@ go 1.26.4
 require (
 	connectrpc.com/connect v1.20.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.12.3
 	github.com/ncruces/go-sqlite3 v0.34.4
 	github.com/oapi-codegen/runtime v1.4.1
@@ -19,7 +20,6 @@ require (
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/ncruces/go-sqlite3-wasm/v2 v2.6.35302 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
