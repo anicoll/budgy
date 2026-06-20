@@ -3,13 +3,20 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "service",
     srcs = [
+        "account_service.go",
+        "auth_service.go",
+        "bank_sync_service.go",
+        "budget_service.go",
+        "category_service.go",
         "job_queue.go",
         "service.go",
+        "transaction_service.go",
     ],
     importpath = "budgeting_system/internal/service",
     visibility = ["//backend:__subpackages__"],
     deps = [
         "//backend/internal/domain",
+        "@com_github_google_uuid//:uuid",
         "@org_golang_x_crypto//bcrypt",
         "@org_uber_go_zap//:zap",
     ],
