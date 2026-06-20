@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"budgeting_system/internal/domain"
@@ -44,13 +45,7 @@ func (s *transactionService) verifyAccountInBudget(ctx context.Context, budgetID
 	if err != nil {
 		return nil, err
 	}
-	linked := false
-	for _, id := range ids {
-		if id == accountID {
-			linked = true
-			break
-		}
-	}
+	linked := slices.Contains(ids, accountID)
 	if !linked {
 		return nil, fmt.Errorf("%w: account is not linked to budget", ErrBadRequest)
 	}

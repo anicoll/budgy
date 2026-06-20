@@ -42,13 +42,13 @@ func NewDBCategoryMapper(mapperGetter interface {
 			m.converter00001 = v
 		}
 	}
-	if obj, err := mapperGetter.GetFuncByTypeName("", "int64", "int"); err == nil {
-		if v, ok := obj.(func(pkg_context.Context, *int64) (int, bool, error)); ok {
+	if obj, err := mapperGetter.GetFuncByTypeName("", "int32", "int"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *int32) (int, bool, error)); ok {
 			m.converter00002 = v
 		}
 	}
-	if obj, err := mapperGetter.GetFuncByTypeName("", "int64", "bool"); err == nil {
-		if v, ok := obj.(func(pkg_context.Context, *int64) (bool, bool, error)); ok {
+	if obj, err := mapperGetter.GetFuncByTypeName("", "int32", "bool"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *int32) (bool, bool, error)); ok {
 			m.converter00003 = v
 		}
 	}
@@ -65,8 +65,8 @@ type dbcategorymapper struct {
 	helper         DBCategoryMapperHelper
 	converter00000 func(pkg_context.Context, *pkg_database_sql.NullString) (string, bool, error)
 	converter00001 func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.CategoryType, bool, error)
-	converter00002 func(pkg_context.Context, *int64) (int, bool, error)
-	converter00003 func(pkg_context.Context, *int64) (bool, bool, error)
+	converter00002 func(pkg_context.Context, *int32) (int, bool, error)
+	converter00003 func(pkg_context.Context, *int32) (bool, bool, error)
 }
 
 func (m *dbcategorymapper) CategoryToCategory(ctx pkg_context.Context, source *pkg_budgeting_system_internal_storage_db.Category, dest *pkg_budgeting_system_internal_domain.Category) error {

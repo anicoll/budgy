@@ -27,12 +27,12 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.budgets (
     id text NOT NULL,
+    user_id text NOT NULL,
     name text NOT NULL,
     method text NOT NULL,
     currency text NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL,
-    user_id text
+    updated_at timestamp without time zone NOT NULL
 );
 
 

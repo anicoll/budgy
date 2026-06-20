@@ -2,21 +2,17 @@
 // @generated from file budgy/v1/category.proto (package budgy.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file budgy/v1/category.proto.
  */
-export const file_budgy_v1_category: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChdidWRneS92MS9jYXRlZ29yeS5wcm90bxIIYnVkZ3kudjEi2QIKCENhdGVnb3J5EgoKAmlkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSEQoJcGFyZW50X2lkGAMgASgJEgwKBG5hbWUYBCABKAkSJAoEdHlwZRgFIAEoDjIWLmJ1ZGd5LnYxLkNhdGVnb3J5VHlwZRINCgVjb2xvchgGIAEoCRIMCgRpY29uGAcgASgJEhIKCnNvcnRfb3JkZXIYCCABKAUSEAoIYXJjaGl2ZWQYCSABKAgSDgoGc3lzdGVtGAogASgIEhsKE2Jhc2lxX3N1YmNsYXNzX2NvZGUYCyABKAkSGQoRYW56c2ljX2NsYXNzX2NvZGUYDCABKAkSLgoKY3JlYXRlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAibwoOQnVkZ2V0Q2F0ZWdvcnkSJAoIY2F0ZWdvcnkYASABKAsyEi5idWRneS52MS5DYXRlZ29yeRIQCghidWRnZXRlZBgCIAEoAxIPCgdiYWxhbmNlGAMgASgDEhQKDHRhcmdldF9saW1pdBgEIAEoAyJtChJGdW5kRW52ZWxvcGVSZXN1bHQSEgoKYWNjb3VudF9pZBgBIAEoCRIXCg9hY2NvdW50X2JhbGFuY2UYAiABKAMSKgoIZW52ZWxvcGUYAyABKAsyGC5idWRneS52MS5CdWRnZXRDYXRlZ29yeSKPAQoVQ3JlYXRlQ2F0ZWdvcnlSZXF1ZXN0EgwKBG5hbWUYASABKAkSJAoEdHlwZRgCIAEoDjIWLmJ1ZGd5LnYxLkNhdGVnb3J5VHlwZRIRCglwYXJlbnRfaWQYAyABKAkSDQoFY29sb3IYBCABKAkSDAoEaWNvbhgFIAEoCRISCgpzb3J0X29yZGVyGAYgASgFIj4KFkNyZWF0ZUNhdGVnb3J5UmVzcG9uc2USJAoIY2F0ZWdvcnkYASABKAsyEi5idWRneS52MS5DYXRlZ29yeSIXChVMaXN0Q2F0ZWdvcmllc1JlcXVlc3QiQAoWTGlzdENhdGVnb3JpZXNSZXNwb25zZRImCgpjYXRlZ29yaWVzGAEgAygLMhIuYnVkZ3kudjEuQ2F0ZWdvcnkiqAIKFVVwZGF0ZUNhdGVnb3J5UmVxdWVzdBITCgtjYXRlZ29yeV9pZBgBIAEoCRIRCgRuYW1lGAIgASgJSACIAQESKQoEdHlwZRgDIAEoDjIWLmJ1ZGd5LnYxLkNhdGVnb3J5VHlwZUgBiAEBEhYKCXBhcmVudF9pZBgEIAEoCUgCiAEBEhIKBWNvbG9yGAUgASgJSAOIAQESEQoEaWNvbhgGIAEoCUgEiAEBEhcKCnNvcnRfb3JkZXIYByABKAVIBYgBARIVCghhcmNoaXZlZBgIIAEoCEgGiAEBQgcKBV9uYW1lQgcKBV90eXBlQgwKCl9wYXJlbnRfaWRCCAoGX2NvbG9yQgcKBV9pY29uQg0KC19zb3J0X29yZGVyQgsKCV9hcmNoaXZlZCI+ChZVcGRhdGVDYXRlZ29yeVJlc3BvbnNlEiQKCGNhdGVnb3J5GAEgASgLMhIuYnVkZ3kudjEuQ2F0ZWdvcnkiLAoVRGVsZXRlQ2F0ZWdvcnlSZXF1ZXN0EhMKC2NhdGVnb3J5X2lkGAEgASgJIhgKFkRlbGV0ZUNhdGVnb3J5UmVzcG9uc2UqfgoMQ2F0ZWdvcnlUeXBlEh0KGUNBVEVHT1JZX1RZUEVfVU5TUEVDSUZJRUQQABIYChRDQVRFR09SWV9UWVBFX0lOQ09NRRABEhkKFUNBVEVHT1JZX1RZUEVfRVhQRU5TRRACEhoKFkNBVEVHT1JZX1RZUEVfVFJBTlNGRVIQAzLlAgoPQ2F0ZWdvcnlTZXJ2aWNlElMKDkNyZWF0ZUNhdGVnb3J5Eh8uYnVkZ3kudjEuQ3JlYXRlQ2F0ZWdvcnlSZXF1ZXN0GiAuYnVkZ3kudjEuQ3JlYXRlQ2F0ZWdvcnlSZXNwb25zZRJTCg5MaXN0Q2F0ZWdvcmllcxIfLmJ1ZGd5LnYxLkxpc3RDYXRlZ29yaWVzUmVxdWVzdBogLmJ1ZGd5LnYxLkxpc3RDYXRlZ29yaWVzUmVzcG9uc2USUwoOVXBkYXRlQ2F0ZWdvcnkSHy5idWRneS52MS5VcGRhdGVDYXRlZ29yeVJlcXVlc3QaIC5idWRneS52MS5VcGRhdGVDYXRlZ29yeVJlc3BvbnNlElMKDkRlbGV0ZUNhdGVnb3J5Eh8uYnVkZ3kudjEuRGVsZXRlQ2F0ZWdvcnlSZXF1ZXN0GiAuYnVkZ3kudjEuRGVsZXRlQ2F0ZWdvcnlSZXNwb25zZUIwWi5idWRnZXRpbmdfc3lzdGVtL2ludGVybmFsL2dlbi9idWRneS92MTtidWRneXYxYgZwcm90bzM",
-    [file_google_protobuf_timestamp],
-  );
+export const file_budgy_v1_category: GenFile = /*@__PURE__*/
+  fileDesc("ChdidWRneS92MS9jYXRlZ29yeS5wcm90bxIIYnVkZ3kudjEi2QIKCENhdGVnb3J5EgoKAmlkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSEQoJcGFyZW50X2lkGAMgASgJEgwKBG5hbWUYBCABKAkSJAoEdHlwZRgFIAEoDjIWLmJ1ZGd5LnYxLkNhdGVnb3J5VHlwZRINCgVjb2xvchgGIAEoCRIMCgRpY29uGAcgASgJEhIKCnNvcnRfb3JkZXIYCCABKAUSEAoIYXJjaGl2ZWQYCSABKAgSDgoGc3lzdGVtGAogASgIEhsKE2Jhc2lxX3N1YmNsYXNzX2NvZGUYCyABKAkSGQoRYW56c2ljX2NsYXNzX2NvZGUYDCABKAkSLgoKY3JlYXRlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgOIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAibwoOQnVkZ2V0Q2F0ZWdvcnkSJAoIY2F0ZWdvcnkYASABKAsyEi5idWRneS52MS5DYXRlZ29yeRIQCghidWRnZXRlZBgCIAEoAxIPCgdiYWxhbmNlGAMgASgDEhQKDHRhcmdldF9saW1pdBgEIAEoAyJtChJGdW5kRW52ZWxvcGVSZXN1bHQSEgoKYWNjb3VudF9pZBgBIAEoCRIXCg9hY2NvdW50X2JhbGFuY2UYAiABKAMSKgoIZW52ZWxvcGUYAyABKAsyGC5idWRneS52MS5CdWRnZXRDYXRlZ29yeSKPAQoVQ3JlYXRlQ2F0ZWdvcnlSZXF1ZXN0EgwKBG5hbWUYASABKAkSJAoEdHlwZRgCIAEoDjIWLmJ1ZGd5LnYxLkNhdGVnb3J5VHlwZRIRCglwYXJlbnRfaWQYAyABKAkSDQoFY29sb3IYBCABKAkSDAoEaWNvbhgFIAEoCRISCgpzb3J0X29yZGVyGAYgASgFIj4KFkNyZWF0ZUNhdGVnb3J5UmVzcG9uc2USJAoIY2F0ZWdvcnkYASABKAsyEi5idWRneS52MS5DYXRlZ29yeSIXChVMaXN0Q2F0ZWdvcmllc1JlcXVlc3QiQAoWTGlzdENhdGVnb3JpZXNSZXNwb25zZRImCgpjYXRlZ29yaWVzGAEgAygLMhIuYnVkZ3kudjEuQ2F0ZWdvcnkiqAIKFVVwZGF0ZUNhdGVnb3J5UmVxdWVzdBITCgtjYXRlZ29yeV9pZBgBIAEoCRIRCgRuYW1lGAIgASgJSACIAQESKQoEdHlwZRgDIAEoDjIWLmJ1ZGd5LnYxLkNhdGVnb3J5VHlwZUgBiAEBEhYKCXBhcmVudF9pZBgEIAEoCUgCiAEBEhIKBWNvbG9yGAUgASgJSAOIAQESEQoEaWNvbhgGIAEoCUgEiAEBEhcKCnNvcnRfb3JkZXIYByABKAVIBYgBARIVCghhcmNoaXZlZBgIIAEoCEgGiAEBQgcKBV9uYW1lQgcKBV90eXBlQgwKCl9wYXJlbnRfaWRCCAoGX2NvbG9yQgcKBV9pY29uQg0KC19zb3J0X29yZGVyQgsKCV9hcmNoaXZlZCI+ChZVcGRhdGVDYXRlZ29yeVJlc3BvbnNlEiQKCGNhdGVnb3J5GAEgASgLMhIuYnVkZ3kudjEuQ2F0ZWdvcnkiLAoVRGVsZXRlQ2F0ZWdvcnlSZXF1ZXN0EhMKC2NhdGVnb3J5X2lkGAEgASgJIhgKFkRlbGV0ZUNhdGVnb3J5UmVzcG9uc2UqfgoMQ2F0ZWdvcnlUeXBlEh0KGUNBVEVHT1JZX1RZUEVfVU5TUEVDSUZJRUQQABIYChRDQVRFR09SWV9UWVBFX0lOQ09NRRABEhkKFUNBVEVHT1JZX1RZUEVfRVhQRU5TRRACEhoKFkNBVEVHT1JZX1RZUEVfVFJBTlNGRVIQAzLlAgoPQ2F0ZWdvcnlTZXJ2aWNlElMKDkNyZWF0ZUNhdGVnb3J5Eh8uYnVkZ3kudjEuQ3JlYXRlQ2F0ZWdvcnlSZXF1ZXN0GiAuYnVkZ3kudjEuQ3JlYXRlQ2F0ZWdvcnlSZXNwb25zZRJTCg5MaXN0Q2F0ZWdvcmllcxIfLmJ1ZGd5LnYxLkxpc3RDYXRlZ29yaWVzUmVxdWVzdBogLmJ1ZGd5LnYxLkxpc3RDYXRlZ29yaWVzUmVzcG9uc2USUwoOVXBkYXRlQ2F0ZWdvcnkSHy5idWRneS52MS5VcGRhdGVDYXRlZ29yeVJlcXVlc3QaIC5idWRneS52MS5VcGRhdGVDYXRlZ29yeVJlc3BvbnNlElMKDkRlbGV0ZUNhdGVnb3J5Eh8uYnVkZ3kudjEuRGVsZXRlQ2F0ZWdvcnlSZXF1ZXN0GiAuYnVkZ3kudjEuRGVsZXRlQ2F0ZWdvcnlSZXNwb25zZUIwWi5idWRnZXRpbmdfc3lzdGVtL2ludGVybmFsL2dlbi9idWRneS92MTtidWRneXYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message budgy.v1.Category
@@ -97,8 +93,7 @@ export type Category = Message<"budgy.v1.Category"> & {
  * Describes the message budgy.v1.Category.
  * Use `create(CategorySchema)` to create a new message.
  */
-export const CategorySchema: GenMessage<Category> =
-  /*@__PURE__*/
+export const CategorySchema: GenMessage<Category> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 0);
 
 /**
@@ -130,8 +125,7 @@ export type BudgetCategory = Message<"budgy.v1.BudgetCategory"> & {
  * Describes the message budgy.v1.BudgetCategory.
  * Use `create(BudgetCategorySchema)` to create a new message.
  */
-export const BudgetCategorySchema: GenMessage<BudgetCategory> =
-  /*@__PURE__*/
+export const BudgetCategorySchema: GenMessage<BudgetCategory> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 1);
 
 /**
@@ -158,8 +152,7 @@ export type FundEnvelopeResult = Message<"budgy.v1.FundEnvelopeResult"> & {
  * Describes the message budgy.v1.FundEnvelopeResult.
  * Use `create(FundEnvelopeResultSchema)` to create a new message.
  */
-export const FundEnvelopeResultSchema: GenMessage<FundEnvelopeResult> =
-  /*@__PURE__*/
+export const FundEnvelopeResultSchema: GenMessage<FundEnvelopeResult> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 2);
 
 /**
@@ -201,8 +194,7 @@ export type CreateCategoryRequest = Message<"budgy.v1.CreateCategoryRequest"> & 
  * Describes the message budgy.v1.CreateCategoryRequest.
  * Use `create(CreateCategoryRequestSchema)` to create a new message.
  */
-export const CreateCategoryRequestSchema: GenMessage<CreateCategoryRequest> =
-  /*@__PURE__*/
+export const CreateCategoryRequestSchema: GenMessage<CreateCategoryRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 3);
 
 /**
@@ -219,21 +211,20 @@ export type CreateCategoryResponse = Message<"budgy.v1.CreateCategoryResponse"> 
  * Describes the message budgy.v1.CreateCategoryResponse.
  * Use `create(CreateCategoryResponseSchema)` to create a new message.
  */
-export const CreateCategoryResponseSchema: GenMessage<CreateCategoryResponse> =
-  /*@__PURE__*/
+export const CreateCategoryResponseSchema: GenMessage<CreateCategoryResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 4);
 
 /**
  * @generated from message budgy.v1.ListCategoriesRequest
  */
-export type ListCategoriesRequest = Message<"budgy.v1.ListCategoriesRequest"> & {};
+export type ListCategoriesRequest = Message<"budgy.v1.ListCategoriesRequest"> & {
+};
 
 /**
  * Describes the message budgy.v1.ListCategoriesRequest.
  * Use `create(ListCategoriesRequestSchema)` to create a new message.
  */
-export const ListCategoriesRequestSchema: GenMessage<ListCategoriesRequest> =
-  /*@__PURE__*/
+export const ListCategoriesRequestSchema: GenMessage<ListCategoriesRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 5);
 
 /**
@@ -250,8 +241,7 @@ export type ListCategoriesResponse = Message<"budgy.v1.ListCategoriesResponse"> 
  * Describes the message budgy.v1.ListCategoriesResponse.
  * Use `create(ListCategoriesResponseSchema)` to create a new message.
  */
-export const ListCategoriesResponseSchema: GenMessage<ListCategoriesResponse> =
-  /*@__PURE__*/
+export const ListCategoriesResponseSchema: GenMessage<ListCategoriesResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 6);
 
 /**
@@ -303,8 +293,7 @@ export type UpdateCategoryRequest = Message<"budgy.v1.UpdateCategoryRequest"> & 
  * Describes the message budgy.v1.UpdateCategoryRequest.
  * Use `create(UpdateCategoryRequestSchema)` to create a new message.
  */
-export const UpdateCategoryRequestSchema: GenMessage<UpdateCategoryRequest> =
-  /*@__PURE__*/
+export const UpdateCategoryRequestSchema: GenMessage<UpdateCategoryRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 7);
 
 /**
@@ -321,8 +310,7 @@ export type UpdateCategoryResponse = Message<"budgy.v1.UpdateCategoryResponse"> 
  * Describes the message budgy.v1.UpdateCategoryResponse.
  * Use `create(UpdateCategoryResponseSchema)` to create a new message.
  */
-export const UpdateCategoryResponseSchema: GenMessage<UpdateCategoryResponse> =
-  /*@__PURE__*/
+export const UpdateCategoryResponseSchema: GenMessage<UpdateCategoryResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 8);
 
 /**
@@ -339,21 +327,20 @@ export type DeleteCategoryRequest = Message<"budgy.v1.DeleteCategoryRequest"> & 
  * Describes the message budgy.v1.DeleteCategoryRequest.
  * Use `create(DeleteCategoryRequestSchema)` to create a new message.
  */
-export const DeleteCategoryRequestSchema: GenMessage<DeleteCategoryRequest> =
-  /*@__PURE__*/
+export const DeleteCategoryRequestSchema: GenMessage<DeleteCategoryRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 9);
 
 /**
  * @generated from message budgy.v1.DeleteCategoryResponse
  */
-export type DeleteCategoryResponse = Message<"budgy.v1.DeleteCategoryResponse"> & {};
+export type DeleteCategoryResponse = Message<"budgy.v1.DeleteCategoryResponse"> & {
+};
 
 /**
  * Describes the message budgy.v1.DeleteCategoryResponse.
  * Use `create(DeleteCategoryResponseSchema)` to create a new message.
  */
-export const DeleteCategoryResponseSchema: GenMessage<DeleteCategoryResponse> =
-  /*@__PURE__*/
+export const DeleteCategoryResponseSchema: GenMessage<DeleteCategoryResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_category, 10);
 
 /**
@@ -384,8 +371,7 @@ export enum CategoryType {
 /**
  * Describes the enum budgy.v1.CategoryType.
  */
-export const CategoryTypeSchema: GenEnum<CategoryType> =
-  /*@__PURE__*/
+export const CategoryTypeSchema: GenEnum<CategoryType> = /*@__PURE__*/
   enumDesc(file_budgy_v1_category, 0);
 
 /**
@@ -399,7 +385,7 @@ export const CategoryService: GenService<{
     methodKind: "unary";
     input: typeof CreateCategoryRequestSchema;
     output: typeof CreateCategoryResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.CategoryService.ListCategories
    */
@@ -407,7 +393,7 @@ export const CategoryService: GenService<{
     methodKind: "unary";
     input: typeof ListCategoriesRequestSchema;
     output: typeof ListCategoriesResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.CategoryService.UpdateCategory
    */
@@ -415,7 +401,7 @@ export const CategoryService: GenService<{
     methodKind: "unary";
     input: typeof UpdateCategoryRequestSchema;
     output: typeof UpdateCategoryResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.CategoryService.DeleteCategory
    */
@@ -423,5 +409,7 @@ export const CategoryService: GenService<{
     methodKind: "unary";
     input: typeof DeleteCategoryRequestSchema;
     output: typeof DeleteCategoryResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_budgy_v1_category, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_budgy_v1_category, 0);
+

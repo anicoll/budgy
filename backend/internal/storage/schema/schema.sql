@@ -27,7 +27,7 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.accounts (
     id text NOT NULL,
-    budget_id text,
+    user_id text NOT NULL,
     name text NOT NULL,
     type text NOT NULL,
     balance bigint DEFAULT 0 NOT NULL,
@@ -62,17 +62,42 @@ CREATE TABLE public.background_jobs (
 
 
 --
+-- Name: budget_accounts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.budget_accounts (
+    budget_id text NOT NULL,
+    account_id text NOT NULL
+);
+
+
+--
+-- Name: budget_category_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.budget_category_lines (
+    budget_id text NOT NULL,
+    category_id text NOT NULL,
+    budgeted bigint DEFAULT 0 NOT NULL,
+    balance bigint DEFAULT 0 NOT NULL,
+    target_limit bigint DEFAULT 0 NOT NULL,
+    created_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL
+);
+
+
+--
 -- Name: budgets; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.budgets (
     id text NOT NULL,
+    user_id text NOT NULL,
     name text NOT NULL,
     method text NOT NULL,
     currency text NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL,
-    user_id text
+    updated_at timestamp without time zone NOT NULL
 );
 
 
@@ -82,11 +107,17 @@ CREATE TABLE public.budgets (
 
 CREATE TABLE public.categories (
     id text NOT NULL,
-    budget_id text,
+    user_id text NOT NULL,
+    parent_id text,
     name text NOT NULL,
-    budgeted bigint DEFAULT 0 NOT NULL,
-    balance bigint DEFAULT 0 NOT NULL,
-    target_limit bigint DEFAULT 0 NOT NULL,
+    type text DEFAULT 'expense'::text NOT NULL,
+    color text DEFAULT '#7c5cff'::text NOT NULL,
+    icon text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    archived integer DEFAULT 0 NOT NULL,
+    system integer DEFAULT 0 NOT NULL,
+    basiq_subclass_code text,
+    anzsic_class_code text,
     created_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL
 );
@@ -195,6 +226,22 @@ ALTER TABLE ONLY public.background_jobs
 
 
 --
+-- Name: budget_accounts budget_accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.budget_accounts
+    ADD CONSTRAINT budget_accounts_pkey PRIMARY KEY (budget_id, account_id);
+
+
+--
+-- Name: budget_category_lines budget_category_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.budget_category_lines
+    ADD CONSTRAINT budget_category_lines_pkey PRIMARY KEY (budget_id, category_id);
+
+
+--
 -- Name: budgets budgets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -227,11 +274,11 @@ ALTER TABLE ONLY public.goose_db_version
 
 
 --
--- Name: transactions transactions_new_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: transactions transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT transactions_new_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
 
 
 --
@@ -258,11 +305,43 @@ CREATE INDEX idx_background_jobs_pending ON public.background_jobs USING btree (
 
 
 --
--- Name: accounts accounts_budget_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: accounts accounts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.accounts
-    ADD CONSTRAINT accounts_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE SET NULL;
+    ADD CONSTRAINT accounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: budget_accounts budget_accounts_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.budget_accounts
+    ADD CONSTRAINT budget_accounts_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: budget_accounts budget_accounts_budget_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.budget_accounts
+    ADD CONSTRAINT budget_accounts_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: budget_category_lines budget_category_lines_budget_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.budget_category_lines
+    ADD CONSTRAINT budget_category_lines_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: budget_category_lines budget_category_lines_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.budget_category_lines
+    ADD CONSTRAINT budget_category_lines_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE;
 
 
 --
@@ -274,11 +353,19 @@ ALTER TABLE ONLY public.budgets
 
 
 --
--- Name: categories categories_budget_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: categories categories_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.categories
-    ADD CONSTRAINT categories_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE SET NULL;
+    ADD CONSTRAINT categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.categories(id) ON DELETE SET NULL;
+
+
+--
+-- Name: categories categories_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -306,19 +393,19 @@ ALTER TABLE ONLY public.envelope_allocations
 
 
 --
--- Name: transactions transactions_new_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: transactions transactions_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT transactions_new_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
+    ADD CONSTRAINT transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
 
 
 --
--- Name: transactions transactions_new_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: transactions transactions_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.transactions
-    ADD CONSTRAINT transactions_new_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
+    ADD CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
 
 
 --

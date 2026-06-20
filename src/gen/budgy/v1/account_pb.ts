@@ -2,21 +2,17 @@
 // @generated from file budgy/v1/account.proto (package budgy.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file budgy/v1/account.proto.
  */
-export const file_budgy_v1_account: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChZidWRneS92MS9hY2NvdW50LnByb3RvEghidWRneS52MSKnAwoHQWNjb3VudBIKCgJpZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEgwKBG5hbWUYAyABKAkSIwoEdHlwZRgEIAEoDjIVLmJ1ZGd5LnYxLkFjY291bnRUeXBlEg8KB2JhbGFuY2UYBSABKAMSLgoKY3JlYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFY2xhc3MYCCABKAkSEgoKYWNjb3VudF9ubxgJIAEoCRIcCg9hdmFpbGFibGVfZnVuZHMYCiABKANIAIgBARIPCgdwcm9kdWN0GAsgASgJEhYKDmluc3RpdHV0aW9uX2lkGAwgASgJEhUKDWNvbm5lY3Rpb25faWQYDSABKAkSNQoMbGFzdF91cGRhdGVkGA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgBiAEBQhIKEF9hdmFpbGFibGVfZnVuZHNCDwoNX2xhc3RfdXBkYXRlZCJaChRDcmVhdGVBY2NvdW50UmVxdWVzdBIMCgRuYW1lGAEgASgJEiMKBHR5cGUYAiABKA4yFS5idWRneS52MS5BY2NvdW50VHlwZRIPCgdiYWxhbmNlGAMgASgDIjsKFUNyZWF0ZUFjY291bnRSZXNwb25zZRIiCgdhY2NvdW50GAEgASgLMhEuYnVkZ3kudjEuQWNjb3VudCIVChNMaXN0QWNjb3VudHNSZXF1ZXN0IjsKFExpc3RBY2NvdW50c1Jlc3BvbnNlEiMKCGFjY291bnRzGAEgAygLMhEuYnVkZ3kudjEuQWNjb3VudCLbAwoUVXBkYXRlQWNjb3VudFJlcXVlc3QSEgoKYWNjb3VudF9pZBgBIAEoCRIRCgRuYW1lGAIgASgJSACIAQESKAoEdHlwZRgDIAEoDjIVLmJ1ZGd5LnYxLkFjY291bnRUeXBlSAGIAQESFAoHYmFsYW5jZRgEIAEoA0gCiAEBEhIKBWNsYXNzGAUgASgJSAOIAQESFwoKYWNjb3VudF9ubxgGIAEoCUgEiAEBEhwKD2F2YWlsYWJsZV9mdW5kcxgHIAEoA0gFiAEBEhQKB3Byb2R1Y3QYCCABKAlIBogBARIbCg5pbnN0aXR1dGlvbl9pZBgJIAEoCUgHiAEBEhoKDWNvbm5lY3Rpb25faWQYCiABKAlICIgBARI1CgxsYXN0X3VwZGF0ZWQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAmIAQFCBwoFX25hbWVCBwoFX3R5cGVCCgoIX2JhbGFuY2VCCAoGX2NsYXNzQg0KC19hY2NvdW50X25vQhIKEF9hdmFpbGFibGVfZnVuZHNCCgoIX3Byb2R1Y3RCEQoPX2luc3RpdHV0aW9uX2lkQhAKDl9jb25uZWN0aW9uX2lkQg8KDV9sYXN0X3VwZGF0ZWQiOwoVVXBkYXRlQWNjb3VudFJlc3BvbnNlEiIKB2FjY291bnQYASABKAsyES5idWRneS52MS5BY2NvdW50IioKFERlbGV0ZUFjY291bnRSZXF1ZXN0EhIKCmFjY291bnRfaWQYASABKAkiFwoVRGVsZXRlQWNjb3VudFJlc3BvbnNlIkMKGkxpbmtBY2NvdW50VG9CdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRISCgphY2NvdW50X2lkGAIgASgJIh0KG0xpbmtBY2NvdW50VG9CdWRnZXRSZXNwb25zZSJHCh5VbmxpbmtBY2NvdW50RnJvbUJ1ZGdldFJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJEhIKCmFjY291bnRfaWQYAiABKAkiIQofVW5saW5rQWNjb3VudEZyb21CdWRnZXRSZXNwb25zZSIuChlMaXN0QnVkZ2V0QWNjb3VudHNSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSJBChpMaXN0QnVkZ2V0QWNjb3VudHNSZXNwb25zZRIjCghhY2NvdW50cxgBIAMoCzIRLmJ1ZGd5LnYxLkFjY291bnQqlQEKC0FjY291bnRUeXBlEhwKGEFDQ09VTlRfVFlQRV9VTlNQRUNJRklFRBAAEhkKFUFDQ09VTlRfVFlQRV9DSEVDS0lORxABEhgKFEFDQ09VTlRfVFlQRV9TQVZJTkdTEAISHAoYQUNDT1VOVF9UWVBFX0NSRURJVF9DQVJEEAMSFQoRQUNDT1VOVF9UWVBFX0NBU0gQBDKKBQoOQWNjb3VudFNlcnZpY2USUAoNQ3JlYXRlQWNjb3VudBIeLmJ1ZGd5LnYxLkNyZWF0ZUFjY291bnRSZXF1ZXN0Gh8uYnVkZ3kudjEuQ3JlYXRlQWNjb3VudFJlc3BvbnNlEk0KDExpc3RBY2NvdW50cxIdLmJ1ZGd5LnYxLkxpc3RBY2NvdW50c1JlcXVlc3QaHi5idWRneS52MS5MaXN0QWNjb3VudHNSZXNwb25zZRJQCg1VcGRhdGVBY2NvdW50Eh4uYnVkZ3kudjEuVXBkYXRlQWNjb3VudFJlcXVlc3QaHy5idWRneS52MS5VcGRhdGVBY2NvdW50UmVzcG9uc2USUAoNRGVsZXRlQWNjb3VudBIeLmJ1ZGd5LnYxLkRlbGV0ZUFjY291bnRSZXF1ZXN0Gh8uYnVkZ3kudjEuRGVsZXRlQWNjb3VudFJlc3BvbnNlEmIKE0xpbmtBY2NvdW50VG9CdWRnZXQSJC5idWRneS52MS5MaW5rQWNjb3VudFRvQnVkZ2V0UmVxdWVzdBolLmJ1ZGd5LnYxLkxpbmtBY2NvdW50VG9CdWRnZXRSZXNwb25zZRJuChdVbmxpbmtBY2NvdW50RnJvbUJ1ZGdldBIoLmJ1ZGd5LnYxLlVubGlua0FjY291bnRGcm9tQnVkZ2V0UmVxdWVzdBopLmJ1ZGd5LnYxLlVubGlua0FjY291bnRGcm9tQnVkZ2V0UmVzcG9uc2USXwoSTGlzdEJ1ZGdldEFjY291bnRzEiMuYnVkZ3kudjEuTGlzdEJ1ZGdldEFjY291bnRzUmVxdWVzdBokLmJ1ZGd5LnYxLkxpc3RCdWRnZXRBY2NvdW50c1Jlc3BvbnNlQjBaLmJ1ZGdldGluZ19zeXN0ZW0vaW50ZXJuYWwvZ2VuL2J1ZGd5L3YxO2J1ZGd5djFiBnByb3RvMw",
-    [file_google_protobuf_timestamp],
-  );
+export const file_budgy_v1_account: GenFile = /*@__PURE__*/
+  fileDesc("ChZidWRneS92MS9hY2NvdW50LnByb3RvEghidWRneS52MSKnAwoHQWNjb3VudBIKCgJpZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEgwKBG5hbWUYAyABKAkSIwoEdHlwZRgEIAEoDjIVLmJ1ZGd5LnYxLkFjY291bnRUeXBlEg8KB2JhbGFuY2UYBSABKAMSLgoKY3JlYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFY2xhc3MYCCABKAkSEgoKYWNjb3VudF9ubxgJIAEoCRIcCg9hdmFpbGFibGVfZnVuZHMYCiABKANIAIgBARIPCgdwcm9kdWN0GAsgASgJEhYKDmluc3RpdHV0aW9uX2lkGAwgASgJEhUKDWNvbm5lY3Rpb25faWQYDSABKAkSNQoMbGFzdF91cGRhdGVkGA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgBiAEBQhIKEF9hdmFpbGFibGVfZnVuZHNCDwoNX2xhc3RfdXBkYXRlZCJaChRDcmVhdGVBY2NvdW50UmVxdWVzdBIMCgRuYW1lGAEgASgJEiMKBHR5cGUYAiABKA4yFS5idWRneS52MS5BY2NvdW50VHlwZRIPCgdiYWxhbmNlGAMgASgDIjsKFUNyZWF0ZUFjY291bnRSZXNwb25zZRIiCgdhY2NvdW50GAEgASgLMhEuYnVkZ3kudjEuQWNjb3VudCIVChNMaXN0QWNjb3VudHNSZXF1ZXN0IjsKFExpc3RBY2NvdW50c1Jlc3BvbnNlEiMKCGFjY291bnRzGAEgAygLMhEuYnVkZ3kudjEuQWNjb3VudCLbAwoUVXBkYXRlQWNjb3VudFJlcXVlc3QSEgoKYWNjb3VudF9pZBgBIAEoCRIRCgRuYW1lGAIgASgJSACIAQESKAoEdHlwZRgDIAEoDjIVLmJ1ZGd5LnYxLkFjY291bnRUeXBlSAGIAQESFAoHYmFsYW5jZRgEIAEoA0gCiAEBEhIKBWNsYXNzGAUgASgJSAOIAQESFwoKYWNjb3VudF9ubxgGIAEoCUgEiAEBEhwKD2F2YWlsYWJsZV9mdW5kcxgHIAEoA0gFiAEBEhQKB3Byb2R1Y3QYCCABKAlIBogBARIbCg5pbnN0aXR1dGlvbl9pZBgJIAEoCUgHiAEBEhoKDWNvbm5lY3Rpb25faWQYCiABKAlICIgBARI1CgxsYXN0X3VwZGF0ZWQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAmIAQFCBwoFX25hbWVCBwoFX3R5cGVCCgoIX2JhbGFuY2VCCAoGX2NsYXNzQg0KC19hY2NvdW50X25vQhIKEF9hdmFpbGFibGVfZnVuZHNCCgoIX3Byb2R1Y3RCEQoPX2luc3RpdHV0aW9uX2lkQhAKDl9jb25uZWN0aW9uX2lkQg8KDV9sYXN0X3VwZGF0ZWQiOwoVVXBkYXRlQWNjb3VudFJlc3BvbnNlEiIKB2FjY291bnQYASABKAsyES5idWRneS52MS5BY2NvdW50IioKFERlbGV0ZUFjY291bnRSZXF1ZXN0EhIKCmFjY291bnRfaWQYASABKAkiFwoVRGVsZXRlQWNjb3VudFJlc3BvbnNlIkMKGkxpbmtBY2NvdW50VG9CdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRISCgphY2NvdW50X2lkGAIgASgJIh0KG0xpbmtBY2NvdW50VG9CdWRnZXRSZXNwb25zZSJHCh5VbmxpbmtBY2NvdW50RnJvbUJ1ZGdldFJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJEhIKCmFjY291bnRfaWQYAiABKAkiIQofVW5saW5rQWNjb3VudEZyb21CdWRnZXRSZXNwb25zZSIuChlMaXN0QnVkZ2V0QWNjb3VudHNSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSJBChpMaXN0QnVkZ2V0QWNjb3VudHNSZXNwb25zZRIjCghhY2NvdW50cxgBIAMoCzIRLmJ1ZGd5LnYxLkFjY291bnQqlQEKC0FjY291bnRUeXBlEhwKGEFDQ09VTlRfVFlQRV9VTlNQRUNJRklFRBAAEhkKFUFDQ09VTlRfVFlQRV9DSEVDS0lORxABEhgKFEFDQ09VTlRfVFlQRV9TQVZJTkdTEAISHAoYQUNDT1VOVF9UWVBFX0NSRURJVF9DQVJEEAMSFQoRQUNDT1VOVF9UWVBFX0NBU0gQBDKKBQoOQWNjb3VudFNlcnZpY2USUAoNQ3JlYXRlQWNjb3VudBIeLmJ1ZGd5LnYxLkNyZWF0ZUFjY291bnRSZXF1ZXN0Gh8uYnVkZ3kudjEuQ3JlYXRlQWNjb3VudFJlc3BvbnNlEk0KDExpc3RBY2NvdW50cxIdLmJ1ZGd5LnYxLkxpc3RBY2NvdW50c1JlcXVlc3QaHi5idWRneS52MS5MaXN0QWNjb3VudHNSZXNwb25zZRJQCg1VcGRhdGVBY2NvdW50Eh4uYnVkZ3kudjEuVXBkYXRlQWNjb3VudFJlcXVlc3QaHy5idWRneS52MS5VcGRhdGVBY2NvdW50UmVzcG9uc2USUAoNRGVsZXRlQWNjb3VudBIeLmJ1ZGd5LnYxLkRlbGV0ZUFjY291bnRSZXF1ZXN0Gh8uYnVkZ3kudjEuRGVsZXRlQWNjb3VudFJlc3BvbnNlEmIKE0xpbmtBY2NvdW50VG9CdWRnZXQSJC5idWRneS52MS5MaW5rQWNjb3VudFRvQnVkZ2V0UmVxdWVzdBolLmJ1ZGd5LnYxLkxpbmtBY2NvdW50VG9CdWRnZXRSZXNwb25zZRJuChdVbmxpbmtBY2NvdW50RnJvbUJ1ZGdldBIoLmJ1ZGd5LnYxLlVubGlua0FjY291bnRGcm9tQnVkZ2V0UmVxdWVzdBopLmJ1ZGd5LnYxLlVubGlua0FjY291bnRGcm9tQnVkZ2V0UmVzcG9uc2USXwoSTGlzdEJ1ZGdldEFjY291bnRzEiMuYnVkZ3kudjEuTGlzdEJ1ZGdldEFjY291bnRzUmVxdWVzdBokLmJ1ZGd5LnYxLkxpc3RCdWRnZXRBY2NvdW50c1Jlc3BvbnNlQjBaLmJ1ZGdldGluZ19zeXN0ZW0vaW50ZXJuYWwvZ2VuL2J1ZGd5L3YxO2J1ZGd5djFiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message budgy.v1.Account
@@ -97,8 +93,7 @@ export type Account = Message<"budgy.v1.Account"> & {
  * Describes the message budgy.v1.Account.
  * Use `create(AccountSchema)` to create a new message.
  */
-export const AccountSchema: GenMessage<Account> =
-  /*@__PURE__*/
+export const AccountSchema: GenMessage<Account> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 0);
 
 /**
@@ -125,8 +120,7 @@ export type CreateAccountRequest = Message<"budgy.v1.CreateAccountRequest"> & {
  * Describes the message budgy.v1.CreateAccountRequest.
  * Use `create(CreateAccountRequestSchema)` to create a new message.
  */
-export const CreateAccountRequestSchema: GenMessage<CreateAccountRequest> =
-  /*@__PURE__*/
+export const CreateAccountRequestSchema: GenMessage<CreateAccountRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 1);
 
 /**
@@ -143,21 +137,20 @@ export type CreateAccountResponse = Message<"budgy.v1.CreateAccountResponse"> & 
  * Describes the message budgy.v1.CreateAccountResponse.
  * Use `create(CreateAccountResponseSchema)` to create a new message.
  */
-export const CreateAccountResponseSchema: GenMessage<CreateAccountResponse> =
-  /*@__PURE__*/
+export const CreateAccountResponseSchema: GenMessage<CreateAccountResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 2);
 
 /**
  * @generated from message budgy.v1.ListAccountsRequest
  */
-export type ListAccountsRequest = Message<"budgy.v1.ListAccountsRequest"> & {};
+export type ListAccountsRequest = Message<"budgy.v1.ListAccountsRequest"> & {
+};
 
 /**
  * Describes the message budgy.v1.ListAccountsRequest.
  * Use `create(ListAccountsRequestSchema)` to create a new message.
  */
-export const ListAccountsRequestSchema: GenMessage<ListAccountsRequest> =
-  /*@__PURE__*/
+export const ListAccountsRequestSchema: GenMessage<ListAccountsRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 3);
 
 /**
@@ -174,8 +167,7 @@ export type ListAccountsResponse = Message<"budgy.v1.ListAccountsResponse"> & {
  * Describes the message budgy.v1.ListAccountsResponse.
  * Use `create(ListAccountsResponseSchema)` to create a new message.
  */
-export const ListAccountsResponseSchema: GenMessage<ListAccountsResponse> =
-  /*@__PURE__*/
+export const ListAccountsResponseSchema: GenMessage<ListAccountsResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 4);
 
 /**
@@ -242,8 +234,7 @@ export type UpdateAccountRequest = Message<"budgy.v1.UpdateAccountRequest"> & {
  * Describes the message budgy.v1.UpdateAccountRequest.
  * Use `create(UpdateAccountRequestSchema)` to create a new message.
  */
-export const UpdateAccountRequestSchema: GenMessage<UpdateAccountRequest> =
-  /*@__PURE__*/
+export const UpdateAccountRequestSchema: GenMessage<UpdateAccountRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 5);
 
 /**
@@ -260,8 +251,7 @@ export type UpdateAccountResponse = Message<"budgy.v1.UpdateAccountResponse"> & 
  * Describes the message budgy.v1.UpdateAccountResponse.
  * Use `create(UpdateAccountResponseSchema)` to create a new message.
  */
-export const UpdateAccountResponseSchema: GenMessage<UpdateAccountResponse> =
-  /*@__PURE__*/
+export const UpdateAccountResponseSchema: GenMessage<UpdateAccountResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 6);
 
 /**
@@ -278,21 +268,20 @@ export type DeleteAccountRequest = Message<"budgy.v1.DeleteAccountRequest"> & {
  * Describes the message budgy.v1.DeleteAccountRequest.
  * Use `create(DeleteAccountRequestSchema)` to create a new message.
  */
-export const DeleteAccountRequestSchema: GenMessage<DeleteAccountRequest> =
-  /*@__PURE__*/
+export const DeleteAccountRequestSchema: GenMessage<DeleteAccountRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 7);
 
 /**
  * @generated from message budgy.v1.DeleteAccountResponse
  */
-export type DeleteAccountResponse = Message<"budgy.v1.DeleteAccountResponse"> & {};
+export type DeleteAccountResponse = Message<"budgy.v1.DeleteAccountResponse"> & {
+};
 
 /**
  * Describes the message budgy.v1.DeleteAccountResponse.
  * Use `create(DeleteAccountResponseSchema)` to create a new message.
  */
-export const DeleteAccountResponseSchema: GenMessage<DeleteAccountResponse> =
-  /*@__PURE__*/
+export const DeleteAccountResponseSchema: GenMessage<DeleteAccountResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 8);
 
 /**
@@ -314,21 +303,20 @@ export type LinkAccountToBudgetRequest = Message<"budgy.v1.LinkAccountToBudgetRe
  * Describes the message budgy.v1.LinkAccountToBudgetRequest.
  * Use `create(LinkAccountToBudgetRequestSchema)` to create a new message.
  */
-export const LinkAccountToBudgetRequestSchema: GenMessage<LinkAccountToBudgetRequest> =
-  /*@__PURE__*/
+export const LinkAccountToBudgetRequestSchema: GenMessage<LinkAccountToBudgetRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 9);
 
 /**
  * @generated from message budgy.v1.LinkAccountToBudgetResponse
  */
-export type LinkAccountToBudgetResponse = Message<"budgy.v1.LinkAccountToBudgetResponse"> & {};
+export type LinkAccountToBudgetResponse = Message<"budgy.v1.LinkAccountToBudgetResponse"> & {
+};
 
 /**
  * Describes the message budgy.v1.LinkAccountToBudgetResponse.
  * Use `create(LinkAccountToBudgetResponseSchema)` to create a new message.
  */
-export const LinkAccountToBudgetResponseSchema: GenMessage<LinkAccountToBudgetResponse> =
-  /*@__PURE__*/
+export const LinkAccountToBudgetResponseSchema: GenMessage<LinkAccountToBudgetResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 10);
 
 /**
@@ -350,22 +338,20 @@ export type UnlinkAccountFromBudgetRequest = Message<"budgy.v1.UnlinkAccountFrom
  * Describes the message budgy.v1.UnlinkAccountFromBudgetRequest.
  * Use `create(UnlinkAccountFromBudgetRequestSchema)` to create a new message.
  */
-export const UnlinkAccountFromBudgetRequestSchema: GenMessage<UnlinkAccountFromBudgetRequest> =
-  /*@__PURE__*/
+export const UnlinkAccountFromBudgetRequestSchema: GenMessage<UnlinkAccountFromBudgetRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 11);
 
 /**
  * @generated from message budgy.v1.UnlinkAccountFromBudgetResponse
  */
-export type UnlinkAccountFromBudgetResponse =
-  Message<"budgy.v1.UnlinkAccountFromBudgetResponse"> & {};
+export type UnlinkAccountFromBudgetResponse = Message<"budgy.v1.UnlinkAccountFromBudgetResponse"> & {
+};
 
 /**
  * Describes the message budgy.v1.UnlinkAccountFromBudgetResponse.
  * Use `create(UnlinkAccountFromBudgetResponseSchema)` to create a new message.
  */
-export const UnlinkAccountFromBudgetResponseSchema: GenMessage<UnlinkAccountFromBudgetResponse> =
-  /*@__PURE__*/
+export const UnlinkAccountFromBudgetResponseSchema: GenMessage<UnlinkAccountFromBudgetResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 12);
 
 /**
@@ -382,8 +368,7 @@ export type ListBudgetAccountsRequest = Message<"budgy.v1.ListBudgetAccountsRequ
  * Describes the message budgy.v1.ListBudgetAccountsRequest.
  * Use `create(ListBudgetAccountsRequestSchema)` to create a new message.
  */
-export const ListBudgetAccountsRequestSchema: GenMessage<ListBudgetAccountsRequest> =
-  /*@__PURE__*/
+export const ListBudgetAccountsRequestSchema: GenMessage<ListBudgetAccountsRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 13);
 
 /**
@@ -400,8 +385,7 @@ export type ListBudgetAccountsResponse = Message<"budgy.v1.ListBudgetAccountsRes
  * Describes the message budgy.v1.ListBudgetAccountsResponse.
  * Use `create(ListBudgetAccountsResponseSchema)` to create a new message.
  */
-export const ListBudgetAccountsResponseSchema: GenMessage<ListBudgetAccountsResponse> =
-  /*@__PURE__*/
+export const ListBudgetAccountsResponseSchema: GenMessage<ListBudgetAccountsResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_account, 14);
 
 /**
@@ -437,8 +421,7 @@ export enum AccountType {
 /**
  * Describes the enum budgy.v1.AccountType.
  */
-export const AccountTypeSchema: GenEnum<AccountType> =
-  /*@__PURE__*/
+export const AccountTypeSchema: GenEnum<AccountType> = /*@__PURE__*/
   enumDesc(file_budgy_v1_account, 0);
 
 /**
@@ -452,7 +435,7 @@ export const AccountService: GenService<{
     methodKind: "unary";
     input: typeof CreateAccountRequestSchema;
     output: typeof CreateAccountResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.AccountService.ListAccounts
    */
@@ -460,7 +443,7 @@ export const AccountService: GenService<{
     methodKind: "unary";
     input: typeof ListAccountsRequestSchema;
     output: typeof ListAccountsResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.AccountService.UpdateAccount
    */
@@ -468,7 +451,7 @@ export const AccountService: GenService<{
     methodKind: "unary";
     input: typeof UpdateAccountRequestSchema;
     output: typeof UpdateAccountResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.AccountService.DeleteAccount
    */
@@ -476,7 +459,7 @@ export const AccountService: GenService<{
     methodKind: "unary";
     input: typeof DeleteAccountRequestSchema;
     output: typeof DeleteAccountResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.AccountService.LinkAccountToBudget
    */
@@ -484,7 +467,7 @@ export const AccountService: GenService<{
     methodKind: "unary";
     input: typeof LinkAccountToBudgetRequestSchema;
     output: typeof LinkAccountToBudgetResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.AccountService.UnlinkAccountFromBudget
    */
@@ -492,7 +475,7 @@ export const AccountService: GenService<{
     methodKind: "unary";
     input: typeof UnlinkAccountFromBudgetRequestSchema;
     output: typeof UnlinkAccountFromBudgetResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.AccountService.ListBudgetAccounts
    */
@@ -500,5 +483,7 @@ export const AccountService: GenService<{
     methodKind: "unary";
     input: typeof ListBudgetAccountsRequestSchema;
     output: typeof ListBudgetAccountsResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_budgy_v1_account, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_budgy_v1_account, 0);
+

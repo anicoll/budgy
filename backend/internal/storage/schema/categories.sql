@@ -27,11 +27,17 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.categories (
     id text NOT NULL,
-    budget_id text,
+    user_id text NOT NULL,
+    parent_id text,
     name text NOT NULL,
-    budgeted bigint DEFAULT 0 NOT NULL,
-    balance bigint DEFAULT 0 NOT NULL,
-    target_limit bigint DEFAULT 0 NOT NULL,
+    type text DEFAULT 'expense'::text NOT NULL,
+    color text DEFAULT '#7c5cff'::text NOT NULL,
+    icon text,
+    sort_order integer DEFAULT 0 NOT NULL,
+    archived integer DEFAULT 0 NOT NULL,
+    system integer DEFAULT 0 NOT NULL,
+    basiq_subclass_code text,
+    anzsic_class_code text,
     created_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL
 );
@@ -46,11 +52,19 @@ ALTER TABLE ONLY public.categories
 
 
 --
--- Name: categories categories_budget_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: categories categories_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.categories
-    ADD CONSTRAINT categories_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON DELETE SET NULL;
+    ADD CONSTRAINT categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.categories(id) ON DELETE SET NULL;
+
+
+--
+-- Name: categories categories_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

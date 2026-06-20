@@ -41,12 +41,12 @@ type BackgroundJob struct {
 
 type Budget struct {
 	ID        string
+	UserID    string
 	Name      string
 	Method    string
 	Currency  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	UserID    sql.NullString
 }
 
 type BudgetAccount struct {
@@ -72,9 +72,9 @@ type Category struct {
 	Type              string
 	Color             string
 	Icon              sql.NullString
-	SortOrder         int64
-	Archived          int64
-	System            int64
+	SortOrder         int32
+	Archived          int32
+	System            int32
 	BasiqSubclassCode sql.NullString
 	AnzsicClassCode   sql.NullString
 	CreatedAt         time.Time

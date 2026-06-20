@@ -2,18 +2,15 @@
 // @generated from file budgy/v1/basiq.proto (package budgy.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file budgy/v1/basiq.proto.
  */
-export const file_budgy_v1_basiq: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChRidWRneS92MS9iYXNpcS5wcm90bxIIYnVkZ3kudjEiMwoNQmFzaXFBdXRoTGluaxINCgV0b2tlbhgBIAEoCRITCgtjb25uZWN0X3VybBgCIAEoCSIZChdHZXRCYXNpcUF1dGhMaW5rUmVxdWVzdCJGChhHZXRCYXNpcUF1dGhMaW5rUmVzcG9uc2USKgoJYXV0aF9saW5rGAEgASgLMhcuYnVkZ3kudjEuQmFzaXFBdXRoTGluayIRCg9TeW5jQmFua1JlcXVlc3QiIwoQU3luY0JhbmtSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJMq8BCg9CYW5rU3luY1NlcnZpY2USWQoQR2V0QmFzaXFBdXRoTGluaxIhLmJ1ZGd5LnYxLkdldEJhc2lxQXV0aExpbmtSZXF1ZXN0GiIuYnVkZ3kudjEuR2V0QmFzaXFBdXRoTGlua1Jlc3BvbnNlEkEKCFN5bmNCYW5rEhkuYnVkZ3kudjEuU3luY0JhbmtSZXF1ZXN0GhouYnVkZ3kudjEuU3luY0JhbmtSZXNwb25zZUIwWi5idWRnZXRpbmdfc3lzdGVtL2ludGVybmFsL2dlbi9idWRneS92MTtidWRneXYxYgZwcm90bzM",
-  );
+export const file_budgy_v1_basiq: GenFile = /*@__PURE__*/
+  fileDesc("ChRidWRneS92MS9iYXNpcS5wcm90bxIIYnVkZ3kudjEiMwoNQmFzaXFBdXRoTGluaxINCgV0b2tlbhgBIAEoCRITCgtjb25uZWN0X3VybBgCIAEoCSIZChdHZXRCYXNpcUF1dGhMaW5rUmVxdWVzdCJGChhHZXRCYXNpcUF1dGhMaW5rUmVzcG9uc2USKgoJYXV0aF9saW5rGAEgASgLMhcuYnVkZ3kudjEuQmFzaXFBdXRoTGluayIRCg9TeW5jQmFua1JlcXVlc3QiIwoQU3luY0JhbmtSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJMq8BCg9CYW5rU3luY1NlcnZpY2USWQoQR2V0QmFzaXFBdXRoTGluaxIhLmJ1ZGd5LnYxLkdldEJhc2lxQXV0aExpbmtSZXF1ZXN0GiIuYnVkZ3kudjEuR2V0QmFzaXFBdXRoTGlua1Jlc3BvbnNlEkEKCFN5bmNCYW5rEhkuYnVkZ3kudjEuU3luY0JhbmtSZXF1ZXN0GhouYnVkZ3kudjEuU3luY0JhbmtSZXNwb25zZUIwWi5idWRnZXRpbmdfc3lzdGVtL2ludGVybmFsL2dlbi9idWRneS92MTtidWRneXYxYgZwcm90bzM");
 
 /**
  * @generated from message budgy.v1.BasiqAuthLink
@@ -34,21 +31,20 @@ export type BasiqAuthLink = Message<"budgy.v1.BasiqAuthLink"> & {
  * Describes the message budgy.v1.BasiqAuthLink.
  * Use `create(BasiqAuthLinkSchema)` to create a new message.
  */
-export const BasiqAuthLinkSchema: GenMessage<BasiqAuthLink> =
-  /*@__PURE__*/
+export const BasiqAuthLinkSchema: GenMessage<BasiqAuthLink> = /*@__PURE__*/
   messageDesc(file_budgy_v1_basiq, 0);
 
 /**
  * @generated from message budgy.v1.GetBasiqAuthLinkRequest
  */
-export type GetBasiqAuthLinkRequest = Message<"budgy.v1.GetBasiqAuthLinkRequest"> & {};
+export type GetBasiqAuthLinkRequest = Message<"budgy.v1.GetBasiqAuthLinkRequest"> & {
+};
 
 /**
  * Describes the message budgy.v1.GetBasiqAuthLinkRequest.
  * Use `create(GetBasiqAuthLinkRequestSchema)` to create a new message.
  */
-export const GetBasiqAuthLinkRequestSchema: GenMessage<GetBasiqAuthLinkRequest> =
-  /*@__PURE__*/
+export const GetBasiqAuthLinkRequestSchema: GenMessage<GetBasiqAuthLinkRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_basiq, 1);
 
 /**
@@ -65,21 +61,20 @@ export type GetBasiqAuthLinkResponse = Message<"budgy.v1.GetBasiqAuthLinkRespons
  * Describes the message budgy.v1.GetBasiqAuthLinkResponse.
  * Use `create(GetBasiqAuthLinkResponseSchema)` to create a new message.
  */
-export const GetBasiqAuthLinkResponseSchema: GenMessage<GetBasiqAuthLinkResponse> =
-  /*@__PURE__*/
+export const GetBasiqAuthLinkResponseSchema: GenMessage<GetBasiqAuthLinkResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_basiq, 2);
 
 /**
  * @generated from message budgy.v1.SyncBankRequest
  */
-export type SyncBankRequest = Message<"budgy.v1.SyncBankRequest"> & {};
+export type SyncBankRequest = Message<"budgy.v1.SyncBankRequest"> & {
+};
 
 /**
  * Describes the message budgy.v1.SyncBankRequest.
  * Use `create(SyncBankRequestSchema)` to create a new message.
  */
-export const SyncBankRequestSchema: GenMessage<SyncBankRequest> =
-  /*@__PURE__*/
+export const SyncBankRequestSchema: GenMessage<SyncBankRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_basiq, 3);
 
 /**
@@ -96,8 +91,7 @@ export type SyncBankResponse = Message<"budgy.v1.SyncBankResponse"> & {
  * Describes the message budgy.v1.SyncBankResponse.
  * Use `create(SyncBankResponseSchema)` to create a new message.
  */
-export const SyncBankResponseSchema: GenMessage<SyncBankResponse> =
-  /*@__PURE__*/
+export const SyncBankResponseSchema: GenMessage<SyncBankResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_basiq, 4);
 
 /**
@@ -111,7 +105,7 @@ export const BankSyncService: GenService<{
     methodKind: "unary";
     input: typeof GetBasiqAuthLinkRequestSchema;
     output: typeof GetBasiqAuthLinkResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BankSyncService.SyncBank
    */
@@ -119,5 +113,7 @@ export const BankSyncService: GenService<{
     methodKind: "unary";
     input: typeof SyncBankRequestSchema;
     output: typeof SyncBankResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_budgy_v1_basiq, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_budgy_v1_basiq, 0);
+
