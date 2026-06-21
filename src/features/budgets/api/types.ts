@@ -39,8 +39,15 @@ export interface BackendAccount {
   balance: Cents;
 }
 
+export interface ZeroSumPoolSummary {
+  totalAvailableFunds: Cents;
+  totalAssignedFunds: Cents;
+  readyToAssign: Cents;
+}
+
 export interface PeriodBudgetSummary {
   kind: "period";
+  pool: ZeroSumPoolSummary;
   periodReceived: Cents;
   periodSpent: Cents;
   periodNet: Cents;

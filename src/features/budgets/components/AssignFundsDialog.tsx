@@ -30,6 +30,7 @@ interface Props {
   defaultAmountCents?: Cents;
   defaultFrequency?: BudgetFrequency;
   mode?: "set" | "add";
+  readyToAssign?: Cents;
   onClose: () => void;
   onSubmit: (amountCents: Cents, frequency: BudgetFrequency) => Promise<void>;
   submitting?: boolean;
@@ -41,6 +42,7 @@ export function AssignFundsDialog({
   defaultAmountCents,
   defaultFrequency,
   mode = "set",
+  readyToAssign,
   onClose,
   onSubmit,
   submitting,
@@ -64,8 +66,17 @@ export function AssignFundsDialog({
       setError("Enter a positive amount");
       return;
     }
+    const amountCents = toCents(parsed);
+    const currentBudgeted = category?.budgeted ?? 0;
+    const assignmentDelta = mode === "add" ? amountCents : amountCents - currentBudgeted;
+    if (readyToAssign !== undefined && assignmentDelta > 0 && assignmentDelta > readyToAssign) {
+      setError(
+        `Cannot assign more than ${fromCents(readyToAssign).toFixed(2)} — only that much is ready to assign`,
+      );
+      return;
+    }
     setError(null);
-    await onSubmit(toCents(parsed), frequency);
+    await onSubmit(amountCents, frequency);
   }
 
   const isIncome = category?.type === "income";
@@ -112,6 +123,11 @@ export function AssignFundsDialog({
                 </SelectContent>
               </Select>
             </div>
+            {readyToAssign !== undefined ? (
+              <p className="text-xs text-muted-foreground">
+                Ready to assign: {fromCents(readyToAssign).toFixed(2)}
+              </p>
+            ) : null}
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </div>
           <DialogFooter>

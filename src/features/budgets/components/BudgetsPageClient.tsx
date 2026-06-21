@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransactions } from "@/features/transactions/hooks";
+import { useCategories } from "@/features/categories/hooks";
 import { cents } from "@/lib/money/cents";
 import {
   useAssignCategoryFunds,
@@ -65,6 +66,7 @@ export function BudgetsPageClient() {
   const { data: categories, isPending: categoriesPending } = useBackendCategories(
     selectedBudget?.id ?? null,
   );
+  const { data: taxonomyCategories = [] } = useCategories();
   const { data: accounts = [] } = useBackendAccounts(selectedBudget?.id ?? null);
   const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
 
@@ -75,10 +77,12 @@ export function BudgetsPageClient() {
   const summary = useBackendBudgetSummary(
     selectedBudget,
     categories,
+    accounts,
     viewCadence,
     transactions,
     accountIds,
     periodRange.from ? periodRange : undefined,
+    taxonomyCategories,
   );
 
   const uncategorized = useMemo(() => {
@@ -175,7 +179,11 @@ export function BudgetsPageClient() {
 
       {summary ? <BudgetSummaryHero summary={summary} periodLabel={periodLabel} /> : null}
 
-      <BudgetAccountsPanel budgetId={selectedBudget.id} />
+      <BudgetAccountsPanel
+        budgetId={selectedBudget.id}
+        periodRange={periodRange}
+        transactions={transactions}
+      />
 
       <UncategorizedInbox transactions={uncategorized} />
 
@@ -222,6 +230,7 @@ export function BudgetsPageClient() {
         mode={coverCategory ? "add" : "set"}
         defaultAmountCents={coverCategory ? coverAmount : assignCategory?.budgeted}
         defaultFrequency={assignDialogCategory?.budgetedFrequency}
+        readyToAssign={summary?.pool.readyToAssign}
         onClose={() => {
           setAssignCategory(null);
           setCoverCategory(null);

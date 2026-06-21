@@ -78,10 +78,12 @@ export function DashboardPageClient() {
   const budgetSummary = useBackendBudgetSummary(
     activeBudget,
     budgetCategories,
+    budgetAccounts,
     activeBudget?.period ?? "monthly",
     allTxns,
     budgetAccountIds,
     range,
+    categories,
   );
 
   const isLoading = accsLoading || txnsLoading || catsLoading;

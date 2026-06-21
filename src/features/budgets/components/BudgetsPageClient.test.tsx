@@ -8,6 +8,10 @@ vi.mock("@/features/transactions/hooks", () => ({
   useTransactions: vi.fn(() => ({ data: [] })),
 }));
 
+vi.mock("@/features/categories/hooks", () => ({
+  useCategories: vi.fn(() => ({ data: [] })),
+}));
+
 vi.mock("../api/hooks", () => ({
   useBackendBudgets: vi.fn(),
   useSelectedBudgetId: vi.fn(),
@@ -111,6 +115,11 @@ describe("BudgetsPageClient", () => {
     vi.mocked(useBackendAccounts).mockReturnValue({ data: [] } as never);
     vi.mocked(useBackendBudgetSummary).mockReturnValue({
       kind: "period",
+      pool: {
+        totalAvailableFunds: cents(100000),
+        totalAssignedFunds: cents(50000),
+        readyToAssign: cents(50000),
+      },
       periodReceived: cents(800000),
       periodSpent: cents(12000),
       periodNet: cents(788000),
@@ -122,6 +131,7 @@ describe("BudgetsPageClient", () => {
     renderPage();
     expect(screen.getByText("Household")).toBeInTheDocument();
     expect(screen.getByText(/^Net/)).toBeInTheDocument();
+    expect(screen.getByText("Ready to assign")).toBeInTheDocument();
     expect(screen.getByText("Groceries")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Set target" })).toBeInTheDocument();
   });

@@ -24,7 +24,7 @@ import {
 } from "./client";
 import { backendBudgetKeys } from "./keys";
 import { computeBudgetSummary } from "./summary";
-import type { BackendBudget, BackendBudgetFrequency, ViewCadence } from "./types";
+import type { BackendBudget, BackendBudgetFrequency, BackendCategory, ViewCadence } from "./types";
 
 export function useBackendBudgets() {
   const enabled = useOnlineQueryEnabled();
@@ -117,15 +117,25 @@ export function useBudgetViewCadence(defaultCadence: ViewCadence) {
 export function useBackendBudgetSummary(
   budget: BackendBudget | null | undefined,
   categories: ReturnType<typeof useBackendCategories>["data"],
+  accounts: ReturnType<typeof useBackendAccounts>["data"],
   viewCadence: ViewCadence,
   transactions?: import("@/features/transactions/types").Transaction[],
   accountIds?: string[],
   range?: import("@/lib/date/periods").DateRange,
+  taxonomyCategories?: ReadonlyArray<{ id: string; type: BackendCategory["type"] }>,
 ) {
   return useMemo(() => {
-    if (!budget || !categories) return null;
-    return computeBudgetSummary(categories, viewCadence, transactions, accountIds, range);
-  }, [budget, categories, viewCadence, transactions, accountIds, range]);
+    if (!budget || !categories || !accounts) return null;
+    return computeBudgetSummary(
+      accounts,
+      categories,
+      viewCadence,
+      transactions,
+      accountIds,
+      range,
+      taxonomyCategories,
+    );
+  }, [budget, categories, accounts, viewCadence, transactions, accountIds, range, taxonomyCategories]);
 }
 
 function invalidateBudgetQueries(qc: ReturnType<typeof useQueryClient>, budgetId?: string) {
