@@ -6,6 +6,7 @@ go_library(
         "account_service.go",
         "auth_service.go",
         "bank_sync_service.go",
+        "budget_reconcile.go",
         "budget_service.go",
         "category_service.go",
         "job_queue.go",
@@ -25,6 +26,7 @@ go_library(
 go_test(
     name = "service_test",
     srcs = [
+        "budget_reconcile_test.go",
         "job_queue_test.go",
         "service_test.go",
     ],

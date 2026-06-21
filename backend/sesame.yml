@@ -72,6 +72,11 @@ mappings:
       - a: Method
         b: Method
         converter: EnumConverter
+      - a: Period
+        b: Period
+        converter: EnumConverter
+      - a: StartDate
+        b: StartDate
       - a: CreatedAt
         b: CreatedAt
         converter: TimestampConverter

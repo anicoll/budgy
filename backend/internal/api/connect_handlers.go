@@ -48,6 +48,32 @@ func domainBudgetMethod(m budgyv1.BudgetMethod) domain.BudgetMethod {
 	return domain.MethodZeroSum
 }
 
+func domainBudgetPeriod(p budgyv1.BudgetPeriod) domain.BudgetPeriod {
+	switch p {
+	case budgyv1.BudgetPeriod_BUDGET_PERIOD_WEEKLY:
+		return domain.PeriodWeekly
+	case budgyv1.BudgetPeriod_BUDGET_PERIOD_FORTNIGHTLY:
+		return domain.PeriodFortnightly
+	default:
+		return domain.PeriodMonthly
+	}
+}
+
+func domainBudgetFrequency(f budgyv1.BudgetFrequency) domain.BudgetFrequency {
+	switch f {
+	case budgyv1.BudgetFrequency_BUDGET_FREQUENCY_WEEKLY:
+		return domain.FrequencyWeekly
+	case budgyv1.BudgetFrequency_BUDGET_FREQUENCY_FORTNIGHTLY:
+		return domain.FrequencyFortnightly
+	case budgyv1.BudgetFrequency_BUDGET_FREQUENCY_QUARTERLY:
+		return domain.FrequencyQuarterly
+	case budgyv1.BudgetFrequency_BUDGET_FREQUENCY_YEARLY:
+		return domain.FrequencyYearly
+	default:
+		return domain.FrequencyMonthly
+	}
+}
+
 func domainAccountType(at budgyv1.AccountType) domain.AccountType {
 	switch at {
 	case budgyv1.AccountType_ACCOUNT_TYPE_SAVINGS:
@@ -139,7 +165,7 @@ func (h *budgetConnectHandler) CreateBudget(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeUnauthenticated, service.ErrUnauthorized)
 	}
 	r := req.Msg
-	b, err := h.budgets.Create(ctx, userID, r.Name, domainBudgetMethod(r.Method), r.Currency)
+	b, err := h.budgets.Create(ctx, userID, r.Name, domainBudgetMethod(r.Method), r.Currency, domainBudgetPeriod(r.Period), r.StartDate)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
@@ -206,7 +232,7 @@ func (h *budgetConnectHandler) UpdateBudget(ctx context.Context, req *connect.Re
 	if b.UserID != userID {
 		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
 	}
-	updated, err := h.budgets.Update(ctx, r.BudgetId, r.Name, domainBudgetMethod(r.Method), r.Currency)
+	updated, err := h.budgets.Update(ctx, r.BudgetId, r.Name, domainBudgetMethod(r.Method), r.Currency, domainBudgetPeriod(r.Period), r.StartDate)
 	if err != nil {
 		return nil, toConnectError(err)
 	}
@@ -248,6 +274,42 @@ func (h *budgetConnectHandler) ListBudgetCategories(ctx context.Context, req *co
 	return connect.NewResponse(&budgyv1.ListBudgetCategoriesResponse{Categories: pb}), nil
 }
 
+func (h *budgetConnectHandler) ListAvailableCategories(ctx context.Context, req *connect.Request[budgyv1.ListAvailableCategoriesRequest]) (*connect.Response[budgyv1.ListAvailableCategoriesResponse], error) {
+	b, err := h.budgets.GetByID(ctx, req.Msg.BudgetId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	userID := getUserID(ctx)
+	if b.UserID != userID {
+		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
+	}
+	list, err := h.budgets.ListAvailableCategories(ctx, req.Msg.BudgetId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	pb := make([]*budgyv1.Category, len(list))
+	for i, c := range list {
+		pb[i] = h.mappers.Category(ctx, c)
+	}
+	return connect.NewResponse(&budgyv1.ListAvailableCategoriesResponse{Categories: pb}), nil
+}
+
+func (h *budgetConnectHandler) AddCategoryToBudget(ctx context.Context, req *connect.Request[budgyv1.AddCategoryToBudgetRequest]) (*connect.Response[budgyv1.AddCategoryToBudgetResponse], error) {
+	b, err := h.budgets.GetByID(ctx, req.Msg.BudgetId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	userID := getUserID(ctx)
+	if b.UserID != userID {
+		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
+	}
+	c, err := h.budgets.AddCategoryToBudget(ctx, req.Msg.BudgetId, req.Msg.CategoryId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	return connect.NewResponse(&budgyv1.AddCategoryToBudgetResponse{Category: h.mappers.BudgetCategory(ctx, c)}), nil
+}
+
 func (h *budgetConnectHandler) AssignCategoryFunds(ctx context.Context, req *connect.Request[budgyv1.AssignCategoryFundsRequest]) (*connect.Response[budgyv1.AssignCategoryFundsResponse], error) {
 	b, err := h.budgets.GetByID(ctx, req.Msg.BudgetId)
 	if err != nil {
@@ -257,7 +319,7 @@ func (h *budgetConnectHandler) AssignCategoryFunds(ctx context.Context, req *con
 	if b.UserID != userID {
 		return nil, connect.NewError(connect.CodePermissionDenied, service.ErrForbidden)
 	}
-	c, err := h.budgets.AssignCategoryFunds(ctx, req.Msg.BudgetId, req.Msg.CategoryId, req.Msg.Amount)
+	c, err := h.budgets.AssignCategoryFunds(ctx, req.Msg.BudgetId, req.Msg.CategoryId, req.Msg.Amount, domainBudgetFrequency(req.Msg.BudgetedFrequency), req.Msg.ReplaceTarget)
 	if err != nil {
 		return nil, toConnectError(err)
 	}

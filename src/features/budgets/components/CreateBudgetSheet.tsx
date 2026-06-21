@@ -3,6 +3,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useAllUserAccounts } from "../api/hooks";
+import {
+  type BackendBudgetFormValues,
+  backendBudgetFormSchema,
+  defaultBackendBudgetValues,
+} from "../api/schema";
+import type { BackendBudget } from "../api/types";
+import type { Account } from "@/features/accounts/types";
+import { Money } from "@/components/money/money";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -28,12 +37,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  type BackendBudgetFormValues,
-  backendBudgetFormSchema,
-  defaultBackendBudgetValues,
-} from "../api/schema";
-import type { BackendBudget } from "../api/types";
 
 interface Props {
   open: boolean;
@@ -47,8 +50,9 @@ function toFormValues(editing?: BackendBudget | null): BackendBudgetFormValues {
   if (editing) {
     return {
       name: editing.name,
-      method: editing.method,
       currency: editing.currency,
+      period: editing.period,
+      startDate: editing.startDate,
     };
   }
   return defaultBackendBudgetValues();
@@ -56,25 +60,34 @@ function toFormValues(editing?: BackendBudget | null): BackendBudgetFormValues {
 
 export function CreateBudgetSheet({ open, editing, onClose, onSubmit, submitting }: Props) {
   const isEdit = !!editing;
+  const { data: allAccounts = [] } = useAllUserAccounts();
 
   const form = useForm<BackendBudgetFormValues>({
     resolver: zodResolver(backendBudgetFormSchema),
     defaultValues: toFormValues(editing),
   });
 
-  const { reset, handleSubmit } = form;
+  const { reset, handleSubmit, watch, setValue } = form;
+  const accountIds = watch("accountIds") ?? [];
 
   useEffect(() => {
     if (open) reset(toFormValues(editing));
   }, [open, editing, reset]);
 
+  function toggleAccount(id: string) {
+    const next = new Set(accountIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setValue("accountIds", [...next]);
+  }
+
   return (
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
-      <SheetContent>
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{isEdit ? "Edit budget" : "Create budget"}</SheetTitle>
           <SheetDescription>
-            Budgets are stored on the server. Choose zero-sum or envelope method.
+            Zero-sum budgeting: assign every dollar from linked accounts to categories.
           </SheetDescription>
         </SheetHeader>
 
@@ -102,10 +115,10 @@ export function CreateBudgetSheet({ open, editing, onClose, onSubmit, submitting
 
             <FormField
               control={form.control}
-              name="method"
+              name="period"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Method</FormLabel>
+                  <FormLabel>Pay cycle</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
@@ -113,10 +126,25 @@ export function CreateBudgetSheet({ open, editing, onClose, onSubmit, submitting
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="zero_sum">Zero-sum</SelectItem>
-                      <SelectItem value="envelope">Envelope</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="fortnightly">Fortnightly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cycle start date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -135,6 +163,29 @@ export function CreateBudgetSheet({ open, editing, onClose, onSubmit, submitting
                 </FormItem>
               )}
             />
+
+            {!isEdit && allAccounts.length > 0 ? (
+              <FormItem>
+                <FormLabel>Link accounts (optional)</FormLabel>
+                <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-border/60 p-2">
+                  {allAccounts.map((acc: Account) => (
+                    <label
+                      key={acc.id}
+                      className="flex cursor-pointer items-center gap-2 rounded px-1 py-1"
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-border"
+                        checked={accountIds.includes(acc.id)}
+                        onChange={() => toggleAccount(acc.id)}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm">{acc.name}</span>
+                      <Money value={acc.currentBalance} className="text-xs text-muted-foreground" />
+                    </label>
+                  ))}
+                </div>
+              </FormItem>
+            ) : null}
 
             <SheetFooter className="px-0 pt-2">
               <Button type="button" variant="outline" onClick={onClose}>

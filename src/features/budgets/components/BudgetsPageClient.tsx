@@ -5,26 +5,34 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTransactions } from "@/features/transactions/hooks";
 import {
   useAssignCategoryFunds,
   useBackendAccounts,
   useBackendBudgetSummary,
   useBackendBudgets,
   useBackendCategories,
+  useBudgetViewCadence,
   useCreateBackendBudget,
   useDeleteBackendBudget,
-  useFundEnvelope,
   useSelectedBudgetId,
   useUpdateBackendBudget,
 } from "../api/hooks";
+import { uncategorizedTransactionsInPeriod } from "../api/period-summary";
 import type { BackendBudgetFormValues } from "../api/schema";
 import type { BackendBudget, BackendCategory } from "../api/types";
+import { currentPeriodRange, formatPeriodLabel, shiftBudgetPeriod } from "../utils/period";
+import { computeCategoryPeriodView, sumTransactionsInRange } from "../api/period-summary";
+import { cents } from "@/lib/money/cents";
 import { AssignFundsDialog } from "./AssignFundsDialog";
+import { AddBudgetCategorySheet } from "./AddBudgetCategorySheet";
+import { BudgetAccountsPanel } from "./BudgetAccountsPanel";
 import { BudgetPageHeader } from "./BudgetPageHeader";
+import { BudgetPeriodNavigator } from "./BudgetPeriodNavigator";
 import { BudgetSummaryHero } from "./BudgetSummaryHero";
 import { CategoryBudgetList } from "./CategoryBudgetList";
 import { CreateBudgetSheet } from "./CreateBudgetSheet";
-import { FundEnvelopeDialog } from "./FundEnvelopeDialog";
+import { UncategorizedInbox } from "./UncategorizedInbox";
 
 export function BudgetsPageClient() {
   const { data: budgets = [], isPending: budgetsPending } = useBackendBudgets();
@@ -35,29 +43,77 @@ export function BudgetsPageClient() {
     [budgets, selectedId],
   );
 
+  const { viewCadence, setViewCadence, periodOffset, setPeriodOffset } = useBudgetViewCadence(
+    selectedBudget?.period ?? "monthly",
+  );
+
+  const periodRange = useMemo(() => {
+    if (!selectedBudget) return { from: "", to: "" };
+    const base = currentPeriodRange(
+      viewCadence,
+      selectedBudget.startDate,
+      new Date(),
+    );
+    if (periodOffset === 0) return base;
+    return shiftBudgetPeriod(viewCadence, selectedBudget.startDate, base, periodOffset);
+  }, [selectedBudget, viewCadence, periodOffset]);
+
+  const periodLabel = useMemo(
+    () => (periodRange.from ? formatPeriodLabel(periodRange, viewCadence) : ""),
+    [periodRange, viewCadence],
+  );
+
   const { data: categories, isPending: categoriesPending } = useBackendCategories(
     selectedBudget?.id ?? null,
   );
   const { data: accounts = [] } = useBackendAccounts(selectedBudget?.id ?? null);
-  const summary = useBackendBudgetSummary(selectedBudget, categories, accounts);
+  const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
+
+  const { data: transactions = [] } = useTransactions({
+    range: periodRange.from ? periodRange : undefined,
+  });
+
+  const summary = useBackendBudgetSummary(
+    selectedBudget,
+    categories,
+    viewCadence,
+    transactions,
+    accountIds,
+    periodRange.from ? periodRange : undefined,
+  );
+
+  const uncategorized = useMemo(() => {
+    if (!periodRange.from) return [];
+    return uncategorizedTransactionsInPeriod(transactions, accountIds, periodRange);
+  }, [transactions, accountIds, periodRange]);
 
   const createMutation = useCreateBackendBudget();
   const updateMutation = useUpdateBackendBudget();
   const deleteMutation = useDeleteBackendBudget();
   const assignMutation = useAssignCategoryFunds(selectedBudget?.id ?? null);
-  const fundMutation = useFundEnvelope(selectedBudget?.id ?? null);
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
   const [editing, setEditing] = useState<BackendBudget | null>(null);
   const [assignCategory, setAssignCategory] = useState<BackendCategory | null>(null);
-  const [fundCategory, setFundCategory] = useState<BackendCategory | null>(null);
+  const [coverCategory, setCoverCategory] = useState<BackendCategory | null>(null);
+
+  const assignDialogCategory = assignCategory ?? coverCategory;
+  const coverAmount = useMemo(() => {
+    if (!coverCategory || !periodRange.from) return undefined;
+    const actual = sumTransactionsInRange(
+      transactions,
+      new Set(accountIds),
+      periodRange,
+      coverCategory.id,
+    );
+    const view = computeCategoryPeriodView(coverCategory, viewCadence, actual);
+    return view.overTarget ? cents(Math.abs(view.periodRemaining)) : undefined;
+  }, [coverCategory, transactions, accountIds, periodRange, viewCadence]);
 
   async function handleBudgetSubmit(values: BackendBudgetFormValues) {
     if (editing) {
       await updateMutation.mutateAsync({ budgetId: editing.id, ...values });
-      if (values.method !== editing.method) {
-        selectBudget(editing.id);
-      }
     } else {
       const created = await createMutation.mutateAsync(values);
       selectBudget(created.id);
@@ -110,15 +166,44 @@ export function BudgetsPageClient() {
         }}
       />
 
-      {summary ? <BudgetSummaryHero summary={summary} /> : null}
+      <BudgetPeriodNavigator
+        viewCadence={viewCadence}
+        onViewCadenceChange={setViewCadence}
+        periodRange={periodRange}
+        periodOffset={periodOffset}
+        onPeriodOffsetChange={setPeriodOffset}
+      />
+
+      {summary ? <BudgetSummaryHero summary={summary} periodLabel={periodLabel} /> : null}
+
+      <BudgetAccountsPanel budgetId={selectedBudget.id} />
+
+      <UncategorizedInbox transactions={uncategorized} />
+
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-base font-semibold">Categories</h2>
+        <Button variant="outline" size="sm" onClick={() => setAddCategoryOpen(true)}>
+          <Plus className="mr-1 h-4 w-4" />
+          Add category
+        </Button>
+      </div>
 
       <CategoryBudgetList
         budgetId={selectedBudget.id}
-        method={selectedBudget.method}
         categories={categories}
         isPending={categoriesPending}
+        viewCadence={viewCadence}
+        periodRange={periodRange}
+        transactions={transactions}
+        accountIds={accountIds}
         onAssign={setAssignCategory}
-        onFund={setFundCategory}
+        onCover={setCoverCategory}
+      />
+
+      <AddBudgetCategorySheet
+        budgetId={selectedBudget.id}
+        open={addCategoryOpen}
+        onClose={() => setAddCategoryOpen(false)}
       />
 
       <CreateBudgetSheet
@@ -133,31 +218,28 @@ export function BudgetsPageClient() {
       />
 
       <AssignFundsDialog
-        open={!!assignCategory}
-        category={assignCategory}
-        onClose={() => setAssignCategory(null)}
-        submitting={assignMutation.isPending}
-        onSubmit={async (amountCents) => {
-          if (!assignCategory) return;
-          await assignMutation.mutateAsync({ categoryId: assignCategory.id, amountCents });
+        open={!!assignDialogCategory}
+        category={assignDialogCategory}
+        mode={coverCategory ? "add" : "set"}
+        defaultAmountCents={
+          coverCategory ? coverAmount : assignCategory?.budgeted
+        }
+        defaultFrequency={assignDialogCategory?.budgetedFrequency}
+        onClose={() => {
           setAssignCategory(null);
+          setCoverCategory(null);
         }}
-      />
-
-      <FundEnvelopeDialog
-        open={!!fundCategory}
-        category={fundCategory}
-        accounts={accounts}
-        onClose={() => setFundCategory(null)}
-        submitting={fundMutation.isPending}
-        onSubmit={async (accountId, amountCents) => {
-          if (!fundCategory) return;
-          await fundMutation.mutateAsync({
-            categoryId: fundCategory.id,
-            accountId,
+        submitting={assignMutation.isPending}
+        onSubmit={async (amountCents, frequency) => {
+          if (!assignDialogCategory) return;
+          await assignMutation.mutateAsync({
+            categoryId: assignDialogCategory.id,
             amountCents,
+            frequency,
+            replaceTarget: !coverCategory,
           });
-          setFundCategory(null);
+          setAssignCategory(null);
+          setCoverCategory(null);
         }}
       />
     </div>
@@ -174,7 +256,7 @@ function EmptyBudgetsState({ onCreate }: { onCreate: () => void }) {
         <div>
           <h1 className="text-lg font-semibold">Create your first budget</h1>
           <p className="mt-1 max-w-md text-sm text-muted-foreground">
-            Budgets live on the server and sync with your accounts and categories.
+            Plan income and expenses for linked accounts — received vs spent each period.
           </p>
         </div>
         <Button

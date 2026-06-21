@@ -96,10 +96,26 @@ func (m *Mappers) BudgetCategory(ctx context.Context, bc *domain.BudgetCategory)
 		return nil
 	}
 	return &budgyv1.BudgetCategory{
-		Category:    m.Category(ctx, &bc.Category),
-		Budgeted:    bc.Budgeted,
-		Balance:     bc.Balance,
-		TargetLimit: bc.TargetLimit,
+		Category:           m.Category(ctx, &bc.Category),
+		Budgeted:           bc.Budgeted,
+		Balance:            bc.Balance,
+		TargetLimit:        bc.TargetLimit,
+		BudgetedFrequency:  budgetFrequencyToProto(bc.BudgetedFrequency),
+	}
+}
+
+func budgetFrequencyToProto(f domain.BudgetFrequency) budgyv1.BudgetFrequency {
+	switch f {
+	case domain.FrequencyWeekly:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_WEEKLY
+	case domain.FrequencyFortnightly:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_FORTNIGHTLY
+	case domain.FrequencyQuarterly:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_QUARTERLY
+	case domain.FrequencyYearly:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_YEARLY
+	default:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_MONTHLY
 	}
 }
 
@@ -146,6 +162,38 @@ func (c *EnumConverter) MethodToProto(ctx context.Context, source *domain.Budget
 		return budgyv1.BudgetMethod_BUDGET_METHOD_ENVELOPE, false, nil
 	}
 	return budgyv1.BudgetMethod_BUDGET_METHOD_ZERO_SUM, false, nil
+}
+
+func (c *EnumConverter) PeriodToProto(ctx context.Context, source *domain.BudgetPeriod) (budgyv1.BudgetPeriod, bool, error) {
+	if source == nil || *source == "" {
+		return budgyv1.BudgetPeriod_BUDGET_PERIOD_MONTHLY, true, nil
+	}
+	switch *source {
+	case domain.PeriodWeekly:
+		return budgyv1.BudgetPeriod_BUDGET_PERIOD_WEEKLY, false, nil
+	case domain.PeriodFortnightly:
+		return budgyv1.BudgetPeriod_BUDGET_PERIOD_FORTNIGHTLY, false, nil
+	default:
+		return budgyv1.BudgetPeriod_BUDGET_PERIOD_MONTHLY, false, nil
+	}
+}
+
+func (c *EnumConverter) FrequencyToProto(ctx context.Context, source *domain.BudgetFrequency) (budgyv1.BudgetFrequency, bool, error) {
+	if source == nil || *source == "" {
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_MONTHLY, true, nil
+	}
+	switch *source {
+	case domain.FrequencyWeekly:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_WEEKLY, false, nil
+	case domain.FrequencyFortnightly:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_FORTNIGHTLY, false, nil
+	case domain.FrequencyQuarterly:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_QUARTERLY, false, nil
+	case domain.FrequencyYearly:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_YEARLY, false, nil
+	default:
+		return budgyv1.BudgetFrequency_BUDGET_FREQUENCY_MONTHLY, false, nil
+	}
 }
 
 func (c *EnumConverter) ProtoToMethod(ctx context.Context, source *budgyv1.BudgetMethod) (domain.BudgetMethod, bool, error) {

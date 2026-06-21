@@ -10,6 +10,7 @@ import (
 	"budgeting_system/internal/domain"
 	budgyv1 "budgeting_system/internal/gen/budgy/v1"
 	"budgeting_system/internal/gen/budgy/v1/budgyv1connect"
+	"budgeting_system/internal/service"
 	"budgeting_system/internal/service/mocks"
 
 	"connectrpc.com/connect"
@@ -31,7 +32,7 @@ func TestHandleCreateBudget(t *testing.T) {
 		Method: domain.MethodZeroSum, Currency: "USD",
 		CreatedAt: time.Now(), UpdatedAt: time.Now(),
 	}
-	mockBudgetSvc.On("Create", mock.Anything, "user-1", "Personal", domain.MethodZeroSum, "USD").Return(budget, nil)
+	mockBudgetSvc.On("Create", mock.Anything, "user-1", "Personal", domain.MethodZeroSum, "USD", domain.PeriodMonthly, "").Return(budget, nil)
 
 	req := connect.NewRequest(&budgyv1.CreateBudgetRequest{
 		Name: "Personal", Method: budgyv1.BudgetMethod_BUDGET_METHOD_ZERO_SUM, Currency: "USD",
@@ -101,7 +102,7 @@ func TestHandleCreateTransaction_ZeroSum(t *testing.T) {
 	assert.Equal(t, "tx-1", res.Msg.Transaction.Id)
 }
 
-func TestHandleFundEnvelope_Envelope(t *testing.T) {
+func TestHandleFundEnvelope_Disabled(t *testing.T) {
 	mockBudgetSvc := mocks.NewMockBudgetService(t)
 	server := NewAPIServer(nil, mockBudgetSvc, nil, nil, nil, nil, nil)
 	mux := http.NewServeMux()
@@ -110,14 +111,9 @@ func TestHandleFundEnvelope_Envelope(t *testing.T) {
 	defer ts.Close()
 
 	client := budgyv1connect.NewBudgetServiceClient(ts.Client(), ts.URL)
-	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodEnvelope}
-	acc := &domain.Account{ID: "acc-1", UserID: "user-1", Balance: 70000}
-	budgetCat := &domain.BudgetCategory{
-		Category: domain.Category{ID: "cat-1", UserID: "user-1", Name: "Groceries"},
-		Balance:  40000,
-	}
+	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodZeroSum}
 	mockBudgetSvc.On("GetByID", mock.Anything, "b-1").Return(budget, nil)
-	mockBudgetSvc.On("FundEnvelope", mock.Anything, "b-1", "cat-1", "acc-1", int64(30000)).Return(acc, budgetCat, nil)
+	mockBudgetSvc.On("FundEnvelope", mock.Anything, "b-1", "cat-1", "acc-1", int64(30000)).Return(nil, nil, service.ErrBadRequest)
 
 	req := connect.NewRequest(&budgyv1.FundEnvelopeRequest{
 		BudgetId: "b-1", CategoryId: "cat-1", AccountId: "acc-1", Amount: 30000,
@@ -125,8 +121,6 @@ func TestHandleFundEnvelope_Envelope(t *testing.T) {
 	token, _ := GenerateJWT("user-1")
 	req.Header().Set("Cookie", "token="+token)
 
-	res, err := client.FundEnvelope(context.Background(), req)
-	assert.NoError(t, err)
-	assert.Equal(t, "acc-1", res.Msg.Result.AccountId)
-	assert.Equal(t, int64(40000), res.Msg.Result.Envelope.Balance)
+	_, err := client.FundEnvelope(context.Background(), req)
+	assert.Error(t, err)
 }

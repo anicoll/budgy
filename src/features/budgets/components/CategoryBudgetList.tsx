@@ -4,25 +4,82 @@ import { FolderOpen } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { BackendBudgetMethod, BackendCategory } from "../api/types";
+import type { DateRange } from "@/lib/date/periods";
+import type { Transaction } from "@/features/transactions/types";
+import type { BackendCategory, ViewCadence } from "../api/types";
 import { CategoryBudgetRow } from "./CategoryBudgetRow";
 
 interface Props {
   budgetId: string;
-  method: BackendBudgetMethod;
   categories: BackendCategory[] | undefined;
   isPending: boolean;
+  viewCadence: ViewCadence;
+  periodRange: DateRange;
+  transactions: Transaction[];
+  accountIds: string[];
   onAssign: (category: BackendCategory) => void;
-  onFund: (category: BackendCategory) => void;
+  onCover: (category: BackendCategory) => void;
+}
+
+function CategorySection({
+  title,
+  categories,
+  viewCadence,
+  periodRange,
+  transactions,
+  accountIds,
+  onAssign,
+  onCover,
+  actualHeader,
+}: {
+  title: string;
+  categories: BackendCategory[];
+  viewCadence: ViewCadence;
+  periodRange: DateRange;
+  transactions: Transaction[];
+  accountIds: string[];
+  onAssign: (category: BackendCategory) => void;
+  onCover: (category: BackendCategory) => void;
+  actualHeader: string;
+}) {
+  if (categories.length === 0) return null;
+
+  return (
+    <div className="border-b border-border/40 last:border-b-0">
+      <p className="px-4 pb-2 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </p>
+      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 pb-2 text-[10px] uppercase tracking-wide text-muted-foreground sm:grid-cols-[minmax(0,1fr)_7rem_7rem_5rem]">
+        <span>Category</span>
+        <span className="text-right">Target</span>
+        <span className="text-right">{actualHeader}</span>
+        <span className="text-right">Left / Over</span>
+      </div>
+      {categories.map((category) => (
+        <CategoryBudgetRow
+          key={category.id}
+          category={category}
+          viewCadence={viewCadence}
+          periodRange={periodRange}
+          transactions={transactions}
+          accountIds={accountIds}
+          onAssign={() => onAssign(category)}
+          onCover={() => onCover(category)}
+        />
+      ))}
+    </div>
+  );
 }
 
 export function CategoryBudgetList({
-  budgetId,
-  method,
   categories,
   isPending,
+  viewCadence,
+  periodRange,
+  transactions,
+  accountIds,
   onAssign,
-  onFund,
+  onCover,
 }: Props) {
   if (isPending) {
     return (
@@ -47,53 +104,52 @@ export function CategoryBudgetList({
           <div>
             <p className="font-medium">No categories yet</p>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Add categories for this budget to start assigning or funding envelopes.
+              Add income and expense categories to set targets, or let transactions on linked
+              accounts create them automatically.
             </p>
           </div>
           <Link
-            href={`/categories?budgetId=${budgetId}`}
+            href="/categories"
             className="text-sm font-medium text-violet-400 hover:underline"
           >
-            Go to categories
+            Manage category taxonomy
           </Link>
         </CardContent>
       </Card>
     );
   }
 
-  const columnHeaders =
-    method === "zero_sum" ? (
-      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 pb-2 text-[10px] uppercase tracking-wide text-muted-foreground sm:grid-cols-[minmax(0,1fr)_7rem_7rem_5rem]">
-        <span>Category</span>
-        <span className="text-right">Assigned</span>
-        <span className="text-right">Available</span>
-        <span />
-      </div>
-    ) : (
-      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 pb-2 text-[10px] uppercase tracking-wide text-muted-foreground sm:grid-cols-[minmax(0,1fr)_7rem_7rem_5rem]">
-        <span>Category</span>
-        <span className="text-right">Target</span>
-        <span className="text-right">Balance</span>
-        <span />
-      </div>
-    );
+  const incomeCategories = categories.filter((c) => c.type === "income");
+  const expenseCategories = categories.filter((c) => c.type === "expense");
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Categories</CardTitle>
+        <CardTitle className="sr-only">Categories</CardTitle>
       </CardHeader>
       <CardContent className="p-0 pb-2">
-        {columnHeaders}
-        {categories.map((category) => (
-          <CategoryBudgetRow
-            key={category.id}
-            category={category}
-            method={method}
-            onAssign={() => onAssign(category)}
-            onFund={() => onFund(category)}
-          />
-        ))}
+        <CategorySection
+          title="Income"
+          categories={incomeCategories}
+          viewCadence={viewCadence}
+          periodRange={periodRange}
+          transactions={transactions}
+          accountIds={accountIds}
+          onAssign={onAssign}
+          onCover={onCover}
+          actualHeader="Received"
+        />
+        <CategorySection
+          title="Expenses"
+          categories={expenseCategories}
+          viewCadence={viewCadence}
+          periodRange={periodRange}
+          transactions={transactions}
+          accountIds={accountIds}
+          onAssign={onAssign}
+          onCover={onCover}
+          actualHeader="Spent"
+        />
       </CardContent>
     </Card>
   );

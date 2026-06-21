@@ -8,21 +8,23 @@ type BudgetAccount struct {
 	AccountID string `json:"account_id"`
 }
 
-// BudgetCategoryLine tracks envelope/zero-sum state for a category within a budget.
+// BudgetCategoryLine tracks zero-sum state for a category within a budget.
 type BudgetCategoryLine struct {
-	BudgetID    string    `json:"budget_id"`
-	CategoryID  string    `json:"category_id"`
-	Budgeted    int64     `json:"budgeted"`
-	Balance     int64     `json:"balance"`
-	TargetLimit int64     `json:"target_limit"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	BudgetID          string          `json:"budget_id"`
+	CategoryID        string          `json:"category_id"`
+	Budgeted          int64           `json:"budgeted"`
+	Balance           int64           `json:"balance"`
+	TargetLimit       int64           `json:"target_limit"`
+	BudgetedFrequency BudgetFrequency `json:"budgeted_frequency"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
 }
 
 // BudgetCategory combines taxonomy with per-budget line state for API responses.
 type BudgetCategory struct {
 	Category
-	Budgeted    int64 `json:"budgeted"`
-	Balance     int64 `json:"balance"`
-	TargetLimit int64 `json:"target_limit"`
+	Budgeted          int64           `json:"budgeted"`
+	Balance           int64           `json:"balance"`
+	TargetLimit       int64           `json:"target_limit"`
+	BudgetedFrequency BudgetFrequency `json:"budgeted_frequency"`
 }

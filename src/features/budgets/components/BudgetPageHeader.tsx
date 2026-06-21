@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { BackendBudget } from "../api/types";
 
-const METHOD_LABEL = {
-  zero_sum: "Zero-sum",
-  envelope: "Envelope",
+const PERIOD_LABEL = {
+  weekly: "Weekly",
+  fortnightly: "Fortnightly",
+  monthly: "Monthly",
 } as const;
 
 interface Props {
@@ -65,7 +66,7 @@ export function BudgetPageHeader({
         )}
 
         <Badge variant="secondary" className="shrink-0">
-          {METHOD_LABEL[selected.method]}
+          {PERIOD_LABEL[selected.period]}
         </Badge>
 
         <DropdownMenu>

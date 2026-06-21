@@ -30,7 +30,6 @@ import {
   useUpdateAccount,
 } from "../hooks";
 import type { Account } from "../types";
-import { AccountBudgetDialog } from "./AccountBudgetDialog";
 import { AccountFormSheet } from "./AccountFormSheet";
 import { AccountList } from "./AccountList";
 import { AccountsEmpty } from "./AccountsEmpty";
@@ -47,7 +46,6 @@ export function AccountsPageClient() {
   const [showArchived, setShowArchived] = useState(false);
   const [sheetMode, setSheetMode] = useState<SheetMode>(null);
   const [pendingDelete, setPendingDelete] = useState<Account | null>(null);
-  const [budgetLinkAccount, setBudgetLinkAccount] = useState<Account | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const storageMode = usePrefs((s) => s.storageMode) || "online";
@@ -195,7 +193,6 @@ export function AccountsPageClient() {
             onArchiveToggle={(a) => archiveMutation.mutate({ id: a.id, archived: !a.archived })}
             onDelete={(a) => setPendingDelete(a)}
             onReorder={(ids) => reorderMutation.mutate(ids)}
-            onManageBudgets={isOnline ? (a) => setBudgetLinkAccount(a) : undefined}
           />
         </>
       ) : (
@@ -207,12 +204,6 @@ export function AccountsPageClient() {
         onClose={() => setSheetMode(null)}
         onSubmit={handleSubmit}
         submitting={submitting}
-      />
-
-      <AccountBudgetDialog
-        account={budgetLinkAccount}
-        open={!!budgetLinkAccount}
-        onClose={() => setBudgetLinkAccount(null)}
       />
 
       <AlertDialog

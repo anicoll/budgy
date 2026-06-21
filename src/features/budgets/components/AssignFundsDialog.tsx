@@ -12,27 +12,52 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toCents } from "@/lib/money/cents";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toCents, fromCents } from "@/lib/money/cents";
+import { FREQUENCY_LABEL, type BudgetFrequency } from "../utils/normalise";
 import type { BackendCategory } from "../api/types";
+import type { Cents } from "@/lib/money/cents";
 
 interface Props {
   open: boolean;
   category: BackendCategory | null;
+  defaultAmountCents?: Cents;
+  defaultFrequency?: BudgetFrequency;
+  mode?: "set" | "add";
   onClose: () => void;
-  onSubmit: (amountCents: number) => Promise<void>;
+  onSubmit: (amountCents: Cents, frequency: BudgetFrequency) => Promise<void>;
   submitting?: boolean;
 }
 
-export function AssignFundsDialog({ open, category, onClose, onSubmit, submitting }: Props) {
+export function AssignFundsDialog({
+  open,
+  category,
+  defaultAmountCents,
+  defaultFrequency,
+  mode = "set",
+  onClose,
+  onSubmit,
+  submitting,
+}: Props) {
   const [amount, setAmount] = useState("");
+  const [frequency, setFrequency] = useState<BudgetFrequency>("monthly");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
-      setAmount("");
+      setAmount(
+        defaultAmountCents !== undefined ? fromCents(defaultAmountCents).toFixed(2) : "",
+      );
+      setFrequency(defaultFrequency ?? category?.budgetedFrequency ?? "monthly");
       setError(null);
     }
-  }, [open]);
+  }, [open, defaultAmountCents, defaultFrequency, category]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,31 +67,53 @@ export function AssignFundsDialog({ open, category, onClose, onSubmit, submittin
       return;
     }
     setError(null);
-    await onSubmit(toCents(parsed));
+    await onSubmit(toCents(parsed), frequency);
   }
+
+  const isIncome = category?.type === "income";
+  const title = mode === "add" ? "Increase target" : "Set target";
+  const description =
+    mode === "add"
+      ? `Add to the ${isIncome ? "income" : "expense"} target for ${category?.name ?? "this category"}.`
+      : `Set the ${isIncome ? "expected income" : "spending"} target for ${category?.name ?? "this category"}.`;
 
   return (
     <Dialog key={category?.id ?? "assign"} open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Assign funds</DialogTitle>
-            <DialogDescription>
-              Move money from Ready to Assign into {category?.name ?? "this category"}.
-            </DialogDescription>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2 py-4">
-            <Label htmlFor="assign-amount">Amount (AUD)</Label>
-            <Input
-              id="assign-amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              autoFocus
-            />
+          <div className="grid gap-3 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="assign-amount">Amount</Label>
+              <Input
+                id="assign-amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                autoFocus
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="assign-frequency">Target frequency</Label>
+              <Select value={frequency} onValueChange={(v) => setFrequency(v as BudgetFrequency)}>
+                <SelectTrigger id="assign-frequency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(FREQUENCY_LABEL) as BudgetFrequency[]).map((f) => (
+                    <SelectItem key={f} value={f}>
+                      {FREQUENCY_LABEL[f]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </div>
           <DialogFooter>
@@ -74,7 +121,7 @@ export function AssignFundsDialog({ open, category, onClose, onSubmit, submittin
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Assigning…" : "Assign"}
+              {submitting ? "Saving…" : "Save target"}
             </Button>
           </DialogFooter>
         </form>

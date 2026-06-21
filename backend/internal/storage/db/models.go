@@ -47,6 +47,8 @@ type Budget struct {
 	Currency  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	Period    string
+	StartDate string
 }
 
 type BudgetAccount struct {
@@ -55,13 +57,14 @@ type BudgetAccount struct {
 }
 
 type BudgetCategoryLine struct {
-	BudgetID    string
-	CategoryID  string
-	Budgeted    int64
-	Balance     int64
-	TargetLimit int64
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	BudgetID          string
+	CategoryID        string
+	Budgeted          int64
+	Balance           int64
+	TargetLimit       int64
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	BudgetedFrequency string
 }
 
 type Category struct {

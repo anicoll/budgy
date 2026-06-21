@@ -9,6 +9,7 @@ go_library(
         "envelope.go",
         "external.go",
         "job.go",
+        "reconcile.go",
         "repository.go",
         "user.go",
         "zerosum.go",

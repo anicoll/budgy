@@ -82,7 +82,8 @@ CREATE TABLE public.budget_category_lines (
     balance bigint DEFAULT 0 NOT NULL,
     target_limit bigint DEFAULT 0 NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL
+    updated_at timestamp without time zone NOT NULL,
+    budgeted_frequency text DEFAULT 'monthly'::text NOT NULL
 );
 
 
@@ -97,7 +98,9 @@ CREATE TABLE public.budgets (
     method text NOT NULL,
     currency text NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL
+    updated_at timestamp without time zone NOT NULL,
+    period text DEFAULT 'monthly'::text NOT NULL,
+    start_date text DEFAULT CURRENT_DATE NOT NULL
 );
 
 

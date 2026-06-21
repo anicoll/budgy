@@ -32,7 +32,8 @@ CREATE TABLE public.budget_category_lines (
     balance bigint DEFAULT 0 NOT NULL,
     target_limit bigint DEFAULT 0 NOT NULL,
     created_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL
+    updated_at timestamp without time zone NOT NULL,
+    budgeted_frequency text DEFAULT 'monthly'::text NOT NULL
 );
 
 

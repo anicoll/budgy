@@ -33,15 +33,20 @@ type AuthService interface {
 }
 
 type BudgetService interface {
-	Create(ctx context.Context, userID, name string, method domain.BudgetMethod, currency string) (*domain.Budget, error)
+	Create(ctx context.Context, userID, name string, method domain.BudgetMethod, currency string, period domain.BudgetPeriod, startDate string) (*domain.Budget, error)
 	GetByID(ctx context.Context, id string) (*domain.Budget, error)
 	List(ctx context.Context, userID string) ([]*domain.Budget, error)
-	Update(ctx context.Context, id string, name string, method domain.BudgetMethod, currency string) (*domain.Budget, error)
+	Update(ctx context.Context, id string, name string, method domain.BudgetMethod, currency string, period domain.BudgetPeriod, startDate string) (*domain.Budget, error)
 	Delete(ctx context.Context, id string) error
 	GetSummary(ctx context.Context, id string) (any, error)
 	ListBudgetCategories(ctx context.Context, budgetID string) ([]*domain.BudgetCategory, error)
-	AssignCategoryFunds(ctx context.Context, budgetID, catID string, amount int64) (*domain.BudgetCategory, error)
+	ListAvailableCategories(ctx context.Context, budgetID string) ([]*domain.Category, error)
+	AddCategoryToBudget(ctx context.Context, budgetID, catID string) (*domain.BudgetCategory, error)
+	AssignCategoryFunds(ctx context.Context, budgetID, catID string, amount int64, frequency domain.BudgetFrequency, replace bool) (*domain.BudgetCategory, error)
 	FundEnvelope(ctx context.Context, budgetID, catID, accountID string, amount int64) (*domain.Account, *domain.BudgetCategory, error)
+	domain.BudgetReconciler
+	ReconcileAllForUser(ctx context.Context, userID string) error
+	ReconcileForAccount(ctx context.Context, accountID string) error
 }
 
 type AccountService interface {

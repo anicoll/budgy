@@ -16,6 +16,7 @@ type transactionService struct {
 	budgets      domain.BudgetRepository
 	budgetAccts  domain.BudgetAccountRepository
 	budgetLines  domain.BudgetCategoryLineRepository
+	reconciler   domain.BudgetReconciler
 }
 
 func NewTransactionService(
@@ -25,6 +26,7 @@ func NewTransactionService(
 	budgets domain.BudgetRepository,
 	budgetAccts domain.BudgetAccountRepository,
 	budgetLines domain.BudgetCategoryLineRepository,
+	reconciler domain.BudgetReconciler,
 ) TransactionService {
 	return &transactionService{
 		transactions: transactions,
@@ -33,6 +35,7 @@ func NewTransactionService(
 		budgets:      budgets,
 		budgetAccts:  budgetAccts,
 		budgetLines:  budgetLines,
+		reconciler:   reconciler,
 	}
 }
 
@@ -45,24 +48,10 @@ func (s *transactionService) verifyAccountInBudget(ctx context.Context, budgetID
 	if err != nil {
 		return nil, err
 	}
-	linked := slices.Contains(ids, accountID)
-	if !linked {
+	if !slices.Contains(ids, accountID) {
 		return nil, fmt.Errorf("%w: account is not linked to budget", ErrBadRequest)
 	}
 	return acc, nil
-}
-
-func (s *transactionService) getBudgetCategory(ctx context.Context, budgetID, categoryID string) (*domain.BudgetCategory, error) {
-	categories, err := s.budgetLines.ListBudgetCategories(ctx, budgetID)
-	if err != nil {
-		return nil, err
-	}
-	for _, c := range categories {
-		if c.ID == categoryID {
-			return c, nil
-		}
-	}
-	return nil, fmt.Errorf("%w: category not found", ErrNotFound)
 }
 
 func (s *transactionService) Create(ctx context.Context, budgetID, accountID, categoryID string, amount int64, description string, date time.Time) (*domain.Transaction, error) {
@@ -76,7 +65,6 @@ func (s *transactionService) Create(ctx context.Context, budgetID, accountID, ca
 		return nil, err
 	}
 
-	var budgetCat *domain.BudgetCategory
 	if categoryID != "" {
 		cat, err := s.categories.GetByID(ctx, categoryID)
 		if err != nil {
@@ -85,12 +73,8 @@ func (s *transactionService) Create(ctx context.Context, budgetID, accountID, ca
 		if cat.UserID != b.UserID {
 			return nil, fmt.Errorf("%w: category does not belong to user", ErrBadRequest)
 		}
-		budgetCat, err = s.getBudgetCategory(ctx, budgetID, categoryID)
-		if err != nil {
-			if err := s.budgetLines.EnsureLine(ctx, budgetID, categoryID); err != nil {
-				return nil, err
-			}
-			budgetCat = &domain.BudgetCategory{Category: *cat}
+		if err := s.budgetLines.EnsureLine(ctx, budgetID, categoryID); err != nil {
+			return nil, err
 		}
 	}
 
@@ -109,47 +93,14 @@ func (s *transactionService) Create(ctx context.Context, budgetID, accountID, ca
 		return nil, fmt.Errorf("%w: %s", ErrBadRequest, err.Error())
 	}
 
-	var updatedAcc *domain.Account
-	var updatedLine *domain.BudgetCategory
-
-	if b.Method == domain.MethodZeroSum {
-		updatedAcc = &domain.Account{ID: acc.ID, Balance: acc.Balance + amount}
-		if budgetCat != nil {
-			updatedLine = &domain.BudgetCategory{
-				Category: budgetCat.Category,
-				Budgeted: budgetCat.Budgeted,
-				Balance:  budgetCat.Balance + amount,
-			}
-		}
-	} else if budgetCat != nil {
-		updatedAcc, updatedLine, err = domain.SpendFromEnvelope(acc, budgetCat, -amount)
-		if err != nil {
-			if amount > 0 {
-				updatedAcc = &domain.Account{ID: acc.ID, Balance: acc.Balance + amount}
-				updatedLine = &domain.BudgetCategory{
-					Category: budgetCat.Category,
-					Budgeted: budgetCat.Budgeted,
-					Balance:  budgetCat.Balance + amount,
-				}
-			} else {
-				return nil, fmt.Errorf("%w: %s", ErrBadRequest, err.Error())
-			}
-		}
-	} else {
-		updatedAcc = &domain.Account{ID: acc.ID, Balance: acc.Balance + amount}
-	}
-
 	if err := s.transactions.Create(ctx, tx); err != nil {
 		return nil, err
 	}
-	if err := s.accounts.UpdateBalance(ctx, acc.ID, updatedAcc.Balance); err != nil {
+	if err := s.accounts.UpdateBalance(ctx, acc.ID, acc.Balance+amount); err != nil {
 		return nil, err
 	}
-	if updatedLine != nil && categoryID != "" {
-		if err := s.budgetLines.EnsureLine(ctx, budgetID, categoryID); err != nil {
-			return nil, err
-		}
-		if err := s.budgetLines.UpdateBudgetedAndBalance(ctx, budgetID, categoryID, updatedLine.Budgeted, updatedLine.Balance); err != nil {
+	if s.reconciler != nil {
+		if err := s.reconciler.ReconcileFromTransactions(ctx, budgetID); err != nil {
 			return nil, err
 		}
 	}
@@ -196,6 +147,9 @@ func (s *transactionService) Update(ctx context.Context, budgetID, txID string, 
 			if cat.UserID != b.UserID {
 				return nil, fmt.Errorf("%w: new category does not belong to user", ErrBadRequest)
 			}
+			if err := s.budgetLines.EnsureLine(ctx, budgetID, newCategoryID); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -205,14 +159,7 @@ func (s *transactionService) Update(ctx context.Context, budgetID, txID string, 
 	}
 
 	accountChanges := map[string]int64{oldTx.AccountID: -oldTx.Amount}
-	categoryChanges := map[string]int64{}
-	if oldTx.CategoryID != "" {
-		categoryChanges[oldTx.CategoryID] = -oldTx.Amount
-	}
 	accountChanges[newAccountID] += newAmount
-	if newCategoryID != "" {
-		categoryChanges[newCategoryID] += newAmount
-	}
 
 	tx := *oldTx
 	tx.BudgetID = budgetID
@@ -245,18 +192,9 @@ func (s *transactionService) Update(ctx context.Context, budgetID, txID string, 
 			}
 		}
 	}
-	for catID, delta := range categoryChanges {
-		if delta != 0 {
-			line, err := s.budgetLines.Get(ctx, budgetID, catID)
-			if err != nil {
-				if err := s.budgetLines.EnsureLine(ctx, budgetID, catID); err != nil {
-					return nil, err
-				}
-				line = &domain.BudgetCategoryLine{BudgetID: budgetID, CategoryID: catID}
-			}
-			if err := s.budgetLines.UpdateBudgetedAndBalance(ctx, budgetID, catID, line.Budgeted, line.Balance+delta); err != nil {
-				return nil, err
-			}
+	if s.reconciler != nil {
+		if err := s.reconciler.ReconcileFromTransactions(ctx, budgetID); err != nil {
+			return nil, err
 		}
 	}
 	return &tx, nil
@@ -282,11 +220,8 @@ func (s *transactionService) Delete(ctx context.Context, budgetID, txID string) 
 	if err := s.accounts.UpdateBalance(ctx, acc.ID, acc.Balance-tx.Amount); err != nil {
 		return err
 	}
-	if tx.CategoryID != "" {
-		line, err := s.budgetLines.Get(ctx, budgetID, tx.CategoryID)
-		if err == nil {
-			_ = s.budgetLines.UpdateBudgetedAndBalance(ctx, budgetID, tx.CategoryID, line.Budgeted, line.Balance-tx.Amount)
-		}
+	if s.reconciler != nil {
+		return s.reconciler.ReconcileFromTransactions(ctx, budgetID)
 	}
 	return nil
 }

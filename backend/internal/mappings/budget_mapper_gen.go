@@ -44,9 +44,14 @@ func NewBudgetMapper(mapperGetter interface {
 			m.converter00000 = v
 		}
 	}
+	if obj, err := mapperGetter.GetFuncByTypeName("", "budgeting_system/internal/domain#BudgetPeriod", "budgeting_system/internal/gen/budgy/v1#BudgetPeriod"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *pkg_budgeting_system_internal_domain.BudgetPeriod) (pkg_budgeting_system_internal_gen_budgy_v1.BudgetPeriod, bool, error)); ok {
+			m.converter00001 = v
+		}
+	}
 	if obj, err := mapperGetter.GetFuncByTypeName("", "time#Time", "google.golang.org/protobuf/types/known/timestamppb#Timestamp"); err == nil {
 		if v, ok := obj.(func(pkg_context.Context, *pkg_time.Time) (*pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp, error)); ok {
-			m.converter00001 = v
+			m.converter00002 = v
 		}
 	}
 	return m
@@ -62,7 +67,8 @@ type budgetmapper struct {
 	helper         BudgetMapperHelper
 	mapper00000    func(pkg_context.Context, *pkg_time.Time, *pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp) error
 	converter00000 func(pkg_context.Context, *pkg_budgeting_system_internal_domain.BudgetMethod) (pkg_budgeting_system_internal_gen_budgy_v1.BudgetMethod, bool, error)
-	converter00001 func(pkg_context.Context, *pkg_time.Time) (*pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp, error)
+	converter00001 func(pkg_context.Context, *pkg_budgeting_system_internal_domain.BudgetPeriod) (pkg_budgeting_system_internal_gen_budgy_v1.BudgetPeriod, bool, error)
+	converter00002 func(pkg_context.Context, *pkg_time.Time) (*pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp, error)
 }
 
 func (m *budgetmapper) ToProto(ctx pkg_context.Context, source *pkg_budgeting_system_internal_domain.Budget, dest *pkg_budgeting_system_internal_gen_budgy_v1.Budget) error {
@@ -84,14 +90,26 @@ func (m *budgetmapper) ToProto(ctx pkg_context.Context, source *pkg_budgeting_sy
 	done5 := false
 	if m.converter00001 != nil && !done5 {
 		done5 = true
-		if converted, err := m.converter00001(ctx, &(source.CreatedAt)); err != nil {
+		if converted, isnil, err := m.converter00001(ctx, &(source.Period)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.Period = converted
+			}
+		}
+	}
+	dest.StartDate = source.StartDate
+	done7 := false
+	if m.converter00002 != nil && !done7 {
+		done7 = true
+		if converted, err := m.converter00002(ctx, &(source.CreatedAt)); err != nil {
 			return err
 		} else {
 			dest.CreatedAt = converted
 		}
 	}
-	if m.mapper00000 != nil && !done5 {
-		done5 = true
+	if m.mapper00000 != nil && !done7 {
+		done7 = true
 		if dest.CreatedAt == nil {
 			dest.CreatedAt = new(pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp)
 		}
@@ -99,17 +117,17 @@ func (m *budgetmapper) ToProto(ctx pkg_context.Context, source *pkg_budgeting_sy
 			return err
 		}
 	}
-	done6 := false
-	if m.converter00001 != nil && !done6 {
-		done6 = true
-		if converted, err := m.converter00001(ctx, &(source.UpdatedAt)); err != nil {
+	done8 := false
+	if m.converter00002 != nil && !done8 {
+		done8 = true
+		if converted, err := m.converter00002(ctx, &(source.UpdatedAt)); err != nil {
 			return err
 		} else {
 			dest.UpdatedAt = converted
 		}
 	}
-	if m.mapper00000 != nil && !done6 {
-		done6 = true
+	if m.mapper00000 != nil && !done8 {
+		done8 = true
 		if dest.UpdatedAt == nil {
 			dest.UpdatedAt = new(pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp)
 		}

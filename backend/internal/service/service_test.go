@@ -74,39 +74,13 @@ func TestBudgetService_Create(t *testing.T) {
 	})).Return(nil)
 
 	svc := NewBudgetService(mockRepo, nil, nil, nil, nil, nil)
-	budget, err := svc.Create(context.Background(), "user-1", "My Budget", domain.MethodZeroSum, "USD")
+	budget, err := svc.Create(context.Background(), "user-1", "My Budget", domain.MethodZeroSum, "USD", domain.PeriodMonthly, "")
 	assert.NoError(t, err)
 	assert.Equal(t, "My Budget", budget.Name)
 }
 
-func TestBudgetService_FundEnvelope(t *testing.T) {
-	mockBudgetRepo := mocks.NewMockBudgetRepository(t)
-	mockAccRepo := mocks.NewMockAccountRepository(t)
-	mockBudgetAccts := mocks.NewMockBudgetAccountRepository(t)
-	mockBudgetLines := mocks.NewMockBudgetCategoryLineRepository(t)
-	mockAllocRepo := mocks.NewMockAllocationRepository(t)
-	mockTxRepo := mocks.NewMockTransactionRepository(t)
-
-	budget := &domain.Budget{ID: "b-1", UserID: "user-1", Method: domain.MethodEnvelope}
-	acc := &domain.Account{ID: "acc-1", UserID: "user-1", Balance: 100000}
-	budgetCat := &domain.BudgetCategory{
-		Category: domain.Category{ID: "cat-1", UserID: "user-1", Name: "Groceries"},
-		Balance:  10000,
-	}
-
-	mockBudgetRepo.On("GetByID", mock.Anything, "b-1").Return(budget, nil)
-	mockAccRepo.On("GetByID", mock.Anything, "acc-1").Return(acc, nil)
-	mockBudgetLines.On("ListBudgetCategories", mock.Anything, "b-1").Return([]*domain.BudgetCategory{budgetCat}, nil)
-	mockAllocRepo.On("ListByAccount", mock.Anything, "b-1", "acc-1").Return([]*domain.EnvelopeAllocation{}, nil)
-	mockTxRepo.On("ListByAccount", mock.Anything, "acc-1").Return([]*domain.Transaction{}, nil)
-	mockAllocRepo.On("Get", mock.Anything, "b-1", "acc-1", "cat-1").Return(nil, errors.New("not found"))
-	mockAllocRepo.On("Upsert", mock.Anything, mock.AnythingOfType("*domain.EnvelopeAllocation")).Return(nil)
-	mockBudgetLines.On("EnsureLine", mock.Anything, "b-1", "cat-1").Return(nil)
-	mockBudgetLines.On("UpdateBudgetedAndBalance", mock.Anything, "b-1", "cat-1", int64(0), int64(40000)).Return(nil)
-
-	svc := NewBudgetService(mockBudgetRepo, mockAccRepo, mockBudgetAccts, mockBudgetLines, mockAllocRepo, mockTxRepo)
-	updatedAcc, updatedCat, err := svc.FundEnvelope(context.Background(), "b-1", "cat-1", "acc-1", 30000)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(70000), updatedAcc.Balance)
-	assert.Equal(t, int64(40000), updatedCat.Balance)
+func TestBudgetService_FundEnvelope_Disabled(t *testing.T) {
+	svc := NewBudgetService(nil, nil, nil, nil, nil, nil)
+	_, _, err := svc.FundEnvelope(context.Background(), "b-1", "cat-1", "acc-1", 30000)
+	assert.Error(t, err)
 }

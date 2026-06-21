@@ -2,15 +2,10 @@
 
 import { create } from "zustand";
 
-export type PeriodKind = "week" | "fortnight" | "month" | "quarter" | "year" | "custom";
-
 interface UIState {
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebar: () => void;
-
-  period: PeriodKind;
-  setPeriod: (period: PeriodKind) => void;
 
   commandOpen: boolean;
   setCommandOpen: (open: boolean) => void;
@@ -23,9 +18,6 @@ export const useUIStore = create<UIState>((set) => ({
   sidebarCollapsed: false,
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-
-  period: "month",
-  setPeriod: (period) => set({ period }),
 
   commandOpen: false,
   setCommandOpen: (commandOpen) => set({ commandOpen }),

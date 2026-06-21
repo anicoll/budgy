@@ -71,6 +71,58 @@ func (BudgetMethod) EnumDescriptor() ([]byte, []int) {
 	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{0}
 }
 
+type BudgetPeriod int32
+
+const (
+	BudgetPeriod_BUDGET_PERIOD_UNSPECIFIED BudgetPeriod = 0
+	BudgetPeriod_BUDGET_PERIOD_WEEKLY      BudgetPeriod = 1
+	BudgetPeriod_BUDGET_PERIOD_FORTNIGHTLY BudgetPeriod = 2
+	BudgetPeriod_BUDGET_PERIOD_MONTHLY     BudgetPeriod = 3
+)
+
+// Enum value maps for BudgetPeriod.
+var (
+	BudgetPeriod_name = map[int32]string{
+		0: "BUDGET_PERIOD_UNSPECIFIED",
+		1: "BUDGET_PERIOD_WEEKLY",
+		2: "BUDGET_PERIOD_FORTNIGHTLY",
+		3: "BUDGET_PERIOD_MONTHLY",
+	}
+	BudgetPeriod_value = map[string]int32{
+		"BUDGET_PERIOD_UNSPECIFIED": 0,
+		"BUDGET_PERIOD_WEEKLY":      1,
+		"BUDGET_PERIOD_FORTNIGHTLY": 2,
+		"BUDGET_PERIOD_MONTHLY":     3,
+	}
+)
+
+func (x BudgetPeriod) Enum() *BudgetPeriod {
+	p := new(BudgetPeriod)
+	*p = x
+	return p
+}
+
+func (x BudgetPeriod) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BudgetPeriod) Descriptor() protoreflect.EnumDescriptor {
+	return file_budgy_v1_budget_proto_enumTypes[1].Descriptor()
+}
+
+func (BudgetPeriod) Type() protoreflect.EnumType {
+	return &file_budgy_v1_budget_proto_enumTypes[1]
+}
+
+func (x BudgetPeriod) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BudgetPeriod.Descriptor instead.
+func (BudgetPeriod) EnumDescriptor() ([]byte, []int) {
+	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{1}
+}
+
 type Budget struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -80,6 +132,8 @@ type Budget struct {
 	Currency      string                 `protobuf:"bytes,5,opt,name=currency,proto3" json:"currency,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Period        BudgetPeriod           `protobuf:"varint,8,opt,name=period,proto3,enum=budgy.v1.BudgetPeriod" json:"period,omitempty"`
+	StartDate     string                 `protobuf:"bytes,9,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"` // ISO date YYYY-MM-DD
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -163,6 +217,20 @@ func (x *Budget) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Budget) GetPeriod() BudgetPeriod {
+	if x != nil {
+		return x.Period
+	}
+	return BudgetPeriod_BUDGET_PERIOD_UNSPECIFIED
+}
+
+func (x *Budget) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
 type BudgetSummary struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	BudgetId       string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
@@ -236,6 +304,8 @@ type CreateBudgetRequest struct {
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Method        BudgetMethod           `protobuf:"varint,2,opt,name=method,proto3,enum=budgy.v1.BudgetMethod" json:"method,omitempty"`
 	Currency      string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
+	Period        BudgetPeriod           `protobuf:"varint,4,opt,name=period,proto3,enum=budgy.v1.BudgetPeriod" json:"period,omitempty"`
+	StartDate     string                 `protobuf:"bytes,5,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -287,6 +357,20 @@ func (x *CreateBudgetRequest) GetMethod() BudgetMethod {
 func (x *CreateBudgetRequest) GetCurrency() string {
 	if x != nil {
 		return x.Currency
+	}
+	return ""
+}
+
+func (x *CreateBudgetRequest) GetPeriod() BudgetPeriod {
+	if x != nil {
+		return x.Period
+	}
+	return BudgetPeriod_BUDGET_PERIOD_UNSPECIFIED
+}
+
+func (x *CreateBudgetRequest) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
 	}
 	return ""
 }
@@ -597,6 +681,8 @@ type UpdateBudgetRequest struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Method        BudgetMethod           `protobuf:"varint,3,opt,name=method,proto3,enum=budgy.v1.BudgetMethod" json:"method,omitempty"`
 	Currency      string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
+	Period        BudgetPeriod           `protobuf:"varint,5,opt,name=period,proto3,enum=budgy.v1.BudgetPeriod" json:"period,omitempty"`
+	StartDate     string                 `protobuf:"bytes,6,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -655,6 +741,20 @@ func (x *UpdateBudgetRequest) GetMethod() BudgetMethod {
 func (x *UpdateBudgetRequest) GetCurrency() string {
 	if x != nil {
 		return x.Currency
+	}
+	return ""
+}
+
+func (x *UpdateBudgetRequest) GetPeriod() BudgetPeriod {
+	if x != nil {
+		return x.Period
+	}
+	return BudgetPeriod_BUDGET_PERIOD_UNSPECIFIED
+}
+
+func (x *UpdateBudgetRequest) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
 	}
 	return ""
 }
@@ -872,10 +972,13 @@ func (x *ListBudgetCategoriesResponse) GetCategories() []*BudgetCategory {
 }
 
 type AssignCategoryFundsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	CategoryId    string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	Amount        int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	BudgetId          string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	CategoryId        string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	Amount            int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	BudgetedFrequency BudgetFrequency        `protobuf:"varint,4,opt,name=budgeted_frequency,json=budgetedFrequency,proto3,enum=budgy.v1.BudgetFrequency" json:"budgeted_frequency,omitempty"`
+	// When true, amount replaces the category budgeted target. When false, amount is added.
+	ReplaceTarget bool `protobuf:"varint,5,opt,name=replace_target,json=replaceTarget,proto3" json:"replace_target,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -931,6 +1034,20 @@ func (x *AssignCategoryFundsRequest) GetAmount() int64 {
 	return 0
 }
 
+func (x *AssignCategoryFundsRequest) GetBudgetedFrequency() BudgetFrequency {
+	if x != nil {
+		return x.BudgetedFrequency
+	}
+	return BudgetFrequency_BUDGET_FREQUENCY_UNSPECIFIED
+}
+
+func (x *AssignCategoryFundsRequest) GetReplaceTarget() bool {
+	if x != nil {
+		return x.ReplaceTarget
+	}
+	return false
+}
+
 type AssignCategoryFundsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Category      *BudgetCategory        `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
@@ -975,6 +1092,190 @@ func (x *AssignCategoryFundsResponse) GetCategory() *BudgetCategory {
 	return nil
 }
 
+type ListAvailableCategoriesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAvailableCategoriesRequest) Reset() {
+	*x = ListAvailableCategoriesRequest{}
+	mi := &file_budgy_v1_budget_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAvailableCategoriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAvailableCategoriesRequest) ProtoMessage() {}
+
+func (x *ListAvailableCategoriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_budget_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAvailableCategoriesRequest.ProtoReflect.Descriptor instead.
+func (*ListAvailableCategoriesRequest) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ListAvailableCategoriesRequest) GetBudgetId() string {
+	if x != nil {
+		return x.BudgetId
+	}
+	return ""
+}
+
+type ListAvailableCategoriesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Categories    []*Category            `protobuf:"bytes,1,rep,name=categories,proto3" json:"categories,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAvailableCategoriesResponse) Reset() {
+	*x = ListAvailableCategoriesResponse{}
+	mi := &file_budgy_v1_budget_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAvailableCategoriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAvailableCategoriesResponse) ProtoMessage() {}
+
+func (x *ListAvailableCategoriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_budget_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAvailableCategoriesResponse.ProtoReflect.Descriptor instead.
+func (*ListAvailableCategoriesResponse) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ListAvailableCategoriesResponse) GetCategories() []*Category {
+	if x != nil {
+		return x.Categories
+	}
+	return nil
+}
+
+type AddCategoryToBudgetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	CategoryId    string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddCategoryToBudgetRequest) Reset() {
+	*x = AddCategoryToBudgetRequest{}
+	mi := &file_budgy_v1_budget_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddCategoryToBudgetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddCategoryToBudgetRequest) ProtoMessage() {}
+
+func (x *AddCategoryToBudgetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_budget_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddCategoryToBudgetRequest.ProtoReflect.Descriptor instead.
+func (*AddCategoryToBudgetRequest) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *AddCategoryToBudgetRequest) GetBudgetId() string {
+	if x != nil {
+		return x.BudgetId
+	}
+	return ""
+}
+
+func (x *AddCategoryToBudgetRequest) GetCategoryId() string {
+	if x != nil {
+		return x.CategoryId
+	}
+	return ""
+}
+
+type AddCategoryToBudgetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Category      *BudgetCategory        `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddCategoryToBudgetResponse) Reset() {
+	*x = AddCategoryToBudgetResponse{}
+	mi := &file_budgy_v1_budget_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddCategoryToBudgetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddCategoryToBudgetResponse) ProtoMessage() {}
+
+func (x *AddCategoryToBudgetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budgy_v1_budget_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddCategoryToBudgetResponse.ProtoReflect.Descriptor instead.
+func (*AddCategoryToBudgetResponse) Descriptor() ([]byte, []int) {
+	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *AddCategoryToBudgetResponse) GetCategory() *BudgetCategory {
+	if x != nil {
+		return x.Category
+	}
+	return nil
+}
+
 type FundEnvelopeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BudgetId      string                 `protobuf:"bytes,1,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
@@ -987,7 +1288,7 @@ type FundEnvelopeRequest struct {
 
 func (x *FundEnvelopeRequest) Reset() {
 	*x = FundEnvelopeRequest{}
-	mi := &file_budgy_v1_budget_proto_msgTypes[18]
+	mi := &file_budgy_v1_budget_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -999,7 +1300,7 @@ func (x *FundEnvelopeRequest) String() string {
 func (*FundEnvelopeRequest) ProtoMessage() {}
 
 func (x *FundEnvelopeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_budget_proto_msgTypes[18]
+	mi := &file_budgy_v1_budget_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1012,7 +1313,7 @@ func (x *FundEnvelopeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FundEnvelopeRequest.ProtoReflect.Descriptor instead.
 func (*FundEnvelopeRequest) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{18}
+	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *FundEnvelopeRequest) GetBudgetId() string {
@@ -1052,7 +1353,7 @@ type FundEnvelopeResponse struct {
 
 func (x *FundEnvelopeResponse) Reset() {
 	*x = FundEnvelopeResponse{}
-	mi := &file_budgy_v1_budget_proto_msgTypes[19]
+	mi := &file_budgy_v1_budget_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1064,7 +1365,7 @@ func (x *FundEnvelopeResponse) String() string {
 func (*FundEnvelopeResponse) ProtoMessage() {}
 
 func (x *FundEnvelopeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budgy_v1_budget_proto_msgTypes[19]
+	mi := &file_budgy_v1_budget_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1077,7 +1378,7 @@ func (x *FundEnvelopeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FundEnvelopeResponse.ProtoReflect.Descriptor instead.
 func (*FundEnvelopeResponse) Descriptor() ([]byte, []int) {
-	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{19}
+	return file_budgy_v1_budget_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *FundEnvelopeResponse) GetResult() *FundEnvelopeResult {
@@ -1091,7 +1392,7 @@ var File_budgy_v1_budget_proto protoreflect.FileDescriptor
 
 const file_budgy_v1_budget_proto_rawDesc = "" +
 	"\n" +
-	"\x15budgy/v1/budget.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17budgy/v1/category.proto\"\x87\x02\n" +
+	"\x15budgy/v1/budget.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17budgy/v1/category.proto\"\xd6\x02\n" +
 	"\x06Budget\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
@@ -1101,17 +1402,23 @@ const file_budgy_v1_budget_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x9d\x01\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12.\n" +
+	"\x06period\x18\b \x01(\x0e2\x16.budgy.v1.BudgetPeriodR\x06period\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\t \x01(\tR\tstartDate\"\x9d\x01\n" +
 	"\rBudgetSummary\x12\x1b\n" +
 	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12%\n" +
 	"\x0etotal_budgeted\x18\x02 \x01(\x03R\rtotalBudgeted\x12\x1f\n" +
 	"\vtotal_spent\x18\x03 \x01(\x03R\n" +
 	"totalSpent\x12'\n" +
-	"\x0ftotal_remaining\x18\x04 \x01(\x03R\x0etotalRemaining\"u\n" +
+	"\x0ftotal_remaining\x18\x04 \x01(\x03R\x0etotalRemaining\"\xc4\x01\n" +
 	"\x13CreateBudgetRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12.\n" +
 	"\x06method\x18\x02 \x01(\x0e2\x16.budgy.v1.BudgetMethodR\x06method\x12\x1a\n" +
-	"\bcurrency\x18\x03 \x01(\tR\bcurrency\"@\n" +
+	"\bcurrency\x18\x03 \x01(\tR\bcurrency\x12.\n" +
+	"\x06period\x18\x04 \x01(\x0e2\x16.budgy.v1.BudgetPeriodR\x06period\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\x05 \x01(\tR\tstartDate\"@\n" +
 	"\x14CreateBudgetResponse\x12(\n" +
 	"\x06budget\x18\x01 \x01(\v2\x10.budgy.v1.BudgetR\x06budget\"\x14\n" +
 	"\x12ListBudgetsRequest\"A\n" +
@@ -1124,12 +1431,15 @@ const file_budgy_v1_budget_proto_rawDesc = "" +
 	"\x17GetBudgetSummaryRequest\x12\x1b\n" +
 	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\"M\n" +
 	"\x18GetBudgetSummaryResponse\x121\n" +
-	"\asummary\x18\x01 \x01(\v2\x17.budgy.v1.BudgetSummaryR\asummary\"\x92\x01\n" +
+	"\asummary\x18\x01 \x01(\v2\x17.budgy.v1.BudgetSummaryR\asummary\"\xe1\x01\n" +
 	"\x13UpdateBudgetRequest\x12\x1b\n" +
 	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12.\n" +
 	"\x06method\x18\x03 \x01(\x0e2\x16.budgy.v1.BudgetMethodR\x06method\x12\x1a\n" +
-	"\bcurrency\x18\x04 \x01(\tR\bcurrency\"@\n" +
+	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12.\n" +
+	"\x06period\x18\x05 \x01(\x0e2\x16.budgy.v1.BudgetPeriodR\x06period\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\x06 \x01(\tR\tstartDate\"@\n" +
 	"\x14UpdateBudgetResponse\x12(\n" +
 	"\x06budget\x18\x01 \x01(\v2\x10.budgy.v1.BudgetR\x06budget\"2\n" +
 	"\x13DeleteBudgetRequest\x12\x1b\n" +
@@ -1140,13 +1450,27 @@ const file_budgy_v1_budget_proto_rawDesc = "" +
 	"\x1cListBudgetCategoriesResponse\x128\n" +
 	"\n" +
 	"categories\x18\x01 \x03(\v2\x18.budgy.v1.BudgetCategoryR\n" +
-	"categories\"r\n" +
+	"categories\"\xe3\x01\n" +
 	"\x1aAssignCategoryFundsRequest\x12\x1b\n" +
 	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1f\n" +
 	"\vcategory_id\x18\x02 \x01(\tR\n" +
 	"categoryId\x12\x16\n" +
-	"\x06amount\x18\x03 \x01(\x03R\x06amount\"S\n" +
+	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12H\n" +
+	"\x12budgeted_frequency\x18\x04 \x01(\x0e2\x19.budgy.v1.BudgetFrequencyR\x11budgetedFrequency\x12%\n" +
+	"\x0ereplace_target\x18\x05 \x01(\bR\rreplaceTarget\"S\n" +
 	"\x1bAssignCategoryFundsResponse\x124\n" +
+	"\bcategory\x18\x01 \x01(\v2\x18.budgy.v1.BudgetCategoryR\bcategory\"=\n" +
+	"\x1eListAvailableCategoriesRequest\x12\x1b\n" +
+	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\"U\n" +
+	"\x1fListAvailableCategoriesResponse\x122\n" +
+	"\n" +
+	"categories\x18\x01 \x03(\v2\x12.budgy.v1.CategoryR\n" +
+	"categories\"Z\n" +
+	"\x1aAddCategoryToBudgetRequest\x12\x1b\n" +
+	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1f\n" +
+	"\vcategory_id\x18\x02 \x01(\tR\n" +
+	"categoryId\"S\n" +
+	"\x1bAddCategoryToBudgetResponse\x124\n" +
 	"\bcategory\x18\x01 \x01(\v2\x18.budgy.v1.BudgetCategoryR\bcategory\"\x8a\x01\n" +
 	"\x13FundEnvelopeRequest\x12\x1b\n" +
 	"\tbudget_id\x18\x01 \x01(\tR\bbudgetId\x12\x1f\n" +
@@ -1160,7 +1484,12 @@ const file_budgy_v1_budget_proto_rawDesc = "" +
 	"\fBudgetMethod\x12\x1d\n" +
 	"\x19BUDGET_METHOD_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16BUDGET_METHOD_ZERO_SUM\x10\x01\x12\x1a\n" +
-	"\x16BUDGET_METHOD_ENVELOPE\x10\x022\x83\x06\n" +
+	"\x16BUDGET_METHOD_ENVELOPE\x10\x02*\x81\x01\n" +
+	"\fBudgetPeriod\x12\x1d\n" +
+	"\x19BUDGET_PERIOD_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14BUDGET_PERIOD_WEEKLY\x10\x01\x12\x1d\n" +
+	"\x19BUDGET_PERIOD_FORTNIGHTLY\x10\x02\x12\x19\n" +
+	"\x15BUDGET_PERIOD_MONTHLY\x10\x032\xd7\a\n" +
 	"\rBudgetService\x12M\n" +
 	"\fCreateBudget\x12\x1d.budgy.v1.CreateBudgetRequest\x1a\x1e.budgy.v1.CreateBudgetResponse\x12J\n" +
 	"\vListBudgets\x12\x1c.budgy.v1.ListBudgetsRequest\x1a\x1d.budgy.v1.ListBudgetsResponse\x12D\n" +
@@ -1168,7 +1497,9 @@ const file_budgy_v1_budget_proto_rawDesc = "" +
 	"\x10GetBudgetSummary\x12!.budgy.v1.GetBudgetSummaryRequest\x1a\".budgy.v1.GetBudgetSummaryResponse\x12M\n" +
 	"\fUpdateBudget\x12\x1d.budgy.v1.UpdateBudgetRequest\x1a\x1e.budgy.v1.UpdateBudgetResponse\x12M\n" +
 	"\fDeleteBudget\x12\x1d.budgy.v1.DeleteBudgetRequest\x1a\x1e.budgy.v1.DeleteBudgetResponse\x12e\n" +
-	"\x14ListBudgetCategories\x12%.budgy.v1.ListBudgetCategoriesRequest\x1a&.budgy.v1.ListBudgetCategoriesResponse\x12b\n" +
+	"\x14ListBudgetCategories\x12%.budgy.v1.ListBudgetCategoriesRequest\x1a&.budgy.v1.ListBudgetCategoriesResponse\x12n\n" +
+	"\x17ListAvailableCategories\x12(.budgy.v1.ListAvailableCategoriesRequest\x1a).budgy.v1.ListAvailableCategoriesResponse\x12b\n" +
+	"\x13AddCategoryToBudget\x12$.budgy.v1.AddCategoryToBudgetRequest\x1a%.budgy.v1.AddCategoryToBudgetResponse\x12b\n" +
 	"\x13AssignCategoryFunds\x12$.budgy.v1.AssignCategoryFundsRequest\x1a%.budgy.v1.AssignCategoryFundsResponse\x12M\n" +
 	"\fFundEnvelope\x12\x1d.budgy.v1.FundEnvelopeRequest\x1a\x1e.budgy.v1.FundEnvelopeResponseB0Z.budgeting_system/internal/gen/budgy/v1;budgyv1b\x06proto3"
 
@@ -1184,71 +1515,88 @@ func file_budgy_v1_budget_proto_rawDescGZIP() []byte {
 	return file_budgy_v1_budget_proto_rawDescData
 }
 
-var file_budgy_v1_budget_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_budgy_v1_budget_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_budgy_v1_budget_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_budgy_v1_budget_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_budgy_v1_budget_proto_goTypes = []any{
-	(BudgetMethod)(0),                    // 0: budgy.v1.BudgetMethod
-	(*Budget)(nil),                       // 1: budgy.v1.Budget
-	(*BudgetSummary)(nil),                // 2: budgy.v1.BudgetSummary
-	(*CreateBudgetRequest)(nil),          // 3: budgy.v1.CreateBudgetRequest
-	(*CreateBudgetResponse)(nil),         // 4: budgy.v1.CreateBudgetResponse
-	(*ListBudgetsRequest)(nil),           // 5: budgy.v1.ListBudgetsRequest
-	(*ListBudgetsResponse)(nil),          // 6: budgy.v1.ListBudgetsResponse
-	(*GetBudgetRequest)(nil),             // 7: budgy.v1.GetBudgetRequest
-	(*GetBudgetResponse)(nil),            // 8: budgy.v1.GetBudgetResponse
-	(*GetBudgetSummaryRequest)(nil),      // 9: budgy.v1.GetBudgetSummaryRequest
-	(*GetBudgetSummaryResponse)(nil),     // 10: budgy.v1.GetBudgetSummaryResponse
-	(*UpdateBudgetRequest)(nil),          // 11: budgy.v1.UpdateBudgetRequest
-	(*UpdateBudgetResponse)(nil),         // 12: budgy.v1.UpdateBudgetResponse
-	(*DeleteBudgetRequest)(nil),          // 13: budgy.v1.DeleteBudgetRequest
-	(*DeleteBudgetResponse)(nil),         // 14: budgy.v1.DeleteBudgetResponse
-	(*ListBudgetCategoriesRequest)(nil),  // 15: budgy.v1.ListBudgetCategoriesRequest
-	(*ListBudgetCategoriesResponse)(nil), // 16: budgy.v1.ListBudgetCategoriesResponse
-	(*AssignCategoryFundsRequest)(nil),   // 17: budgy.v1.AssignCategoryFundsRequest
-	(*AssignCategoryFundsResponse)(nil),  // 18: budgy.v1.AssignCategoryFundsResponse
-	(*FundEnvelopeRequest)(nil),          // 19: budgy.v1.FundEnvelopeRequest
-	(*FundEnvelopeResponse)(nil),         // 20: budgy.v1.FundEnvelopeResponse
-	(*timestamppb.Timestamp)(nil),        // 21: google.protobuf.Timestamp
-	(*BudgetCategory)(nil),               // 22: budgy.v1.BudgetCategory
-	(*FundEnvelopeResult)(nil),           // 23: budgy.v1.FundEnvelopeResult
+	(BudgetMethod)(0),                       // 0: budgy.v1.BudgetMethod
+	(BudgetPeriod)(0),                       // 1: budgy.v1.BudgetPeriod
+	(*Budget)(nil),                          // 2: budgy.v1.Budget
+	(*BudgetSummary)(nil),                   // 3: budgy.v1.BudgetSummary
+	(*CreateBudgetRequest)(nil),             // 4: budgy.v1.CreateBudgetRequest
+	(*CreateBudgetResponse)(nil),            // 5: budgy.v1.CreateBudgetResponse
+	(*ListBudgetsRequest)(nil),              // 6: budgy.v1.ListBudgetsRequest
+	(*ListBudgetsResponse)(nil),             // 7: budgy.v1.ListBudgetsResponse
+	(*GetBudgetRequest)(nil),                // 8: budgy.v1.GetBudgetRequest
+	(*GetBudgetResponse)(nil),               // 9: budgy.v1.GetBudgetResponse
+	(*GetBudgetSummaryRequest)(nil),         // 10: budgy.v1.GetBudgetSummaryRequest
+	(*GetBudgetSummaryResponse)(nil),        // 11: budgy.v1.GetBudgetSummaryResponse
+	(*UpdateBudgetRequest)(nil),             // 12: budgy.v1.UpdateBudgetRequest
+	(*UpdateBudgetResponse)(nil),            // 13: budgy.v1.UpdateBudgetResponse
+	(*DeleteBudgetRequest)(nil),             // 14: budgy.v1.DeleteBudgetRequest
+	(*DeleteBudgetResponse)(nil),            // 15: budgy.v1.DeleteBudgetResponse
+	(*ListBudgetCategoriesRequest)(nil),     // 16: budgy.v1.ListBudgetCategoriesRequest
+	(*ListBudgetCategoriesResponse)(nil),    // 17: budgy.v1.ListBudgetCategoriesResponse
+	(*AssignCategoryFundsRequest)(nil),      // 18: budgy.v1.AssignCategoryFundsRequest
+	(*AssignCategoryFundsResponse)(nil),     // 19: budgy.v1.AssignCategoryFundsResponse
+	(*ListAvailableCategoriesRequest)(nil),  // 20: budgy.v1.ListAvailableCategoriesRequest
+	(*ListAvailableCategoriesResponse)(nil), // 21: budgy.v1.ListAvailableCategoriesResponse
+	(*AddCategoryToBudgetRequest)(nil),      // 22: budgy.v1.AddCategoryToBudgetRequest
+	(*AddCategoryToBudgetResponse)(nil),     // 23: budgy.v1.AddCategoryToBudgetResponse
+	(*FundEnvelopeRequest)(nil),             // 24: budgy.v1.FundEnvelopeRequest
+	(*FundEnvelopeResponse)(nil),            // 25: budgy.v1.FundEnvelopeResponse
+	(*timestamppb.Timestamp)(nil),           // 26: google.protobuf.Timestamp
+	(*BudgetCategory)(nil),                  // 27: budgy.v1.BudgetCategory
+	(BudgetFrequency)(0),                    // 28: budgy.v1.BudgetFrequency
+	(*Category)(nil),                        // 29: budgy.v1.Category
+	(*FundEnvelopeResult)(nil),              // 30: budgy.v1.FundEnvelopeResult
 }
 var file_budgy_v1_budget_proto_depIdxs = []int32{
 	0,  // 0: budgy.v1.Budget.method:type_name -> budgy.v1.BudgetMethod
-	21, // 1: budgy.v1.Budget.created_at:type_name -> google.protobuf.Timestamp
-	21, // 2: budgy.v1.Budget.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 3: budgy.v1.CreateBudgetRequest.method:type_name -> budgy.v1.BudgetMethod
-	1,  // 4: budgy.v1.CreateBudgetResponse.budget:type_name -> budgy.v1.Budget
-	1,  // 5: budgy.v1.ListBudgetsResponse.budgets:type_name -> budgy.v1.Budget
-	1,  // 6: budgy.v1.GetBudgetResponse.budget:type_name -> budgy.v1.Budget
-	2,  // 7: budgy.v1.GetBudgetSummaryResponse.summary:type_name -> budgy.v1.BudgetSummary
-	0,  // 8: budgy.v1.UpdateBudgetRequest.method:type_name -> budgy.v1.BudgetMethod
-	1,  // 9: budgy.v1.UpdateBudgetResponse.budget:type_name -> budgy.v1.Budget
-	22, // 10: budgy.v1.ListBudgetCategoriesResponse.categories:type_name -> budgy.v1.BudgetCategory
-	22, // 11: budgy.v1.AssignCategoryFundsResponse.category:type_name -> budgy.v1.BudgetCategory
-	23, // 12: budgy.v1.FundEnvelopeResponse.result:type_name -> budgy.v1.FundEnvelopeResult
-	3,  // 13: budgy.v1.BudgetService.CreateBudget:input_type -> budgy.v1.CreateBudgetRequest
-	5,  // 14: budgy.v1.BudgetService.ListBudgets:input_type -> budgy.v1.ListBudgetsRequest
-	7,  // 15: budgy.v1.BudgetService.GetBudget:input_type -> budgy.v1.GetBudgetRequest
-	9,  // 16: budgy.v1.BudgetService.GetBudgetSummary:input_type -> budgy.v1.GetBudgetSummaryRequest
-	11, // 17: budgy.v1.BudgetService.UpdateBudget:input_type -> budgy.v1.UpdateBudgetRequest
-	13, // 18: budgy.v1.BudgetService.DeleteBudget:input_type -> budgy.v1.DeleteBudgetRequest
-	15, // 19: budgy.v1.BudgetService.ListBudgetCategories:input_type -> budgy.v1.ListBudgetCategoriesRequest
-	17, // 20: budgy.v1.BudgetService.AssignCategoryFunds:input_type -> budgy.v1.AssignCategoryFundsRequest
-	19, // 21: budgy.v1.BudgetService.FundEnvelope:input_type -> budgy.v1.FundEnvelopeRequest
-	4,  // 22: budgy.v1.BudgetService.CreateBudget:output_type -> budgy.v1.CreateBudgetResponse
-	6,  // 23: budgy.v1.BudgetService.ListBudgets:output_type -> budgy.v1.ListBudgetsResponse
-	8,  // 24: budgy.v1.BudgetService.GetBudget:output_type -> budgy.v1.GetBudgetResponse
-	10, // 25: budgy.v1.BudgetService.GetBudgetSummary:output_type -> budgy.v1.GetBudgetSummaryResponse
-	12, // 26: budgy.v1.BudgetService.UpdateBudget:output_type -> budgy.v1.UpdateBudgetResponse
-	14, // 27: budgy.v1.BudgetService.DeleteBudget:output_type -> budgy.v1.DeleteBudgetResponse
-	16, // 28: budgy.v1.BudgetService.ListBudgetCategories:output_type -> budgy.v1.ListBudgetCategoriesResponse
-	18, // 29: budgy.v1.BudgetService.AssignCategoryFunds:output_type -> budgy.v1.AssignCategoryFundsResponse
-	20, // 30: budgy.v1.BudgetService.FundEnvelope:output_type -> budgy.v1.FundEnvelopeResponse
-	22, // [22:31] is the sub-list for method output_type
-	13, // [13:22] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	26, // 1: budgy.v1.Budget.created_at:type_name -> google.protobuf.Timestamp
+	26, // 2: budgy.v1.Budget.updated_at:type_name -> google.protobuf.Timestamp
+	1,  // 3: budgy.v1.Budget.period:type_name -> budgy.v1.BudgetPeriod
+	0,  // 4: budgy.v1.CreateBudgetRequest.method:type_name -> budgy.v1.BudgetMethod
+	1,  // 5: budgy.v1.CreateBudgetRequest.period:type_name -> budgy.v1.BudgetPeriod
+	2,  // 6: budgy.v1.CreateBudgetResponse.budget:type_name -> budgy.v1.Budget
+	2,  // 7: budgy.v1.ListBudgetsResponse.budgets:type_name -> budgy.v1.Budget
+	2,  // 8: budgy.v1.GetBudgetResponse.budget:type_name -> budgy.v1.Budget
+	3,  // 9: budgy.v1.GetBudgetSummaryResponse.summary:type_name -> budgy.v1.BudgetSummary
+	0,  // 10: budgy.v1.UpdateBudgetRequest.method:type_name -> budgy.v1.BudgetMethod
+	1,  // 11: budgy.v1.UpdateBudgetRequest.period:type_name -> budgy.v1.BudgetPeriod
+	2,  // 12: budgy.v1.UpdateBudgetResponse.budget:type_name -> budgy.v1.Budget
+	27, // 13: budgy.v1.ListBudgetCategoriesResponse.categories:type_name -> budgy.v1.BudgetCategory
+	28, // 14: budgy.v1.AssignCategoryFundsRequest.budgeted_frequency:type_name -> budgy.v1.BudgetFrequency
+	27, // 15: budgy.v1.AssignCategoryFundsResponse.category:type_name -> budgy.v1.BudgetCategory
+	29, // 16: budgy.v1.ListAvailableCategoriesResponse.categories:type_name -> budgy.v1.Category
+	27, // 17: budgy.v1.AddCategoryToBudgetResponse.category:type_name -> budgy.v1.BudgetCategory
+	30, // 18: budgy.v1.FundEnvelopeResponse.result:type_name -> budgy.v1.FundEnvelopeResult
+	4,  // 19: budgy.v1.BudgetService.CreateBudget:input_type -> budgy.v1.CreateBudgetRequest
+	6,  // 20: budgy.v1.BudgetService.ListBudgets:input_type -> budgy.v1.ListBudgetsRequest
+	8,  // 21: budgy.v1.BudgetService.GetBudget:input_type -> budgy.v1.GetBudgetRequest
+	10, // 22: budgy.v1.BudgetService.GetBudgetSummary:input_type -> budgy.v1.GetBudgetSummaryRequest
+	12, // 23: budgy.v1.BudgetService.UpdateBudget:input_type -> budgy.v1.UpdateBudgetRequest
+	14, // 24: budgy.v1.BudgetService.DeleteBudget:input_type -> budgy.v1.DeleteBudgetRequest
+	16, // 25: budgy.v1.BudgetService.ListBudgetCategories:input_type -> budgy.v1.ListBudgetCategoriesRequest
+	20, // 26: budgy.v1.BudgetService.ListAvailableCategories:input_type -> budgy.v1.ListAvailableCategoriesRequest
+	22, // 27: budgy.v1.BudgetService.AddCategoryToBudget:input_type -> budgy.v1.AddCategoryToBudgetRequest
+	18, // 28: budgy.v1.BudgetService.AssignCategoryFunds:input_type -> budgy.v1.AssignCategoryFundsRequest
+	24, // 29: budgy.v1.BudgetService.FundEnvelope:input_type -> budgy.v1.FundEnvelopeRequest
+	5,  // 30: budgy.v1.BudgetService.CreateBudget:output_type -> budgy.v1.CreateBudgetResponse
+	7,  // 31: budgy.v1.BudgetService.ListBudgets:output_type -> budgy.v1.ListBudgetsResponse
+	9,  // 32: budgy.v1.BudgetService.GetBudget:output_type -> budgy.v1.GetBudgetResponse
+	11, // 33: budgy.v1.BudgetService.GetBudgetSummary:output_type -> budgy.v1.GetBudgetSummaryResponse
+	13, // 34: budgy.v1.BudgetService.UpdateBudget:output_type -> budgy.v1.UpdateBudgetResponse
+	15, // 35: budgy.v1.BudgetService.DeleteBudget:output_type -> budgy.v1.DeleteBudgetResponse
+	17, // 36: budgy.v1.BudgetService.ListBudgetCategories:output_type -> budgy.v1.ListBudgetCategoriesResponse
+	21, // 37: budgy.v1.BudgetService.ListAvailableCategories:output_type -> budgy.v1.ListAvailableCategoriesResponse
+	23, // 38: budgy.v1.BudgetService.AddCategoryToBudget:output_type -> budgy.v1.AddCategoryToBudgetResponse
+	19, // 39: budgy.v1.BudgetService.AssignCategoryFunds:output_type -> budgy.v1.AssignCategoryFundsResponse
+	25, // 40: budgy.v1.BudgetService.FundEnvelope:output_type -> budgy.v1.FundEnvelopeResponse
+	30, // [30:41] is the sub-list for method output_type
+	19, // [19:30] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_budgy_v1_budget_proto_init() }
@@ -1262,8 +1610,8 @@ func file_budgy_v1_budget_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_budgy_v1_budget_proto_rawDesc), len(file_budgy_v1_budget_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   20,
+			NumEnums:      2,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

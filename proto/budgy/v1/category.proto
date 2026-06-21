@@ -13,6 +13,15 @@ enum CategoryType {
   CATEGORY_TYPE_TRANSFER    = 3;
 }
 
+enum BudgetFrequency {
+  BUDGET_FREQUENCY_UNSPECIFIED = 0;
+  BUDGET_FREQUENCY_WEEKLY      = 1;
+  BUDGET_FREQUENCY_FORTNIGHTLY = 2;
+  BUDGET_FREQUENCY_MONTHLY     = 3;
+  BUDGET_FREQUENCY_QUARTERLY   = 4;
+  BUDGET_FREQUENCY_YEARLY      = 5;
+}
+
 message Category {
   string id           = 1;
   string user_id      = 2;
@@ -35,6 +44,7 @@ message BudgetCategory {
   int64    budgeted     = 2;
   int64    balance      = 3;
   int64    target_limit = 4;
+  BudgetFrequency budgeted_frequency = 5;
 }
 
 message FundEnvelopeResult {

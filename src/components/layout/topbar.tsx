@@ -15,7 +15,6 @@ import { useAuth } from "@/features/auth/useAuth";
 import { usePrefs } from "@/lib/state/prefs-store";
 import { useUIStore } from "@/lib/state/ui-store";
 import { NAV_ITEMS } from "./nav-items";
-import { PeriodSwitcher } from "./period-switcher";
 
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -59,8 +58,6 @@ export function Topbar() {
             ⌘K
           </kbd>
         </button>
-
-        <PeriodSwitcher />
 
         <Button
           size="sm"

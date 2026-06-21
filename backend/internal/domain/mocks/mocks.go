@@ -39,6 +39,72 @@ func (_m *MockBudgetAccountRepository) EXPECT() *MockBudgetAccountRepository_Exp
 	return &MockBudgetAccountRepository_Expecter{mock: &_m.Mock}
 }
 
+// FindBudgetForAccount provides a mock function for the type MockBudgetAccountRepository
+func (_mock *MockBudgetAccountRepository) FindBudgetForAccount(ctx context.Context, accountID string) (string, error) {
+	ret := _mock.Called(ctx, accountID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindBudgetForAccount")
+	}
+
+	var r0 string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
+		return returnFunc(ctx, accountID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) string); ok {
+		r0 = returnFunc(ctx, accountID)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, accountID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockBudgetAccountRepository_FindBudgetForAccount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindBudgetForAccount'
+type MockBudgetAccountRepository_FindBudgetForAccount_Call struct {
+	*mock.Call
+}
+
+// FindBudgetForAccount is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accountID string
+func (_e *MockBudgetAccountRepository_Expecter) FindBudgetForAccount(ctx any, accountID any) *MockBudgetAccountRepository_FindBudgetForAccount_Call {
+	return &MockBudgetAccountRepository_FindBudgetForAccount_Call{Call: _e.mock.On("FindBudgetForAccount", ctx, accountID)}
+}
+
+func (_c *MockBudgetAccountRepository_FindBudgetForAccount_Call) Run(run func(ctx context.Context, accountID string)) *MockBudgetAccountRepository_FindBudgetForAccount_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockBudgetAccountRepository_FindBudgetForAccount_Call) Return(s string, err error) *MockBudgetAccountRepository_FindBudgetForAccount_Call {
+	_c.Call.Return(s, err)
+	return _c
+}
+
+func (_c *MockBudgetAccountRepository_FindBudgetForAccount_Call) RunAndReturn(run func(ctx context.Context, accountID string) (string, error)) *MockBudgetAccountRepository_FindBudgetForAccount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Link provides a mock function for the type MockBudgetAccountRepository
 func (_mock *MockBudgetAccountRepository) Link(ctx context.Context, budgetID string, accountID string) error {
 	ret := _mock.Called(ctx, budgetID, accountID)
@@ -465,6 +531,74 @@ func (_c *MockBudgetCategoryLineRepository_Get_Call) RunAndReturn(run func(ctx c
 	return _c
 }
 
+// ListAvailableCategories provides a mock function for the type MockBudgetCategoryLineRepository
+func (_mock *MockBudgetCategoryLineRepository) ListAvailableCategories(ctx context.Context, budgetID string) ([]*domain.Category, error) {
+	ret := _mock.Called(ctx, budgetID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAvailableCategories")
+	}
+
+	var r0 []*domain.Category
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]*domain.Category, error)); ok {
+		return returnFunc(ctx, budgetID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []*domain.Category); ok {
+		r0 = returnFunc(ctx, budgetID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*domain.Category)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, budgetID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockBudgetCategoryLineRepository_ListAvailableCategories_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAvailableCategories'
+type MockBudgetCategoryLineRepository_ListAvailableCategories_Call struct {
+	*mock.Call
+}
+
+// ListAvailableCategories is a helper method to define mock.On call
+//   - ctx context.Context
+//   - budgetID string
+func (_e *MockBudgetCategoryLineRepository_Expecter) ListAvailableCategories(ctx any, budgetID any) *MockBudgetCategoryLineRepository_ListAvailableCategories_Call {
+	return &MockBudgetCategoryLineRepository_ListAvailableCategories_Call{Call: _e.mock.On("ListAvailableCategories", ctx, budgetID)}
+}
+
+func (_c *MockBudgetCategoryLineRepository_ListAvailableCategories_Call) Run(run func(ctx context.Context, budgetID string)) *MockBudgetCategoryLineRepository_ListAvailableCategories_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockBudgetCategoryLineRepository_ListAvailableCategories_Call) Return(categorys []*domain.Category, err error) *MockBudgetCategoryLineRepository_ListAvailableCategories_Call {
+	_c.Call.Return(categorys, err)
+	return _c
+}
+
+func (_c *MockBudgetCategoryLineRepository_ListAvailableCategories_Call) RunAndReturn(run func(ctx context.Context, budgetID string) ([]*domain.Category, error)) *MockBudgetCategoryLineRepository_ListAvailableCategories_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListBudgetCategories provides a mock function for the type MockBudgetCategoryLineRepository
 func (_mock *MockBudgetCategoryLineRepository) ListBudgetCategories(ctx context.Context, budgetID string) ([]*domain.BudgetCategory, error) {
 	ret := _mock.Called(ctx, budgetID)
@@ -597,6 +731,81 @@ func (_c *MockBudgetCategoryLineRepository_ListByBudget_Call) Return(budgetCateg
 }
 
 func (_c *MockBudgetCategoryLineRepository_ListByBudget_Call) RunAndReturn(run func(ctx context.Context, budgetID string) ([]*domain.BudgetCategoryLine, error)) *MockBudgetCategoryLineRepository_ListByBudget_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateBudgeted provides a mock function for the type MockBudgetCategoryLineRepository
+func (_mock *MockBudgetCategoryLineRepository) UpdateBudgeted(ctx context.Context, budgetID string, categoryID string, budgeted int64, frequency domain.BudgetFrequency) error {
+	ret := _mock.Called(ctx, budgetID, categoryID, budgeted, frequency)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateBudgeted")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, int64, domain.BudgetFrequency) error); ok {
+		r0 = returnFunc(ctx, budgetID, categoryID, budgeted, frequency)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockBudgetCategoryLineRepository_UpdateBudgeted_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateBudgeted'
+type MockBudgetCategoryLineRepository_UpdateBudgeted_Call struct {
+	*mock.Call
+}
+
+// UpdateBudgeted is a helper method to define mock.On call
+//   - ctx context.Context
+//   - budgetID string
+//   - categoryID string
+//   - budgeted int64
+//   - frequency domain.BudgetFrequency
+func (_e *MockBudgetCategoryLineRepository_Expecter) UpdateBudgeted(ctx any, budgetID any, categoryID any, budgeted any, frequency any) *MockBudgetCategoryLineRepository_UpdateBudgeted_Call {
+	return &MockBudgetCategoryLineRepository_UpdateBudgeted_Call{Call: _e.mock.On("UpdateBudgeted", ctx, budgetID, categoryID, budgeted, frequency)}
+}
+
+func (_c *MockBudgetCategoryLineRepository_UpdateBudgeted_Call) Run(run func(ctx context.Context, budgetID string, categoryID string, budgeted int64, frequency domain.BudgetFrequency)) *MockBudgetCategoryLineRepository_UpdateBudgeted_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 int64
+		if args[3] != nil {
+			arg3 = args[3].(int64)
+		}
+		var arg4 domain.BudgetFrequency
+		if args[4] != nil {
+			arg4 = args[4].(domain.BudgetFrequency)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockBudgetCategoryLineRepository_UpdateBudgeted_Call) Return(err error) *MockBudgetCategoryLineRepository_UpdateBudgeted_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockBudgetCategoryLineRepository_UpdateBudgeted_Call) RunAndReturn(run func(ctx context.Context, budgetID string, categoryID string, budgeted int64, frequency domain.BudgetFrequency) error) *MockBudgetCategoryLineRepository_UpdateBudgeted_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1317,6 +1526,90 @@ func (_c *MockJobRepository_UpdateStatus_Call) Return(err error) *MockJobReposit
 }
 
 func (_c *MockJobRepository_UpdateStatus_Call) RunAndReturn(run func(ctx context.Context, id string, status domain.JobStatus, attempts int, runAt time.Time, errMsg *string) error) *MockJobRepository_UpdateStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// NewMockBudgetReconciler creates a new instance of MockBudgetReconciler. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockBudgetReconciler(t interface {
+	mock.TestingT
+	Cleanup(func())
+}) *MockBudgetReconciler {
+	mock := &MockBudgetReconciler{}
+	mock.Mock.Test(t)
+
+	t.Cleanup(func() { mock.AssertExpectations(t) })
+
+	return mock
+}
+
+// MockBudgetReconciler is an autogenerated mock type for the BudgetReconciler type
+type MockBudgetReconciler struct {
+	mock.Mock
+}
+
+type MockBudgetReconciler_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *MockBudgetReconciler) EXPECT() *MockBudgetReconciler_Expecter {
+	return &MockBudgetReconciler_Expecter{mock: &_m.Mock}
+}
+
+// ReconcileFromTransactions provides a mock function for the type MockBudgetReconciler
+func (_mock *MockBudgetReconciler) ReconcileFromTransactions(ctx context.Context, budgetID string) error {
+	ret := _mock.Called(ctx, budgetID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReconcileFromTransactions")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, budgetID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockBudgetReconciler_ReconcileFromTransactions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReconcileFromTransactions'
+type MockBudgetReconciler_ReconcileFromTransactions_Call struct {
+	*mock.Call
+}
+
+// ReconcileFromTransactions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - budgetID string
+func (_e *MockBudgetReconciler_Expecter) ReconcileFromTransactions(ctx any, budgetID any) *MockBudgetReconciler_ReconcileFromTransactions_Call {
+	return &MockBudgetReconciler_ReconcileFromTransactions_Call{Call: _e.mock.On("ReconcileFromTransactions", ctx, budgetID)}
+}
+
+func (_c *MockBudgetReconciler_ReconcileFromTransactions_Call) Run(run func(ctx context.Context, budgetID string)) *MockBudgetReconciler_ReconcileFromTransactions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockBudgetReconciler_ReconcileFromTransactions_Call) Return(err error) *MockBudgetReconciler_ReconcileFromTransactions_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockBudgetReconciler_ReconcileFromTransactions_Call) RunAndReturn(run func(ctx context.Context, budgetID string) error) *MockBudgetReconciler_ReconcileFromTransactions_Call {
 	_c.Call.Return(run)
 	return _c
 }
