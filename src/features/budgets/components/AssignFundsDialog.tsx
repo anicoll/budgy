@@ -19,10 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toCents, fromCents } from "@/lib/money/cents";
-import { FREQUENCY_LABEL, type BudgetFrequency } from "../utils/normalise";
-import type { BackendCategory } from "../api/types";
 import type { Cents } from "@/lib/money/cents";
+import { fromCents, toCents } from "@/lib/money/cents";
+import type { BackendCategory } from "../api/types";
+import { type BudgetFrequency, FREQUENCY_LABEL } from "../utils/normalise";
 
 interface Props {
   open: boolean;
@@ -51,9 +51,7 @@ export function AssignFundsDialog({
 
   useEffect(() => {
     if (open) {
-      setAmount(
-        defaultAmountCents !== undefined ? fromCents(defaultAmountCents).toFixed(2) : "",
-      );
+      setAmount(defaultAmountCents !== undefined ? fromCents(defaultAmountCents).toFixed(2) : "");
       setFrequency(defaultFrequency ?? category?.budgetedFrequency ?? "monthly");
       setError(null);
     }

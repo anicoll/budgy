@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransactions } from "@/features/transactions/hooks";
+import { cents } from "@/lib/money/cents";
 import {
   useAssignCategoryFunds,
   useBackendAccounts,
@@ -18,14 +19,16 @@ import {
   useSelectedBudgetId,
   useUpdateBackendBudget,
 } from "../api/hooks";
-import { uncategorizedTransactionsInPeriod } from "../api/period-summary";
+import {
+  computeCategoryPeriodView,
+  sumTransactionsInRange,
+  uncategorizedTransactionsInPeriod,
+} from "../api/period-summary";
 import type { BackendBudgetFormValues } from "../api/schema";
 import type { BackendBudget, BackendCategory } from "../api/types";
 import { currentPeriodRange, formatPeriodLabel, shiftBudgetPeriod } from "../utils/period";
-import { computeCategoryPeriodView, sumTransactionsInRange } from "../api/period-summary";
-import { cents } from "@/lib/money/cents";
-import { AssignFundsDialog } from "./AssignFundsDialog";
 import { AddBudgetCategorySheet } from "./AddBudgetCategorySheet";
+import { AssignFundsDialog } from "./AssignFundsDialog";
 import { BudgetAccountsPanel } from "./BudgetAccountsPanel";
 import { BudgetPageHeader } from "./BudgetPageHeader";
 import { BudgetPeriodNavigator } from "./BudgetPeriodNavigator";
@@ -49,11 +52,7 @@ export function BudgetsPageClient() {
 
   const periodRange = useMemo(() => {
     if (!selectedBudget) return { from: "", to: "" };
-    const base = currentPeriodRange(
-      viewCadence,
-      selectedBudget.startDate,
-      new Date(),
-    );
+    const base = currentPeriodRange(viewCadence, selectedBudget.startDate, new Date());
     if (periodOffset === 0) return base;
     return shiftBudgetPeriod(viewCadence, selectedBudget.startDate, base, periodOffset);
   }, [selectedBudget, viewCadence, periodOffset]);
@@ -221,9 +220,7 @@ export function BudgetsPageClient() {
         open={!!assignDialogCategory}
         category={assignDialogCategory}
         mode={coverCategory ? "add" : "set"}
-        defaultAmountCents={
-          coverCategory ? coverAmount : assignCategory?.budgeted
-        }
+        defaultAmountCents={coverCategory ? coverAmount : assignCategory?.budgeted}
         defaultFrequency={assignDialogCategory?.budgetedFrequency}
         onClose={() => {
           setAssignCategory(null);

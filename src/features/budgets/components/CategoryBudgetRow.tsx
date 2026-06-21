@@ -4,14 +4,11 @@ import type { ReactNode } from "react";
 import { Money } from "@/components/money/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { frequencyConversionLabel } from "../utils/normalise";
-import {
-  computeCategoryPeriodView,
-  sumTransactionsInRange,
-} from "../api/period-summary";
-import type { DateRange } from "@/lib/date/periods";
 import type { Transaction } from "@/features/transactions/types";
+import type { DateRange } from "@/lib/date/periods";
+import { computeCategoryPeriodView, sumTransactionsInRange } from "../api/period-summary";
 import type { BackendCategory, CategoryPeriodView, ViewCadence } from "../api/types";
+import { frequencyConversionLabel } from "../utils/normalise";
 
 interface Props {
   category: BackendCategory;
@@ -33,12 +30,7 @@ export function CategoryBudgetRow({
   onCover,
 }: Props) {
   const accountIdSet = new Set(accountIds);
-  const periodActual = sumTransactionsInRange(
-    transactions,
-    accountIdSet,
-    periodRange,
-    category.id,
-  );
+  const periodActual = sumTransactionsInRange(transactions, accountIdSet, periodRange, category.id);
   const view = computeCategoryPeriodView(category, viewCadence, periodActual);
   const freqHint =
     category.budgetedFrequency !== viewCadence && category.budgeted > 0
@@ -49,9 +41,7 @@ export function CategoryBudgetRow({
     <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 border-b border-border/50 px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_7rem_7rem_5rem]">
       <div className="min-w-0">
         <p className="truncate font-medium">{category.name}</p>
-        {freqHint ? (
-          <p className="truncate text-[10px] text-muted-foreground">{freqHint}</p>
-        ) : null}
+        {freqHint ? <p className="truncate text-[10px] text-muted-foreground">{freqHint}</p> : null}
       </div>
       <PeriodCell label="Target" value={view.periodTarget} />
       <PeriodCell
@@ -82,13 +72,7 @@ function PeriodCell({
   );
 }
 
-function RemainingCell({
-  view,
-  onAssign,
-}: {
-  view: CategoryPeriodView;
-  onAssign?: () => void;
-}) {
+function RemainingCell({ view, onAssign }: { view: CategoryPeriodView; onAssign?: () => void }) {
   const remainingLabel =
     view.actualLabel === "Received"
       ? view.overTarget
@@ -115,13 +99,7 @@ function RemainingCell({
   );
 }
 
-function OverTargetBadge({
-  view,
-  onCover,
-}: {
-  view: CategoryPeriodView;
-  onCover?: () => void;
-}) {
+function OverTargetBadge({ view, onCover }: { view: CategoryPeriodView; onCover?: () => void }) {
   const label = view.actualLabel === "Received" ? "Under target" : "Over target";
   return (
     <div className="mt-1 flex flex-col items-end gap-1">

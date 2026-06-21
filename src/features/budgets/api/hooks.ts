@@ -10,10 +10,10 @@ import {
   writeSelectedBudgetId,
 } from "@/lib/api/active-budget";
 import { useOnlineQueryEnabled } from "@/lib/query/use-online-query-enabled";
-import { syncBudgetAccountLinks, fetchBudgetAccountIds } from "./budget-links";
+import { fetchBudgetAccountIds, syncBudgetAccountLinks } from "./budget-links";
 import {
-  assignCategoryFunds,
   addCategoryToBudget,
+  assignCategoryFunds,
   createBudget,
   deleteBudget,
   fetchAccounts,
@@ -124,13 +124,7 @@ export function useBackendBudgetSummary(
 ) {
   return useMemo(() => {
     if (!budget || !categories) return null;
-    return computeBudgetSummary(
-      categories,
-      viewCadence,
-      transactions,
-      accountIds,
-      range,
-    );
+    return computeBudgetSummary(categories, viewCadence, transactions, accountIds, range);
   }, [budget, categories, viewCadence, transactions, accountIds, range]);
 }
 

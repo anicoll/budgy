@@ -13,7 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBackendAvailableCategories, useAddCategoryToBudget } from "../api/hooks";
+import { useAddCategoryToBudget, useBackendAvailableCategories } from "../api/hooks";
 import type { AvailableCategory } from "../api/types";
 
 interface Props {

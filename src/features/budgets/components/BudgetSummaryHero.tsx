@@ -1,8 +1,8 @@
 "use client";
 
 import { Money } from "@/components/money/money";
-import { fromCents } from "@/lib/money/cents";
 import { Card, CardContent } from "@/components/ui/card";
+import { fromCents } from "@/lib/money/cents";
 import type { BackendBudgetSummary } from "../api/types";
 
 interface Props {

@@ -1,12 +1,8 @@
-import type { DateRange } from "@/lib/date/periods";
-import { cents, type Cents } from "@/lib/money/cents";
 import { signedAmount, type Transaction } from "@/features/transactions/types";
+import type { DateRange } from "@/lib/date/periods";
+import { type Cents, cents } from "@/lib/money/cents";
 import { normaliseToPeriod } from "../utils/normalise";
-import type {
-  BackendCategory,
-  CategoryPeriodView,
-  ViewCadence,
-} from "./types";
+import type { BackendCategory, CategoryPeriodView, ViewCadence } from "./types";
 
 export function sumTransactionsInRange(
   transactions: Transaction[],
@@ -29,11 +25,7 @@ export function computeCategoryPeriodView(
   viewCadence: ViewCadence,
   periodActual: Cents,
 ): CategoryPeriodView {
-  const target = normaliseToPeriod(
-    category.budgeted,
-    category.budgetedFrequency,
-    viewCadence,
-  );
+  const target = normaliseToPeriod(category.budgeted, category.budgetedFrequency, viewCadence);
   let remaining: number;
   if (category.type === "income") {
     remaining = periodActual - target;
@@ -110,10 +102,6 @@ export function uncategorizedTransactionsInPeriod(
 ): Transaction[] {
   const ids = new Set(accountIds);
   return transactions.filter(
-    (tx) =>
-      ids.has(tx.accountId) &&
-      tx.date >= range.from &&
-      tx.date <= range.to &&
-      !tx.categoryId,
+    (tx) => ids.has(tx.accountId) && tx.date >= range.from && tx.date <= range.to && !tx.categoryId,
   );
 }

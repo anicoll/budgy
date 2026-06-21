@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { Inbox } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 import { Money } from "@/components/money/money";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Transaction } from "@/features/transactions/types";
 
 interface Props {
@@ -35,7 +35,10 @@ export function UncategorizedInbox({ transactions }: Props) {
           ))}
         </ul>
         {transactions.length > 5 ? (
-          <Link href="/transactions" className="text-sm font-medium text-violet-400 hover:underline">
+          <Link
+            href="/transactions"
+            className="text-sm font-medium text-violet-400 hover:underline"
+          >
             View all in transactions →
           </Link>
         ) : null}

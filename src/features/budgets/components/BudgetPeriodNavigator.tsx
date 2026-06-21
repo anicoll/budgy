@@ -9,9 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatPeriodLabel } from "../utils/period";
-import type { ViewCadence } from "../api/types";
 import type { DateRange } from "@/lib/date/periods";
+import type { ViewCadence } from "../api/types";
+import { formatPeriodLabel } from "../utils/period";
 
 const VIEW_OPTIONS: { value: ViewCadence; label: string }[] = [
   { value: "weekly", label: "Week" },

@@ -244,7 +244,7 @@ export function computeSpendingInsights(
 
   for (const catId of allCatIds) {
     const cat = catMap.get(catId);
-    if (!cat || cat.type !== "expense") continue;
+    if (cat?.type !== "expense") continue;
     const cur = current.get(catId) ?? 0;
     const prv = prior.get(catId) ?? 0;
     if (prv === 0 && cur === 0) continue;

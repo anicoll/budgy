@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Link2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Money } from "@/components/money/money";
 import { Badge } from "@/components/ui/badge";
@@ -15,9 +15,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Account } from "@/features/accounts/types";
 import { useAllUserAccounts, useBackendAccounts, useSyncBudgetAccountLinks } from "../api/hooks";
 import type { BackendAccount } from "../api/types";
-import type { Account } from "@/features/accounts/types";
 
 interface Props {
   budgetId: string;

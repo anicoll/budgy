@@ -5,12 +5,12 @@ import { clearActiveBudgetIdCache } from "@/lib/api/api-repository";
 import { accountClient, budgetClient } from "@/lib/api/connect-client";
 import { cents } from "@/lib/money/cents";
 import type {
+  AvailableCategory,
   BackendAccount,
   BackendBudget,
   BackendBudgetFrequency,
   BackendBudgetPeriod,
   BackendCategory,
-  AvailableCategory,
 } from "./types";
 
 function tsToISO(ts: Timestamp | null | undefined): string {

@@ -4,8 +4,8 @@ import { FolderOpen } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { DateRange } from "@/lib/date/periods";
 import type { Transaction } from "@/features/transactions/types";
+import type { DateRange } from "@/lib/date/periods";
 import type { BackendCategory, ViewCadence } from "../api/types";
 import { CategoryBudgetRow } from "./CategoryBudgetRow";
 
@@ -108,10 +108,7 @@ export function CategoryBudgetList({
               accounts create them automatically.
             </p>
           </div>
-          <Link
-            href="/categories"
-            className="text-sm font-medium text-violet-400 hover:underline"
-          >
+          <Link href="/categories" className="text-sm font-medium text-violet-400 hover:underline">
             Manage category taxonomy
           </Link>
         </CardContent>
