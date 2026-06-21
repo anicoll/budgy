@@ -96,11 +96,11 @@ func (m *Mappers) BudgetCategory(ctx context.Context, bc *domain.BudgetCategory)
 		return nil
 	}
 	return &budgyv1.BudgetCategory{
-		Category:           m.Category(ctx, &bc.Category),
-		Budgeted:           bc.Budgeted,
-		Balance:            bc.Balance,
-		TargetLimit:        bc.TargetLimit,
-		BudgetedFrequency:  budgetFrequencyToProto(bc.BudgetedFrequency),
+		Category:          m.Category(ctx, &bc.Category),
+		Budgeted:          bc.Budgeted,
+		Balance:           bc.Balance,
+		TargetLimit:       bc.TargetLimit,
+		BudgetedFrequency: budgetFrequencyToProto(bc.BudgetedFrequency),
 	}
 }
 

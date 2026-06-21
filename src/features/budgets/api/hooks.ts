@@ -135,7 +135,16 @@ export function useBackendBudgetSummary(
       range,
       taxonomyCategories,
     );
-  }, [budget, categories, accounts, viewCadence, transactions, accountIds, range, taxonomyCategories]);
+  }, [
+    budget,
+    categories,
+    accounts,
+    viewCadence,
+    transactions,
+    accountIds,
+    range,
+    taxonomyCategories,
+  ]);
 }
 
 function invalidateBudgetQueries(qc: ReturnType<typeof useQueryClient>, budgetId?: string) {

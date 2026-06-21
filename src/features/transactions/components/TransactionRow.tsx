@@ -13,10 +13,10 @@ import {
 import type { Account } from "@/features/accounts/types";
 import type { Category } from "@/features/categories/types";
 import { formatAUDateShort } from "@/lib/date/au-locale";
+import type { Cents } from "@/lib/money/cents";
 import { cn } from "@/lib/utils";
 import { useBulkSetCategory } from "../hooks";
 import { signedAmount, type Transaction, TXN_TYPE_LABEL } from "../types";
-import type { Cents } from "@/lib/money/cents";
 
 interface Props {
   txn: Transaction;
@@ -62,7 +62,9 @@ export function TransactionRow({
     <div
       className={cn(
         "group flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-colors",
-        isSynced ? "bg-surface/10 hover:bg-surface/15" : "hover:border-border/50 hover:bg-surface/60",
+        isSynced
+          ? "bg-surface/10 hover:bg-surface/15"
+          : "hover:border-border/50 hover:bg-surface/60",
       )}
     >
       <button
@@ -204,12 +206,7 @@ function TxnMainContent({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "truncate text-sm font-medium",
-              muted && "text-muted-foreground",
-            )}
-          >
+          <span className={cn("truncate text-sm font-medium", muted && "text-muted-foreground")}>
             {txn.payee || txn.description || TXN_TYPE_LABEL[txn.type]}
           </span>
           {txn.tags.length > 0 && (
@@ -261,7 +258,13 @@ function TxnMainContent({
         className={cn(
           "shrink-0 text-sm tabular-nums",
           muted ? "font-medium" : "font-semibold",
-          isIncoming ? (muted ? "text-income/80" : "text-income") : muted ? "text-muted-foreground" : "text-foreground",
+          isIncoming
+            ? muted
+              ? "text-income/80"
+              : "text-income"
+            : muted
+              ? "text-muted-foreground"
+              : "text-foreground",
         )}
       />
     </>

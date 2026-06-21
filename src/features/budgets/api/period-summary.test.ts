@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cents } from "@/lib/money/cents";
 import type { Transaction } from "@/features/transactions/types";
+import { cents } from "@/lib/money/cents";
 import {
   buildCategoryTypeLookup,
   computePeriodReceived,
@@ -14,9 +14,7 @@ const lookup = buildCategoryTypeLookup([
   { id: "xfer", type: "transfer" },
 ]);
 
-const tx = (
-  overrides: Partial<Transaction> & Pick<Transaction, "id">,
-): Transaction => ({
+const tx = (overrides: Partial<Transaction> & Pick<Transaction, "id">): Transaction => ({
   accountId: "a1",
   categoryId: "groceries",
   amount: cents(1000),
