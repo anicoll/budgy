@@ -53,6 +53,9 @@ next-env.d.ts
 /*.db
 /*.db-journal
 
+# Local dev seed script (not for repo)
+/backend/cmd/seed-user/
+
 # Agent CLI
 .antigravitycli/
 .gemini/

@@ -15,6 +15,7 @@ type bankSyncService struct {
 	budgetAccts  domain.BudgetAccountRepository
 	transactions domain.TransactionRepository
 	categories   domain.CategoryRepository
+	reconciler   domain.BudgetReconciler
 	provider     domain.BankSyncProvider
 }
 
@@ -25,6 +26,7 @@ func NewBankSyncService(
 	budgetAccts domain.BudgetAccountRepository,
 	transactions domain.TransactionRepository,
 	categories domain.CategoryRepository,
+	reconciler domain.BudgetReconciler,
 	provider domain.BankSyncProvider,
 ) BankSyncService {
 	return &bankSyncService{
@@ -34,6 +36,7 @@ func NewBankSyncService(
 		budgetAccts:  budgetAccts,
 		transactions: transactions,
 		categories:   categories,
+		reconciler:   reconciler,
 		provider:     provider,
 	}
 }
@@ -77,8 +80,7 @@ func (s *bankSyncService) SyncUser(ctx context.Context, userID string) error {
 		return fmt.Errorf("%w: no connected Basiq account found", ErrBadRequest)
 	}
 
-	budgetID, err := s.ensureDefaultBudget(ctx, userID)
-	if err != nil {
+	if err := s.ensureDefaultBudget(ctx, userID); err != nil {
 		return err
 	}
 
@@ -109,44 +111,74 @@ func (s *bankSyncService) SyncUser(ctx context.Context, userID string) error {
 				return fmt.Errorf("failed to update account %s: %w", acc.ID, err)
 			}
 		}
-		_ = s.budgetAccts.Link(ctx, budgetID, acc.ID)
 	}
 
 	for _, tx := range transactions {
-		tx.BudgetID = budgetID
-		if tx.CategoryID == "" {
+		categoryID := tx.CategoryID
+		if categoryID == "" {
 			code := tx.SubClass
 			if code == "" {
 				code = tx.Class
 			}
 			if code != "" {
 				if cat, err := s.categories.GetByBasiqSubClassCode(ctx, userID, code); err == nil {
-					tx.CategoryID = cat.ID
+					categoryID = cat.ID
 				}
 			}
 		}
-		_, err := s.transactions.GetByID(ctx, tx.ID)
+
+		existing, err := s.transactions.GetByID(ctx, tx.ID)
 		if err != nil {
+			tx.CategoryID = categoryID
 			if err := s.transactions.Create(ctx, tx); err != nil {
 				return fmt.Errorf("failed to create transaction %s: %w", tx.ID, err)
 			}
-		} else {
-			tx.UpdatedAt = time.Now()
-			if err := s.transactions.Update(ctx, tx); err != nil {
-				return fmt.Errorf("failed to update transaction %s: %w", tx.ID, err)
-			}
+			continue
+		}
+
+		existing.Amount = tx.Amount
+		existing.Description = tx.Description
+		existing.Date = tx.Date
+		existing.Direction = tx.Direction
+		existing.Status = tx.Status
+		existing.Class = tx.Class
+		existing.PostDate = tx.PostDate
+		existing.SubClass = tx.SubClass
+		existing.RawDescription = tx.RawDescription
+		existing.MerchantName = tx.MerchantName
+		existing.MerchantWebsite = tx.MerchantWebsite
+		existing.MerchantLogoURL = tx.MerchantLogoURL
+		existing.LocationAddress = tx.LocationAddress
+		existing.LocationLat = tx.LocationLat
+		existing.LocationLng = tx.LocationLng
+		existing.CategoryCode = tx.CategoryCode
+		existing.CategoryTitle = tx.CategoryTitle
+		existing.UpdatedAt = time.Now()
+		if categoryID != "" {
+			existing.CategoryID = categoryID
+		}
+		if err := s.transactions.Update(ctx, existing); err != nil {
+			return fmt.Errorf("failed to update transaction %s: %w", tx.ID, err)
+		}
+	}
+
+	if s.reconciler != nil {
+		if bs, ok := s.reconciler.(interface {
+			ReconcileAllForUser(ctx context.Context, userID string) error
+		}); ok {
+			return bs.ReconcileAllForUser(ctx, userID)
 		}
 	}
 	return nil
 }
 
-func (s *bankSyncService) ensureDefaultBudget(ctx context.Context, userID string) (string, error) {
+func (s *bankSyncService) ensureDefaultBudget(ctx context.Context, userID string) error {
 	budgetsList, err := s.budgets.List(ctx, userID)
 	if err != nil {
-		return "", fmt.Errorf("failed to list budgets: %w", err)
+		return fmt.Errorf("failed to list budgets: %w", err)
 	}
 	if len(budgetsList) > 0 {
-		return budgetsList[0].ID, nil
+		return nil
 	}
 	defaultBudget := &domain.Budget{
 		ID:        generateID(),
@@ -154,11 +186,13 @@ func (s *bankSyncService) ensureDefaultBudget(ctx context.Context, userID string
 		Name:      "Default Budget",
 		Method:    domain.MethodZeroSum,
 		Currency:  "AUD",
+		Period:    domain.PeriodMonthly,
+		StartDate: time.Now().Format("2006-01-02"),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 	if err := s.budgets.Create(ctx, defaultBudget); err != nil {
-		return "", fmt.Errorf("failed to create default budget: %w", err)
+		return fmt.Errorf("failed to create default budget: %w", err)
 	}
-	return defaultBudget.ID, nil
+	return nil
 }

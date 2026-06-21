@@ -12,23 +12,20 @@ type accountService struct {
 	accounts    domain.AccountRepository
 	budgets     domain.BudgetRepository
 	budgetAccts domain.BudgetAccountRepository
-	allocations domain.AllocationRepository
-	transactions domain.TransactionRepository
+	reconciler  domain.BudgetReconciler
 }
 
 func NewAccountService(
 	accounts domain.AccountRepository,
 	budgets domain.BudgetRepository,
 	budgetAccts domain.BudgetAccountRepository,
-	allocations domain.AllocationRepository,
-	transactions domain.TransactionRepository,
+	reconciler domain.BudgetReconciler,
 ) AccountService {
 	return &accountService{
-		accounts:     accounts,
-		budgets:      budgets,
-		budgetAccts:  budgetAccts,
-		allocations:  allocations,
-		transactions: transactions,
+		accounts:    accounts,
+		budgets:     budgets,
+		budgetAccts: budgetAccts,
+		reconciler:  reconciler,
 	}
 }
 
@@ -56,27 +53,10 @@ func (s *accountService) List(ctx context.Context, userID string) ([]*domain.Acc
 }
 
 func (s *accountService) ListByBudget(ctx context.Context, budgetID string) ([]*domain.Account, error) {
-	b, err := s.budgets.GetByID(ctx, budgetID)
-	if err != nil {
+	if _, err := s.budgets.GetByID(ctx, budgetID); err != nil {
 		return nil, fmt.Errorf("%w: budget not found", ErrNotFound)
 	}
-
-	accounts, err := s.budgetAccts.ListAccountsByBudget(ctx, budgetID)
-	if err != nil {
-		return nil, err
-	}
-
-	if b.Method != domain.MethodEnvelope {
-		return accounts, nil
-	}
-
-	for _, acc := range accounts {
-		unallocated, err := s.calculateUnallocated(ctx, budgetID, acc)
-		if err == nil {
-			acc.Balance = unallocated
-		}
-	}
-	return accounts, nil
+	return s.budgetAccts.ListAccountsByBudget(ctx, budgetID)
 }
 
 func (s *accountService) GetByID(ctx context.Context, id string) (*domain.Account, error) {
@@ -120,7 +100,22 @@ func (s *accountService) LinkToBudget(ctx context.Context, budgetID, accountID, 
 	if err := verifyAccountOwner(acc, userID); err != nil {
 		return err
 	}
-	return s.budgetAccts.Link(ctx, budgetID, accountID)
+
+	existingBudget, err := s.budgetAccts.FindBudgetForAccount(ctx, accountID)
+	if err != nil {
+		return err
+	}
+	if existingBudget != "" && existingBudget != budgetID {
+		return fmt.Errorf("%w: account is already linked to another budget", ErrConflict)
+	}
+
+	if err := s.budgetAccts.Link(ctx, budgetID, accountID); err != nil {
+		return err
+	}
+	if s.reconciler != nil {
+		return s.reconciler.ReconcileFromTransactions(ctx, budgetID)
+	}
+	return nil
 }
 
 func (s *accountService) UnlinkFromBudget(ctx context.Context, budgetID, accountID, userID string) error {
@@ -138,27 +133,11 @@ func (s *accountService) UnlinkFromBudget(ctx context.Context, budgetID, account
 	if err := verifyAccountOwner(acc, userID); err != nil {
 		return err
 	}
-	return s.budgetAccts.Unlink(ctx, budgetID, accountID)
-}
-
-func (s *accountService) calculateUnallocated(ctx context.Context, budgetID string, acc *domain.Account) (int64, error) {
-	allocs, err := s.allocations.ListByAccount(ctx, budgetID, acc.ID)
-	if err != nil {
-		return 0, err
+	if err := s.budgetAccts.Unlink(ctx, budgetID, accountID); err != nil {
+		return err
 	}
-	var totalAllocated int64
-	for _, a := range allocs {
-		totalAllocated += a.Amount
+	if s.reconciler != nil {
+		return s.reconciler.ReconcileFromTransactions(ctx, budgetID)
 	}
-	txs, err := s.transactions.ListByAccount(ctx, acc.ID)
-	if err != nil {
-		return 0, err
-	}
-	var totalSpent int64
-	for _, tx := range txs {
-		if tx.CategoryID != "" {
-			totalSpent += tx.Amount
-		}
-	}
-	return acc.Balance - totalAllocated - totalSpent, nil
+	return nil
 }

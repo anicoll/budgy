@@ -10,6 +10,7 @@ go_library(
     ],
     embedsrcs = [
         "migrations/0001_init.sql",
+        "migrations/0002_budget_periods.sql",
     ],
     importpath = "budgeting_system/internal/storage",
     visibility = ["//backend:__subpackages__"],

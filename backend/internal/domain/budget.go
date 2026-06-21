@@ -13,13 +13,35 @@ const (
 	MethodEnvelope BudgetMethod = "ENVELOPE"
 )
 
+// BudgetPeriod is the default budgeting cycle for a budget.
+type BudgetPeriod string
+
+const (
+	PeriodWeekly      BudgetPeriod = "weekly"
+	PeriodFortnightly BudgetPeriod = "fortnightly"
+	PeriodMonthly     BudgetPeriod = "monthly"
+)
+
+// BudgetFrequency is the native cadence for a category target amount.
+type BudgetFrequency string
+
+const (
+	FrequencyWeekly      BudgetFrequency = "weekly"
+	FrequencyFortnightly BudgetFrequency = "fortnightly"
+	FrequencyMonthly     BudgetFrequency = "monthly"
+	FrequencyQuarterly   BudgetFrequency = "quarterly"
+	FrequencyYearly      BudgetFrequency = "yearly"
+)
+
 // Budget represents a budgeting project owned by a user.
 type Budget struct {
 	ID        string       `json:"id"`
 	UserID    string       `json:"user_id"`
 	Name      string       `json:"name"`
 	Method    BudgetMethod `json:"method"`
-	Currency  string       `json:"currency"` // e.g. "USD", "EUR"
+	Currency  string       `json:"currency"`
+	Period    BudgetPeriod `json:"period"`
+	StartDate string       `json:"start_date"` // ISO date YYYY-MM-DD
 	CreatedAt time.Time    `json:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at"`
 }
@@ -37,6 +59,9 @@ func (b *Budget) Validate() error {
 	}
 	if b.Currency == "" {
 		return errors.New("currency cannot be empty")
+	}
+	if b.Period != "" && b.Period != PeriodWeekly && b.Period != PeriodFortnightly && b.Period != PeriodMonthly {
+		return errors.New("invalid budget period")
 	}
 	return nil
 }

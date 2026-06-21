@@ -36,6 +36,11 @@ func NewDBBudgetMapper(mapperGetter interface {
 			m.converter00000 = v
 		}
 	}
+	if obj, err := mapperGetter.GetFuncByTypeName("", "string", "budgeting_system/internal/domain#BudgetPeriod"); err == nil {
+		if v, ok := obj.(func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.BudgetPeriod, bool, error)); ok {
+			m.converter00001 = v
+		}
+	}
 	return m
 }
 
@@ -48,6 +53,7 @@ type dbbudgetmapper struct {
 	}
 	helper         DBBudgetMapperHelper
 	converter00000 func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.BudgetMethod, bool, error)
+	converter00001 func(pkg_context.Context, *string) (pkg_budgeting_system_internal_domain.BudgetPeriod, bool, error)
 }
 
 func (m *dbbudgetmapper) BudgetToBudget(ctx pkg_context.Context, source *pkg_budgeting_system_internal_storage_db.Budget, dest *pkg_budgeting_system_internal_domain.Budget) error {
@@ -72,6 +78,22 @@ func (m *dbbudgetmapper) BudgetToBudget(ctx pkg_context.Context, source *pkg_bud
 	dest.Currency = source.Currency
 	dest.CreatedAt = source.CreatedAt
 	dest.UpdatedAt = source.UpdatedAt
+	done8 := false
+	if m.converter00001 != nil && !done8 {
+		done8 = true
+		if converted, isnil, err := m.converter00001(ctx, &(source.Period)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.Period = converted
+			}
+		}
+	}
+	if !done8 {
+		done8 = true
+		dest.Period = pkg_budgeting_system_internal_domain.BudgetPeriod(source.Period)
+	}
+	dest.StartDate = source.StartDate
 	if m.helper != nil {
 		if err := m.helper.BudgetToBudget(ctx, source, dest); err != nil {
 			return err

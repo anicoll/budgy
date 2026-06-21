@@ -84,14 +84,14 @@ func main() {
 	budgetAcctsRepo := store.BudgetAccounts()
 	budgetLinesRepo := store.BudgetCategoryLines()
 	budgetSvc := service.NewBudgetService(budgetsRepo, accountsRepo, budgetAcctsRepo, budgetLinesRepo, allocationsRepo, transactionsRepo)
-	accountSvc := service.NewAccountService(accountsRepo, budgetsRepo, budgetAcctsRepo, allocationsRepo, transactionsRepo)
+	accountSvc := service.NewAccountService(accountsRepo, budgetsRepo, budgetAcctsRepo, budgetSvc)
 	categorySvc := service.NewCategoryService(categoriesRepo)
-	txSvc := service.NewTransactionService(transactionsRepo, accountsRepo, categoriesRepo, budgetsRepo, budgetAcctsRepo, budgetLinesRepo)
+	txSvc := service.NewTransactionService(transactionsRepo, accountsRepo, categoriesRepo, budgetsRepo, budgetAcctsRepo, budgetLinesRepo, budgetSvc)
 
 	var bankSyncSvc service.BankSyncService
 	var jobQueue service.JobQueue
 	if basiqService != nil {
-		bankSyncSvc = service.NewBankSyncService(usersRepo, budgetsRepo, accountsRepo, budgetAcctsRepo, transactionsRepo, categoriesRepo, basiqService)
+		bankSyncSvc = service.NewBankSyncService(usersRepo, budgetsRepo, accountsRepo, budgetAcctsRepo, transactionsRepo, categoriesRepo, budgetSvc, basiqService)
 		jobsRepo := store.Jobs()
 		jobQueue = service.NewJobQueue(jobsRepo, bankSyncSvc)
 		jobQueue.Start(context.Background())

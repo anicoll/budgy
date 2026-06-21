@@ -1,12 +1,16 @@
 import type { Cents } from "@/lib/money/cents";
+import type { BudgetFrequency } from "../utils/normalise";
 
-export type BackendBudgetMethod = "zero_sum" | "envelope";
+export type BackendBudgetPeriod = "weekly" | "fortnightly" | "monthly";
+
+export type BackendBudgetFrequency = BudgetFrequency;
 
 export interface BackendBudget {
   id: string;
   name: string;
-  method: BackendBudgetMethod;
   currency: string;
+  period: BackendBudgetPeriod;
+  startDate: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,6 +24,13 @@ export interface BackendCategory {
   budgeted: Cents;
   balance: Cents;
   targetLimit: Cents;
+  budgetedFrequency: BackendBudgetFrequency;
+}
+
+export interface AvailableCategory {
+  id: string;
+  name: string;
+  type: "income" | "expense" | "transfer";
 }
 
 export interface BackendAccount {
@@ -28,21 +39,26 @@ export interface BackendAccount {
   balance: Cents;
 }
 
-export interface ZeroSumBudgetSummary {
-  kind: "zero_sum";
-  totalAvailableFunds: Cents;
-  totalAssignedFunds: Cents;
-  readyToAssign: Cents;
+export interface PeriodBudgetSummary {
+  kind: "period";
+  periodReceived: Cents;
+  periodSpent: Cents;
+  periodNet: Cents;
+  budgetedIncome: Cents;
+  budgetedExpenses: Cents;
+  budgetedNet: Cents;
 }
 
-export interface EnvelopeBudgetSummary {
-  kind: "envelope";
-  totalBalance: Cents;
-  onTrack: number;
-  watch: number;
-  overspent: number;
+export type BackendBudgetSummary = PeriodBudgetSummary;
+
+export type ViewCadence = BackendBudgetPeriod;
+
+export interface CategoryPeriodView {
+  periodTarget: Cents;
+  periodActual: Cents;
+  /** Positive magnitude for display (received or spent). */
+  periodActualDisplay: Cents;
+  periodRemaining: Cents;
+  overTarget: boolean;
+  actualLabel: "Received" | "Spent";
 }
-
-export type BackendBudgetSummary = ZeroSumBudgetSummary | EnvelopeBudgetSummary;
-
-export type EnvelopeCategoryStatus = "on_track" | "watch" | "overspent";

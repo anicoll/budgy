@@ -31,20 +31,26 @@ func scanBudgetCategoryRow(row interface {
 }) (*domain.BudgetCategory, error) {
 	var dbC db.Category
 	var budgeted, balance, targetLimit int64
+	var freq string
 	if err := row.Scan(
 		&dbC.ID, &dbC.UserID, &dbC.ParentID, &dbC.Name, &dbC.Type, &dbC.Color, &dbC.Icon,
 		&dbC.SortOrder, &dbC.Archived, &dbC.System, &dbC.BasiqSubclassCode, &dbC.AnzsicClassCode,
 		&dbC.CreatedAt, &dbC.UpdatedAt,
-		&budgeted, &balance, &targetLimit,
+		&budgeted, &balance, &targetLimit, &freq,
 	); err != nil {
 		return nil, err
 	}
 	c := dbCategoryToDomain(&dbC)
+	bf := domain.BudgetFrequency(freq)
+	if bf == "" {
+		bf = domain.FrequencyMonthly
+	}
 	return &domain.BudgetCategory{
-		Category:    *c,
-		Budgeted:    budgeted,
-		Balance:     balance,
-		TargetLimit: targetLimit,
+		Category:          *c,
+		Budgeted:          budgeted,
+		Balance:           balance,
+		TargetLimit:       targetLimit,
+		BudgetedFrequency: bf,
 	}, nil
 }
 

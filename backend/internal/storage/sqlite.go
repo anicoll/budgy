@@ -102,37 +102,28 @@ func (s *SQLiteStorage) BudgetCategoryLines() domain.BudgetCategoryLineRepositor
 }
 
 func (r *budgetRepository) Create(ctx context.Context, b *domain.Budget) error {
-	query := `INSERT INTO budgets (id, user_id, name, method, currency, created_at, updated_at)
-	          VALUES (?, ?, ?, ?, ?, ?, ?)`
-	var userID any = b.UserID
-	if b.UserID == "" {
-		userID = nil
+	period := string(b.Period)
+	if period == "" {
+		period = string(domain.PeriodMonthly)
 	}
-	_, err := r.db.ExecContext(ctx, query, b.ID, userID, b.Name, string(b.Method), b.Currency, b.CreatedAt, b.UpdatedAt)
+	startDate := b.StartDate
+	if startDate == "" {
+		startDate = time.Now().Format("2006-01-02")
+	}
+	query := `INSERT INTO budgets (id, user_id, name, method, currency, period, start_date, created_at, updated_at)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := r.db.ExecContext(ctx, query, b.ID, b.UserID, b.Name, string(b.Method), b.Currency, period, startDate, b.CreatedAt, b.UpdatedAt)
 	return err
 }
 
 func (r *budgetRepository) GetByID(ctx context.Context, id string) (*domain.Budget, error) {
-	query := `SELECT id, user_id, name, method, currency, created_at, updated_at FROM budgets WHERE id = ?`
+	query := `SELECT id, user_id, name, method, currency, period, start_date, created_at, updated_at FROM budgets WHERE id = ?`
 	row := r.db.QueryRowContext(ctx, query, id)
-
-	var dbBudget db.Budget
-	err := row.Scan(&dbBudget.ID, &dbBudget.UserID, &dbBudget.Name, &dbBudget.Method, &dbBudget.Currency, &dbBudget.CreatedAt, &dbBudget.UpdatedAt)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("budget not found")
-		}
-		return nil, err
-	}
-	var b domain.Budget
-	if err := dbBudgetMapper.BudgetToBudget(ctx, &dbBudget, &b); err != nil {
-		return nil, err
-	}
-	return &b, nil
+	return scanBudget(row)
 }
 
 func (r *budgetRepository) List(ctx context.Context, userID string) ([]*domain.Budget, error) {
-	query := `SELECT id, user_id, name, method, currency, created_at, updated_at FROM budgets WHERE user_id = ?`
+	query := `SELECT id, user_id, name, method, currency, period, start_date, created_at, updated_at FROM budgets WHERE user_id = ? ORDER BY created_at`
 	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
@@ -141,28 +132,51 @@ func (r *budgetRepository) List(ctx context.Context, userID string) ([]*domain.B
 
 	var list []*domain.Budget
 	for rows.Next() {
-		var dbBudget db.Budget
-		err := rows.Scan(&dbBudget.ID, &dbBudget.UserID, &dbBudget.Name, &dbBudget.Method, &dbBudget.Currency, &dbBudget.CreatedAt, &dbBudget.UpdatedAt)
+		b, err := scanBudget(rows)
 		if err != nil {
 			return nil, err
 		}
-		var b domain.Budget
-		if err := dbBudgetMapper.BudgetToBudget(ctx, &dbBudget, &b); err != nil {
-			return nil, err
-		}
-		list = append(list, &b)
+		list = append(list, b)
 	}
-	return list, nil
+	return list, rows.Err()
 }
 
 func (r *budgetRepository) Update(ctx context.Context, b *domain.Budget) error {
-	query := `UPDATE budgets SET user_id = ?, name = ?, method = ?, currency = ?, updated_at = ? WHERE id = ?`
-	var userID any = b.UserID
-	if b.UserID == "" {
-		userID = nil
+	period := string(b.Period)
+	if period == "" {
+		period = string(domain.PeriodMonthly)
 	}
-	_, err := r.db.ExecContext(ctx, query, userID, b.Name, string(b.Method), b.Currency, b.UpdatedAt, b.ID)
+	startDate := b.StartDate
+	if startDate == "" {
+		startDate = time.Now().Format("2006-01-02")
+	}
+	query := `UPDATE budgets SET user_id = ?, name = ?, method = ?, currency = ?, period = ?, start_date = ?, updated_at = ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, b.UserID, b.Name, string(b.Method), b.Currency, period, startDate, b.UpdatedAt, b.ID)
 	return err
+}
+
+func scanBudget(row interface {
+	Scan(dest ...any) error
+}) (*domain.Budget, error) {
+	var b domain.Budget
+	var method, period, startDate string
+	err := row.Scan(&b.ID, &b.UserID, &b.Name, &method, &b.Currency, &period, &startDate, &b.CreatedAt, &b.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("budget not found")
+		}
+		return nil, err
+	}
+	b.Method = domain.BudgetMethod(method)
+	b.Period = domain.BudgetPeriod(period)
+	if b.Period == "" {
+		b.Period = domain.PeriodMonthly
+	}
+	b.StartDate = startDate
+	if b.StartDate == "" {
+		b.StartDate = time.Now().Format("2006-01-02")
+	}
+	return &b, nil
 }
 
 func (r *budgetRepository) Delete(ctx context.Context, id string) error {

@@ -44,7 +44,9 @@ func (s *authService) Register(ctx context.Context, email, password, firstName, 
 		return nil, err
 	}
 	if s.seeder != nil {
-		_ = s.seeder.SeedCategoriesForUser(ctx, user.ID)
+		if err := s.seeder.SeedCategoriesForUser(ctx, user.ID); err != nil {
+			return nil, fmt.Errorf("failed to seed categories: %w", err)
+		}
 	}
 	return user, nil
 }

@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cents } from "@/lib/money/cents";
-import {
-  computeBudgetSummary,
-  computeEnvelopeSummary,
-  computeZeroSumSummary,
-  envelopeCategoryStatus,
-  envelopeProgressRatio,
-} from "./summary";
-import type { BackendAccount, BackendCategory } from "./types";
+import { computeBudgetSummary, computePeriodBudgetSummary } from "./summary";
+import type { BackendCategory } from "./types";
 
 const cat = (overrides: Partial<BackendCategory> = {}): BackendCategory => ({
   id: "c1",
@@ -18,82 +12,62 @@ const cat = (overrides: Partial<BackendCategory> = {}): BackendCategory => ({
   budgeted: cents(50000),
   balance: cents(30000),
   targetLimit: cents(40000),
+  budgetedFrequency: "monthly",
   ...overrides,
 });
 
-const acc = (overrides: Partial<BackendAccount> = {}): BackendAccount => ({
-  id: "a1",
-  name: "Checking",
-  balance: cents(100000),
-  ...overrides,
-});
+const range = { from: "2024-06-01", to: "2024-06-30" };
 
-describe("computeZeroSumSummary", () => {
-  it("sums account balances and category balances", () => {
-    const summary = computeZeroSumSummary(
-      [acc({ balance: cents(100000) }), acc({ id: "a2", balance: cents(50000) })],
-      [cat({ balance: cents(30000) }), cat({ id: "c2", balance: cents(20000) })],
+describe("computePeriodBudgetSummary", () => {
+  it("computes received, spent, and budgeted totals for the period", () => {
+    const summary = computePeriodBudgetSummary(
+      [
+        cat({ id: "salary", type: "income", name: "Salary", budgeted: cents(800000) }),
+        cat({ budgeted: cents(30000) }),
+      ],
+      "monthly",
+      [
+        {
+          id: "t1",
+          accountId: "a1",
+          categoryId: "salary",
+          amount: cents(800000),
+          type: "credit",
+          date: "2024-06-15",
+          tags: [],
+          cleared: true,
+          createdAt: "",
+          updatedAt: "",
+        },
+        {
+          id: "t2",
+          accountId: "a1",
+          categoryId: "c1",
+          amount: cents(12000),
+          type: "debit",
+          date: "2024-06-10",
+          tags: [],
+          cleared: true,
+          createdAt: "",
+          updatedAt: "",
+        },
+      ],
+      ["a1"],
+      range,
     );
 
-    expect(summary.kind).toBe("zero_sum");
-    expect(summary.totalAvailableFunds).toBe(cents(150000));
-    expect(summary.totalAssignedFunds).toBe(cents(50000));
-    expect(summary.readyToAssign).toBe(cents(100000));
-  });
-});
-
-describe("computeEnvelopeSummary", () => {
-  it("counts category statuses", () => {
-    const summary = computeEnvelopeSummary([
-      cat({ balance: cents(50000), targetLimit: cents(40000) }),
-      cat({ id: "c2", balance: cents(10000), targetLimit: cents(40000) }),
-      cat({ id: "c3", balance: cents(-1000), targetLimit: cents(40000) }),
-    ]);
-
-    expect(summary.kind).toBe("envelope");
-    expect(summary.totalBalance).toBe(cents(59000));
-    expect(summary.onTrack).toBe(1);
-    expect(summary.watch).toBe(1);
-    expect(summary.overspent).toBe(1);
+    expect(summary.kind).toBe("period");
+    expect(summary.periodReceived).toBe(cents(800000));
+    expect(summary.periodSpent).toBe(cents(12000));
+    expect(summary.periodNet).toBe(cents(788000));
+    expect(summary.budgetedIncome).toBe(cents(800000));
+    expect(summary.budgetedExpenses).toBe(cents(30000));
+    expect(summary.budgetedNet).toBe(cents(770000));
   });
 });
 
 describe("computeBudgetSummary", () => {
-  it("delegates by method", () => {
-    const zeroSum = computeBudgetSummary("zero_sum", [acc()], [cat()]);
-    expect(zeroSum.kind).toBe("zero_sum");
-
-    const envelope = computeBudgetSummary("envelope", [acc()], [cat()]);
-    expect(envelope.kind).toBe("envelope");
-  });
-});
-
-describe("envelopeCategoryStatus", () => {
-  it("marks overspent when balance is negative", () => {
-    expect(envelopeCategoryStatus(cat({ balance: cents(-1) }))).toBe("overspent");
-  });
-
-  it("marks watch when below target", () => {
-    expect(envelopeCategoryStatus(cat({ balance: cents(10000), targetLimit: cents(40000) }))).toBe(
-      "watch",
-    );
-  });
-
-  it("marks on track when at or above target", () => {
-    expect(envelopeCategoryStatus(cat({ balance: cents(40000), targetLimit: cents(40000) }))).toBe(
-      "on_track",
-    );
-  });
-});
-
-describe("envelopeProgressRatio", () => {
-  it("returns balance divided by target", () => {
-    expect(envelopeProgressRatio(cat({ balance: cents(20000), targetLimit: cents(40000) }))).toBe(
-      0.5,
-    );
-  });
-
-  it("returns 1 when target is zero and balance is non-negative", () => {
-    expect(envelopeProgressRatio(cat({ balance: cents(0), targetLimit: cents(0) }))).toBe(1);
+  it("returns null without transactions and range", () => {
+    expect(computeBudgetSummary([cat()], "monthly")).toBeNull();
   });
 });

@@ -74,6 +74,64 @@ func (CategoryType) EnumDescriptor() ([]byte, []int) {
 	return file_budgy_v1_category_proto_rawDescGZIP(), []int{0}
 }
 
+type BudgetFrequency int32
+
+const (
+	BudgetFrequency_BUDGET_FREQUENCY_UNSPECIFIED BudgetFrequency = 0
+	BudgetFrequency_BUDGET_FREQUENCY_WEEKLY      BudgetFrequency = 1
+	BudgetFrequency_BUDGET_FREQUENCY_FORTNIGHTLY BudgetFrequency = 2
+	BudgetFrequency_BUDGET_FREQUENCY_MONTHLY     BudgetFrequency = 3
+	BudgetFrequency_BUDGET_FREQUENCY_QUARTERLY   BudgetFrequency = 4
+	BudgetFrequency_BUDGET_FREQUENCY_YEARLY      BudgetFrequency = 5
+)
+
+// Enum value maps for BudgetFrequency.
+var (
+	BudgetFrequency_name = map[int32]string{
+		0: "BUDGET_FREQUENCY_UNSPECIFIED",
+		1: "BUDGET_FREQUENCY_WEEKLY",
+		2: "BUDGET_FREQUENCY_FORTNIGHTLY",
+		3: "BUDGET_FREQUENCY_MONTHLY",
+		4: "BUDGET_FREQUENCY_QUARTERLY",
+		5: "BUDGET_FREQUENCY_YEARLY",
+	}
+	BudgetFrequency_value = map[string]int32{
+		"BUDGET_FREQUENCY_UNSPECIFIED": 0,
+		"BUDGET_FREQUENCY_WEEKLY":      1,
+		"BUDGET_FREQUENCY_FORTNIGHTLY": 2,
+		"BUDGET_FREQUENCY_MONTHLY":     3,
+		"BUDGET_FREQUENCY_QUARTERLY":   4,
+		"BUDGET_FREQUENCY_YEARLY":      5,
+	}
+)
+
+func (x BudgetFrequency) Enum() *BudgetFrequency {
+	p := new(BudgetFrequency)
+	*p = x
+	return p
+}
+
+func (x BudgetFrequency) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BudgetFrequency) Descriptor() protoreflect.EnumDescriptor {
+	return file_budgy_v1_category_proto_enumTypes[1].Descriptor()
+}
+
+func (BudgetFrequency) Type() protoreflect.EnumType {
+	return &file_budgy_v1_category_proto_enumTypes[1]
+}
+
+func (x BudgetFrequency) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BudgetFrequency.Descriptor instead.
+func (BudgetFrequency) EnumDescriptor() ([]byte, []int) {
+	return file_budgy_v1_category_proto_rawDescGZIP(), []int{1}
+}
+
 type Category struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -223,13 +281,14 @@ func (x *Category) GetUpdatedAt() *timestamppb.Timestamp {
 }
 
 type BudgetCategory struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Category      *Category              `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
-	Budgeted      int64                  `protobuf:"varint,2,opt,name=budgeted,proto3" json:"budgeted,omitempty"`
-	Balance       int64                  `protobuf:"varint,3,opt,name=balance,proto3" json:"balance,omitempty"`
-	TargetLimit   int64                  `protobuf:"varint,4,opt,name=target_limit,json=targetLimit,proto3" json:"target_limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Category          *Category              `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
+	Budgeted          int64                  `protobuf:"varint,2,opt,name=budgeted,proto3" json:"budgeted,omitempty"`
+	Balance           int64                  `protobuf:"varint,3,opt,name=balance,proto3" json:"balance,omitempty"`
+	TargetLimit       int64                  `protobuf:"varint,4,opt,name=target_limit,json=targetLimit,proto3" json:"target_limit,omitempty"`
+	BudgetedFrequency BudgetFrequency        `protobuf:"varint,5,opt,name=budgeted_frequency,json=budgetedFrequency,proto3,enum=budgy.v1.BudgetFrequency" json:"budgeted_frequency,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *BudgetCategory) Reset() {
@@ -288,6 +347,13 @@ func (x *BudgetCategory) GetTargetLimit() int64 {
 		return x.TargetLimit
 	}
 	return 0
+}
+
+func (x *BudgetCategory) GetBudgetedFrequency() BudgetFrequency {
+	if x != nil {
+		return x.BudgetedFrequency
+	}
+	return BudgetFrequency_BUDGET_FREQUENCY_UNSPECIFIED
 }
 
 type FundEnvelopeResult struct {
@@ -805,12 +871,13 @@ const file_budgy_v1_category_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x99\x01\n" +
+	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xe3\x01\n" +
 	"\x0eBudgetCategory\x12.\n" +
 	"\bcategory\x18\x01 \x01(\v2\x12.budgy.v1.CategoryR\bcategory\x12\x1a\n" +
 	"\bbudgeted\x18\x02 \x01(\x03R\bbudgeted\x12\x18\n" +
 	"\abalance\x18\x03 \x01(\x03R\abalance\x12!\n" +
-	"\ftarget_limit\x18\x04 \x01(\x03R\vtargetLimit\"\x92\x01\n" +
+	"\ftarget_limit\x18\x04 \x01(\x03R\vtargetLimit\x12H\n" +
+	"\x12budgeted_frequency\x18\x05 \x01(\x0e2\x19.budgy.v1.BudgetFrequencyR\x11budgetedFrequency\"\x92\x01\n" +
 	"\x12FundEnvelopeResult\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12'\n" +
@@ -860,7 +927,14 @@ const file_budgy_v1_category_proto_rawDesc = "" +
 	"\x19CATEGORY_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14CATEGORY_TYPE_INCOME\x10\x01\x12\x19\n" +
 	"\x15CATEGORY_TYPE_EXPENSE\x10\x02\x12\x1a\n" +
-	"\x16CATEGORY_TYPE_TRANSFER\x10\x032\xe5\x02\n" +
+	"\x16CATEGORY_TYPE_TRANSFER\x10\x03*\xcd\x01\n" +
+	"\x0fBudgetFrequency\x12 \n" +
+	"\x1cBUDGET_FREQUENCY_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17BUDGET_FREQUENCY_WEEKLY\x10\x01\x12 \n" +
+	"\x1cBUDGET_FREQUENCY_FORTNIGHTLY\x10\x02\x12\x1c\n" +
+	"\x18BUDGET_FREQUENCY_MONTHLY\x10\x03\x12\x1e\n" +
+	"\x1aBUDGET_FREQUENCY_QUARTERLY\x10\x04\x12\x1b\n" +
+	"\x17BUDGET_FREQUENCY_YEARLY\x10\x052\xe5\x02\n" +
 	"\x0fCategoryService\x12S\n" +
 	"\x0eCreateCategory\x12\x1f.budgy.v1.CreateCategoryRequest\x1a .budgy.v1.CreateCategoryResponse\x12S\n" +
 	"\x0eListCategories\x12\x1f.budgy.v1.ListCategoriesRequest\x1a .budgy.v1.ListCategoriesResponse\x12S\n" +
@@ -879,47 +953,49 @@ func file_budgy_v1_category_proto_rawDescGZIP() []byte {
 	return file_budgy_v1_category_proto_rawDescData
 }
 
-var file_budgy_v1_category_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_budgy_v1_category_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_budgy_v1_category_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_budgy_v1_category_proto_goTypes = []any{
 	(CategoryType)(0),              // 0: budgy.v1.CategoryType
-	(*Category)(nil),               // 1: budgy.v1.Category
-	(*BudgetCategory)(nil),         // 2: budgy.v1.BudgetCategory
-	(*FundEnvelopeResult)(nil),     // 3: budgy.v1.FundEnvelopeResult
-	(*CreateCategoryRequest)(nil),  // 4: budgy.v1.CreateCategoryRequest
-	(*CreateCategoryResponse)(nil), // 5: budgy.v1.CreateCategoryResponse
-	(*ListCategoriesRequest)(nil),  // 6: budgy.v1.ListCategoriesRequest
-	(*ListCategoriesResponse)(nil), // 7: budgy.v1.ListCategoriesResponse
-	(*UpdateCategoryRequest)(nil),  // 8: budgy.v1.UpdateCategoryRequest
-	(*UpdateCategoryResponse)(nil), // 9: budgy.v1.UpdateCategoryResponse
-	(*DeleteCategoryRequest)(nil),  // 10: budgy.v1.DeleteCategoryRequest
-	(*DeleteCategoryResponse)(nil), // 11: budgy.v1.DeleteCategoryResponse
-	(*timestamppb.Timestamp)(nil),  // 12: google.protobuf.Timestamp
+	(BudgetFrequency)(0),           // 1: budgy.v1.BudgetFrequency
+	(*Category)(nil),               // 2: budgy.v1.Category
+	(*BudgetCategory)(nil),         // 3: budgy.v1.BudgetCategory
+	(*FundEnvelopeResult)(nil),     // 4: budgy.v1.FundEnvelopeResult
+	(*CreateCategoryRequest)(nil),  // 5: budgy.v1.CreateCategoryRequest
+	(*CreateCategoryResponse)(nil), // 6: budgy.v1.CreateCategoryResponse
+	(*ListCategoriesRequest)(nil),  // 7: budgy.v1.ListCategoriesRequest
+	(*ListCategoriesResponse)(nil), // 8: budgy.v1.ListCategoriesResponse
+	(*UpdateCategoryRequest)(nil),  // 9: budgy.v1.UpdateCategoryRequest
+	(*UpdateCategoryResponse)(nil), // 10: budgy.v1.UpdateCategoryResponse
+	(*DeleteCategoryRequest)(nil),  // 11: budgy.v1.DeleteCategoryRequest
+	(*DeleteCategoryResponse)(nil), // 12: budgy.v1.DeleteCategoryResponse
+	(*timestamppb.Timestamp)(nil),  // 13: google.protobuf.Timestamp
 }
 var file_budgy_v1_category_proto_depIdxs = []int32{
 	0,  // 0: budgy.v1.Category.type:type_name -> budgy.v1.CategoryType
-	12, // 1: budgy.v1.Category.created_at:type_name -> google.protobuf.Timestamp
-	12, // 2: budgy.v1.Category.updated_at:type_name -> google.protobuf.Timestamp
-	1,  // 3: budgy.v1.BudgetCategory.category:type_name -> budgy.v1.Category
-	2,  // 4: budgy.v1.FundEnvelopeResult.envelope:type_name -> budgy.v1.BudgetCategory
-	0,  // 5: budgy.v1.CreateCategoryRequest.type:type_name -> budgy.v1.CategoryType
-	1,  // 6: budgy.v1.CreateCategoryResponse.category:type_name -> budgy.v1.Category
-	1,  // 7: budgy.v1.ListCategoriesResponse.categories:type_name -> budgy.v1.Category
-	0,  // 8: budgy.v1.UpdateCategoryRequest.type:type_name -> budgy.v1.CategoryType
-	1,  // 9: budgy.v1.UpdateCategoryResponse.category:type_name -> budgy.v1.Category
-	4,  // 10: budgy.v1.CategoryService.CreateCategory:input_type -> budgy.v1.CreateCategoryRequest
-	6,  // 11: budgy.v1.CategoryService.ListCategories:input_type -> budgy.v1.ListCategoriesRequest
-	8,  // 12: budgy.v1.CategoryService.UpdateCategory:input_type -> budgy.v1.UpdateCategoryRequest
-	10, // 13: budgy.v1.CategoryService.DeleteCategory:input_type -> budgy.v1.DeleteCategoryRequest
-	5,  // 14: budgy.v1.CategoryService.CreateCategory:output_type -> budgy.v1.CreateCategoryResponse
-	7,  // 15: budgy.v1.CategoryService.ListCategories:output_type -> budgy.v1.ListCategoriesResponse
-	9,  // 16: budgy.v1.CategoryService.UpdateCategory:output_type -> budgy.v1.UpdateCategoryResponse
-	11, // 17: budgy.v1.CategoryService.DeleteCategory:output_type -> budgy.v1.DeleteCategoryResponse
-	14, // [14:18] is the sub-list for method output_type
-	10, // [10:14] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	13, // 1: budgy.v1.Category.created_at:type_name -> google.protobuf.Timestamp
+	13, // 2: budgy.v1.Category.updated_at:type_name -> google.protobuf.Timestamp
+	2,  // 3: budgy.v1.BudgetCategory.category:type_name -> budgy.v1.Category
+	1,  // 4: budgy.v1.BudgetCategory.budgeted_frequency:type_name -> budgy.v1.BudgetFrequency
+	3,  // 5: budgy.v1.FundEnvelopeResult.envelope:type_name -> budgy.v1.BudgetCategory
+	0,  // 6: budgy.v1.CreateCategoryRequest.type:type_name -> budgy.v1.CategoryType
+	2,  // 7: budgy.v1.CreateCategoryResponse.category:type_name -> budgy.v1.Category
+	2,  // 8: budgy.v1.ListCategoriesResponse.categories:type_name -> budgy.v1.Category
+	0,  // 9: budgy.v1.UpdateCategoryRequest.type:type_name -> budgy.v1.CategoryType
+	2,  // 10: budgy.v1.UpdateCategoryResponse.category:type_name -> budgy.v1.Category
+	5,  // 11: budgy.v1.CategoryService.CreateCategory:input_type -> budgy.v1.CreateCategoryRequest
+	7,  // 12: budgy.v1.CategoryService.ListCategories:input_type -> budgy.v1.ListCategoriesRequest
+	9,  // 13: budgy.v1.CategoryService.UpdateCategory:input_type -> budgy.v1.UpdateCategoryRequest
+	11, // 14: budgy.v1.CategoryService.DeleteCategory:input_type -> budgy.v1.DeleteCategoryRequest
+	6,  // 15: budgy.v1.CategoryService.CreateCategory:output_type -> budgy.v1.CreateCategoryResponse
+	8,  // 16: budgy.v1.CategoryService.ListCategories:output_type -> budgy.v1.ListCategoriesResponse
+	10, // 17: budgy.v1.CategoryService.UpdateCategory:output_type -> budgy.v1.UpdateCategoryResponse
+	12, // 18: budgy.v1.CategoryService.DeleteCategory:output_type -> budgy.v1.DeleteCategoryResponse
+	15, // [15:19] is the sub-list for method output_type
+	11, // [11:15] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_budgy_v1_category_proto_init() }
@@ -933,7 +1009,7 @@ func file_budgy_v1_category_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_budgy_v1_category_proto_rawDesc), len(file_budgy_v1_category_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,

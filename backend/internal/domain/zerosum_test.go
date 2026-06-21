@@ -49,8 +49,9 @@ func TestAssignFunds(t *testing.T) {
 	if updated.Budgeted != 15000 {
 		t.Errorf("expected budgeted amount 15000, got %d", updated.Budgeted)
 	}
-	if updated.Balance != 15000 {
-		t.Errorf("expected balance 15000, got %d", updated.Balance)
+	// Balance is reconciled from transactions separately; assign only updates budgeted.
+	if updated.Balance != 5000 {
+		t.Errorf("expected balance unchanged at 5000, got %d", updated.Balance)
 	}
 
 	_, err = AssignFunds(summary, cat, -100)

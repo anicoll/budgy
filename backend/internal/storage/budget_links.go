@@ -49,6 +49,21 @@ func (r *budgetAccountRepository) ListByBudget(ctx context.Context, budgetID str
 	return ids, rows.Err()
 }
 
+func (r *budgetAccountRepository) FindBudgetForAccount(ctx context.Context, accountID string) (string, error) {
+	var budgetID string
+	err := r.db.QueryRowContext(ctx,
+		`SELECT budget_id FROM budget_accounts WHERE account_id = ? LIMIT 1`,
+		accountID,
+	).Scan(&budgetID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	return budgetID, nil
+}
+
 func (r *budgetAccountRepository) ListAccountsByBudget(ctx context.Context, budgetID string) ([]*domain.Account, error) {
 	query := `
 		SELECT a.id, a.user_id, a.name, a.type, a.balance, a.created_at, a.updated_at,
@@ -69,15 +84,20 @@ type budgetCategoryLineRepository struct {
 }
 
 func (r *budgetCategoryLineRepository) Upsert(ctx context.Context, line *domain.BudgetCategoryLine) error {
+	freq := string(line.BudgetedFrequency)
+	if freq == "" {
+		freq = string(domain.FrequencyMonthly)
+	}
 	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO budget_category_lines (budget_id, category_id, budgeted, balance, target_limit, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO budget_category_lines (budget_id, category_id, budgeted, balance, target_limit, budgeted_frequency, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(budget_id, category_id) DO UPDATE SET
 			budgeted = excluded.budgeted,
 			balance = excluded.balance,
 			target_limit = excluded.target_limit,
+			budgeted_frequency = excluded.budgeted_frequency,
 			updated_at = excluded.updated_at`,
-		line.BudgetID, line.CategoryID, line.Budgeted, line.Balance, line.TargetLimit,
+		line.BudgetID, line.CategoryID, line.Budgeted, line.Balance, line.TargetLimit, freq,
 		line.CreatedAt, line.UpdatedAt,
 	)
 	return err
@@ -85,24 +105,35 @@ func (r *budgetCategoryLineRepository) Upsert(ctx context.Context, line *domain.
 
 func (r *budgetCategoryLineRepository) Get(ctx context.Context, budgetID, categoryID string) (*domain.BudgetCategoryLine, error) {
 	row := r.db.QueryRowContext(ctx, `
-		SELECT budget_id, category_id, budgeted, balance, target_limit, created_at, updated_at
+		SELECT budget_id, category_id, budgeted, balance, target_limit, budgeted_frequency, created_at, updated_at
 		FROM budget_category_lines WHERE budget_id = ? AND category_id = ?`,
 		budgetID, categoryID,
 	)
+	return scanBudgetCategoryLine(row)
+}
+
+func scanBudgetCategoryLine(row interface {
+	Scan(dest ...any) error
+}) (*domain.BudgetCategoryLine, error) {
 	var line domain.BudgetCategoryLine
-	err := row.Scan(&line.BudgetID, &line.CategoryID, &line.Budgeted, &line.Balance, &line.TargetLimit, &line.CreatedAt, &line.UpdatedAt)
+	var freq string
+	err := row.Scan(&line.BudgetID, &line.CategoryID, &line.Budgeted, &line.Balance, &line.TargetLimit, &freq, &line.CreatedAt, &line.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("budget category line not found")
 		}
 		return nil, err
 	}
+	line.BudgetedFrequency = domain.BudgetFrequency(freq)
+	if line.BudgetedFrequency == "" {
+		line.BudgetedFrequency = domain.FrequencyMonthly
+	}
 	return &line, nil
 }
 
 func (r *budgetCategoryLineRepository) ListByBudget(ctx context.Context, budgetID string) ([]*domain.BudgetCategoryLine, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT budget_id, category_id, budgeted, balance, target_limit, created_at, updated_at
+		SELECT budget_id, category_id, budgeted, balance, target_limit, budgeted_frequency, created_at, updated_at
 		FROM budget_category_lines WHERE budget_id = ?`, budgetID,
 	)
 	if err != nil {
@@ -112,11 +143,11 @@ func (r *budgetCategoryLineRepository) ListByBudget(ctx context.Context, budgetI
 
 	var list []*domain.BudgetCategoryLine
 	for rows.Next() {
-		var line domain.BudgetCategoryLine
-		if err := rows.Scan(&line.BudgetID, &line.CategoryID, &line.Budgeted, &line.Balance, &line.TargetLimit, &line.CreatedAt, &line.UpdatedAt); err != nil {
+		line, err := scanBudgetCategoryLine(rows)
+		if err != nil {
 			return nil, err
 		}
-		list = append(list, &line)
+		list = append(list, line)
 	}
 	return list, rows.Err()
 }
@@ -130,11 +161,29 @@ func (r *budgetCategoryLineRepository) UpdateBudgetedAndBalance(ctx context.Cont
 	return err
 }
 
+func (r *budgetCategoryLineRepository) UpdateBudgeted(ctx context.Context, budgetID, categoryID string, budgeted int64, frequency domain.BudgetFrequency) error {
+	freq := string(frequency)
+	if freq == "" {
+		freq = string(domain.FrequencyMonthly)
+	}
+	now := time.Now()
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO budget_category_lines (budget_id, category_id, budgeted, balance, target_limit, budgeted_frequency, created_at, updated_at)
+		VALUES (?, ?, ?, 0, 0, ?, ?, ?)
+		ON CONFLICT(budget_id, category_id) DO UPDATE SET
+			budgeted = excluded.budgeted,
+			budgeted_frequency = excluded.budgeted_frequency,
+			updated_at = excluded.updated_at`,
+		budgetID, categoryID, budgeted, freq, now, now,
+	)
+	return err
+}
+
 func (r *budgetCategoryLineRepository) EnsureLine(ctx context.Context, budgetID, categoryID string) error {
 	now := time.Now()
 	_, err := r.db.ExecContext(ctx, `
-		INSERT OR IGNORE INTO budget_category_lines (budget_id, category_id, budgeted, balance, target_limit, created_at, updated_at)
-		VALUES (?, ?, 0, 0, 0, ?, ?)`,
+		INSERT OR IGNORE INTO budget_category_lines (budget_id, category_id, budgeted, balance, target_limit, budgeted_frequency, created_at, updated_at)
+		VALUES (?, ?, 0, 0, 0, 'monthly', ?, ?)`,
 		budgetID, categoryID, now, now,
 	)
 	return err
@@ -144,12 +193,12 @@ func (r *budgetCategoryLineRepository) ListBudgetCategories(ctx context.Context,
 	query := `
 		SELECT c.id, c.user_id, c.parent_id, c.name, c.type, c.color, c.icon, c.sort_order,
 		       c.archived, c.system, c.basiq_subclass_code, c.anzsic_class_code, c.created_at, c.updated_at,
-		       COALESCE(bcl.budgeted, 0), COALESCE(bcl.balance, 0), COALESCE(bcl.target_limit, 0)
-		FROM categories c
-		LEFT JOIN budget_category_lines bcl ON bcl.category_id = c.id AND bcl.budget_id = ?
-		WHERE c.user_id = (SELECT user_id FROM budgets WHERE id = ?)
+		       bcl.budgeted, bcl.balance, bcl.target_limit, bcl.budgeted_frequency
+		FROM budget_category_lines bcl
+		INNER JOIN categories c ON c.id = bcl.category_id
+		WHERE bcl.budget_id = ?
 		ORDER BY c.sort_order, c.name`
-	rows, err := r.db.QueryContext(ctx, query, budgetID, budgetID)
+	rows, err := r.db.QueryContext(ctx, query, budgetID)
 	if err != nil {
 		return nil, err
 	}
@@ -164,4 +213,24 @@ func (r *budgetCategoryLineRepository) ListBudgetCategories(ctx context.Context,
 		list = append(list, bc)
 	}
 	return list, rows.Err()
+}
+
+func (r *budgetCategoryLineRepository) ListAvailableCategories(ctx context.Context, budgetID string) ([]*domain.Category, error) {
+	query := `
+		SELECT c.id, c.user_id, c.parent_id, c.name, c.type, c.color, c.icon, c.sort_order,
+		       c.archived, c.system, c.basiq_subclass_code, c.anzsic_class_code, c.created_at, c.updated_at
+		FROM categories c
+		WHERE c.user_id = (SELECT user_id FROM budgets WHERE id = ?)
+		  AND c.archived = 0
+		  AND NOT EXISTS (
+		    SELECT 1 FROM budget_category_lines bcl
+		    WHERE bcl.budget_id = ? AND bcl.category_id = c.id
+		  )
+		ORDER BY c.sort_order, c.name`
+	rows, err := r.db.QueryContext(ctx, query, budgetID, budgetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanCategories(rows)
 }

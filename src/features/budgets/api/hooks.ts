@@ -3,25 +3,28 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { fetchUserAccounts } from "@/features/accounts/api/client";
 import {
   clearSelectedBudgetId,
   readSelectedBudgetId,
   writeSelectedBudgetId,
 } from "@/lib/api/active-budget";
 import { useOnlineQueryEnabled } from "@/lib/query/use-online-query-enabled";
+import { fetchBudgetAccountIds, syncBudgetAccountLinks } from "./budget-links";
 import {
+  addCategoryToBudget,
   assignCategoryFunds,
   createBudget,
   deleteBudget,
   fetchAccounts,
+  fetchAvailableCategories,
   fetchBudgets,
   fetchCategories,
-  fundEnvelope,
   updateBudget,
 } from "./client";
 import { backendBudgetKeys } from "./keys";
 import { computeBudgetSummary } from "./summary";
-import type { BackendBudget, BackendBudgetMethod } from "./types";
+import type { BackendBudget, BackendBudgetFrequency, ViewCadence } from "./types";
 
 export function useBackendBudgets() {
   const enabled = useOnlineQueryEnabled();
@@ -66,6 +69,18 @@ export function useBackendCategories(budgetId: string | null) {
   });
 }
 
+export function useBackendAvailableCategories(budgetId: string | null) {
+  const enabled = useOnlineQueryEnabled();
+  return useQuery({
+    queryKey: backendBudgetKeys.availableCategories(budgetId ?? ""),
+    queryFn: () => {
+      if (!budgetId) throw new Error("budgetId is required");
+      return fetchAvailableCategories(budgetId);
+    },
+    enabled: enabled && !!budgetId,
+  });
+}
+
 export function useBackendAccounts(budgetId: string | null) {
   const enabled = useOnlineQueryEnabled();
   return useQuery({
@@ -78,21 +93,46 @@ export function useBackendAccounts(budgetId: string | null) {
   });
 }
 
+export function useAllUserAccounts() {
+  const enabled = useOnlineQueryEnabled();
+  return useQuery({
+    queryKey: backendBudgetKeys.allUserAccounts(),
+    queryFn: fetchUserAccounts,
+    enabled,
+  });
+}
+
+export function useBudgetViewCadence(defaultCadence: ViewCadence) {
+  const [viewCadence, setViewCadence] = useState<ViewCadence>(defaultCadence);
+  const [periodOffset, setPeriodOffset] = useState(0);
+
+  useEffect(() => {
+    setViewCadence(defaultCadence);
+    setPeriodOffset(0);
+  }, [defaultCadence]);
+
+  return { viewCadence, setViewCadence, periodOffset, setPeriodOffset };
+}
+
 export function useBackendBudgetSummary(
   budget: BackendBudget | null | undefined,
   categories: ReturnType<typeof useBackendCategories>["data"],
-  accounts: ReturnType<typeof useBackendAccounts>["data"],
+  viewCadence: ViewCadence,
+  transactions?: import("@/features/transactions/types").Transaction[],
+  accountIds?: string[],
+  range?: import("@/lib/date/periods").DateRange,
 ) {
   return useMemo(() => {
     if (!budget || !categories) return null;
-    return computeBudgetSummary(budget.method, accounts ?? [], categories);
-  }, [budget, categories, accounts]);
+    return computeBudgetSummary(categories, viewCadence, transactions, accountIds, range);
+  }, [budget, categories, viewCadence, transactions, accountIds, range]);
 }
 
 function invalidateBudgetQueries(qc: ReturnType<typeof useQueryClient>, budgetId?: string) {
   qc.invalidateQueries({ queryKey: backendBudgetKeys.all });
   if (budgetId) {
     qc.invalidateQueries({ queryKey: backendBudgetKeys.categories(budgetId) });
+    qc.invalidateQueries({ queryKey: backendBudgetKeys.availableCategories(budgetId) });
     qc.invalidateQueries({ queryKey: backendBudgetKeys.accounts(budgetId) });
   }
 }
@@ -100,7 +140,19 @@ function invalidateBudgetQueries(qc: ReturnType<typeof useQueryClient>, budgetId
 export function useCreateBackendBudget() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: createBudget,
+    mutationFn: async (input: {
+      name: string;
+      currency: string;
+      period: BackendBudget["period"];
+      startDate: string;
+      accountIds?: string[];
+    }) => {
+      const budget = await createBudget(input);
+      if (input.accountIds?.length) {
+        await syncBudgetAccountLinks(budget.id, input.accountIds, []);
+      }
+      return budget;
+    },
     onSuccess: (b) => {
       invalidateBudgetQueries(qc);
       writeSelectedBudgetId(b.id);
@@ -119,8 +171,9 @@ export function useUpdateBackendBudget() {
     }: {
       budgetId: string;
       name: string;
-      method: BackendBudgetMethod;
       currency: string;
+      period: BackendBudget["period"];
+      startDate: string;
     }) => updateBudget(budgetId, input),
     onSuccess: (b) => {
       invalidateBudgetQueries(qc, b.id);
@@ -146,37 +199,57 @@ export function useDeleteBackendBudget() {
 export function useAssignCategoryFunds(budgetId: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ categoryId, amountCents }: { categoryId: string; amountCents: number }) => {
+    mutationFn: ({
+      categoryId,
+      amountCents,
+      frequency,
+      replaceTarget = false,
+    }: {
+      categoryId: string;
+      amountCents: number;
+      frequency: BackendBudgetFrequency;
+      replaceTarget?: boolean;
+    }) => {
       if (!budgetId) throw new Error("budgetId is required");
-      return assignCategoryFunds(budgetId, categoryId, amountCents);
+      return assignCategoryFunds(budgetId, categoryId, amountCents, frequency, replaceTarget);
     },
     onSuccess: () => {
       if (budgetId) invalidateBudgetQueries(qc, budgetId);
-      toast.success("Funds assigned");
+      toast.success("Target saved");
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to assign funds"),
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to save target"),
   });
 }
 
-export function useFundEnvelope(budgetId: string | null) {
+export function useAddCategoryToBudget(budgetId: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      categoryId,
-      accountId,
-      amountCents,
-    }: {
-      categoryId: string;
-      accountId: string;
-      amountCents: number;
-    }) => {
+    mutationFn: (categoryId: string) => {
       if (!budgetId) throw new Error("budgetId is required");
-      return fundEnvelope(budgetId, categoryId, accountId, amountCents);
+      return addCategoryToBudget(budgetId, categoryId);
     },
     onSuccess: () => {
       if (budgetId) invalidateBudgetQueries(qc, budgetId);
-      toast.success("Envelope funded");
+      toast.success("Category added to budget");
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to fund envelope"),
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to add category to budget"),
+  });
+}
+
+export function useSyncBudgetAccountLinks(budgetId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (selectedAccountIds: string[]) => {
+      if (!budgetId) throw new Error("budgetId is required");
+      const current = await fetchBudgetAccountIds(budgetId);
+      await syncBudgetAccountLinks(budgetId, selectedAccountIds, current);
+    },
+    onSuccess: () => {
+      if (budgetId) invalidateBudgetQueries(qc, budgetId);
+      toast.success("Linked accounts updated");
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to update linked accounts"),
   });
 }

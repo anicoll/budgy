@@ -5,6 +5,7 @@ import {
   deleteAccountApi,
   updateAccountApi,
 } from "@/features/accounts/api/client";
+import type { AccountFormValues } from "@/features/accounts/schema";
 import { ACCOUNT_DEFAULT_COLOR, type Account, type AccountType } from "@/features/accounts/types";
 import type { Budget } from "@/features/budgets/types";
 import {
@@ -16,8 +17,12 @@ import {
 import type { CategoryFormValues } from "@/features/categories/schema";
 import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
-import { AccountType as ProtoAccountType } from "@/gen/budgy/v1/account_pb";
+import {
+  type Account as ProtoAccount,
+  AccountType as ProtoAccountType,
+} from "@/gen/budgy/v1/account_pb";
 import { BudgetMethod } from "@/gen/budgy/v1/budget_pb";
+import type { Transaction as ProtoTransaction } from "@/gen/budgy/v1/transaction_pb";
 import {
   clearSelectedBudgetId,
   readSelectedBudgetId,
@@ -279,7 +284,7 @@ function getFrontendAccountType(protoType: ProtoAccountType, className: string):
   return mapProtoTypeToFrontend(protoType);
 }
 
-function resolveAccount(a: any): Account {
+function resolveAccount(a: ProtoAccount): Account {
   const { name, metadata } = parseNameAndMetadata(a.name);
   let type: AccountType;
   if (metadata.type) {
@@ -338,7 +343,7 @@ export class ApiAccountRepository implements Repository<Account> {
       type: entity.type,
     };
     const name = formatNameWithMetadata(entity.name, metadata);
-    const values = {
+    const values: AccountFormValues = {
       name,
       type: entity.type,
       openingBalance: entity.openingBalance,
@@ -347,10 +352,10 @@ export class ApiAccountRepository implements Repository<Account> {
       archived: entity.archived,
     };
     if (existing) {
-      const updated = await updateAccountApi(entity.id, values as any);
+      const updated = await updateAccountApi(entity.id, values);
       return { ...updated, ...entity, name: entity.name };
     }
-    const created = await createAccountApi(values as any);
+    const created = await createAccountApi(values);
     return { ...created, ...entity, name: entity.name };
   }
 
@@ -410,24 +415,28 @@ export class ApiCategoryRepository implements Repository<Category> {
 
 // ─── ApiTransactionRepository ─────────────────────────────────────────────────
 
+function mapProtoTransaction(t: ProtoTransaction): Transaction {
+  return {
+    id: t.id,
+    accountId: t.accountId,
+    date: tsToDateStr(t.date),
+    amount: Math.abs(Number(t.amount)) as Cents,
+    type: t.amount > 0n ? "credit" : "debit",
+    categoryId: t.categoryId || null,
+    payee: t.description,
+    tags: [],
+    cleared: true,
+    createdAt: tsToISO(t.createdAt),
+    updatedAt: tsToISO(t.updatedAt),
+  };
+}
+
 export class ApiTransactionRepository implements Repository<Transaction> {
   async list(_query?: ListQuery<Transaction>): Promise<Transaction[]> {
     const res = await transactionClient.listTransactions({ budgetId: "" });
     const txns = res.transactions ?? [];
 
-    return txns.map((t) => ({
-      id: t.id,
-      accountId: t.accountId,
-      date: tsToDateStr(t.date),
-      amount: Math.abs(Number(t.amount)) as Cents,
-      type: t.amount > 0n ? "credit" : "debit",
-      categoryId: t.categoryId || null,
-      payee: t.description,
-      tags: [],
-      cleared: true,
-      createdAt: tsToISO(t.createdAt),
-      updatedAt: tsToISO(t.updatedAt),
-    }));
+    return txns.map((t) => mapProtoTransaction(t));
   }
 
   async get(id: string): Promise<Transaction | null> {
@@ -454,20 +463,8 @@ export class ApiTransactionRepository implements Repository<Transaction> {
         description: entity.payee || "Transaction",
         date: dateTs,
       });
-      const t = res.transaction!;
-      return {
-        id: t.id,
-        accountId: t.accountId,
-        date: tsToDateStr(t.date),
-        amount: Math.abs(Number(t.amount)) as Cents,
-        type: t.amount > 0n ? "credit" : "debit",
-        categoryId: t.categoryId || null,
-        payee: t.description,
-        tags: [],
-        cleared: true,
-        createdAt: tsToISO(t.createdAt),
-        updatedAt: tsToISO(t.updatedAt),
-      };
+      if (!res.transaction) throw new Error("Failed to update transaction");
+      return mapProtoTransaction(res.transaction);
     } else {
       const res = await transactionClient.createTransaction({
         budgetId,
@@ -477,20 +474,8 @@ export class ApiTransactionRepository implements Repository<Transaction> {
         description: entity.payee || "Transaction",
         date: dateTs,
       });
-      const t = res.transaction!;
-      return {
-        id: t.id,
-        accountId: t.accountId,
-        date: tsToDateStr(t.date),
-        amount: Math.abs(Number(t.amount)) as Cents,
-        type: t.amount > 0n ? "credit" : "debit",
-        categoryId: t.categoryId || null,
-        payee: t.description,
-        tags: [],
-        cleared: true,
-        createdAt: tsToISO(t.createdAt),
-        updatedAt: tsToISO(t.updatedAt),
-      };
+      if (!res.transaction) throw new Error("Failed to create transaction");
+      return mapProtoTransaction(res.transaction);
     }
   }
 

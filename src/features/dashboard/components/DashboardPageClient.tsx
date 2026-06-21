@@ -3,11 +3,18 @@
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccounts } from "@/features/accounts/hooks";
+import {
+  useBackendAccounts,
+  useBackendBudgetSummary,
+  useBackendBudgets,
+  useBackendCategories,
+  useSelectedBudgetId,
+} from "@/features/budgets/api/hooks";
+import { BudgetSummaryHero } from "@/features/budgets/components/BudgetSummaryHero";
+import { currentPeriodRange, formatPeriodLabel } from "@/features/budgets/utils/period";
 import { useCategories } from "@/features/categories/hooks";
 import { useTransactions } from "@/features/transactions/hooks";
-import { rangeForPeriod } from "@/lib/date/periods";
-import { usePrefs } from "@/lib/state/prefs-store";
-import { useUIStore } from "@/lib/state/ui-store";
+import { useOnlineQueryEnabled } from "@/lib/query/use-online-query-enabled";
 import {
   computeCategorySpend,
   computeMonthlyCashflow,
@@ -18,31 +25,39 @@ import {
 import { AccountStrip } from "./AccountStrip";
 import { CashflowChart } from "./CashflowChart";
 import { CategorySpendDonut } from "./CategorySpendDonut";
-import { EnvelopeHealthCard } from "./EnvelopeHealthCard";
 import { InsightsCard } from "./InsightsCard";
 import { KpiCards } from "./KpiCards";
 import { NetWorthChart } from "./NetWorthChart";
 import { RecentTransactions } from "./RecentTransactions";
 
-const PERIOD_LABEL: Record<string, string> = {
-  week: "This week",
-  fortnight: "This fortnight",
-  month: "This month",
-  quarter: "This quarter",
-  year: "This year",
-  custom: "Custom",
-};
-
 export function DashboardPageClient() {
-  const period = useUIStore((s) => s.period);
-  const { fortnightAnchor } = usePrefs();
-
-  const range = useMemo(
-    () => rangeForPeriod(period, new Date(), { fortnightAnchor }),
-    [period, fortnightAnchor],
+  const online = useOnlineQueryEnabled();
+  const { data: budgets = [] } = useBackendBudgets();
+  const { selectedId } = useSelectedBudgetId(budgets);
+  const activeBudget = useMemo(
+    () => budgets.find((b) => b.id === selectedId) ?? budgets[0] ?? null,
+    [budgets, selectedId],
   );
 
-  // Fetch a 12-month look-back window to cover KPIs, cashflow history and net worth trend.
+  const periodLabel = useMemo(() => {
+    if (!activeBudget) return "This month";
+    const range = currentPeriodRange(activeBudget.period, activeBudget.startDate);
+    return `This ${formatPeriodLabel(range, activeBudget.period).toLowerCase()}`;
+  }, [activeBudget]);
+
+  const range = useMemo(() => {
+    if (!activeBudget) {
+      const to = new Date();
+      const from = new Date(to);
+      from.setDate(1);
+      return {
+        from: from.toISOString().slice(0, 10),
+        to: to.toISOString().slice(0, 10),
+      };
+    }
+    return currentPeriodRange(activeBudget.period, activeBudget.startDate);
+  }, [activeBudget]);
+
   const historyRange = useMemo(() => {
     const to = new Date();
     const from = new Date(to);
@@ -56,6 +71,18 @@ export function DashboardPageClient() {
   const { data: accounts = [], isPending: accsLoading } = useAccounts();
   const { data: allTxns = [], isPending: txnsLoading } = useTransactions({ range: historyRange });
   const { data: categories = [], isPending: catsLoading } = useCategories();
+
+  const { data: budgetCategories } = useBackendCategories(activeBudget?.id ?? null);
+  const { data: budgetAccounts = [] } = useBackendAccounts(activeBudget?.id ?? null);
+  const budgetAccountIds = useMemo(() => budgetAccounts.map((a) => a.id), [budgetAccounts]);
+  const budgetSummary = useBackendBudgetSummary(
+    activeBudget,
+    budgetCategories,
+    activeBudget?.period ?? "monthly",
+    allTxns,
+    budgetAccountIds,
+    range,
+  );
 
   const isLoading = accsLoading || txnsLoading || catsLoading;
 
@@ -96,19 +123,21 @@ export function DashboardPageClient() {
 
       {accounts.length > 0 && <AccountStrip accounts={accounts} transactions={allTxns} />}
 
+      {online && budgetSummary ? (
+        <BudgetSummaryHero summary={budgetSummary} periodLabel={periodLabel} />
+      ) : null}
+
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <NetWorthChart data={netWorthHistory} />
         <CashflowChart data={cashflow} />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <CategorySpendDonut data={categorySpend} periodLabel={PERIOD_LABEL[period] ?? period} />
-        <EnvelopeHealthCard />
+        <CategorySpendDonut data={categorySpend} periodLabel={periodLabel} />
+        <InsightsCard insights={insights} periodLabel={periodLabel} />
       </div>
 
       <RecentTransactions transactions={recentTxns} accounts={accounts} categories={categories} />
-
-      <InsightsCard insights={insights} periodLabel={PERIOD_LABEL[period] ?? period} />
     </div>
   );
 }

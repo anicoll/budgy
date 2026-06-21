@@ -7,7 +7,7 @@ import (
 // ZeroSumSummary contains the calculated state of a Zero-Sum budget.
 type ZeroSumSummary struct {
 	TotalAvailableFunds int64 `json:"total_available_funds"` // Sum of checking, savings, cash - credit cards
-	TotalAssignedFunds  int64 `json:"total_assigned_funds"`  // Sum of all category balances
+	TotalAssignedFunds  int64 `json:"total_assigned_funds"`  // Sum of category budgeted amounts
 	ReadyToAssign       int64 `json:"ready_to_assign"`       // TotalAvailableFunds - TotalAssignedFunds
 }
 
@@ -20,7 +20,7 @@ func CalculateZeroSumSummary(accounts []*Account, categories []*BudgetCategory) 
 
 	var totalAssigned int64
 	for _, cat := range categories {
-		totalAssigned += cat.Balance
+		totalAssigned += cat.Budgeted
 	}
 
 	return ZeroSumSummary{
@@ -38,7 +38,6 @@ func AssignFunds(summary ZeroSumSummary, category *BudgetCategory, amount int64)
 
 	updated := *category
 	updated.Budgeted += amount
-	updated.Balance += amount
 
 	return &updated, nil
 }

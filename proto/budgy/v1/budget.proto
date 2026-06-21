@@ -13,6 +13,13 @@ enum BudgetMethod {
   BUDGET_METHOD_ENVELOPE    = 2;
 }
 
+enum BudgetPeriod {
+  BUDGET_PERIOD_UNSPECIFIED = 0;
+  BUDGET_PERIOD_WEEKLY      = 1;
+  BUDGET_PERIOD_FORTNIGHTLY = 2;
+  BUDGET_PERIOD_MONTHLY     = 3;
+}
+
 message Budget {
   string id       = 1;
   string user_id  = 2;
@@ -21,6 +28,8 @@ message Budget {
   string currency = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
+  BudgetPeriod period = 8;
+  string start_date = 9; // ISO date YYYY-MM-DD
 }
 
 message BudgetSummary {
@@ -34,6 +43,8 @@ message CreateBudgetRequest {
   string name     = 1;
   BudgetMethod method   = 2;
   string currency = 3;
+  BudgetPeriod period = 4;
+  string start_date = 5;
 }
 
 message CreateBudgetResponse {
@@ -67,6 +78,8 @@ message UpdateBudgetRequest {
   string name      = 2;
   BudgetMethod method    = 3;
   string currency  = 4;
+  BudgetPeriod period = 5;
+  string start_date = 6;
 }
 
 message UpdateBudgetResponse {
@@ -91,9 +104,29 @@ message AssignCategoryFundsRequest {
   string budget_id   = 1;
   string category_id = 2;
   int64  amount      = 3;
+  BudgetFrequency budgeted_frequency = 4;
+  // When true, amount replaces the category budgeted target. When false, amount is added.
+  bool replace_target = 5;
 }
 
 message AssignCategoryFundsResponse {
+  BudgetCategory category = 1;
+}
+
+message ListAvailableCategoriesRequest {
+  string budget_id = 1;
+}
+
+message ListAvailableCategoriesResponse {
+  repeated Category categories = 1;
+}
+
+message AddCategoryToBudgetRequest {
+  string budget_id   = 1;
+  string category_id = 2;
+}
+
+message AddCategoryToBudgetResponse {
   BudgetCategory category = 1;
 }
 
@@ -116,6 +149,8 @@ service BudgetService {
   rpc UpdateBudget(UpdateBudgetRequest)           returns (UpdateBudgetResponse);
   rpc DeleteBudget(DeleteBudgetRequest)           returns (DeleteBudgetResponse);
   rpc ListBudgetCategories(ListBudgetCategoriesRequest) returns (ListBudgetCategoriesResponse);
+  rpc ListAvailableCategories(ListAvailableCategoriesRequest) returns (ListAvailableCategoriesResponse);
+  rpc AddCategoryToBudget(AddCategoryToBudgetRequest) returns (AddCategoryToBudgetResponse);
   rpc AssignCategoryFunds(AssignCategoryFundsRequest) returns (AssignCategoryFundsResponse);
   rpc FundEnvelope(FundEnvelopeRequest)           returns (FundEnvelopeResponse);
 }
