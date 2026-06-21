@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Transaction } from "@/features/transactions/types";
 import type { DateRange } from "@/lib/date/periods";
-import { computeCategoryPeriodView, sumTransactionsInRange } from "../api/period-summary";
+import { computeCategoryPeriodView, sumCategoryPeriodActual } from "../api/period-summary";
 import type { BackendCategory, CategoryPeriodView, ViewCadence } from "../api/types";
 import { frequencyConversionLabel } from "../utils/normalise";
 
@@ -30,7 +30,7 @@ export function CategoryBudgetRow({
   onCover,
 }: Props) {
   const accountIdSet = new Set(accountIds);
-  const periodActual = sumTransactionsInRange(transactions, accountIdSet, periodRange, category.id);
+  const periodActual = sumCategoryPeriodActual(transactions, accountIdSet, periodRange, category);
   const view = computeCategoryPeriodView(category, viewCadence, periodActual);
   const freqHint =
     category.budgetedFrequency !== viewCadence && category.budgeted > 0

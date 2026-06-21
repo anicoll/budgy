@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCategories } from "@/features/categories/hooks";
 import { useTransactions } from "@/features/transactions/hooks";
 import { cents } from "@/lib/money/cents";
 import {
@@ -21,7 +22,7 @@ import {
 } from "../api/hooks";
 import {
   computeCategoryPeriodView,
-  sumTransactionsInRange,
+  sumCategoryPeriodActual,
   uncategorizedTransactionsInPeriod,
 } from "../api/period-summary";
 import type { BackendBudgetFormValues } from "../api/schema";
@@ -65,20 +66,32 @@ export function BudgetsPageClient() {
   const { data: categories, isPending: categoriesPending } = useBackendCategories(
     selectedBudget?.id ?? null,
   );
-  const { data: accounts = [] } = useBackendAccounts(selectedBudget?.id ?? null);
-  const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
+  const { data: taxonomyCategories, isPending: taxonomyPending } = useCategories();
+  const { data: accounts, isPending: accountsPending } = useBackendAccounts(selectedBudget?.id ?? null);
+  const accountIds = useMemo(() => accounts?.map((a) => a.id) ?? [], [accounts]);
 
   const { data: transactions = [] } = useTransactions({
     range: periodRange.from ? periodRange : undefined,
   });
 
+  const summaryReady =
+    !categoriesPending &&
+    !accountsPending &&
+    !taxonomyPending &&
+    categories !== undefined &&
+    accounts !== undefined &&
+    taxonomyCategories !== undefined;
+
   const summary = useBackendBudgetSummary(
     selectedBudget,
     categories,
+    accounts,
     viewCadence,
     transactions,
     accountIds,
     periodRange.from ? periodRange : undefined,
+    taxonomyCategories,
+    summaryReady,
   );
 
   const uncategorized = useMemo(() => {
@@ -100,11 +113,11 @@ export function BudgetsPageClient() {
   const assignDialogCategory = assignCategory ?? coverCategory;
   const coverAmount = useMemo(() => {
     if (!coverCategory || !periodRange.from) return undefined;
-    const actual = sumTransactionsInRange(
+    const actual = sumCategoryPeriodActual(
       transactions,
       new Set(accountIds),
       periodRange,
-      coverCategory.id,
+      coverCategory,
     );
     const view = computeCategoryPeriodView(coverCategory, viewCadence, actual);
     return view.overTarget ? cents(Math.abs(view.periodRemaining)) : undefined;
@@ -175,9 +188,17 @@ export function BudgetsPageClient() {
 
       {summary ? <BudgetSummaryHero summary={summary} periodLabel={periodLabel} /> : null}
 
-      <BudgetAccountsPanel budgetId={selectedBudget.id} />
+      <BudgetAccountsPanel
+        budgetId={selectedBudget.id}
+        periodRange={periodRange}
+        transactions={transactions}
+      />
 
-      <UncategorizedInbox transactions={uncategorized} />
+      <UncategorizedInbox
+        transactions={uncategorized}
+        categories={taxonomyCategories ?? []}
+        allTransactions={transactions}
+      />
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-semibold">Categories</h2>
@@ -222,6 +243,7 @@ export function BudgetsPageClient() {
         mode={coverCategory ? "add" : "set"}
         defaultAmountCents={coverCategory ? coverAmount : assignCategory?.budgeted}
         defaultFrequency={assignDialogCategory?.budgetedFrequency}
+        readyToAssign={summary?.pool.readyToAssign}
         onClose={() => {
           setAssignCategory(null);
           setCoverCategory(null);

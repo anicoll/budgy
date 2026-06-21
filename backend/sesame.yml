@@ -212,6 +212,9 @@ mappings:
       - a: CategoryID
         b: CategoryID
         converter: NullStringConverter
+      - a: CustomerCategoryID
+        b: CustomerCategoryID
+        converter: NullStringConverter
       - a: Direction
         b: Direction
         converter: NullStringConverter

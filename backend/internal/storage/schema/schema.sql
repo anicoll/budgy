@@ -192,7 +192,8 @@ CREATE TABLE public.transactions (
     location_lat text,
     location_lng text,
     category_code text,
-    category_title text
+    category_title text,
+    customer_category_id text
 );
 
 
@@ -409,6 +410,14 @@ ALTER TABLE ONLY public.transactions
 
 ALTER TABLE ONLY public.transactions
     ADD CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
+
+
+--
+-- Name: transactions transactions_customer_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_customer_category_id_fkey FOREIGN KEY (customer_category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
 
 
 --

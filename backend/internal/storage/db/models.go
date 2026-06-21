@@ -101,28 +101,30 @@ type GooseDbVersion struct {
 }
 
 type Transaction struct {
-	ID              string
-	AccountID       string
-	CategoryID      sql.NullString
-	Amount          int64
-	Description     string
-	Date            time.Time
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	Direction       sql.NullString
-	Status          sql.NullString
-	Class           sql.NullString
-	PostDate        sql.NullTime
-	SubClass        sql.NullString
-	RawDescription  sql.NullString
-	MerchantName    sql.NullString
-	MerchantWebsite sql.NullString
-	MerchantLogoUrl sql.NullString
-	LocationAddress sql.NullString
-	LocationLat     sql.NullString
-	LocationLng     sql.NullString
-	CategoryCode    sql.NullString
-	CategoryTitle   sql.NullString
+	ID                 string
+	AccountID          string
+	CategoryID         sql.NullString
+	Amount             int64
+	Description        string
+	Date               time.Time
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	Direction          sql.NullString
+	Status             sql.NullString
+	Class              sql.NullString
+	PostDate           sql.NullTime
+	SubClass           sql.NullString
+	RawDescription     sql.NullString
+	MerchantName       sql.NullString
+	MerchantWebsite    sql.NullString
+	MerchantLogoUrl    sql.NullString
+	LocationAddress    sql.NullString
+	LocationLat        sql.NullString
+	LocationLng        sql.NullString
+	CategoryCode       sql.NullString
+	CategoryTitle      sql.NullString
+	CustomerCategoryID            sql.NullString
+	CustomerCategoryExplicitNone  int32
 }
 
 type User struct {

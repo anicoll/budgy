@@ -156,29 +156,31 @@ func (c *Category) Validate() error {
 
 // Transaction represents a financial flow (inflow or outflow) affecting accounts and categories.
 type Transaction struct {
-	ID              string     `json:"id"`
-	BudgetID        string     `json:"budget_id"`
-	AccountID       string     `json:"account_id"`
-	CategoryID      string     `json:"category_id"` // Can be empty for unassigned inflows or transfers
-	Amount          int64      `json:"amount"`      // positive = inflow (income), negative = outflow (expense)
-	Description     string     `json:"description"`
-	Date            time.Time  `json:"date"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
-	Direction       string     `json:"direction,omitempty"`
-	Status          string     `json:"status,omitempty"`
-	Class           string     `json:"class,omitempty"`
-	PostDate        *time.Time `json:"post_date,omitempty"`
-	SubClass        string     `json:"sub_class,omitempty"`
-	RawDescription  string     `json:"raw_description,omitempty"`
-	MerchantName    string     `json:"merchant_name,omitempty"`
-	MerchantWebsite string     `json:"merchant_website,omitempty"`
-	MerchantLogoURL string     `json:"merchant_logo_url,omitempty"`
-	LocationAddress string     `json:"location_address,omitempty"`
-	LocationLat     string     `json:"location_lat,omitempty"`
-	LocationLng     string     `json:"location_lng,omitempty"`
-	CategoryCode    string     `json:"category_code,omitempty"`
-	CategoryTitle   string     `json:"category_title,omitempty"`
+	ID                 string     `json:"id"`
+	BudgetID           string     `json:"budget_id"`
+	AccountID          string     `json:"account_id"`
+	CategoryID                    string     `json:"category_id"`                       // Basiq/sync-mapped category
+	CustomerCategoryID            string     `json:"customer_category_id"`              // User override; takes precedence when set
+	CustomerExplicitUncategorized bool       `json:"customer_explicit_uncategorized"` // User chose uncategorised despite Basiq mapping
+	Amount             int64      `json:"amount"`               // positive = inflow (income), negative = outflow (expense)
+	Description        string     `json:"description"`
+	Date               time.Time  `json:"date"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
+	Direction          string     `json:"direction,omitempty"`
+	Status             string     `json:"status,omitempty"`
+	Class              string     `json:"class,omitempty"`
+	PostDate           *time.Time `json:"post_date,omitempty"`
+	SubClass           string     `json:"sub_class,omitempty"`
+	RawDescription     string     `json:"raw_description,omitempty"`
+	MerchantName       string     `json:"merchant_name,omitempty"`
+	MerchantWebsite    string     `json:"merchant_website,omitempty"`
+	MerchantLogoURL    string     `json:"merchant_logo_url,omitempty"`
+	LocationAddress    string     `json:"location_address,omitempty"`
+	LocationLat        string     `json:"location_lat,omitempty"`
+	LocationLng        string     `json:"location_lng,omitempty"`
+	CategoryCode       string     `json:"category_code,omitempty"`
+	CategoryTitle      string     `json:"category_title,omitempty"`
 }
 
 // Validate validates the Transaction fields.
@@ -193,6 +195,17 @@ func (t *Transaction) Validate() error {
 		return errors.New("transaction date is required")
 	}
 	return nil
+}
+
+// EffectiveCategoryID returns the category used for budgeting and reports.
+func (t *Transaction) EffectiveCategoryID() string {
+	if t.CustomerExplicitUncategorized {
+		return ""
+	}
+	if t.CustomerCategoryID != "" {
+		return t.CustomerCategoryID
+	}
+	return t.CategoryID
 }
 
 // EnvelopeAllocation tracks virtual allocations of physical account balances to specific categories/envelopes.

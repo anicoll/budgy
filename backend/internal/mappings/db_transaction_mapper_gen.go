@@ -244,6 +244,17 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
+	done22 := false
+	if m.converter00000 != nil && !done22 {
+		done22 = true
+		if converted, isnil, err := m.converter00000(ctx, &(source.CustomerCategoryID)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.CustomerCategoryID = converted
+			}
+		}
+	}
 	if m.helper != nil {
 		if err := m.helper.TransactionToTransaction(ctx, source, dest); err != nil {
 			return err

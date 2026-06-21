@@ -23,8 +23,8 @@ func (s *budgetService) ReconcileFromTransactions(ctx context.Context, budgetID 
 			return err
 		}
 		for _, tx := range txs {
-			if tx.CategoryID != "" {
-				catTotals[tx.CategoryID] += tx.Amount
+			if catID := tx.EffectiveCategoryID(); catID != "" {
+				catTotals[catID] += tx.Amount
 			}
 		}
 	}

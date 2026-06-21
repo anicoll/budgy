@@ -695,7 +695,11 @@ func (h *transactionConnectHandler) UpdateTransaction(ctx context.Context, req *
 	if err := h.mappers.Transaction().UpdateTransactionRequestToTransaction(ctx, r, updates); err != nil {
 		return nil, toConnectError(err)
 	}
-	tx, err := h.transactions.Update(ctx, r.BudgetId, r.TransactionId, updates)
+	var customerCategory *string
+	if r.CategoryId != nil {
+		customerCategory = r.CategoryId
+	}
+	tx, err := h.transactions.Update(ctx, r.BudgetId, r.TransactionId, updates, customerCategory)
 	if err != nil {
 		return nil, toConnectError(err)
 	}

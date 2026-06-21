@@ -96,11 +96,11 @@ func (m *Mappers) BudgetCategory(ctx context.Context, bc *domain.BudgetCategory)
 		return nil
 	}
 	return &budgyv1.BudgetCategory{
-		Category:           m.Category(ctx, &bc.Category),
-		Budgeted:           bc.Budgeted,
-		Balance:            bc.Balance,
-		TargetLimit:        bc.TargetLimit,
-		BudgetedFrequency:  budgetFrequencyToProto(bc.BudgetedFrequency),
+		Category:          m.Category(ctx, &bc.Category),
+		Budgeted:          bc.Budgeted,
+		Balance:           bc.Balance,
+		TargetLimit:       bc.TargetLimit,
+		BudgetedFrequency: budgetFrequencyToProto(bc.BudgetedFrequency),
 	}
 }
 
@@ -128,6 +128,9 @@ func (m *Mappers) TransactionProto(ctx context.Context, t *domain.Transaction) *
 	if err := m.txProtoMapper.ToProto(ctx, t, &p); err != nil {
 		panic(err)
 	}
+	p.CategoryId = t.EffectiveCategoryID()
+	p.BasiqCategoryId = t.CategoryID
+	p.CustomerCategoryId = t.CustomerCategoryID
 	return &p
 }
 

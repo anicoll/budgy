@@ -72,16 +72,30 @@ export function DashboardPageClient() {
   const { data: allTxns = [], isPending: txnsLoading } = useTransactions({ range: historyRange });
   const { data: categories = [], isPending: catsLoading } = useCategories();
 
-  const { data: budgetCategories } = useBackendCategories(activeBudget?.id ?? null);
-  const { data: budgetAccounts = [] } = useBackendAccounts(activeBudget?.id ?? null);
-  const budgetAccountIds = useMemo(() => budgetAccounts.map((a) => a.id), [budgetAccounts]);
+  const { data: budgetCategories, isPending: budgetCategoriesPending } = useBackendCategories(
+    activeBudget?.id ?? null,
+  );
+  const { data: budgetAccounts, isPending: budgetAccountsPending } = useBackendAccounts(
+    activeBudget?.id ?? null,
+  );
+  const budgetAccountIds = useMemo(() => budgetAccounts?.map((a) => a.id) ?? [], [budgetAccounts]);
+  const summaryReady =
+    !budgetCategoriesPending &&
+    !budgetAccountsPending &&
+    !catsLoading &&
+    budgetCategories !== undefined &&
+    budgetAccounts !== undefined &&
+    categories !== undefined;
   const budgetSummary = useBackendBudgetSummary(
     activeBudget,
     budgetCategories,
+    budgetAccounts,
     activeBudget?.period ?? "monthly",
     allTxns,
     budgetAccountIds,
     range,
+    categories,
+    summaryReady,
   );
 
   const isLoading = accsLoading || txnsLoading || catsLoading;

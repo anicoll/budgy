@@ -4,6 +4,22 @@ import { type Cents, cents } from "@/lib/money/cents";
 import { normaliseToPeriod } from "../utils/normalise";
 import type { BackendCategory, CategoryPeriodView, ViewCadence } from "./types";
 
+export type CategoryTypeLookup = ReadonlyMap<string, BackendCategory["type"]>;
+
+export function buildCategoryTypeLookup(
+  categories: ReadonlyArray<{ id: string; type: BackendCategory["type"] }>,
+): CategoryTypeLookup {
+  const map = new Map<string, BackendCategory["type"]>();
+  for (const cat of categories) {
+    map.set(cat.id, cat.type);
+  }
+  return map;
+}
+
+function isInRange(tx: Transaction, range: DateRange, accountIds: Set<string>): boolean {
+  return accountIds.has(tx.accountId) && tx.date >= range.from && tx.date <= range.to;
+}
+
 export function sumTransactionsInRange(
   transactions: Transaction[],
   accountIds: Set<string>,
@@ -16,6 +32,29 @@ export function sumTransactionsInRange(
     if (tx.date < range.from || tx.date > range.to) continue;
     if (categoryId !== undefined && tx.categoryId !== categoryId) continue;
     total += signedAmount(tx);
+  }
+  return cents(total);
+}
+
+export function sumCategoryPeriodActual(
+  transactions: Transaction[],
+  accountIds: Set<string>,
+  range: DateRange,
+  category: Pick<BackendCategory, "id" | "type">,
+): Cents {
+  let total = 0;
+  for (const tx of transactions) {
+    if (!accountIds.has(tx.accountId)) continue;
+    if (tx.date < range.from || tx.date > range.to) continue;
+    if (tx.categoryId !== category.id) continue;
+    const signed = signedAmount(tx);
+    if (category.type === "income") {
+      if (signed > 0) total += signed;
+    } else if (category.type === "expense") {
+      if (signed < 0) total += signed;
+    } else {
+      total += signed;
+    }
   }
   return cents(total);
 }
@@ -49,12 +88,13 @@ export function computePeriodReceived(
   transactions: Transaction[],
   accountIds: string[],
   range: DateRange,
+  categoryTypes: CategoryTypeLookup,
 ): Cents {
   const ids = new Set(accountIds);
   let received = 0;
   for (const tx of transactions) {
-    if (!ids.has(tx.accountId)) continue;
-    if (tx.date < range.from || tx.date > range.to) continue;
+    if (!isInRange(tx, range, ids) || !tx.categoryId) continue;
+    if (categoryTypes.get(tx.categoryId) !== "income") continue;
     const signed = signedAmount(tx);
     if (signed > 0) received += signed;
   }
@@ -83,12 +123,13 @@ export function computePeriodSpent(
   transactions: Transaction[],
   accountIds: string[],
   range: DateRange,
+  categoryTypes: CategoryTypeLookup,
 ): Cents {
   const ids = new Set(accountIds);
   let spent = 0;
   for (const tx of transactions) {
-    if (!ids.has(tx.accountId)) continue;
-    if (tx.date < range.from || tx.date > range.to) continue;
+    if (!isInRange(tx, range, ids) || !tx.categoryId) continue;
+    if (categoryTypes.get(tx.categoryId) !== "expense") continue;
     const signed = signedAmount(tx);
     if (signed < 0) spent += -signed;
   }

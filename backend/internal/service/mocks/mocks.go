@@ -2900,8 +2900,8 @@ func (_c *MockTransactionService_ListByUser_Call) RunAndReturn(run func(ctx cont
 }
 
 // Update provides a mock function for the type MockTransactionService
-func (_mock *MockTransactionService) Update(ctx context.Context, budgetID string, txID string, updates *domain.Transaction) (*domain.Transaction, error) {
-	ret := _mock.Called(ctx, budgetID, txID, updates)
+func (_mock *MockTransactionService) Update(ctx context.Context, budgetID string, txID string, updates *domain.Transaction, customerCategory *string) (*domain.Transaction, error) {
+	ret := _mock.Called(ctx, budgetID, txID, updates, customerCategory)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
@@ -2909,18 +2909,18 @@ func (_mock *MockTransactionService) Update(ctx context.Context, budgetID string
 
 	var r0 *domain.Transaction
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *domain.Transaction) (*domain.Transaction, error)); ok {
-		return returnFunc(ctx, budgetID, txID, updates)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *domain.Transaction, *string) (*domain.Transaction, error)); ok {
+		return returnFunc(ctx, budgetID, txID, updates, customerCategory)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *domain.Transaction) *domain.Transaction); ok {
-		r0 = returnFunc(ctx, budgetID, txID, updates)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *domain.Transaction, *string) *domain.Transaction); ok {
+		r0 = returnFunc(ctx, budgetID, txID, updates, customerCategory)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*domain.Transaction)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, *domain.Transaction) error); ok {
-		r1 = returnFunc(ctx, budgetID, txID, updates)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, *domain.Transaction, *string) error); ok {
+		r1 = returnFunc(ctx, budgetID, txID, updates, customerCategory)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2937,11 +2937,12 @@ type MockTransactionService_Update_Call struct {
 //   - budgetID string
 //   - txID string
 //   - updates *domain.Transaction
-func (_e *MockTransactionService_Expecter) Update(ctx any, budgetID any, txID any, updates any) *MockTransactionService_Update_Call {
-	return &MockTransactionService_Update_Call{Call: _e.mock.On("Update", ctx, budgetID, txID, updates)}
+//   - customerCategory *string
+func (_e *MockTransactionService_Expecter) Update(ctx any, budgetID any, txID any, updates any, customerCategory any) *MockTransactionService_Update_Call {
+	return &MockTransactionService_Update_Call{Call: _e.mock.On("Update", ctx, budgetID, txID, updates, customerCategory)}
 }
 
-func (_c *MockTransactionService_Update_Call) Run(run func(ctx context.Context, budgetID string, txID string, updates *domain.Transaction)) *MockTransactionService_Update_Call {
+func (_c *MockTransactionService_Update_Call) Run(run func(ctx context.Context, budgetID string, txID string, updates *domain.Transaction, customerCategory *string)) *MockTransactionService_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -2959,11 +2960,16 @@ func (_c *MockTransactionService_Update_Call) Run(run func(ctx context.Context, 
 		if args[3] != nil {
 			arg3 = args[3].(*domain.Transaction)
 		}
+		var arg4 *string
+		if args[4] != nil {
+			arg4 = args[4].(*string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -2974,7 +2980,7 @@ func (_c *MockTransactionService_Update_Call) Return(transaction *domain.Transac
 	return _c
 }
 
-func (_c *MockTransactionService_Update_Call) RunAndReturn(run func(ctx context.Context, budgetID string, txID string, updates *domain.Transaction) (*domain.Transaction, error)) *MockTransactionService_Update_Call {
+func (_c *MockTransactionService_Update_Call) RunAndReturn(run func(ctx context.Context, budgetID string, txID string, updates *domain.Transaction, customerCategory *string) (*domain.Transaction, error)) *MockTransactionService_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

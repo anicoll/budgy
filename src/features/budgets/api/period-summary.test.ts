@@ -1,90 +1,91 @@
 import { describe, expect, it } from "vitest";
+import type { Transaction } from "@/features/transactions/types";
 import { cents } from "@/lib/money/cents";
 import {
-  computeCategoryPeriodView,
-  sumTransactionsInRange,
-  uncategorizedTransactionsInPeriod,
+  buildCategoryTypeLookup,
+  computePeriodReceived,
+  computePeriodSpent,
+  sumCategoryPeriodActual,
 } from "./period-summary";
-import type { BackendCategory } from "./types";
 
-const cat = (): BackendCategory => ({
-  id: "c1",
-  name: "Groceries",
-  type: "expense",
-  parentId: null,
-  system: false,
-  budgeted: cents(40000),
-  balance: cents(-5000),
-  targetLimit: cents(0),
-  budgetedFrequency: "fortnightly",
+const range = { from: "2024-06-01", to: "2024-06-30" };
+const lookup = buildCategoryTypeLookup([
+  { id: "salary", type: "income" },
+  { id: "groceries", type: "expense" },
+  { id: "xfer", type: "transfer" },
+]);
+
+const tx = (overrides: Partial<Transaction> & Pick<Transaction, "id">): Transaction => ({
+  accountId: "a1",
+  categoryId: "groceries",
+  amount: cents(1000),
+  type: "debit",
+  date: "2024-06-10",
+  tags: [],
+  cleared: true,
+  createdAt: "",
+  updatedAt: "",
+  ...overrides,
 });
 
-describe("sumTransactionsInRange", () => {
-  it("sums tx for category in range on linked accounts", () => {
-    const total = sumTransactionsInRange(
+describe("computePeriodReceived", () => {
+  it("counts only credits on income categories", () => {
+    const received = computePeriodReceived(
       [
-        {
-          id: "t1",
-          accountId: "a1",
-          categoryId: "c1",
-          amount: cents(2000),
-          type: "debit",
-          date: "2024-06-10",
-          tags: [],
-          cleared: true,
-          createdAt: "",
-          updatedAt: "",
-        },
-        {
-          id: "t2",
-          accountId: "a1",
-          categoryId: "c1",
-          amount: cents(3000),
-          type: "debit",
-          date: "2024-05-01",
-          tags: [],
-          cleared: true,
-          createdAt: "",
-          updatedAt: "",
-        },
-      ],
-      new Set(["a1"]),
-      { from: "2024-06-01", to: "2024-06-30" },
-      "c1",
-    );
-    expect(total).toBe(cents(-2000));
-  });
-});
-
-describe("computeCategoryPeriodView", () => {
-  it("flags over target when spend exceeds normalised target", () => {
-    const view = computeCategoryPeriodView(cat(), "fortnightly", cents(-50000));
-    expect(view.overTarget).toBe(true);
-    expect(view.periodTarget).toBe(cents(40000));
-  });
-});
-
-describe("uncategorizedTransactionsInPeriod", () => {
-  it("lists uncategorized tx on linked accounts", () => {
-    const list = uncategorizedTransactionsInPeriod(
-      [
-        {
-          id: "t1",
-          accountId: "a1",
-          categoryId: null,
-          amount: cents(1000),
-          type: "debit",
-          date: "2024-06-05",
-          description: "Coffee",
-          tags: [],
-          cleared: false,
-          createdAt: "",
-          updatedAt: "",
-        },
+        tx({ id: "t1", categoryId: "salary", type: "credit", amount: cents(500000) }),
+        tx({ id: "t2", categoryId: null, type: "credit", amount: cents(10000) }),
+        tx({ id: "t3", categoryId: "groceries", type: "credit", amount: cents(5000) }),
+        tx({ id: "t4", categoryId: "xfer", type: "credit", amount: cents(20000) }),
       ],
       ["a1"],
-      { from: "2024-06-01", to: "2024-06-30" },
+      range,
+      lookup,
     );
-    expect(list).toHaveLength(1);
+    expect(received).toBe(cents(500000));
+  });
+});
+
+describe("computePeriodSpent", () => {
+  it("counts only debits on expense categories", () => {
+    const spent = computePeriodSpent(
+      [
+        tx({ id: "t1", categoryId: "groceries", type: "debit", amount: cents(3000) }),
+        tx({ id: "t2", categoryId: null, type: "debit", amount: cents(9000) }),
+        tx({ id: "t3", categoryId: "salary", type: "debit", amount: cents(1000) }),
+        tx({ id: "t4", categoryId: "xfer", type: "debit", amount: cents(4000) }),
+      ],
+      ["a1"],
+      range,
+      lookup,
+    );
+    expect(spent).toBe(cents(3000));
+  });
+});
+
+describe("sumCategoryPeriodActual", () => {
+  it("matches hero income rules for income categories", () => {
+    const actual = sumCategoryPeriodActual(
+      [
+        tx({ id: "t1", categoryId: "salary", type: "credit", amount: cents(500000) }),
+        tx({ id: "t2", categoryId: "salary", type: "debit", amount: cents(1000) }),
+      ],
+      new Set(["a1"]),
+      range,
+      { id: "salary", type: "income" },
+    );
+    expect(actual).toBe(cents(500000));
+  });
+
+  it("matches hero expense rules for expense categories", () => {
+    const actual = sumCategoryPeriodActual(
+      [
+        tx({ id: "t1", categoryId: "groceries", type: "debit", amount: cents(3000) }),
+        tx({ id: "t2", categoryId: "groceries", type: "credit", amount: cents(500) }),
+      ],
+      new Set(["a1"]),
+      range,
+      { id: "groceries", type: "expense" },
+    );
+    expect(actual).toBe(cents(-3000));
   });
 });
