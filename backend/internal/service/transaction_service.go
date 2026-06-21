@@ -143,10 +143,17 @@ func (s *transactionService) Update(ctx context.Context, budgetID, txID string, 
 	}
 
 	newCustomerCategoryID := oldTx.CustomerCategoryID
+	customerExplicitUncategorized := oldTx.CustomerExplicitUncategorized
 	if customerCategory != nil {
-		newCustomerCategoryID = *customerCategory
-		if err := s.ensureCustomerCategory(ctx, budgetID, newCustomerCategoryID); err != nil {
-			return nil, err
+		if *customerCategory == "" {
+			newCustomerCategoryID = ""
+			customerExplicitUncategorized = true
+		} else {
+			newCustomerCategoryID = *customerCategory
+			customerExplicitUncategorized = false
+			if err := s.ensureCustomerCategory(ctx, budgetID, newCustomerCategoryID); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -162,6 +169,7 @@ func (s *transactionService) Update(ctx context.Context, budgetID, txID string, 
 	tx.BudgetID = budgetID
 	tx.AccountID = newAccountID
 	tx.CustomerCategoryID = newCustomerCategoryID
+	tx.CustomerExplicitUncategorized = customerExplicitUncategorized
 	tx.Amount = newAmount
 	if updates.Description != "" {
 		tx.Description = updates.Description

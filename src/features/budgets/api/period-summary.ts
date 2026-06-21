@@ -36,6 +36,29 @@ export function sumTransactionsInRange(
   return cents(total);
 }
 
+export function sumCategoryPeriodActual(
+  transactions: Transaction[],
+  accountIds: Set<string>,
+  range: DateRange,
+  category: Pick<BackendCategory, "id" | "type">,
+): Cents {
+  let total = 0;
+  for (const tx of transactions) {
+    if (!accountIds.has(tx.accountId)) continue;
+    if (tx.date < range.from || tx.date > range.to) continue;
+    if (tx.categoryId !== category.id) continue;
+    const signed = signedAmount(tx);
+    if (category.type === "income") {
+      if (signed > 0) total += signed;
+    } else if (category.type === "expense") {
+      if (signed < 0) total += signed;
+    } else {
+      total += signed;
+    }
+  }
+  return cents(total);
+}
+
 export function computeCategoryPeriodView(
   category: BackendCategory,
   viewCadence: ViewCadence,

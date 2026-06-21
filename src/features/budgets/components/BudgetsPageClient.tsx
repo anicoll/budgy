@@ -22,7 +22,7 @@ import {
 } from "../api/hooks";
 import {
   computeCategoryPeriodView,
-  sumTransactionsInRange,
+  sumCategoryPeriodActual,
   uncategorizedTransactionsInPeriod,
 } from "../api/period-summary";
 import type { BackendBudgetFormValues } from "../api/schema";
@@ -66,13 +66,21 @@ export function BudgetsPageClient() {
   const { data: categories, isPending: categoriesPending } = useBackendCategories(
     selectedBudget?.id ?? null,
   );
-  const { data: taxonomyCategories = [] } = useCategories();
-  const { data: accounts = [] } = useBackendAccounts(selectedBudget?.id ?? null);
-  const accountIds = useMemo(() => accounts.map((a) => a.id), [accounts]);
+  const { data: taxonomyCategories, isPending: taxonomyPending } = useCategories();
+  const { data: accounts, isPending: accountsPending } = useBackendAccounts(selectedBudget?.id ?? null);
+  const accountIds = useMemo(() => accounts?.map((a) => a.id) ?? [], [accounts]);
 
   const { data: transactions = [] } = useTransactions({
     range: periodRange.from ? periodRange : undefined,
   });
+
+  const summaryReady =
+    !categoriesPending &&
+    !accountsPending &&
+    !taxonomyPending &&
+    categories !== undefined &&
+    accounts !== undefined &&
+    taxonomyCategories !== undefined;
 
   const summary = useBackendBudgetSummary(
     selectedBudget,
@@ -83,6 +91,7 @@ export function BudgetsPageClient() {
     accountIds,
     periodRange.from ? periodRange : undefined,
     taxonomyCategories,
+    summaryReady,
   );
 
   const uncategorized = useMemo(() => {
@@ -104,11 +113,11 @@ export function BudgetsPageClient() {
   const assignDialogCategory = assignCategory ?? coverCategory;
   const coverAmount = useMemo(() => {
     if (!coverCategory || !periodRange.from) return undefined;
-    const actual = sumTransactionsInRange(
+    const actual = sumCategoryPeriodActual(
       transactions,
       new Set(accountIds),
       periodRange,
-      coverCategory.id,
+      coverCategory,
     );
     const view = computeCategoryPeriodView(coverCategory, viewCadence, actual);
     return view.overTarget ? cents(Math.abs(view.periodRemaining)) : undefined;
@@ -187,7 +196,7 @@ export function BudgetsPageClient() {
 
       <UncategorizedInbox
         transactions={uncategorized}
-        categories={taxonomyCategories}
+        categories={taxonomyCategories ?? []}
         allTransactions={transactions}
       />
 

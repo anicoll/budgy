@@ -69,7 +69,7 @@ export function AssignFundsDialog({
     const amountCents = toCents(parsed);
     const currentBudgeted = category?.budgeted ?? 0;
     const assignmentDelta = mode === "add" ? amountCents : amountCents - currentBudgeted;
-    if (readyToAssign !== undefined && assignmentDelta > 0 && assignmentDelta > readyToAssign) {
+    if (readyToAssign !== undefined && readyToAssign >= 0 && assignmentDelta > 0 && assignmentDelta > readyToAssign) {
       setError(
         `Cannot assign more than ${fromCents(readyToAssign).toFixed(2)} — only that much is ready to assign`,
       );

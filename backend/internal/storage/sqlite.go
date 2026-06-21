@@ -368,8 +368,8 @@ func (s *SQLiteStorage) Transactions() domain.TransactionRepository {
 }
 
 func (r *transactionRepository) Create(ctx context.Context, tx *domain.Transaction) error {
-	query := `INSERT INTO transactions (id, account_id, category_id, customer_category_id, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name, merchant_website, merchant_logo_url, location_address, location_lat, location_lng, category_code, category_title)
-	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO transactions (id, account_id, category_id, customer_category_id, customer_category_explicit_none, amount, description, date, created_at, updated_at, direction, status, class, post_date, sub_class, raw_description, merchant_name, merchant_website, merchant_logo_url, location_address, location_lat, location_lng, category_code, category_title)
+	          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	var catID any = tx.CategoryID
 	if tx.CategoryID == "" {
 		catID = nil
@@ -378,11 +378,15 @@ func (r *transactionRepository) Create(ctx context.Context, tx *domain.Transacti
 	if tx.CustomerCategoryID == "" {
 		customerCatID = nil
 	}
-	_, err := r.db.ExecContext(ctx, query, tx.ID, tx.AccountID, catID, customerCatID, tx.Amount, tx.Description, tx.Date, tx.CreatedAt, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName, tx.MerchantWebsite, tx.MerchantLogoURL, tx.LocationAddress, tx.LocationLat, tx.LocationLng, tx.CategoryCode, tx.CategoryTitle)
+	explicitNone := 0
+	if tx.CustomerExplicitUncategorized {
+		explicitNone = 1
+	}
+	_, err := r.db.ExecContext(ctx, query, tx.ID, tx.AccountID, catID, customerCatID, explicitNone, tx.Amount, tx.Description, tx.Date, tx.CreatedAt, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName, tx.MerchantWebsite, tx.MerchantLogoURL, tx.LocationAddress, tx.LocationLat, tx.LocationLng, tx.CategoryCode, tx.CategoryTitle)
 	return err
 }
 
-const txSelectCols = `t.id, t.account_id, t.category_id, t.customer_category_id, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title`
+const txSelectCols = `t.id, t.account_id, t.category_id, t.customer_category_id, t.customer_category_explicit_none, t.amount, t.description, t.date, t.created_at, t.updated_at, t.direction, t.status, t.class, t.post_date, t.sub_class, t.raw_description, t.merchant_name, t.merchant_website, t.merchant_logo_url, t.location_address, t.location_lat, t.location_lng, t.category_code, t.category_title`
 
 func (r *transactionRepository) GetByID(ctx context.Context, id string) (*domain.Transaction, error) {
 	query := `SELECT ` + txSelectCols + ` FROM transactions t WHERE t.id = ?`
@@ -432,6 +436,7 @@ func scanTransactionRow(ctx context.Context, row interface {
 		&dbTx.AccountID,
 		&dbTx.CategoryID,
 		&dbTx.CustomerCategoryID,
+		&dbTx.CustomerCategoryExplicitNone,
 		&dbTx.Amount,
 		&dbTx.Description,
 		&dbTx.Date,
@@ -459,6 +464,7 @@ func scanTransactionRow(ctx context.Context, row interface {
 	if err := dbTxMapper.TransactionToTransaction(ctx, &dbTx, &tx); err != nil {
 		return nil, err
 	}
+	tx.CustomerExplicitUncategorized = dbTx.CustomerCategoryExplicitNone != 0
 	return &tx, nil
 }
 
@@ -481,7 +487,7 @@ func (r *transactionRepository) listQuery(ctx context.Context, query string, arg
 }
 
 func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transaction) error {
-	query := `UPDATE transactions SET account_id = ?, category_id = ?, customer_category_id = ?, amount = ?, description = ?, date = ?, updated_at = ?, direction = ?, status = ?, class = ?, post_date = ?, sub_class = ?, raw_description = ?, merchant_name = ?, merchant_website = ?, merchant_logo_url = ?, location_address = ?, location_lat = ?, location_lng = ?, category_code = ?, category_title = ? WHERE id = ?`
+	query := `UPDATE transactions SET account_id = ?, category_id = ?, customer_category_id = ?, customer_category_explicit_none = ?, amount = ?, description = ?, date = ?, updated_at = ?, direction = ?, status = ?, class = ?, post_date = ?, sub_class = ?, raw_description = ?, merchant_name = ?, merchant_website = ?, merchant_logo_url = ?, location_address = ?, location_lat = ?, location_lng = ?, category_code = ?, category_title = ? WHERE id = ?`
 	var catID any = tx.CategoryID
 	if tx.CategoryID == "" {
 		catID = nil
@@ -490,7 +496,11 @@ func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transacti
 	if tx.CustomerCategoryID == "" {
 		customerCatID = nil
 	}
-	_, err := r.db.ExecContext(ctx, query, tx.AccountID, catID, customerCatID, tx.Amount, tx.Description, tx.Date, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName, tx.MerchantWebsite, tx.MerchantLogoURL, tx.LocationAddress, tx.LocationLat, tx.LocationLng, tx.CategoryCode, tx.CategoryTitle, tx.ID)
+	explicitNone := 0
+	if tx.CustomerExplicitUncategorized {
+		explicitNone = 1
+	}
+	_, err := r.db.ExecContext(ctx, query, tx.AccountID, catID, customerCatID, explicitNone, tx.Amount, tx.Description, tx.Date, tx.UpdatedAt, tx.Direction, tx.Status, tx.Class, tx.PostDate, tx.SubClass, tx.RawDescription, tx.MerchantName, tx.MerchantWebsite, tx.MerchantLogoURL, tx.LocationAddress, tx.LocationLat, tx.LocationLng, tx.CategoryCode, tx.CategoryTitle, tx.ID)
 	return err
 }
 

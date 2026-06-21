@@ -457,15 +457,18 @@ export class ApiTransactionRepository implements Repository<Transaction> {
     };
 
     if (existing) {
-      const res = await transactionClient.updateTransaction({
+      const updateReq: Parameters<typeof transactionClient.updateTransaction>[0] = {
         budgetId,
         transactionId: entity.id,
         accountId: entity.accountId,
-        categoryId: entity.categoryId || "",
         amount,
         description: entity.payee || "Transaction",
         date: dateTs,
-      });
+      };
+      if (entity.categoryId !== existing.categoryId) {
+        updateReq.categoryId = entity.categoryId ?? "";
+      }
+      const res = await transactionClient.updateTransaction(updateReq);
       if (!res.transaction) throw new Error("Failed to update transaction");
       return mapProtoTransaction(res.transaction);
     } else {

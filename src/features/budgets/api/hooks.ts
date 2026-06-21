@@ -123,12 +123,13 @@ export function useBackendBudgetSummary(
   accountIds?: string[],
   range?: import("@/lib/date/periods").DateRange,
   taxonomyCategories?: ReadonlyArray<{ id: string; type: BackendCategory["type"] }>,
+  isReady = true,
 ) {
   return useMemo(() => {
-    if (!budget || !categories || !accounts) return null;
+    if (!budget || !isReady) return null;
     return computeBudgetSummary(
-      accounts,
-      categories,
+      accounts ?? [],
+      categories ?? [],
       viewCadence,
       transactions,
       accountIds,
@@ -144,6 +145,7 @@ export function useBackendBudgetSummary(
     accountIds,
     range,
     taxonomyCategories,
+    isReady,
   ]);
 }
 

@@ -5,6 +5,7 @@ import {
   buildCategoryTypeLookup,
   computePeriodReceived,
   computePeriodSpent,
+  sumCategoryPeriodActual,
 } from "./period-summary";
 
 const range = { from: "2024-06-01", to: "2024-06-30" };
@@ -58,5 +59,33 @@ describe("computePeriodSpent", () => {
       lookup,
     );
     expect(spent).toBe(cents(3000));
+  });
+});
+
+describe("sumCategoryPeriodActual", () => {
+  it("matches hero income rules for income categories", () => {
+    const actual = sumCategoryPeriodActual(
+      [
+        tx({ id: "t1", categoryId: "salary", type: "credit", amount: cents(500000) }),
+        tx({ id: "t2", categoryId: "salary", type: "debit", amount: cents(1000) }),
+      ],
+      new Set(["a1"]),
+      range,
+      { id: "salary", type: "income" },
+    );
+    expect(actual).toBe(cents(500000));
+  });
+
+  it("matches hero expense rules for expense categories", () => {
+    const actual = sumCategoryPeriodActual(
+      [
+        tx({ id: "t1", categoryId: "groceries", type: "debit", amount: cents(3000) }),
+        tx({ id: "t2", categoryId: "groceries", type: "credit", amount: cents(500) }),
+      ],
+      new Set(["a1"]),
+      range,
+      { id: "groceries", type: "expense" },
+    );
+    expect(actual).toBe(cents(-3000));
   });
 });

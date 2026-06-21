@@ -16,4 +16,14 @@ func TestTransaction_EffectiveCategoryID(t *testing.T) {
 			t.Fatalf("expected basiq-cat, got %s", got)
 		}
 	})
+
+	t.Run("explicit uncategorised override", func(t *testing.T) {
+		tx := &Transaction{
+			CategoryID:                    "basiq-cat",
+			CustomerExplicitUncategorized: true,
+		}
+		if got := tx.EffectiveCategoryID(); got != "" {
+			t.Fatalf("expected empty, got %s", got)
+		}
+	})
 }

@@ -123,7 +123,8 @@ type Transaction struct {
 	LocationLng        sql.NullString
 	CategoryCode       sql.NullString
 	CategoryTitle      sql.NullString
-	CustomerCategoryID sql.NullString
+	CustomerCategoryID            sql.NullString
+	CustomerCategoryExplicitNone  int32
 }
 
 type User struct {
