@@ -128,6 +128,9 @@ func (m *Mappers) TransactionProto(ctx context.Context, t *domain.Transaction) *
 	if err := m.txProtoMapper.ToProto(ctx, t, &p); err != nil {
 		panic(err)
 	}
+	p.CategoryId = t.EffectiveCategoryID()
+	p.BasiqCategoryId = t.CategoryID
+	p.CustomerCategoryId = t.CustomerCategoryID
 	return &p
 }
 

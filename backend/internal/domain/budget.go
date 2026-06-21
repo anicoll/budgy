@@ -159,7 +159,8 @@ type Transaction struct {
 	ID              string     `json:"id"`
 	BudgetID        string     `json:"budget_id"`
 	AccountID       string     `json:"account_id"`
-	CategoryID      string     `json:"category_id"` // Can be empty for unassigned inflows or transfers
+	CategoryID         string     `json:"category_id"`          // Basiq/sync-mapped category
+	CustomerCategoryID string     `json:"customer_category_id"` // User override; takes precedence when set
 	Amount          int64      `json:"amount"`      // positive = inflow (income), negative = outflow (expense)
 	Description     string     `json:"description"`
 	Date            time.Time  `json:"date"`
@@ -193,6 +194,14 @@ func (t *Transaction) Validate() error {
 		return errors.New("transaction date is required")
 	}
 	return nil
+}
+
+// EffectiveCategoryID returns the category used for budgeting and reports.
+func (t *Transaction) EffectiveCategoryID() string {
+	if t.CustomerCategoryID != "" {
+		return t.CustomerCategoryID
+	}
+	return t.CategoryID
 }
 
 // EnvelopeAllocation tracks virtual allocations of physical account balances to specific categories/envelopes.

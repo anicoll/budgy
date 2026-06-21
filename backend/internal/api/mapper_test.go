@@ -258,11 +258,12 @@ func TestTransactionProtoMapper(t *testing.T) {
 
 	now := time.Now().UTC().Truncate(time.Second)
 	tObj := &domain.Transaction{
-		ID:              "t-1",
-		BudgetID:        "b-1",
-		AccountID:       "a-1",
-		CategoryID:      "c-1",
-		Amount:          -50,
+		ID:                 "t-1",
+		BudgetID:           "b-1",
+		AccountID:          "a-1",
+		CategoryID:         "c-basiq",
+		CustomerCategoryID: "c-user",
+		Amount:             -50,
 		Description:     "Woolworths",
 		Date:            now,
 		CreatedAt:       now,
@@ -288,7 +289,9 @@ func TestTransactionProtoMapper(t *testing.T) {
 	assert.Equal(t, tObj.ID, p.Id)
 	assert.Equal(t, tObj.BudgetID, p.BudgetId)
 	assert.Equal(t, tObj.AccountID, p.AccountId)
-	assert.Equal(t, tObj.CategoryID, p.CategoryId)
+	assert.Equal(t, "c-user", p.CategoryId)
+	assert.Equal(t, "c-basiq", p.BasiqCategoryId)
+	assert.Equal(t, "c-user", p.CustomerCategoryId)
 	assert.Equal(t, tObj.Amount, p.Amount)
 	assert.Equal(t, tObj.Description, p.Description)
 	assert.Equal(t, tObj.Date, p.Date.AsTime())

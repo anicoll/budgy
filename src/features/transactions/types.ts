@@ -10,7 +10,14 @@ export interface Transaction {
   amount: Cents;
   type: TxnType;
   transferDirection?: TransferDirection;
+  /** Effective category used for budgeting (customer override, else Basiq-mapped). */
   categoryId: string | null;
+  /** Category mapped from Basiq on sync. */
+  basiqCategoryId?: string | null;
+  /** User-assigned category override. */
+  customerCategoryId?: string | null;
+  /** Original Basiq category label. */
+  basiqCategoryTitle?: string;
   payee?: string;
   description?: string;
   tags: string[];

@@ -2,23 +2,19 @@
 // @generated from file budgy/v1/budget.proto (package budgy.v1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from "@bufbuild/protobuf";
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { BudgetCategory, BudgetFrequency, Category, FundEnvelopeResult } from "./category_pb";
 import { file_budgy_v1_category } from "./category_pb";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file budgy/v1/budget.proto.
  */
-export const file_budgy_v1_budget: GenFile =
-  /*@__PURE__*/
-  fileDesc(
-    "ChVidWRneS92MS9idWRnZXQucHJvdG8SCGJ1ZGd5LnYxIokCCgZCdWRnZXQSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEiYKBm1ldGhvZBgEIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldE1ldGhvZBIQCghjdXJyZW5jeRgFIAEoCRIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBImCgZwZXJpb2QYCCABKA4yFi5idWRneS52MS5CdWRnZXRQZXJpb2QSEgoKc3RhcnRfZGF0ZRgJIAEoCSJoCg1CdWRnZXRTdW1tYXJ5EhEKCWJ1ZGdldF9pZBgBIAEoCRIWCg50b3RhbF9idWRnZXRlZBgCIAEoAxITCgt0b3RhbF9zcGVudBgDIAEoAxIXCg90b3RhbF9yZW1haW5pbmcYBCABKAMimQEKE0NyZWF0ZUJ1ZGdldFJlcXVlc3QSDAoEbmFtZRgBIAEoCRImCgZtZXRob2QYAiABKA4yFi5idWRneS52MS5CdWRnZXRNZXRob2QSEAoIY3VycmVuY3kYAyABKAkSJgoGcGVyaW9kGAQgASgOMhYuYnVkZ3kudjEuQnVkZ2V0UGVyaW9kEhIKCnN0YXJ0X2RhdGUYBSABKAkiOAoUQ3JlYXRlQnVkZ2V0UmVzcG9uc2USIAoGYnVkZ2V0GAEgASgLMhAuYnVkZ3kudjEuQnVkZ2V0IhQKEkxpc3RCdWRnZXRzUmVxdWVzdCI4ChNMaXN0QnVkZ2V0c1Jlc3BvbnNlEiEKB2J1ZGdldHMYASADKAsyEC5idWRneS52MS5CdWRnZXQiJQoQR2V0QnVkZ2V0UmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkiNQoRR2V0QnVkZ2V0UmVzcG9uc2USIAoGYnVkZ2V0GAEgASgLMhAuYnVkZ3kudjEuQnVkZ2V0IiwKF0dldEJ1ZGdldFN1bW1hcnlSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSJEChhHZXRCdWRnZXRTdW1tYXJ5UmVzcG9uc2USKAoHc3VtbWFyeRgBIAEoCzIXLmJ1ZGd5LnYxLkJ1ZGdldFN1bW1hcnkirAEKE1VwZGF0ZUJ1ZGdldFJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJEgwKBG5hbWUYAiABKAkSJgoGbWV0aG9kGAMgASgOMhYuYnVkZ3kudjEuQnVkZ2V0TWV0aG9kEhAKCGN1cnJlbmN5GAQgASgJEiYKBnBlcmlvZBgFIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldFBlcmlvZBISCgpzdGFydF9kYXRlGAYgASgJIjgKFFVwZGF0ZUJ1ZGdldFJlc3BvbnNlEiAKBmJ1ZGdldBgBIAEoCzIQLmJ1ZGd5LnYxLkJ1ZGdldCIoChNEZWxldGVCdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSIWChREZWxldGVCdWRnZXRSZXNwb25zZSIwChtMaXN0QnVkZ2V0Q2F0ZWdvcmllc1JlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJIkwKHExpc3RCdWRnZXRDYXRlZ29yaWVzUmVzcG9uc2USLAoKY2F0ZWdvcmllcxgBIAMoCzIYLmJ1ZGd5LnYxLkJ1ZGdldENhdGVnb3J5IqMBChpBc3NpZ25DYXRlZ29yeUZ1bmRzUmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkSEwoLY2F0ZWdvcnlfaWQYAiABKAkSDgoGYW1vdW50GAMgASgDEjUKEmJ1ZGdldGVkX2ZyZXF1ZW5jeRgEIAEoDjIZLmJ1ZGd5LnYxLkJ1ZGdldEZyZXF1ZW5jeRIWCg5yZXBsYWNlX3RhcmdldBgFIAEoCCJJChtBc3NpZ25DYXRlZ29yeUZ1bmRzUmVzcG9uc2USKgoIY2F0ZWdvcnkYASABKAsyGC5idWRneS52MS5CdWRnZXRDYXRlZ29yeSIzCh5MaXN0QXZhaWxhYmxlQ2F0ZWdvcmllc1JlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJIkkKH0xpc3RBdmFpbGFibGVDYXRlZ29yaWVzUmVzcG9uc2USJgoKY2F0ZWdvcmllcxgBIAMoCzISLmJ1ZGd5LnYxLkNhdGVnb3J5IkQKGkFkZENhdGVnb3J5VG9CdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRITCgtjYXRlZ29yeV9pZBgCIAEoCSJJChtBZGRDYXRlZ29yeVRvQnVkZ2V0UmVzcG9uc2USKgoIY2F0ZWdvcnkYASABKAsyGC5idWRneS52MS5CdWRnZXRDYXRlZ29yeSJhChNGdW5kRW52ZWxvcGVSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRITCgtjYXRlZ29yeV9pZBgCIAEoCRISCgphY2NvdW50X2lkGAMgASgJEg4KBmFtb3VudBgEIAEoAyJEChRGdW5kRW52ZWxvcGVSZXNwb25zZRIsCgZyZXN1bHQYASABKAsyHC5idWRneS52MS5GdW5kRW52ZWxvcGVSZXN1bHQqZQoMQnVkZ2V0TWV0aG9kEh0KGUJVREdFVF9NRVRIT0RfVU5TUEVDSUZJRUQQABIaChZCVURHRVRfTUVUSE9EX1pFUk9fU1VNEAESGgoWQlVER0VUX01FVEhPRF9FTlZFTE9QRRACKoEBCgxCdWRnZXRQZXJpb2QSHQoZQlVER0VUX1BFUklPRF9VTlNQRUNJRklFRBAAEhgKFEJVREdFVF9QRVJJT0RfV0VFS0xZEAESHQoZQlVER0VUX1BFUklPRF9GT1JUTklHSFRMWRACEhkKFUJVREdFVF9QRVJJT0RfTU9OVEhMWRADMtcHCg1CdWRnZXRTZXJ2aWNlEk0KDENyZWF0ZUJ1ZGdldBIdLmJ1ZGd5LnYxLkNyZWF0ZUJ1ZGdldFJlcXVlc3QaHi5idWRneS52MS5DcmVhdGVCdWRnZXRSZXNwb25zZRJKCgtMaXN0QnVkZ2V0cxIcLmJ1ZGd5LnYxLkxpc3RCdWRnZXRzUmVxdWVzdBodLmJ1ZGd5LnYxLkxpc3RCdWRnZXRzUmVzcG9uc2USRAoJR2V0QnVkZ2V0EhouYnVkZ3kudjEuR2V0QnVkZ2V0UmVxdWVzdBobLmJ1ZGd5LnYxLkdldEJ1ZGdldFJlc3BvbnNlElkKEEdldEJ1ZGdldFN1bW1hcnkSIS5idWRneS52MS5HZXRCdWRnZXRTdW1tYXJ5UmVxdWVzdBoiLmJ1ZGd5LnYxLkdldEJ1ZGdldFN1bW1hcnlSZXNwb25zZRJNCgxVcGRhdGVCdWRnZXQSHS5idWRneS52MS5VcGRhdGVCdWRnZXRSZXF1ZXN0Gh4uYnVkZ3kudjEuVXBkYXRlQnVkZ2V0UmVzcG9uc2USTQoMRGVsZXRlQnVkZ2V0Eh0uYnVkZ3kudjEuRGVsZXRlQnVkZ2V0UmVxdWVzdBoeLmJ1ZGd5LnYxLkRlbGV0ZUJ1ZGdldFJlc3BvbnNlEmUKFExpc3RCdWRnZXRDYXRlZ29yaWVzEiUuYnVkZ3kudjEuTGlzdEJ1ZGdldENhdGVnb3JpZXNSZXF1ZXN0GiYuYnVkZ3kudjEuTGlzdEJ1ZGdldENhdGVnb3JpZXNSZXNwb25zZRJuChdMaXN0QXZhaWxhYmxlQ2F0ZWdvcmllcxIoLmJ1ZGd5LnYxLkxpc3RBdmFpbGFibGVDYXRlZ29yaWVzUmVxdWVzdBopLmJ1ZGd5LnYxLkxpc3RBdmFpbGFibGVDYXRlZ29yaWVzUmVzcG9uc2USYgoTQWRkQ2F0ZWdvcnlUb0J1ZGdldBIkLmJ1ZGd5LnYxLkFkZENhdGVnb3J5VG9CdWRnZXRSZXF1ZXN0GiUuYnVkZ3kudjEuQWRkQ2F0ZWdvcnlUb0J1ZGdldFJlc3BvbnNlEmIKE0Fzc2lnbkNhdGVnb3J5RnVuZHMSJC5idWRneS52MS5Bc3NpZ25DYXRlZ29yeUZ1bmRzUmVxdWVzdBolLmJ1ZGd5LnYxLkFzc2lnbkNhdGVnb3J5RnVuZHNSZXNwb25zZRJNCgxGdW5kRW52ZWxvcGUSHS5idWRneS52MS5GdW5kRW52ZWxvcGVSZXF1ZXN0Gh4uYnVkZ3kudjEuRnVuZEVudmVsb3BlUmVzcG9uc2VCMFouYnVkZ2V0aW5nX3N5c3RlbS9pbnRlcm5hbC9nZW4vYnVkZ3kvdjE7YnVkZ3l2MWIGcHJvdG8z",
-    [file_google_protobuf_timestamp, file_budgy_v1_category],
-  );
+export const file_budgy_v1_budget: GenFile = /*@__PURE__*/
+  fileDesc("ChVidWRneS92MS9idWRnZXQucHJvdG8SCGJ1ZGd5LnYxIokCCgZCdWRnZXQSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEiYKBm1ldGhvZBgEIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldE1ldGhvZBIQCghjdXJyZW5jeRgFIAEoCRIuCgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBImCgZwZXJpb2QYCCABKA4yFi5idWRneS52MS5CdWRnZXRQZXJpb2QSEgoKc3RhcnRfZGF0ZRgJIAEoCSJoCg1CdWRnZXRTdW1tYXJ5EhEKCWJ1ZGdldF9pZBgBIAEoCRIWCg50b3RhbF9idWRnZXRlZBgCIAEoAxITCgt0b3RhbF9zcGVudBgDIAEoAxIXCg90b3RhbF9yZW1haW5pbmcYBCABKAMimQEKE0NyZWF0ZUJ1ZGdldFJlcXVlc3QSDAoEbmFtZRgBIAEoCRImCgZtZXRob2QYAiABKA4yFi5idWRneS52MS5CdWRnZXRNZXRob2QSEAoIY3VycmVuY3kYAyABKAkSJgoGcGVyaW9kGAQgASgOMhYuYnVkZ3kudjEuQnVkZ2V0UGVyaW9kEhIKCnN0YXJ0X2RhdGUYBSABKAkiOAoUQ3JlYXRlQnVkZ2V0UmVzcG9uc2USIAoGYnVkZ2V0GAEgASgLMhAuYnVkZ3kudjEuQnVkZ2V0IhQKEkxpc3RCdWRnZXRzUmVxdWVzdCI4ChNMaXN0QnVkZ2V0c1Jlc3BvbnNlEiEKB2J1ZGdldHMYASADKAsyEC5idWRneS52MS5CdWRnZXQiJQoQR2V0QnVkZ2V0UmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkiNQoRR2V0QnVkZ2V0UmVzcG9uc2USIAoGYnVkZ2V0GAEgASgLMhAuYnVkZ3kudjEuQnVkZ2V0IiwKF0dldEJ1ZGdldFN1bW1hcnlSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSJEChhHZXRCdWRnZXRTdW1tYXJ5UmVzcG9uc2USKAoHc3VtbWFyeRgBIAEoCzIXLmJ1ZGd5LnYxLkJ1ZGdldFN1bW1hcnkirAEKE1VwZGF0ZUJ1ZGdldFJlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJEgwKBG5hbWUYAiABKAkSJgoGbWV0aG9kGAMgASgOMhYuYnVkZ3kudjEuQnVkZ2V0TWV0aG9kEhAKCGN1cnJlbmN5GAQgASgJEiYKBnBlcmlvZBgFIAEoDjIWLmJ1ZGd5LnYxLkJ1ZGdldFBlcmlvZBISCgpzdGFydF9kYXRlGAYgASgJIjgKFFVwZGF0ZUJ1ZGdldFJlc3BvbnNlEiAKBmJ1ZGdldBgBIAEoCzIQLmJ1ZGd5LnYxLkJ1ZGdldCIoChNEZWxldGVCdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCSIWChREZWxldGVCdWRnZXRSZXNwb25zZSIwChtMaXN0QnVkZ2V0Q2F0ZWdvcmllc1JlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJIkwKHExpc3RCdWRnZXRDYXRlZ29yaWVzUmVzcG9uc2USLAoKY2F0ZWdvcmllcxgBIAMoCzIYLmJ1ZGd5LnYxLkJ1ZGdldENhdGVnb3J5IqMBChpBc3NpZ25DYXRlZ29yeUZ1bmRzUmVxdWVzdBIRCglidWRnZXRfaWQYASABKAkSEwoLY2F0ZWdvcnlfaWQYAiABKAkSDgoGYW1vdW50GAMgASgDEjUKEmJ1ZGdldGVkX2ZyZXF1ZW5jeRgEIAEoDjIZLmJ1ZGd5LnYxLkJ1ZGdldEZyZXF1ZW5jeRIWCg5yZXBsYWNlX3RhcmdldBgFIAEoCCJJChtBc3NpZ25DYXRlZ29yeUZ1bmRzUmVzcG9uc2USKgoIY2F0ZWdvcnkYASABKAsyGC5idWRneS52MS5CdWRnZXRDYXRlZ29yeSIzCh5MaXN0QXZhaWxhYmxlQ2F0ZWdvcmllc1JlcXVlc3QSEQoJYnVkZ2V0X2lkGAEgASgJIkkKH0xpc3RBdmFpbGFibGVDYXRlZ29yaWVzUmVzcG9uc2USJgoKY2F0ZWdvcmllcxgBIAMoCzISLmJ1ZGd5LnYxLkNhdGVnb3J5IkQKGkFkZENhdGVnb3J5VG9CdWRnZXRSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRITCgtjYXRlZ29yeV9pZBgCIAEoCSJJChtBZGRDYXRlZ29yeVRvQnVkZ2V0UmVzcG9uc2USKgoIY2F0ZWdvcnkYASABKAsyGC5idWRneS52MS5CdWRnZXRDYXRlZ29yeSJhChNGdW5kRW52ZWxvcGVSZXF1ZXN0EhEKCWJ1ZGdldF9pZBgBIAEoCRITCgtjYXRlZ29yeV9pZBgCIAEoCRISCgphY2NvdW50X2lkGAMgASgJEg4KBmFtb3VudBgEIAEoAyJEChRGdW5kRW52ZWxvcGVSZXNwb25zZRIsCgZyZXN1bHQYASABKAsyHC5idWRneS52MS5GdW5kRW52ZWxvcGVSZXN1bHQqZQoMQnVkZ2V0TWV0aG9kEh0KGUJVREdFVF9NRVRIT0RfVU5TUEVDSUZJRUQQABIaChZCVURHRVRfTUVUSE9EX1pFUk9fU1VNEAESGgoWQlVER0VUX01FVEhPRF9FTlZFTE9QRRACKoEBCgxCdWRnZXRQZXJpb2QSHQoZQlVER0VUX1BFUklPRF9VTlNQRUNJRklFRBAAEhgKFEJVREdFVF9QRVJJT0RfV0VFS0xZEAESHQoZQlVER0VUX1BFUklPRF9GT1JUTklHSFRMWRACEhkKFUJVREdFVF9QRVJJT0RfTU9OVEhMWRADMtcHCg1CdWRnZXRTZXJ2aWNlEk0KDENyZWF0ZUJ1ZGdldBIdLmJ1ZGd5LnYxLkNyZWF0ZUJ1ZGdldFJlcXVlc3QaHi5idWRneS52MS5DcmVhdGVCdWRnZXRSZXNwb25zZRJKCgtMaXN0QnVkZ2V0cxIcLmJ1ZGd5LnYxLkxpc3RCdWRnZXRzUmVxdWVzdBodLmJ1ZGd5LnYxLkxpc3RCdWRnZXRzUmVzcG9uc2USRAoJR2V0QnVkZ2V0EhouYnVkZ3kudjEuR2V0QnVkZ2V0UmVxdWVzdBobLmJ1ZGd5LnYxLkdldEJ1ZGdldFJlc3BvbnNlElkKEEdldEJ1ZGdldFN1bW1hcnkSIS5idWRneS52MS5HZXRCdWRnZXRTdW1tYXJ5UmVxdWVzdBoiLmJ1ZGd5LnYxLkdldEJ1ZGdldFN1bW1hcnlSZXNwb25zZRJNCgxVcGRhdGVCdWRnZXQSHS5idWRneS52MS5VcGRhdGVCdWRnZXRSZXF1ZXN0Gh4uYnVkZ3kudjEuVXBkYXRlQnVkZ2V0UmVzcG9uc2USTQoMRGVsZXRlQnVkZ2V0Eh0uYnVkZ3kudjEuRGVsZXRlQnVkZ2V0UmVxdWVzdBoeLmJ1ZGd5LnYxLkRlbGV0ZUJ1ZGdldFJlc3BvbnNlEmUKFExpc3RCdWRnZXRDYXRlZ29yaWVzEiUuYnVkZ3kudjEuTGlzdEJ1ZGdldENhdGVnb3JpZXNSZXF1ZXN0GiYuYnVkZ3kudjEuTGlzdEJ1ZGdldENhdGVnb3JpZXNSZXNwb25zZRJuChdMaXN0QXZhaWxhYmxlQ2F0ZWdvcmllcxIoLmJ1ZGd5LnYxLkxpc3RBdmFpbGFibGVDYXRlZ29yaWVzUmVxdWVzdBopLmJ1ZGd5LnYxLkxpc3RBdmFpbGFibGVDYXRlZ29yaWVzUmVzcG9uc2USYgoTQWRkQ2F0ZWdvcnlUb0J1ZGdldBIkLmJ1ZGd5LnYxLkFkZENhdGVnb3J5VG9CdWRnZXRSZXF1ZXN0GiUuYnVkZ3kudjEuQWRkQ2F0ZWdvcnlUb0J1ZGdldFJlc3BvbnNlEmIKE0Fzc2lnbkNhdGVnb3J5RnVuZHMSJC5idWRneS52MS5Bc3NpZ25DYXRlZ29yeUZ1bmRzUmVxdWVzdBolLmJ1ZGd5LnYxLkFzc2lnbkNhdGVnb3J5RnVuZHNSZXNwb25zZRJNCgxGdW5kRW52ZWxvcGUSHS5idWRneS52MS5GdW5kRW52ZWxvcGVSZXF1ZXN0Gh4uYnVkZ3kudjEuRnVuZEVudmVsb3BlUmVzcG9uc2VCMFouYnVkZ2V0aW5nX3N5c3RlbS9pbnRlcm5hbC9nZW4vYnVkZ3kvdjE7YnVkZ3l2MWIGcHJvdG8z", [file_google_protobuf_timestamp, file_budgy_v1_category]);
 
 /**
  * @generated from message budgy.v1.Budget
@@ -76,7 +72,8 @@ export type Budget = Message<"budgy.v1.Budget"> & {
  * Describes the message budgy.v1.Budget.
  * Use `create(BudgetSchema)` to create a new message.
  */
-export const BudgetSchema: GenMessage<Budget> = /*@__PURE__*/ messageDesc(file_budgy_v1_budget, 0);
+export const BudgetSchema: GenMessage<Budget> = /*@__PURE__*/
+  messageDesc(file_budgy_v1_budget, 0);
 
 /**
  * @generated from message budgy.v1.BudgetSummary
@@ -107,8 +104,7 @@ export type BudgetSummary = Message<"budgy.v1.BudgetSummary"> & {
  * Describes the message budgy.v1.BudgetSummary.
  * Use `create(BudgetSummarySchema)` to create a new message.
  */
-export const BudgetSummarySchema: GenMessage<BudgetSummary> =
-  /*@__PURE__*/
+export const BudgetSummarySchema: GenMessage<BudgetSummary> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 1);
 
 /**
@@ -145,8 +141,7 @@ export type CreateBudgetRequest = Message<"budgy.v1.CreateBudgetRequest"> & {
  * Describes the message budgy.v1.CreateBudgetRequest.
  * Use `create(CreateBudgetRequestSchema)` to create a new message.
  */
-export const CreateBudgetRequestSchema: GenMessage<CreateBudgetRequest> =
-  /*@__PURE__*/
+export const CreateBudgetRequestSchema: GenMessage<CreateBudgetRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 2);
 
 /**
@@ -163,21 +158,20 @@ export type CreateBudgetResponse = Message<"budgy.v1.CreateBudgetResponse"> & {
  * Describes the message budgy.v1.CreateBudgetResponse.
  * Use `create(CreateBudgetResponseSchema)` to create a new message.
  */
-export const CreateBudgetResponseSchema: GenMessage<CreateBudgetResponse> =
-  /*@__PURE__*/
+export const CreateBudgetResponseSchema: GenMessage<CreateBudgetResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 3);
 
 /**
  * @generated from message budgy.v1.ListBudgetsRequest
  */
-export type ListBudgetsRequest = Message<"budgy.v1.ListBudgetsRequest"> & {};
+export type ListBudgetsRequest = Message<"budgy.v1.ListBudgetsRequest"> & {
+};
 
 /**
  * Describes the message budgy.v1.ListBudgetsRequest.
  * Use `create(ListBudgetsRequestSchema)` to create a new message.
  */
-export const ListBudgetsRequestSchema: GenMessage<ListBudgetsRequest> =
-  /*@__PURE__*/
+export const ListBudgetsRequestSchema: GenMessage<ListBudgetsRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 4);
 
 /**
@@ -194,8 +188,7 @@ export type ListBudgetsResponse = Message<"budgy.v1.ListBudgetsResponse"> & {
  * Describes the message budgy.v1.ListBudgetsResponse.
  * Use `create(ListBudgetsResponseSchema)` to create a new message.
  */
-export const ListBudgetsResponseSchema: GenMessage<ListBudgetsResponse> =
-  /*@__PURE__*/
+export const ListBudgetsResponseSchema: GenMessage<ListBudgetsResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 5);
 
 /**
@@ -212,8 +205,7 @@ export type GetBudgetRequest = Message<"budgy.v1.GetBudgetRequest"> & {
  * Describes the message budgy.v1.GetBudgetRequest.
  * Use `create(GetBudgetRequestSchema)` to create a new message.
  */
-export const GetBudgetRequestSchema: GenMessage<GetBudgetRequest> =
-  /*@__PURE__*/
+export const GetBudgetRequestSchema: GenMessage<GetBudgetRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 6);
 
 /**
@@ -230,8 +222,7 @@ export type GetBudgetResponse = Message<"budgy.v1.GetBudgetResponse"> & {
  * Describes the message budgy.v1.GetBudgetResponse.
  * Use `create(GetBudgetResponseSchema)` to create a new message.
  */
-export const GetBudgetResponseSchema: GenMessage<GetBudgetResponse> =
-  /*@__PURE__*/
+export const GetBudgetResponseSchema: GenMessage<GetBudgetResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 7);
 
 /**
@@ -248,8 +239,7 @@ export type GetBudgetSummaryRequest = Message<"budgy.v1.GetBudgetSummaryRequest"
  * Describes the message budgy.v1.GetBudgetSummaryRequest.
  * Use `create(GetBudgetSummaryRequestSchema)` to create a new message.
  */
-export const GetBudgetSummaryRequestSchema: GenMessage<GetBudgetSummaryRequest> =
-  /*@__PURE__*/
+export const GetBudgetSummaryRequestSchema: GenMessage<GetBudgetSummaryRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 8);
 
 /**
@@ -266,8 +256,7 @@ export type GetBudgetSummaryResponse = Message<"budgy.v1.GetBudgetSummaryRespons
  * Describes the message budgy.v1.GetBudgetSummaryResponse.
  * Use `create(GetBudgetSummaryResponseSchema)` to create a new message.
  */
-export const GetBudgetSummaryResponseSchema: GenMessage<GetBudgetSummaryResponse> =
-  /*@__PURE__*/
+export const GetBudgetSummaryResponseSchema: GenMessage<GetBudgetSummaryResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 9);
 
 /**
@@ -309,8 +298,7 @@ export type UpdateBudgetRequest = Message<"budgy.v1.UpdateBudgetRequest"> & {
  * Describes the message budgy.v1.UpdateBudgetRequest.
  * Use `create(UpdateBudgetRequestSchema)` to create a new message.
  */
-export const UpdateBudgetRequestSchema: GenMessage<UpdateBudgetRequest> =
-  /*@__PURE__*/
+export const UpdateBudgetRequestSchema: GenMessage<UpdateBudgetRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 10);
 
 /**
@@ -327,8 +315,7 @@ export type UpdateBudgetResponse = Message<"budgy.v1.UpdateBudgetResponse"> & {
  * Describes the message budgy.v1.UpdateBudgetResponse.
  * Use `create(UpdateBudgetResponseSchema)` to create a new message.
  */
-export const UpdateBudgetResponseSchema: GenMessage<UpdateBudgetResponse> =
-  /*@__PURE__*/
+export const UpdateBudgetResponseSchema: GenMessage<UpdateBudgetResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 11);
 
 /**
@@ -345,21 +332,20 @@ export type DeleteBudgetRequest = Message<"budgy.v1.DeleteBudgetRequest"> & {
  * Describes the message budgy.v1.DeleteBudgetRequest.
  * Use `create(DeleteBudgetRequestSchema)` to create a new message.
  */
-export const DeleteBudgetRequestSchema: GenMessage<DeleteBudgetRequest> =
-  /*@__PURE__*/
+export const DeleteBudgetRequestSchema: GenMessage<DeleteBudgetRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 12);
 
 /**
  * @generated from message budgy.v1.DeleteBudgetResponse
  */
-export type DeleteBudgetResponse = Message<"budgy.v1.DeleteBudgetResponse"> & {};
+export type DeleteBudgetResponse = Message<"budgy.v1.DeleteBudgetResponse"> & {
+};
 
 /**
  * Describes the message budgy.v1.DeleteBudgetResponse.
  * Use `create(DeleteBudgetResponseSchema)` to create a new message.
  */
-export const DeleteBudgetResponseSchema: GenMessage<DeleteBudgetResponse> =
-  /*@__PURE__*/
+export const DeleteBudgetResponseSchema: GenMessage<DeleteBudgetResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 13);
 
 /**
@@ -376,8 +362,7 @@ export type ListBudgetCategoriesRequest = Message<"budgy.v1.ListBudgetCategories
  * Describes the message budgy.v1.ListBudgetCategoriesRequest.
  * Use `create(ListBudgetCategoriesRequestSchema)` to create a new message.
  */
-export const ListBudgetCategoriesRequestSchema: GenMessage<ListBudgetCategoriesRequest> =
-  /*@__PURE__*/
+export const ListBudgetCategoriesRequestSchema: GenMessage<ListBudgetCategoriesRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 14);
 
 /**
@@ -394,8 +379,7 @@ export type ListBudgetCategoriesResponse = Message<"budgy.v1.ListBudgetCategorie
  * Describes the message budgy.v1.ListBudgetCategoriesResponse.
  * Use `create(ListBudgetCategoriesResponseSchema)` to create a new message.
  */
-export const ListBudgetCategoriesResponseSchema: GenMessage<ListBudgetCategoriesResponse> =
-  /*@__PURE__*/
+export const ListBudgetCategoriesResponseSchema: GenMessage<ListBudgetCategoriesResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 15);
 
 /**
@@ -434,8 +418,7 @@ export type AssignCategoryFundsRequest = Message<"budgy.v1.AssignCategoryFundsRe
  * Describes the message budgy.v1.AssignCategoryFundsRequest.
  * Use `create(AssignCategoryFundsRequestSchema)` to create a new message.
  */
-export const AssignCategoryFundsRequestSchema: GenMessage<AssignCategoryFundsRequest> =
-  /*@__PURE__*/
+export const AssignCategoryFundsRequestSchema: GenMessage<AssignCategoryFundsRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 16);
 
 /**
@@ -452,8 +435,7 @@ export type AssignCategoryFundsResponse = Message<"budgy.v1.AssignCategoryFundsR
  * Describes the message budgy.v1.AssignCategoryFundsResponse.
  * Use `create(AssignCategoryFundsResponseSchema)` to create a new message.
  */
-export const AssignCategoryFundsResponseSchema: GenMessage<AssignCategoryFundsResponse> =
-  /*@__PURE__*/
+export const AssignCategoryFundsResponseSchema: GenMessage<AssignCategoryFundsResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 17);
 
 /**
@@ -470,27 +452,24 @@ export type ListAvailableCategoriesRequest = Message<"budgy.v1.ListAvailableCate
  * Describes the message budgy.v1.ListAvailableCategoriesRequest.
  * Use `create(ListAvailableCategoriesRequestSchema)` to create a new message.
  */
-export const ListAvailableCategoriesRequestSchema: GenMessage<ListAvailableCategoriesRequest> =
-  /*@__PURE__*/
+export const ListAvailableCategoriesRequestSchema: GenMessage<ListAvailableCategoriesRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 18);
 
 /**
  * @generated from message budgy.v1.ListAvailableCategoriesResponse
  */
-export type ListAvailableCategoriesResponse =
-  Message<"budgy.v1.ListAvailableCategoriesResponse"> & {
-    /**
-     * @generated from field: repeated budgy.v1.Category categories = 1;
-     */
-    categories: Category[];
-  };
+export type ListAvailableCategoriesResponse = Message<"budgy.v1.ListAvailableCategoriesResponse"> & {
+  /**
+   * @generated from field: repeated budgy.v1.Category categories = 1;
+   */
+  categories: Category[];
+};
 
 /**
  * Describes the message budgy.v1.ListAvailableCategoriesResponse.
  * Use `create(ListAvailableCategoriesResponseSchema)` to create a new message.
  */
-export const ListAvailableCategoriesResponseSchema: GenMessage<ListAvailableCategoriesResponse> =
-  /*@__PURE__*/
+export const ListAvailableCategoriesResponseSchema: GenMessage<ListAvailableCategoriesResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 19);
 
 /**
@@ -512,8 +491,7 @@ export type AddCategoryToBudgetRequest = Message<"budgy.v1.AddCategoryToBudgetRe
  * Describes the message budgy.v1.AddCategoryToBudgetRequest.
  * Use `create(AddCategoryToBudgetRequestSchema)` to create a new message.
  */
-export const AddCategoryToBudgetRequestSchema: GenMessage<AddCategoryToBudgetRequest> =
-  /*@__PURE__*/
+export const AddCategoryToBudgetRequestSchema: GenMessage<AddCategoryToBudgetRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 20);
 
 /**
@@ -530,8 +508,7 @@ export type AddCategoryToBudgetResponse = Message<"budgy.v1.AddCategoryToBudgetR
  * Describes the message budgy.v1.AddCategoryToBudgetResponse.
  * Use `create(AddCategoryToBudgetResponseSchema)` to create a new message.
  */
-export const AddCategoryToBudgetResponseSchema: GenMessage<AddCategoryToBudgetResponse> =
-  /*@__PURE__*/
+export const AddCategoryToBudgetResponseSchema: GenMessage<AddCategoryToBudgetResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 21);
 
 /**
@@ -563,8 +540,7 @@ export type FundEnvelopeRequest = Message<"budgy.v1.FundEnvelopeRequest"> & {
  * Describes the message budgy.v1.FundEnvelopeRequest.
  * Use `create(FundEnvelopeRequestSchema)` to create a new message.
  */
-export const FundEnvelopeRequestSchema: GenMessage<FundEnvelopeRequest> =
-  /*@__PURE__*/
+export const FundEnvelopeRequestSchema: GenMessage<FundEnvelopeRequest> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 22);
 
 /**
@@ -581,8 +557,7 @@ export type FundEnvelopeResponse = Message<"budgy.v1.FundEnvelopeResponse"> & {
  * Describes the message budgy.v1.FundEnvelopeResponse.
  * Use `create(FundEnvelopeResponseSchema)` to create a new message.
  */
-export const FundEnvelopeResponseSchema: GenMessage<FundEnvelopeResponse> =
-  /*@__PURE__*/
+export const FundEnvelopeResponseSchema: GenMessage<FundEnvelopeResponse> = /*@__PURE__*/
   messageDesc(file_budgy_v1_budget, 23);
 
 /**
@@ -608,8 +583,7 @@ export enum BudgetMethod {
 /**
  * Describes the enum budgy.v1.BudgetMethod.
  */
-export const BudgetMethodSchema: GenEnum<BudgetMethod> =
-  /*@__PURE__*/
+export const BudgetMethodSchema: GenEnum<BudgetMethod> = /*@__PURE__*/
   enumDesc(file_budgy_v1_budget, 0);
 
 /**
@@ -640,8 +614,7 @@ export enum BudgetPeriod {
 /**
  * Describes the enum budgy.v1.BudgetPeriod.
  */
-export const BudgetPeriodSchema: GenEnum<BudgetPeriod> =
-  /*@__PURE__*/
+export const BudgetPeriodSchema: GenEnum<BudgetPeriod> = /*@__PURE__*/
   enumDesc(file_budgy_v1_budget, 1);
 
 /**
@@ -655,7 +628,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof CreateBudgetRequestSchema;
     output: typeof CreateBudgetResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.ListBudgets
    */
@@ -663,7 +636,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof ListBudgetsRequestSchema;
     output: typeof ListBudgetsResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.GetBudget
    */
@@ -671,7 +644,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof GetBudgetRequestSchema;
     output: typeof GetBudgetResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.GetBudgetSummary
    */
@@ -679,7 +652,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof GetBudgetSummaryRequestSchema;
     output: typeof GetBudgetSummaryResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.UpdateBudget
    */
@@ -687,7 +660,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof UpdateBudgetRequestSchema;
     output: typeof UpdateBudgetResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.DeleteBudget
    */
@@ -695,7 +668,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof DeleteBudgetRequestSchema;
     output: typeof DeleteBudgetResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.ListBudgetCategories
    */
@@ -703,7 +676,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof ListBudgetCategoriesRequestSchema;
     output: typeof ListBudgetCategoriesResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.ListAvailableCategories
    */
@@ -711,7 +684,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof ListAvailableCategoriesRequestSchema;
     output: typeof ListAvailableCategoriesResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.AddCategoryToBudget
    */
@@ -719,7 +692,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof AddCategoryToBudgetRequestSchema;
     output: typeof AddCategoryToBudgetResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.AssignCategoryFunds
    */
@@ -727,7 +700,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof AssignCategoryFundsRequestSchema;
     output: typeof AssignCategoryFundsResponseSchema;
-  };
+  },
   /**
    * @generated from rpc budgy.v1.BudgetService.FundEnvelope
    */
@@ -735,5 +708,7 @@ export const BudgetService: GenService<{
     methodKind: "unary";
     input: typeof FundEnvelopeRequestSchema;
     output: typeof FundEnvelopeResponseSchema;
-  };
-}> = /*@__PURE__*/ serviceDesc(file_budgy_v1_budget, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_budgy_v1_budget, 0);
+

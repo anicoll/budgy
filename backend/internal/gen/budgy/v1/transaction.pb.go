@@ -23,32 +23,34 @@ const (
 )
 
 type Transaction struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	BudgetId        string                 `protobuf:"bytes,2,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
-	AccountId       string                 `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	CategoryId      string                 `protobuf:"bytes,4,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	Amount          int64                  `protobuf:"varint,5,opt,name=amount,proto3" json:"amount,omitempty"`
-	Description     string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
-	Date            *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date,proto3" json:"date,omitempty"`
-	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Direction       string                 `protobuf:"bytes,10,opt,name=direction,proto3" json:"direction,omitempty"`
-	Status          string                 `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
-	Class           string                 `protobuf:"bytes,12,opt,name=class,proto3" json:"class,omitempty"`
-	PostDate        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=post_date,json=postDate,proto3,oneof" json:"post_date,omitempty"`
-	SubClass        string                 `protobuf:"bytes,14,opt,name=sub_class,json=subClass,proto3" json:"sub_class,omitempty"`
-	RawDescription  string                 `protobuf:"bytes,15,opt,name=raw_description,json=rawDescription,proto3" json:"raw_description,omitempty"`
-	MerchantName    string                 `protobuf:"bytes,16,opt,name=merchant_name,json=merchantName,proto3" json:"merchant_name,omitempty"`
-	MerchantWebsite string                 `protobuf:"bytes,17,opt,name=merchant_website,json=merchantWebsite,proto3" json:"merchant_website,omitempty"`
-	MerchantLogoUrl string                 `protobuf:"bytes,18,opt,name=merchant_logo_url,json=merchantLogoUrl,proto3" json:"merchant_logo_url,omitempty"`
-	LocationAddress string                 `protobuf:"bytes,19,opt,name=location_address,json=locationAddress,proto3" json:"location_address,omitempty"`
-	LocationLat     string                 `protobuf:"bytes,20,opt,name=location_lat,json=locationLat,proto3" json:"location_lat,omitempty"`
-	LocationLng     string                 `protobuf:"bytes,21,opt,name=location_lng,json=locationLng,proto3" json:"location_lng,omitempty"`
-	CategoryCode    string                 `protobuf:"bytes,22,opt,name=category_code,json=categoryCode,proto3" json:"category_code,omitempty"`
-	CategoryTitle   string                 `protobuf:"bytes,23,opt,name=category_title,json=categoryTitle,proto3" json:"category_title,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	BudgetId           string                 `protobuf:"bytes,2,opt,name=budget_id,json=budgetId,proto3" json:"budget_id,omitempty"`
+	AccountId          string                 `protobuf:"bytes,3,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	CategoryId         string                 `protobuf:"bytes,4,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"` // Effective category (customer override, else Basiq-mapped)
+	Amount             int64                  `protobuf:"varint,5,opt,name=amount,proto3" json:"amount,omitempty"`
+	Description        string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	Date               *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date,proto3" json:"date,omitempty"`
+	CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt          *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Direction          string                 `protobuf:"bytes,10,opt,name=direction,proto3" json:"direction,omitempty"`
+	Status             string                 `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
+	Class              string                 `protobuf:"bytes,12,opt,name=class,proto3" json:"class,omitempty"`
+	PostDate           *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=post_date,json=postDate,proto3,oneof" json:"post_date,omitempty"`
+	SubClass           string                 `protobuf:"bytes,14,opt,name=sub_class,json=subClass,proto3" json:"sub_class,omitempty"`
+	RawDescription     string                 `protobuf:"bytes,15,opt,name=raw_description,json=rawDescription,proto3" json:"raw_description,omitempty"`
+	MerchantName       string                 `protobuf:"bytes,16,opt,name=merchant_name,json=merchantName,proto3" json:"merchant_name,omitempty"`
+	MerchantWebsite    string                 `protobuf:"bytes,17,opt,name=merchant_website,json=merchantWebsite,proto3" json:"merchant_website,omitempty"`
+	MerchantLogoUrl    string                 `protobuf:"bytes,18,opt,name=merchant_logo_url,json=merchantLogoUrl,proto3" json:"merchant_logo_url,omitempty"`
+	LocationAddress    string                 `protobuf:"bytes,19,opt,name=location_address,json=locationAddress,proto3" json:"location_address,omitempty"`
+	LocationLat        string                 `protobuf:"bytes,20,opt,name=location_lat,json=locationLat,proto3" json:"location_lat,omitempty"`
+	LocationLng        string                 `protobuf:"bytes,21,opt,name=location_lng,json=locationLng,proto3" json:"location_lng,omitempty"`
+	CategoryCode       string                 `protobuf:"bytes,22,opt,name=category_code,json=categoryCode,proto3" json:"category_code,omitempty"`                     // Original Basiq category code
+	CategoryTitle      string                 `protobuf:"bytes,23,opt,name=category_title,json=categoryTitle,proto3" json:"category_title,omitempty"`                  // Original Basiq category title
+	BasiqCategoryId    string                 `protobuf:"bytes,24,opt,name=basiq_category_id,json=basiqCategoryId,proto3" json:"basiq_category_id,omitempty"`          // Internal category mapped from Basiq on sync
+	CustomerCategoryId string                 `protobuf:"bytes,25,opt,name=customer_category_id,json=customerCategoryId,proto3" json:"customer_category_id,omitempty"` // User-assigned category override
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Transaction) Reset() {
@@ -238,6 +240,20 @@ func (x *Transaction) GetCategoryCode() string {
 func (x *Transaction) GetCategoryTitle() string {
 	if x != nil {
 		return x.CategoryTitle
+	}
+	return ""
+}
+
+func (x *Transaction) GetBasiqCategoryId() string {
+	if x != nil {
+		return x.BasiqCategoryId
+	}
+	return ""
+}
+
+func (x *Transaction) GetCustomerCategoryId() string {
+	if x != nil {
+		return x.CustomerCategoryId
 	}
 	return ""
 }
@@ -798,7 +814,7 @@ var File_budgy_v1_transaction_proto protoreflect.FileDescriptor
 
 const file_budgy_v1_transaction_proto_rawDesc = "" +
 	"\n" +
-	"\x1abudgy/v1/transaction.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf1\x06\n" +
+	"\x1abudgy/v1/transaction.proto\x12\bbudgy.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcf\a\n" +
 	"\vTransaction\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tbudget_id\x18\x02 \x01(\tR\bbudgetId\x12\x1d\n" +
@@ -827,7 +843,9 @@ const file_budgy_v1_transaction_proto_rawDesc = "" +
 	"\flocation_lat\x18\x14 \x01(\tR\vlocationLat\x12!\n" +
 	"\flocation_lng\x18\x15 \x01(\tR\vlocationLng\x12#\n" +
 	"\rcategory_code\x18\x16 \x01(\tR\fcategoryCode\x12%\n" +
-	"\x0ecategory_title\x18\x17 \x01(\tR\rcategoryTitleB\f\n" +
+	"\x0ecategory_title\x18\x17 \x01(\tR\rcategoryTitle\x12*\n" +
+	"\x11basiq_category_id\x18\x18 \x01(\tR\x0fbasiqCategoryId\x120\n" +
+	"\x14customer_category_id\x18\x19 \x01(\tR\x12customerCategoryIdB\f\n" +
 	"\n" +
 	"_post_date\"\xe1\x01\n" +
 	"\x18CreateTransactionRequest\x12\x1b\n" +

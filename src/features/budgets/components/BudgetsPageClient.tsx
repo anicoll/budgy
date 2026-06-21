@@ -185,7 +185,11 @@ export function BudgetsPageClient() {
         transactions={transactions}
       />
 
-      <UncategorizedInbox transactions={uncategorized} />
+      <UncategorizedInbox
+        transactions={uncategorized}
+        categories={taxonomyCategories}
+        allTransactions={transactions}
+      />
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-semibold">Categories</h2>

@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"slices"
 	"time"
 
 	"budgeting_system/internal/domain"
@@ -39,19 +38,33 @@ func NewTransactionService(
 	}
 }
 
-func (s *transactionService) verifyAccountInBudget(ctx context.Context, budgetID, accountID string) (*domain.Account, error) {
+func (s *transactionService) accountForUser(ctx context.Context, accountID, userID string) (*domain.Account, error) {
 	acc, err := s.accounts.GetByID(ctx, accountID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: account not found", ErrNotFound)
 	}
-	ids, err := s.budgetAccts.ListByBudget(ctx, budgetID)
-	if err != nil {
+	if err := verifyAccountOwner(acc, userID); err != nil {
 		return nil, err
 	}
-	if !slices.Contains(ids, accountID) {
-		return nil, fmt.Errorf("%w: account is not linked to budget", ErrBadRequest)
-	}
 	return acc, nil
+}
+
+func (s *transactionService) ensureCustomerCategory(ctx context.Context, budgetID, categoryID string) error {
+	if categoryID == "" {
+		return nil
+	}
+	b, err := s.budgets.GetByID(ctx, budgetID)
+	if err != nil {
+		return err
+	}
+	cat, err := s.categories.GetByID(ctx, categoryID)
+	if err != nil {
+		return fmt.Errorf("%w: category not found", ErrNotFound)
+	}
+	if cat.UserID != b.UserID {
+		return fmt.Errorf("%w: category does not belong to user", ErrBadRequest)
+	}
+	return s.budgetLines.EnsureLine(ctx, budgetID, categoryID)
 }
 
 func (s *transactionService) Create(ctx context.Context, budgetID, accountID, categoryID string, amount int64, description string, date time.Time) (*domain.Transaction, error) {
@@ -60,34 +73,25 @@ func (s *transactionService) Create(ctx context.Context, budgetID, accountID, ca
 		return nil, fmt.Errorf("%w: budget not found", ErrNotFound)
 	}
 
-	acc, err := s.verifyAccountInBudget(ctx, budgetID, accountID)
+	acc, err := s.accountForUser(ctx, accountID, b.UserID)
 	if err != nil {
 		return nil, err
 	}
 
-	if categoryID != "" {
-		cat, err := s.categories.GetByID(ctx, categoryID)
-		if err != nil {
-			return nil, fmt.Errorf("%w: category not found", ErrNotFound)
-		}
-		if cat.UserID != b.UserID {
-			return nil, fmt.Errorf("%w: category does not belong to user", ErrBadRequest)
-		}
-		if err := s.budgetLines.EnsureLine(ctx, budgetID, categoryID); err != nil {
-			return nil, err
-		}
+	if err := s.ensureCustomerCategory(ctx, budgetID, categoryID); err != nil {
+		return nil, err
 	}
 
 	tx := &domain.Transaction{
-		ID:          generateID(),
-		BudgetID:    budgetID,
-		AccountID:   accountID,
-		CategoryID:  categoryID,
-		Amount:      amount,
-		Description: description,
-		Date:        date,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:                 generateID(),
+		BudgetID:           budgetID,
+		AccountID:          accountID,
+		CustomerCategoryID: categoryID,
+		Amount:             amount,
+		Description:        description,
+		Date:               date,
+		CreatedAt:          time.Now(),
+		UpdatedAt:          time.Now(),
 	}
 	if err := tx.Validate(); err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrBadRequest, err.Error())
@@ -104,6 +108,7 @@ func (s *transactionService) Create(ctx context.Context, budgetID, accountID, ca
 			return nil, err
 		}
 	}
+	_ = b
 	return tx, nil
 }
 
@@ -115,41 +120,33 @@ func (s *transactionService) ListByUser(ctx context.Context, userID string) ([]*
 	return s.transactions.ListByUser(ctx, userID)
 }
 
-func (s *transactionService) Update(ctx context.Context, budgetID, txID string, updates *domain.Transaction) (*domain.Transaction, error) {
+func (s *transactionService) Update(ctx context.Context, budgetID, txID string, updates *domain.Transaction, customerCategory *string) (*domain.Transaction, error) {
+	b, err := s.budgets.GetByID(ctx, budgetID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: budget not found", ErrNotFound)
+	}
+
 	oldTx, err := s.transactions.GetByID(ctx, txID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: transaction not found", ErrNotFound)
 	}
-	if _, err := s.verifyAccountInBudget(ctx, budgetID, oldTx.AccountID); err != nil {
+	if _, err := s.accountForUser(ctx, oldTx.AccountID, b.UserID); err != nil {
 		return nil, err
 	}
 
 	newAccountID := oldTx.AccountID
 	if updates.AccountID != "" && updates.AccountID != oldTx.AccountID {
-		if _, err := s.verifyAccountInBudget(ctx, budgetID, updates.AccountID); err != nil {
+		if _, err := s.accountForUser(ctx, updates.AccountID, b.UserID); err != nil {
 			return nil, err
 		}
 		newAccountID = updates.AccountID
 	}
 
-	newCategoryID := oldTx.CategoryID
-	if updates.CategoryID != oldTx.CategoryID {
-		newCategoryID = updates.CategoryID
-		if newCategoryID != "" {
-			b, err := s.budgets.GetByID(ctx, budgetID)
-			if err != nil {
-				return nil, err
-			}
-			cat, err := s.categories.GetByID(ctx, newCategoryID)
-			if err != nil {
-				return nil, fmt.Errorf("%w: new category not found", ErrNotFound)
-			}
-			if cat.UserID != b.UserID {
-				return nil, fmt.Errorf("%w: new category does not belong to user", ErrBadRequest)
-			}
-			if err := s.budgetLines.EnsureLine(ctx, budgetID, newCategoryID); err != nil {
-				return nil, err
-			}
+	newCustomerCategoryID := oldTx.CustomerCategoryID
+	if customerCategory != nil {
+		newCustomerCategoryID = *customerCategory
+		if err := s.ensureCustomerCategory(ctx, budgetID, newCustomerCategoryID); err != nil {
+			return nil, err
 		}
 	}
 
@@ -164,7 +161,7 @@ func (s *transactionService) Update(ctx context.Context, budgetID, txID string, 
 	tx := *oldTx
 	tx.BudgetID = budgetID
 	tx.AccountID = newAccountID
-	tx.CategoryID = newCategoryID
+	tx.CustomerCategoryID = newCustomerCategoryID
 	tx.Amount = newAmount
 	if updates.Description != "" {
 		tx.Description = updates.Description
@@ -201,11 +198,16 @@ func (s *transactionService) Update(ctx context.Context, budgetID, txID string, 
 }
 
 func (s *transactionService) Delete(ctx context.Context, budgetID, txID string) error {
+	b, err := s.budgets.GetByID(ctx, budgetID)
+	if err != nil {
+		return fmt.Errorf("%w: budget not found", ErrNotFound)
+	}
+
 	tx, err := s.transactions.GetByID(ctx, txID)
 	if err != nil {
 		return fmt.Errorf("%w: transaction not found", ErrNotFound)
 	}
-	if _, err := s.verifyAccountInBudget(ctx, budgetID, tx.AccountID); err != nil {
+	if _, err := s.accountForUser(ctx, tx.AccountID, b.UserID); err != nil {
 		return err
 	}
 

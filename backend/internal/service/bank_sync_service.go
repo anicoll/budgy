@@ -157,6 +157,7 @@ func (s *bankSyncService) SyncUser(ctx context.Context, userID string) error {
 		if categoryID != "" {
 			existing.CategoryID = categoryID
 		}
+		// Preserve customer_category_id — sync must not overwrite user recategorisation.
 		if err := s.transactions.Update(ctx, existing); err != nil {
 			return fmt.Errorf("failed to update transaction %s: %w", tx.ID, err)
 		}

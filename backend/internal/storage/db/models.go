@@ -103,7 +103,8 @@ type GooseDbVersion struct {
 type Transaction struct {
 	ID              string
 	AccountID       string
-	CategoryID      sql.NullString
+	CategoryID         sql.NullString
+	CustomerCategoryID sql.NullString
 	Amount          int64
 	Description     string
 	Date            time.Time

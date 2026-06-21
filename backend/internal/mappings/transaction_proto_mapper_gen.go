@@ -64,19 +64,20 @@ func (m *transactionprotomapper) ToProto(ctx pkg_context.Context, source *pkg_bu
 	dest.BudgetId = source.BudgetID
 	dest.AccountId = source.AccountID
 	dest.CategoryId = source.CategoryID
+	dest.CustomerCategoryId = source.CustomerCategoryID
 	dest.Amount = source.Amount
 	dest.Description = source.Description
-	done6 := false
-	if m.converter00000 != nil && !done6 {
-		done6 = true
+	done7 := false
+	if m.converter00000 != nil && !done7 {
+		done7 = true
 		if converted, err := m.converter00000(ctx, &(source.Date)); err != nil {
 			return err
 		} else {
 			dest.Date = converted
 		}
 	}
-	if m.mapper00000 != nil && !done6 {
-		done6 = true
+	if m.mapper00000 != nil && !done7 {
+		done7 = true
 		if dest.Date == nil {
 			dest.Date = new(pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp)
 		}
@@ -84,17 +85,17 @@ func (m *transactionprotomapper) ToProto(ctx pkg_context.Context, source *pkg_bu
 			return err
 		}
 	}
-	done7 := false
-	if m.converter00000 != nil && !done7 {
-		done7 = true
+	done8 := false
+	if m.converter00000 != nil && !done8 {
+		done8 = true
 		if converted, err := m.converter00000(ctx, &(source.CreatedAt)); err != nil {
 			return err
 		} else {
 			dest.CreatedAt = converted
 		}
 	}
-	if m.mapper00000 != nil && !done7 {
-		done7 = true
+	if m.mapper00000 != nil && !done8 {
+		done8 = true
 		if dest.CreatedAt == nil {
 			dest.CreatedAt = new(pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp)
 		}
@@ -102,17 +103,17 @@ func (m *transactionprotomapper) ToProto(ctx pkg_context.Context, source *pkg_bu
 			return err
 		}
 	}
-	done8 := false
-	if m.converter00000 != nil && !done8 {
-		done8 = true
+	done9 := false
+	if m.converter00000 != nil && !done9 {
+		done9 = true
 		if converted, err := m.converter00000(ctx, &(source.UpdatedAt)); err != nil {
 			return err
 		} else {
 			dest.UpdatedAt = converted
 		}
 	}
-	if m.mapper00000 != nil && !done8 {
-		done8 = true
+	if m.mapper00000 != nil && !done9 {
+		done9 = true
 		if dest.UpdatedAt == nil {
 			dest.UpdatedAt = new(pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp)
 		}
@@ -123,17 +124,17 @@ func (m *transactionprotomapper) ToProto(ctx pkg_context.Context, source *pkg_bu
 	dest.Direction = source.Direction
 	dest.Status = source.Status
 	dest.Class = source.Class
-	done12 := false
-	if m.converter00000 != nil && !done12 {
-		done12 = true
+	done13 := false
+	if m.converter00000 != nil && !done13 {
+		done13 = true
 		if converted, err := m.converter00000(ctx, source.PostDate); err != nil {
 			return err
 		} else {
 			dest.PostDate = converted
 		}
 	}
-	if m.mapper00000 != nil && source.PostDate != nil && !done12 {
-		done12 = true
+	if m.mapper00000 != nil && source.PostDate != nil && !done13 {
+		done13 = true
 		if dest.PostDate == nil {
 			dest.PostDate = new(pkg_google_golang_org_protobuf_types_known_timestamppb.Timestamp)
 		}

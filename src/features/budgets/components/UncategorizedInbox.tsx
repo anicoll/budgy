@@ -2,15 +2,18 @@
 
 import { Inbox } from "lucide-react";
 import Link from "next/link";
-import { Money } from "@/components/money/money";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Category } from "@/features/categories/types";
 import type { Transaction } from "@/features/transactions/types";
+import { UncategorisedTxnItem } from "./shared/UncategorisedTxnItem";
 
 interface Props {
   transactions: Transaction[];
+  categories: Category[];
+  allTransactions: Transaction[];
 }
 
-export function UncategorizedInbox({ transactions }: Props) {
+export function UncategorizedInbox({ transactions, categories, allTransactions }: Props) {
   if (transactions.length === 0) return null;
 
   return (
@@ -28,10 +31,12 @@ export function UncategorizedInbox({ transactions }: Props) {
         </p>
         <ul className="divide-y divide-border/50 rounded-lg border border-border/40">
           {transactions.slice(0, 5).map((tx) => (
-            <li key={tx.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-              <span className="min-w-0 truncate">{tx.description || "Transaction"}</span>
-              <Money value={tx.amount} signColor className="shrink-0" />
-            </li>
+            <UncategorisedTxnItem
+              key={tx.id}
+              txn={tx}
+              allTxns={allTransactions}
+              categories={categories}
+            />
           ))}
         </ul>
         {transactions.length > 5 ? (

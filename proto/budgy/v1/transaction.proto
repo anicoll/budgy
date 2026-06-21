@@ -12,7 +12,7 @@ message Transaction {
   string id              = 1;
   string budget_id       = 2;
   string account_id      = 3;
-  string category_id     = 4;
+  string category_id     = 4;  // Effective category (customer override, else Basiq-mapped)
   int64  amount          = 5;
   string description     = 6;
   google.protobuf.Timestamp date       = 7;
@@ -30,8 +30,10 @@ message Transaction {
   string location_address = 19;
   string location_lat     = 20;
   string location_lng     = 21;
-  string category_code    = 22;
-  string category_title   = 23;
+  string category_code    = 22;  // Original Basiq category code
+  string category_title   = 23;  // Original Basiq category title
+  string basiq_category_id = 24; // Internal category mapped from Basiq on sync
+  string customer_category_id = 25; // User-assigned category override
 }
 
 // ─── Requests / Responses ─────────────────────────────────────────────────────

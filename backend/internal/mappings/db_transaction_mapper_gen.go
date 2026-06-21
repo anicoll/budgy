@@ -78,14 +78,25 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
+	done3 := false
+	if m.converter00000 != nil && !done3 {
+		done3 = true
+		if converted, isnil, err := m.converter00000(ctx, &(source.CustomerCategoryID)); err != nil {
+			return err
+		} else {
+			if !isnil {
+				dest.CustomerCategoryID = converted
+			}
+		}
+	}
 	dest.Amount = source.Amount
 	dest.Description = source.Description
 	dest.Date = source.Date
 	dest.CreatedAt = source.CreatedAt
 	dest.UpdatedAt = source.UpdatedAt
-	done8 := false
-	if m.converter00000 != nil && !done8 {
-		done8 = true
+	done9 := false
+	if m.converter00000 != nil && !done9 {
+		done9 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.Direction)); err != nil {
 			return err
 		} else {
@@ -94,9 +105,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done9 := false
-	if m.converter00000 != nil && !done9 {
-		done9 = true
+	done10 := false
+	if m.converter00000 != nil && !done10 {
+		done10 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.Status)); err != nil {
 			return err
 		} else {
@@ -105,9 +116,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done10 := false
-	if m.converter00000 != nil && !done10 {
-		done10 = true
+	done11 := false
+	if m.converter00000 != nil && !done11 {
+		done11 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.Class)); err != nil {
 			return err
 		} else {
@@ -116,17 +127,17 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done11 := false
-	if m.converter00001 != nil && !done11 {
-		done11 = true
+	done12 := false
+	if m.converter00001 != nil && !done12 {
+		done12 = true
 		if converted, err := m.converter00001(ctx, &(source.PostDate)); err != nil {
 			return err
 		} else {
 			dest.PostDate = converted
 		}
 	}
-	if m.mapper00000 != nil && !done11 {
-		done11 = true
+	if m.mapper00000 != nil && !done12 {
+		done12 = true
 		if dest.PostDate == nil {
 			dest.PostDate = new(pkg_time.Time)
 		}
@@ -134,9 +145,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			return err
 		}
 	}
-	done12 := false
-	if m.converter00000 != nil && !done12 {
-		done12 = true
+	done13 := false
+	if m.converter00000 != nil && !done13 {
+		done13 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.SubClass)); err != nil {
 			return err
 		} else {
@@ -145,9 +156,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done13 := false
-	if m.converter00000 != nil && !done13 {
-		done13 = true
+	done14 := false
+	if m.converter00000 != nil && !done14 {
+		done14 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.RawDescription)); err != nil {
 			return err
 		} else {
@@ -156,9 +167,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done14 := false
-	if m.converter00000 != nil && !done14 {
-		done14 = true
+	done15 := false
+	if m.converter00000 != nil && !done15 {
+		done15 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.MerchantName)); err != nil {
 			return err
 		} else {
@@ -167,9 +178,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done15 := false
-	if m.converter00000 != nil && !done15 {
-		done15 = true
+	done16 := false
+	if m.converter00000 != nil && !done16 {
+		done16 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.MerchantWebsite)); err != nil {
 			return err
 		} else {
@@ -178,9 +189,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done16 := false
-	if m.converter00000 != nil && !done16 {
-		done16 = true
+	done17 := false
+	if m.converter00000 != nil && !done17 {
+		done17 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.MerchantLogoUrl)); err != nil {
 			return err
 		} else {
@@ -189,9 +200,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done17 := false
-	if m.converter00000 != nil && !done17 {
-		done17 = true
+	done18 := false
+	if m.converter00000 != nil && !done18 {
+		done18 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.LocationAddress)); err != nil {
 			return err
 		} else {
@@ -200,9 +211,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done18 := false
-	if m.converter00000 != nil && !done18 {
-		done18 = true
+	done19 := false
+	if m.converter00000 != nil && !done19 {
+		done19 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.LocationLat)); err != nil {
 			return err
 		} else {
@@ -211,9 +222,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done19 := false
-	if m.converter00000 != nil && !done19 {
-		done19 = true
+	done20 := false
+	if m.converter00000 != nil && !done20 {
+		done20 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.LocationLng)); err != nil {
 			return err
 		} else {
@@ -222,9 +233,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done20 := false
-	if m.converter00000 != nil && !done20 {
-		done20 = true
+	done21 := false
+	if m.converter00000 != nil && !done21 {
+		done21 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.CategoryCode)); err != nil {
 			return err
 		} else {
@@ -233,9 +244,9 @@ func (m *dbtransactionmapper) TransactionToTransaction(ctx pkg_context.Context, 
 			}
 		}
 	}
-	done21 := false
-	if m.converter00000 != nil && !done21 {
-		done21 = true
+	done22 := false
+	if m.converter00000 != nil && !done22 {
+		done22 = true
 		if converted, isnil, err := m.converter00000(ctx, &(source.CategoryTitle)); err != nil {
 			return err
 		} else {
