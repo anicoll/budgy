@@ -8,10 +8,7 @@ go_library(
         "seed.go",
         "sqlite.go",
     ],
-    embedsrcs = [
-        "migrations/0001_init.sql",
-        "migrations/0002_budget_periods.sql",
-    ],
+    embedsrcs = glob(["migrations/*.sql"]),
     importpath = "budgeting_system/internal/storage",
     visibility = ["//backend:__subpackages__"],
     deps = [
