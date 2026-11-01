@@ -67,7 +67,9 @@ export function BudgetsPageClient() {
     selectedBudget?.id ?? null,
   );
   const { data: taxonomyCategories, isPending: taxonomyPending } = useCategories();
-  const { data: accounts, isPending: accountsPending } = useBackendAccounts(selectedBudget?.id ?? null);
+  const { data: accounts, isPending: accountsPending } = useBackendAccounts(
+    selectedBudget?.id ?? null,
+  );
   const accountIds = useMemo(() => accounts?.map((a) => a.id) ?? [], [accounts]);
 
   const { data: transactions = [] } = useTransactions({

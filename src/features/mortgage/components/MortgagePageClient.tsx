@@ -16,6 +16,7 @@ import { useMortgagePlan, useSaveMortgagePlan } from "../hooks";
 import type { MortgagePlan, RepaymentFrequency } from "../types";
 import { DEFAULT_MORTGAGE_PLAN } from "../types";
 import { amortise, PERIODS_PER_YEAR, yearlyBalanceSnapshot } from "../utils/amortise";
+import { SplitLoanPanel } from "./SplitLoanPanel";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -235,7 +236,7 @@ function ScheduleTable({ result }: { result: ReturnType<typeof amortise> }) {
 // ─── main component ───────────────────────────────────────────────────────────
 
 type FormState = Omit<MortgagePlan, "id" | "updatedAt">;
-type Tab = "summary" | "schedule";
+type Tab = "summary" | "schedule" | "split";
 
 // Rate input with slider + free-text entry
 function RateInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -287,6 +288,7 @@ function RateInput({ value, onChange }: { value: number; onChange: (v: number) =
 const TABS: { value: Tab; label: string }[] = [
   { value: "summary", label: "Summary" },
   { value: "schedule", label: "Amortisation" },
+  { value: "split", label: "Split loan" },
 ];
 
 export function MortgagePageClient() {
@@ -394,7 +396,7 @@ export function MortgagePageClient() {
         <div>
           <h1 className="text-lg font-semibold">Mortgage Projector</h1>
           <p className="text-xs text-muted-foreground">
-            Offset + redraw modelling, extra repayments, amortisation schedule
+            Offset + redraw modelling, extra repayments, amortisation schedule, split loans
           </p>
         </div>
         {saveMutation.isPending && (
@@ -619,6 +621,10 @@ export function MortgagePageClient() {
           )}
 
           {tab === "schedule" && <ScheduleTable result={result} />}
+
+          {tab === "split" && (
+            <SplitLoanPanel plan={form} onChange={(split) => update({ split })} />
+          )}
         </div>
       </div>
     </div>

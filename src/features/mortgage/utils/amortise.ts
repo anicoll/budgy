@@ -52,7 +52,7 @@ function addMonths(yyyyMM: string, months: number): string {
   return `${yr}-${String(mo).padStart(2, "0")}`;
 }
 
-function periodToDate(startDate: string, period: number, freq: RepaymentFrequency): string {
+export function periodToDate(startDate: string, period: number, freq: RepaymentFrequency): string {
   if (freq === "monthly") return addMonths(startDate, period);
   // For weekly/fortnightly, approximate as months (close enough for display)
   const daysPerPeriod = freq === "weekly" ? 7 : 14;
