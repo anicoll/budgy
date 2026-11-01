@@ -16,7 +16,11 @@ import type { LoanSplit, MortgagePlan, RepaymentFrequency, SplitParty } from "..
 import { PERIODS_PER_YEAR } from "../utils/amortise";
 import {
   defaultSplitParties,
+  effectiveFrequency,
+  evenShares,
+  removeParty,
   type SplitResult,
+  setShare,
   shareTotal,
   splitAmortise,
   splitYearly,
@@ -48,18 +52,14 @@ function periodAbbr(freq: RepaymentFrequency) {
   return freq === "monthly" ? "mo" : freq === "fortnightly" ? "fn" : "wk";
 }
 
-function years(periods: number, freq: RepaymentFrequency) {
-  return Math.round((periods / PERIODS_PER_YEAR[freq]) * 10) / 10;
-}
+const FREQ_LABEL: Record<RepaymentFrequency, string> = {
+  weekly: "Weekly",
+  fortnightly: "Fortnightly",
+  monthly: "Monthly",
+};
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
-}
-
-/** Spread 100% evenly; the last party absorbs the rounding so the total is exact. */
-function evenShares(n: number): number[] {
-  const each = Math.floor((100 / n) * 100) / 100;
-  return Array.from({ length: n }, (_, i) => (i === n - 1 ? round2(100 - each * (n - 1)) : each));
 }
 
 // ─── small inputs ────────────────────────────────────────────────────────────
@@ -170,19 +170,23 @@ function PartyEditor({
   freq,
   canRemove,
   onChange,
+  onShareChange,
   onRemove,
 }: {
   party: SplitParty;
   index: number;
   loanRate: number;
-  freq: RepaymentFrequency;
+  freq: RepaymentFrequency; // loan default
   canRemove: boolean;
   onChange: (patch: Partial<SplitParty>) => void;
+  onShareChange: (pct: number) => void;
   onRemove: () => void;
 }) {
+  const partyFreq = effectiveFrequency(party, freq);
+
   function commitShare(raw: string) {
     const n = parseFloat(raw);
-    if (Number.isFinite(n) && n >= 0 && n <= 100) onChange({ sharePct: round2(n) });
+    if (Number.isFinite(n)) onShareChange(n);
   }
 
   function commitRate(raw: string) {
@@ -227,13 +231,43 @@ function PartyEditor({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="flex flex-col gap-1.5">
         <PercentField
           label="Share of loan"
           value={String(party.sharePct)}
           onCommit={commitShare}
-          tooltip="This person's portion of the current loan balance. Shares must add up to 100%."
+          tooltip="This person's portion of the current loan balance. Changing it rebalances the other shares so they always add up to 100%."
         />
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={party.sharePct}
+          aria-label={`${party.name} share slider`}
+          onChange={(e) => onShareChange(parseFloat(e.target.value))}
+          className="super-slider h-1 w-full cursor-pointer appearance-none rounded-full bg-border"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Repays</span>
+          <select
+            value={party.repaymentFrequency ?? ""}
+            onChange={(e) =>
+              onChange({
+                repaymentFrequency: (e.target.value || null) as RepaymentFrequency | null,
+              })
+            }
+            className="rounded-lg border border-border/60 bg-surface px-3 py-1.5 text-sm outline-none focus:border-ring"
+          >
+            <option value="">{FREQ_LABEL[freq]} (loan)</option>
+            <option value="weekly">Weekly</option>
+            <option value="fortnightly">Fortnightly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </label>
         <PercentField
           label="Rate (optional)"
           value={party.interestRate === null ? "" : String(round2(party.interestRate * 100))}
@@ -242,7 +276,7 @@ function PartyEditor({
           tooltip="Leave blank to use the loan rate. Set it when this portion sits in a different split (for example a fixed portion alongside a variable one)."
         />
         <MoneyInput
-          label={`Extra per ${periodNoun(freq)}`}
+          label={`Extra per ${periodNoun(partyFreq)}`}
           value={party.extraRepayment}
           onChange={(v) => onChange({ extraRepayment: v })}
           tooltip="Paid on top of this person's minimum. Only reduces their own portion."
@@ -326,13 +360,12 @@ function PartyResultCard({
   result,
   party,
   index,
-  freq,
 }: {
   result: SplitResult["parties"][number];
   party: SplitParty;
   index: number;
-  freq: RepaymentFrequency;
 }) {
+  const freq = result.repaymentFrequency;
   const paying = (result.minimumRepayment + party.extraRepayment) as Cents;
   const diff = result.proRataInterest - result.totalInterest;
   return (
@@ -348,12 +381,12 @@ function PartyResultCard({
         <Stat
           label="Paying"
           value={`${formatAUD(paying)}/${periodAbbr(freq)}`}
-          sub={`Min. ${formatAUD(result.minimumRepayment)}`}
+          sub={`${FREQ_LABEL[freq]} · min. ${formatAUD(result.minimumRepayment)}`}
         />
         <Stat
           label="Portion cleared"
           value={result.payoffDate}
-          sub={`${years(result.payoffPeriods, freq)} years`}
+          sub={`${result.payoffYears} years`}
         />
         <Stat
           label="Interest charged"
@@ -365,7 +398,7 @@ function PartyResultCard({
           value={formatAUDCompact(result.interestSaved)}
           sub={
             result.periodsSaved > 0
-              ? `${years(result.periodsSaved, freq)} yrs earlier`
+              ? `${Math.round((result.periodsSaved / PERIODS_PER_YEAR[freq]) * 10) / 10} yrs earlier`
               : "On minimum schedule"
           }
         />
@@ -388,8 +421,8 @@ function PartyResultCard({
   );
 }
 
-function SplitBalanceChart({ result, freq }: { result: SplitResult; freq: RepaymentFrequency }) {
-  const yearly = useMemo(() => splitYearly(result, freq), [result, freq]);
+function SplitBalanceChart({ result, startDate }: { result: SplitResult; startDate: string }) {
+  const yearly = useMemo(() => splitYearly(result, startDate), [result, startDate]);
 
   const options = useMemo<ApexOptions>(() => {
     const theme = getChartTheme();
@@ -449,18 +482,18 @@ function SplitBalanceChart({ result, freq }: { result: SplitResult; freq: Repaym
       result.parties.map((p, i) => ({
         name: p.name,
         data: [
-          { x: result.rows[0]?.date ?? "", y: Math.round(p.portion / 100) },
+          { x: startDate, y: Math.round(p.portion / 100) },
           ...yearly.map((y) => ({ x: y.date, y: Math.round(y.parties[i].closing / 100) })),
         ],
       })),
-    [result, yearly],
+    [result, yearly, startDate],
   );
 
   return <ReactApexChart type="area" options={options} series={series} height={260} />;
 }
 
-function YearlyTable({ result, freq }: { result: SplitResult; freq: RepaymentFrequency }) {
-  const yearly = useMemo(() => splitYearly(result, freq), [result, freq]);
+function YearlyTable({ result, startDate }: { result: SplitResult; startDate: string }) {
+  const yearly = useMemo(() => splitYearly(result, startDate), [result, startDate]);
   return (
     <div className="overflow-x-auto rounded-xl border border-border/60">
       <table className="w-full text-xs">
@@ -572,24 +605,23 @@ export function SplitLoanPanel({
 
   function addParty() {
     if (parties.length >= MAX_PARTIES) return;
-    const name = `Party ${String.fromCharCode(65 + parties.length)}`;
-    const shares = evenShares(parties.length + 1);
-    setParties([
-      ...parties.map((p, i) => ({ ...p, sharePct: shares[i] })),
-      {
-        id: ulid(),
-        name,
-        sharePct: shares[parties.length],
-        extraRepayment: 0 as Cents,
-        offsetBalance: 0 as Cents,
-        interestRate: null,
-        lumpSums: [],
-      },
-    ]);
+    const id = ulid();
+    const added: SplitParty = {
+      id,
+      name: `Party ${String.fromCharCode(65 + parties.length)}`,
+      sharePct: 0,
+      extraRepayment: 0 as Cents,
+      offsetBalance: 0 as Cents,
+      interestRate: null,
+      repaymentFrequency: null,
+      lumpSums: [],
+    };
+    // Give the newcomer an even share and scale everyone else down proportionally.
+    setParties(setShare([...parties, added], id, round2(100 / (parties.length + 1))));
   }
 
-  function removeParty(id: string) {
-    setParties(parties.filter((p) => p.id !== id));
+  function dropParty(id: string) {
+    setParties(removeParty(parties, id));
   }
 
   function splitEvenly() {
@@ -657,8 +689,8 @@ export function SplitLoanPanel({
           </div>
         )}
         <p className="text-[11px] text-muted-foreground">
-          Uses the balance, rate, term and frequency from Loan details. Offset and extra repayments
-          are set per person here and replace the single-loan figures for this view.
+          Uses the balance, rate and term from Loan details. Each person sets their own share,
+          repayment frequency, offset and extras here; changing one share rebalances the others.
         </p>
       </div>
 
@@ -675,7 +707,8 @@ export function SplitLoanPanel({
             onChange={(patch) =>
               setParties(parties.map((x) => (x.id === p.id ? { ...x, ...patch } : x)))
             }
-            onRemove={() => removeParty(p.id)}
+            onShareChange={(pct) => setParties(setShare(parties, p.id, pct))}
+            onRemove={() => dropParty(p.id)}
           />
         ))}
       </div>
@@ -687,12 +720,12 @@ export function SplitLoanPanel({
             <Stat
               label="Loan fully cleared"
               value={result.payoffDate}
-              sub={`${years(result.payoffPeriods, freq)} years`}
+              sub={`${result.payoffYears} years`}
             />
             <Stat
               label="Combined minimum"
-              value={`${formatAUD(result.combinedMinimum)}/${periodAbbr(freq)}`}
-              sub="Sum of each share's minimum"
+              value={`≈ ${formatAUD(result.monthlyMinimum)}/mo`}
+              sub="Every share's minimum, per month"
             />
             <Stat
               label="Total interest"
@@ -705,28 +738,28 @@ export function SplitLoanPanel({
           {/* Per party */}
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {result.parties.map((r, i) => (
-              <PartyResultCard key={r.id} result={r} party={parties[i]} index={i} freq={freq} />
+              <PartyResultCard key={r.id} result={r} party={parties[i]} index={i} />
             ))}
           </div>
 
           <div className="rounded-xl border border-border/60 bg-surface/70 p-4 backdrop-blur-md">
             <div className="mb-2 text-sm font-medium">Who owes what over time</div>
-            <SplitBalanceChart result={result} freq={freq} />
+            <SplitBalanceChart result={result} startDate={plan.startDate} />
           </div>
 
           <div className="flex flex-col gap-2">
             <div className="text-sm font-medium">Year by year</div>
-            <YearlyTable result={result} freq={freq} />
+            <YearlyTable result={result} startDate={plan.startDate} />
           </div>
 
           <div className="rounded-lg bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">How the split is calculated. </span>
             Each share starts as its percentage of the current balance and has its own minimum
-            repayment over the remaining term, so the minimums add up to the whole loan&apos;s
-            minimum. Every {periodNoun(freq)}, interest is charged on each share&apos;s own
-            outstanding balance less that person&apos;s offset, and their repayments, extras and
-            lump sums reduce only their share. The lender still sees one loan; this shows how to
-            divide it fairly between you.
+            repayment over the remaining term, on that person&apos;s chosen frequency, so the
+            minimums together cover the whole loan. Each period, interest is charged on each
+            share&apos;s own outstanding balance less that person&apos;s offset, and their
+            repayments, extras and lump sums reduce only their share. The lender still sees one
+            loan; this shows how to divide it fairly between you.
           </div>
         </>
       )}

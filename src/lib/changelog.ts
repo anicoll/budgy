@@ -16,6 +16,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Per-person extra repayments, lump sums, offset balance and an optional rate for split portions (e.g. fixed and variable)",
       "See when each share is cleared, interest charged and saved, and how much a simple pro-rata interest split would over- or under-charge each person",
       "Stacked balance chart and year-by-year table show who owes what over the life of the loan",
+      "Changing one person's share (typed or with the slider) rebalances the others so shares always total 100%",
+      "Each person can repay on their own cadence: weekly, fortnightly or monthly",
     ],
   },
   {

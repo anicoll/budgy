@@ -4,7 +4,10 @@ import type { SplitParty } from "../types";
 import { amortise } from "./amortise";
 import {
   allocatePortions,
+  evenShares,
+  removeParty,
   type SplitInput,
+  setShare,
   sharesAreValid,
   splitAmortise,
   splitYearly,
@@ -60,7 +63,7 @@ describe("sharesAreValid", () => {
     });
     expect(r.valid).toBe(false);
     expect(r.shareTotal).toBe(90);
-    expect(r.rows).toHaveLength(0);
+    expect(r.parties).toHaveLength(0);
   });
 });
 
@@ -72,7 +75,7 @@ describe("splitAmortise — equal parties, minimum repayments", () => {
     expect(r.parties[1].portion).toBe(50_000_000);
     // PMT of $500k at 6% over 30 yrs monthly = $2,997.75
     expect(r.parties[0].minimumRepayment).toBe(299_775);
-    expect(r.combinedMinimum).toBe(599_550);
+    expect(r.monthlyMinimum).toBe(599_550);
   });
 
   it("matches the unsplit loan's total interest within rounding", () => {
@@ -88,7 +91,7 @@ describe("splitAmortise — equal parties, minimum repayments", () => {
       extraRepayment: cents(0),
     });
     expect(Math.abs(r.totalInterest - whole.totalInterest)).toBeLessThan(100_000); // < $1,000
-    expect(r.payoffPeriods).toBe(whole.payoffPeriods);
+    expect(r.parties[0].payoffPeriods).toBe(whole.payoffPeriods);
   });
 
   it("charges both parties the same interest and pro-rata equals actual", () => {
@@ -115,15 +118,16 @@ describe("splitAmortise — one party pays faster", () => {
     expect(b.totalInterest).toBe(b.baselineInterest);
     expect(b.interestSaved).toBe(0);
     expect(b.payoffPeriods).toBe(360);
-    expect(r.payoffPeriods).toBe(360);
+    expect(r.payoffDate).toBe(b.payoffDate);
   });
 
   it("stops charging the fast party once their portion is cleared", () => {
-    const after = r.rows[a.payoffPeriods]; // first period after payoff
-    expect(after.parties[0].opening).toBe(0);
-    expect(after.parties[0].interest).toBe(0);
-    expect(after.parties[0].payment).toBe(0);
-    expect(after.totalPayment).toBe(after.parties[1].payment);
+    expect(a.periods).toHaveLength(a.payoffPeriods);
+    expect(a.periods[a.periods.length - 1].closing).toBe(0);
+    const years = splitYearly(r, BASE.startDate);
+    const afterYear = years[Math.ceil(a.payoffPeriods / 12)];
+    expect(afterYear.parties[0]).toEqual({ paid: 0, interest: 0, closing: 0 });
+    expect(afterYear.totalPaid).toBe(afterYear.parties[1].paid);
   });
 
   it("shows a pro-rata interest split would overcharge the fast party", () => {
@@ -132,10 +136,9 @@ describe("splitAmortise — one party pays faster", () => {
     expect(a.proRataInterest + b.proRataInterest).toBe(r.totalInterest);
   });
 
-  it("each period's totals equal the sum of the parties", () => {
-    for (const row of r.rows) {
-      expect(row.totalClosing).toBe(row.parties[0].closing + row.parties[1].closing);
-      for (const p of row.parties) {
+  it("every period balances: closing = opening + interest - payment", () => {
+    for (const party of r.parties) {
+      for (const p of party.periods) {
         expect(p.closing).toBe(Math.max(0, p.opening + p.interest - p.payment));
       }
     }
@@ -174,9 +177,10 @@ describe("splitAmortise — per-party offset, rate and lump sums", () => {
         party({ id: "b" }),
       ],
     });
-    const idx = r.rows.findIndex((row) => row.date === "2026-06");
-    expect(r.rows[idx].parties[0].extra).toBe(5_000_000);
-    expect(r.rows[idx - 1].parties[0].extra).toBe(0);
+    const periods = r.parties[0].periods;
+    const idx = periods.findIndex((row) => row.date === "2026-06");
+    expect(periods[idx].extra).toBe(5_000_000);
+    expect(periods[idx - 1].extra).toBe(0);
     expect(r.parties[0].payoffPeriods).toBeLessThan(360);
   });
 
@@ -199,10 +203,112 @@ describe("splitYearly", () => {
       ...BASE,
       parties: [party({ id: "a", extraRepayment: cents(100_000) }), party({ id: "b" })],
     });
-    const years = splitYearly(r, "monthly");
+    const years = splitYearly(r, BASE.startDate);
     expect(years).toHaveLength(30);
     const paid = years.reduce((s, y) => s + y.totalPaid, 0);
     expect(paid).toBe(r.totalPaid);
     expect(years[years.length - 1].totalClosing).toBe(0);
+  });
+});
+
+describe("splitAmortise — different repayment cadences", () => {
+  const r = splitAmortise({
+    ...BASE,
+    parties: [
+      party({ id: "a", repaymentFrequency: "fortnightly" }),
+      party({ id: "b", repaymentFrequency: null }),
+    ],
+  });
+  const [a, b] = r.parties;
+
+  it("runs each share on its own frequency", () => {
+    expect(a.repaymentFrequency).toBe("fortnightly");
+    expect(b.repaymentFrequency).toBe("monthly");
+    expect(a.payoffPeriods).toBe(30 * 26);
+    expect(b.payoffPeriods).toBe(30 * 12);
+    expect(a.minimumRepayment).toBeLessThan(b.minimumRepayment);
+  });
+
+  it("fortnightly minimums cost slightly less interest than monthly", () => {
+    expect(a.totalInterest).toBeLessThan(b.totalInterest);
+    expect(a.totalInterest).toBeGreaterThan(b.totalInterest * 0.98);
+  });
+
+  it("expresses the combined minimum per month", () => {
+    const expected = Math.round((a.minimumRepayment * 26) / 12 + b.minimumRepayment);
+    expect(r.monthlyMinimum).toBe(expected);
+  });
+
+  it("rolls both cadences into the same projection years", () => {
+    const years = splitYearly(r, BASE.startDate);
+    expect(years).toHaveLength(30);
+    expect(years[0].parties[0].paid).toBe(a.minimumRepayment * 26);
+    expect(years[0].parties[1].paid).toBe(b.minimumRepayment * 12);
+    expect(years[29].totalClosing).toBe(0);
+    expect(years.reduce((s, y) => s + y.totalPaid, 0)).toBe(r.totalPaid);
+  });
+});
+
+describe("share editing", () => {
+  const two = [
+    { id: "a", sharePct: 50 },
+    { id: "b", sharePct: 50 },
+  ];
+  const three = [
+    { id: "a", sharePct: 50 },
+    { id: "b", sharePct: 30 },
+    { id: "c", sharePct: 20 },
+  ];
+
+  it("setting one of two shares sets the other to the remainder", () => {
+    expect(setShare(two, "a", 65).map((p) => p.sharePct)).toEqual([65, 35]);
+    expect(setShare(two, "b", 100).map((p) => p.sharePct)).toEqual([0, 100]);
+  });
+
+  it("clamps out-of-range values", () => {
+    expect(setShare(two, "a", 140).map((p) => p.sharePct)).toEqual([100, 0]);
+    expect(setShare(two, "a", -5).map((p) => p.sharePct)).toEqual([0, 100]);
+  });
+
+  it("spreads the remainder over other shares in proportion", () => {
+    // Others were 30:20, so the remaining 40% splits 24:16.
+    expect(setShare(three, "a", 60).map((p) => p.sharePct)).toEqual([60, 24, 16]);
+  });
+
+  it("spreads evenly when the others are all zero", () => {
+    const zeros = [
+      { id: "a", sharePct: 100 },
+      { id: "b", sharePct: 0 },
+      { id: "c", sharePct: 0 },
+    ];
+    expect(setShare(zeros, "a", 40).map((p) => p.sharePct)).toEqual([40, 30, 30]);
+  });
+
+  it("always totals exactly 100", () => {
+    for (const pct of [0, 12.34, 33.33, 66.67, 99.99]) {
+      const total = setShare(three, "b", pct).reduce((s, p) => s + p.sharePct, 0);
+      expect(Math.round(total * 100)).toBe(10_000);
+    }
+  });
+
+  it("rounds to the nearest hundredth without drifting", () => {
+    const after = setShare(
+      [
+        { id: "a", sharePct: 70 },
+        { id: "b", sharePct: 30 },
+        { id: "c", sharePct: 0 },
+      ],
+      "c",
+      33.33,
+    );
+    expect(after.map((p) => p.sharePct)).toEqual([46.67, 20, 33.33]);
+  });
+
+  it("removing a party hands its share to the rest", () => {
+    expect(removeParty(three, "c").map((p) => p.sharePct)).toEqual([62.5, 37.5]);
+  });
+
+  it("evenShares totals 100", () => {
+    expect(evenShares(3)).toEqual([33.33, 33.33, 33.34]);
   });
 });
