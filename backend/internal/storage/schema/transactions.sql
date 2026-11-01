@@ -3,8 +3,8 @@
 --
 
 
--- Dumped from database version 15.18
--- Dumped by pg_dump version 15.18
+-- Dumped from database version 15.19
+-- Dumped by pg_dump version 15.19
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -48,7 +48,8 @@ CREATE TABLE public.transactions (
     location_lng text,
     category_code text,
     category_title text,
-    customer_category_id text
+    customer_category_id text,
+    customer_category_explicit_none integer DEFAULT 0 NOT NULL
 );
 
 
