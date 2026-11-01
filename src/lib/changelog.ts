@@ -7,6 +7,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.15.0",
+    date: "2026-11-01",
+    title: "Split loans in the Mortgage projector",
+    changes: [
+      "Mortgage: new Split loan tab divides one jointly held loan between two to six people by percentage share",
+      "Each share is its own ledger: interest is charged only on what that person still owes, less their own offset",
+      "Per-person extra repayments, lump sums, offset balance and an optional rate for split portions (e.g. fixed and variable)",
+      "See when each share is cleared, interest charged and saved, and how much a simple pro-rata interest split would over- or under-charge each person",
+      "Stacked balance chart and year-by-year table show who owes what over the life of the loan",
+    ],
+  },
+  {
     version: "0.14.0",
     date: "2026-05-18",
     title: "Envelope budgeting — sinking funds for lumpy bills",
