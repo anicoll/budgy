@@ -52,6 +52,7 @@ export interface SplitParty {
   extraRepayment: Cents; // extra per period on top of this party's minimum
   offsetBalance: Cents; // this party's own offset funds (only reduce their portion)
   interestRate: number | null; // annual rate override, null = use the loan rate
+  repaymentFrequency?: RepaymentFrequency | null; // own cadence, null/absent = use the loan's
   lumpSums: SplitLumpSum[];
 }
 

@@ -9,12 +9,13 @@ import { calcMinRepayment, PERIODS_PER_YEAR, periodToDate } from "./amortise";
  * tracked as its own ledger:
  *
  * - interest is charged only on that party's outstanding portion (less their own offset),
- * - each party's minimum repayment is the PMT of their portion over the loan term,
- *   so the minimums add up to the lender's minimum for the whole loan,
+ * - each party's minimum repayment is the PMT of their portion over the loan term at
+ *   their own repayment frequency, so together they cover the whole loan,
  * - extra repayments and lump sums only reduce the portion of the party who made them.
  *
- * A party who pays faster clears their portion sooner and stops being charged
- * interest on it, while the other parties carry on at their own pace.
+ * Because the ledgers are independent, each party can repay on their own cadence
+ * (weekly, fortnightly or monthly). A party who pays faster clears their portion
+ * sooner and stops being charged interest on it, while the others carry on.
  */
 
 /** Tolerance for share percentages adding up to 100. */
@@ -24,26 +25,19 @@ export interface SplitInput {
   currentBalance: Cents;
   interestRate: number;
   termYears: number;
-  repaymentFrequency: RepaymentFrequency;
+  repaymentFrequency: RepaymentFrequency; // loan default; parties may override
   startDate: string; // YYYY-MM
   parties: SplitParty[];
 }
 
 export interface SplitPartyPeriod {
+  period: number;
+  date: string; // YYYY-MM
   opening: Cents;
   interest: Cents;
   payment: Cents; // total paid this period (interest + principal)
   extra: Cents; // portion of payment above the party's minimum
   closing: Cents;
-}
-
-export interface SplitPeriodRow {
-  period: number;
-  date: string; // YYYY-MM
-  parties: SplitPartyPeriod[]; // same order as input parties
-  totalPayment: Cents;
-  totalInterest: Cents;
-  totalClosing: Cents;
 }
 
 export interface SplitPartyResult {
@@ -52,10 +46,13 @@ export interface SplitPartyResult {
   sharePct: number;
   portion: Cents; // share of the current balance
   interestRate: number; // effective annual rate for this portion
+  repaymentFrequency: RepaymentFrequency; // effective cadence for this portion
   minimumRepayment: Cents; // per period, before extras
+  periods: SplitPartyPeriod[];
   totalInterest: Cents;
   totalPaid: Cents;
   payoffPeriods: number;
+  payoffYears: number;
   payoffDate: string;
   /** Interest this party would pay making only minimum repayments with no offset. */
   baselineInterest: Cents;
@@ -73,12 +70,18 @@ export interface SplitResult {
   valid: boolean;
   shareTotal: number;
   parties: SplitPartyResult[];
-  rows: SplitPeriodRow[];
-  combinedMinimum: Cents;
+  /** Sum of every party's minimum, converted to a per-month figure. */
+  monthlyMinimum: Cents;
   totalInterest: Cents;
   totalPaid: Cents;
-  payoffPeriods: number;
+  payoffYears: number;
   payoffDate: string;
+}
+
+// ─── shares ──────────────────────────────────────────────────────────────────
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
 }
 
 export function shareTotal(parties: Pick<SplitParty, "sharePct">[]): number {
@@ -91,6 +94,75 @@ export function sharesAreValid(parties: Pick<SplitParty, "sharePct">[]): boolean
     parties.every((p) => Number.isFinite(p.sharePct) && p.sharePct >= 0) &&
     Math.abs(shareTotal(parties) - 100) < SHARE_EPSILON
   );
+}
+
+/** Spread 100% evenly; the last entry absorbs rounding so the total is exact. */
+export function evenShares(n: number): number[] {
+  if (n <= 0) return [];
+  const each = Math.floor((100 / n) * 100) / 100;
+  return Array.from({ length: n }, (_, i) => (i === n - 1 ? round2(100 - each * (n - 1)) : each));
+}
+
+/**
+ * Spread `total` percent across `weights` proportionally (evenly if all weights
+ * are zero) to 2 decimal places. Uses largest-remainder rounding so the parts
+ * stay as close as possible to their exact values and always sum to `total`.
+ */
+function spread(total: number, weights: number[]): number[] {
+  if (weights.length === 0) return [];
+  const units = Math.round(total * 100); // work in hundredths of a percent
+  const sum = weights.reduce((a, b) => a + Math.max(0, b), 0);
+  const exact =
+    sum > 0
+      ? weights.map((w) => (Math.max(0, w) / sum) * units)
+      : weights.map(() => units / weights.length);
+  const floors = exact.map(Math.floor);
+  let left = units - floors.reduce((a, b) => a + b, 0);
+  const order = exact
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((x, y) => y.frac - x.frac || x.i - y.i);
+  for (const { i } of order) {
+    if (left <= 0) break;
+    floors[i] += 1;
+    left -= 1;
+  }
+  return floors.map((u) => u / 100);
+}
+
+/**
+ * Set one party's share and rebalance everyone else so the total stays at 100%.
+ * The remaining percentage is shared among the other parties in proportion to
+ * their current shares (evenly if they are all at zero).
+ */
+export function setShare<T extends Pick<SplitParty, "id" | "sharePct">>(
+  parties: T[],
+  id: string,
+  pct: number,
+): T[] {
+  const target = Math.min(100, Math.max(0, round2(pct)));
+  const others = parties.filter((p) => p.id !== id);
+  if (others.length === parties.length) return parties;
+  const spreadOthers = spread(
+    round2(100 - target),
+    others.map((p) => p.sharePct),
+  );
+  let j = 0;
+  return parties.map((p) =>
+    p.id === id ? { ...p, sharePct: target } : { ...p, sharePct: spreadOthers[j++] },
+  );
+}
+
+/** Remove a party and hand its share to the rest, in proportion to their shares. */
+export function removeParty<T extends Pick<SplitParty, "id" | "sharePct">>(
+  parties: T[],
+  id: string,
+): T[] {
+  const rest = parties.filter((p) => p.id !== id);
+  const shares = spread(
+    100,
+    rest.map((p) => p.sharePct),
+  );
+  return rest.map((p, i) => ({ ...p, sharePct: shares[i] }));
 }
 
 /**
@@ -107,6 +179,8 @@ export function allocatePortions(balance: Cents, shares: number[]): Cents[] {
   portions[largest] += remainder;
   return portions as Cents[];
 }
+
+// ─── ledgers ─────────────────────────────────────────────────────────────────
 
 interface LedgerParams {
   portion: Cents;
@@ -165,6 +239,8 @@ function runLedger({
     const closing = Math.max(0, opening + interest - payment);
 
     periods.push({
+      period: p + 1,
+      date,
       opening: opening as Cents,
       interest: interest as Cents,
       payment: payment as Cents,
@@ -180,13 +256,12 @@ function runLedger({
   return { minimum, periods, totalInterest, totalPaid };
 }
 
-const EMPTY_PERIOD: SplitPartyPeriod = {
-  opening: 0 as Cents,
-  interest: 0 as Cents,
-  payment: 0 as Cents,
-  extra: 0 as Cents,
-  closing: 0 as Cents,
-};
+export function effectiveFrequency(
+  party: Pick<SplitParty, "repaymentFrequency">,
+  loanFreq: RepaymentFrequency,
+): RepaymentFrequency {
+  return party.repaymentFrequency ?? loanFreq;
+}
 
 export function splitAmortise(input: SplitInput): SplitResult {
   const { currentBalance, interestRate, termYears, repaymentFrequency, startDate, parties } = input;
@@ -198,11 +273,10 @@ export function splitAmortise(input: SplitInput): SplitResult {
       valid,
       shareTotal: total,
       parties: [],
-      rows: [],
-      combinedMinimum: 0 as Cents,
+      monthlyMinimum: 0 as Cents,
       totalInterest: 0 as Cents,
       totalPaid: 0 as Cents,
-      payoffPeriods: 0,
+      payoffYears: 0,
       payoffDate: startDate,
     };
   }
@@ -214,15 +288,11 @@ export function splitAmortise(input: SplitInput): SplitResult {
 
   const ledgers = parties.map((party, i) => {
     const rate = party.interestRate ?? interestRate;
-    const common = {
-      portion: portions[i],
-      annualRate: rate,
-      termYears,
-      freq: repaymentFrequency,
-      startDate,
-    };
+    const freq = effectiveFrequency(party, repaymentFrequency);
+    const common = { portion: portions[i], annualRate: rate, termYears, freq, startDate };
     return {
       rate,
+      freq,
       actual: runLedger({
         ...common,
         offset: party.offsetBalance,
@@ -233,20 +303,6 @@ export function splitAmortise(input: SplitInput): SplitResult {
     };
   });
 
-  const payoffPeriods = Math.max(0, ...ledgers.map((l) => l.actual.periods.length));
-  const rows: SplitPeriodRow[] = [];
-  for (let p = 0; p < payoffPeriods; p++) {
-    const periods = ledgers.map((l) => l.actual.periods[p] ?? EMPTY_PERIOD);
-    rows.push({
-      period: p + 1,
-      date: periodToDate(startDate, p + 1, repaymentFrequency),
-      parties: periods,
-      totalPayment: periods.reduce((s, x) => s + x.payment, 0) as Cents,
-      totalInterest: periods.reduce((s, x) => s + x.interest, 0) as Cents,
-      totalClosing: periods.reduce((s, x) => s + x.closing, 0) as Cents,
-    });
-  }
-
   const totalInterest = ledgers.reduce((s, l) => s + l.actual.totalInterest, 0);
   const totalPaid = ledgers.reduce((s, l) => s + l.actual.totalPaid, 0);
   const proRata = allocatePortions(
@@ -255,7 +311,7 @@ export function splitAmortise(input: SplitInput): SplitResult {
   );
 
   const partyResults: SplitPartyResult[] = parties.map((party, i) => {
-    const { actual, baseline, rate } = ledgers[i];
+    const { actual, baseline, rate, freq } = ledgers[i];
     const n = actual.periods.length;
     return {
       id: party.id,
@@ -263,11 +319,14 @@ export function splitAmortise(input: SplitInput): SplitResult {
       sharePct: party.sharePct,
       portion: portions[i],
       interestRate: rate,
+      repaymentFrequency: freq,
       minimumRepayment: actual.minimum,
+      periods: actual.periods,
       totalInterest: actual.totalInterest as Cents,
       totalPaid: actual.totalPaid as Cents,
       payoffPeriods: n,
-      payoffDate: n > 0 ? periodToDate(startDate, n, repaymentFrequency) : startDate,
+      payoffYears: Math.round((n / PERIODS_PER_YEAR[freq]) * 10) / 10,
+      payoffDate: n > 0 ? actual.periods[n - 1].date : startDate,
       baselineInterest: baseline.totalInterest as Cents,
       interestSaved: Math.max(0, baseline.totalInterest - actual.totalInterest) as Cents,
       periodsSaved: Math.max(0, baseline.periods.length - n),
@@ -275,46 +334,61 @@ export function splitAmortise(input: SplitInput): SplitResult {
     };
   });
 
+  const last = partyResults.reduce((a, b) => (b.payoffDate > a.payoffDate ? b : a));
+
   return {
     valid,
     shareTotal: total,
     parties: partyResults,
-    rows,
-    combinedMinimum: ledgers.reduce((s, l) => s + l.actual.minimum, 0) as Cents,
+    monthlyMinimum: Math.round(
+      ledgers.reduce((s, l) => s + (l.actual.minimum * PERIODS_PER_YEAR[l.freq]) / 12, 0),
+    ) as Cents,
     totalInterest: totalInterest as Cents,
     totalPaid: totalPaid as Cents,
-    payoffPeriods,
-    payoffDate:
-      payoffPeriods > 0 ? periodToDate(startDate, payoffPeriods, repaymentFrequency) : startDate,
+    payoffYears: Math.max(...partyResults.map((p) => p.payoffYears)),
+    payoffDate: last.payoffDate,
   };
 }
 
+// ─── yearly roll-up ──────────────────────────────────────────────────────────
+
 export interface SplitYearRow {
   year: number; // 1-based year of the projection
-  date: string; // YYYY-MM of the last period in the year
+  date: string; // YYYY-MM at the end of the year
   parties: { paid: Cents; interest: Cents; closing: Cents }[];
   totalPaid: Cents;
   totalClosing: Cents;
 }
 
-/** Roll period rows up into one row per projection year. */
-export function splitYearly(result: SplitResult, freq: RepaymentFrequency): SplitYearRow[] {
-  const ppy = PERIODS_PER_YEAR[freq];
+/**
+ * Roll each party's periods up into projection years. Parties can repay on
+ * different cadences, so each is chunked by its own periods-per-year.
+ */
+export function splitYearly(result: SplitResult, startDate: string): SplitYearRow[] {
+  const yearCount = Math.max(
+    0,
+    ...result.parties.map((p) =>
+      Math.ceil(p.payoffPeriods / PERIODS_PER_YEAR[p.repaymentFrequency]),
+    ),
+  );
   const out: SplitYearRow[] = [];
-  for (let start = 0; start < result.rows.length; start += ppy) {
-    const chunk = result.rows.slice(start, start + ppy);
-    const last = chunk[chunk.length - 1];
-    const parties = result.parties.map((_, i) => ({
-      paid: chunk.reduce((s, r) => s + r.parties[i].payment, 0) as Cents,
-      interest: chunk.reduce((s, r) => s + r.parties[i].interest, 0) as Cents,
-      closing: last.parties[i].closing,
-    }));
+  for (let y = 0; y < yearCount; y++) {
+    const parties = result.parties.map((p) => {
+      const ppy = PERIODS_PER_YEAR[p.repaymentFrequency];
+      const chunk = p.periods.slice(y * ppy, (y + 1) * ppy);
+      const last = chunk[chunk.length - 1];
+      return {
+        paid: chunk.reduce((s, r) => s + r.payment, 0) as Cents,
+        interest: chunk.reduce((s, r) => s + r.interest, 0) as Cents,
+        closing: (last?.closing ?? 0) as Cents,
+      };
+    });
     out.push({
-      year: start / ppy + 1,
-      date: last.date,
+      year: y + 1,
+      date: periodToDate(startDate, (y + 1) * 12, "monthly"),
       parties,
       totalPaid: parties.reduce((s, p) => s + p.paid, 0) as Cents,
-      totalClosing: last.totalClosing,
+      totalClosing: parties.reduce((s, p) => s + p.closing, 0) as Cents,
     });
   }
   return out;
@@ -322,24 +396,14 @@ export function splitYearly(result: SplitResult, freq: RepaymentFrequency): Spli
 
 /** Default two-way 50/50 split used when the feature is first switched on. */
 export function defaultSplitParties(makeId: () => string): SplitParty[] {
-  return [
-    {
-      id: makeId(),
-      name: "Party A",
-      sharePct: 50,
-      extraRepayment: 0 as Cents,
-      offsetBalance: 0 as Cents,
-      interestRate: null,
-      lumpSums: [],
-    },
-    {
-      id: makeId(),
-      name: "Party B",
-      sharePct: 50,
-      extraRepayment: 0 as Cents,
-      offsetBalance: 0 as Cents,
-      interestRate: null,
-      lumpSums: [],
-    },
-  ];
+  return ["Party A", "Party B"].map((name) => ({
+    id: makeId(),
+    name,
+    sharePct: 50,
+    extraRepayment: 0 as Cents,
+    offsetBalance: 0 as Cents,
+    interestRate: null,
+    repaymentFrequency: null,
+    lumpSums: [],
+  }));
 }
