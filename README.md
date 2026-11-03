@@ -1,47 +1,16 @@
-# Budgy 🐧
+# Budgy
 
-Budgy is a modern personal finance and budgeting application supporting both **Online (cloud synced)** and **Offline (local only)** storage modes. Core financial data (accounts, categories, transactions, budgets) can sync through a Go backend, while superannuation and mortgage plans stay in browser-local storage. Users can also run completely offline without a backend.
+Budgy is being rebuilt as a set of free, public financial planning tools for Australians, starting with a mortgage "what if" calculator.
 
-## Key Features
+## Status
 
-- **Dynamic Dashboard** — Net worth, cash flow, and spending charts (ApexCharts)
-- **Envelope Budgeting** — Period resets and cumulative envelope (sinking fund) modes
-- **Bill Calendar** — Upcoming bills and budget-health forecasts
-- **Account Management** — Checking, savings, credit, investment, loan, cash, and super accounts
-- **Transaction Ledger & CSV Import** — Search, filter, quick-add, and statement import
-- **Mortgage Simulator** — Offset accounts, redraws, and extra repayments
-- **Superannuation Projection** — SG contributions, voluntary savings, fees, and retirement forecasts
-- **Privacy First** — Local IndexedDB storage with JSON export/import
+The new app has not been built yet. The plan is:
 
-## Tech Stack
+- `packages/engine`: the calculation code (pure TypeScript, integer cents, tested)
+- `apps/web`: the public site, one page per tool, static and login-free
 
-- **Frontend**: Next.js 16, React 19, TailwindCSS v4, Dexie.js, TanStack React Query, Zustand
-- **Backend**: Go, Connect RPC, SQLite, Bazel
-- **Quality**: Biome, Vitest, Bazel tests
+## The original app
 
-## Quick Start
+The previous personal budgeting app (Next.js front end, Go backend, bank sync) is archived, unchanged, in [`deprecated/budgy-v1`](deprecated/budgy-v1). It is no longer deployed or built in CI. Its mortgage and super maths will be moved into `packages/engine` as the new tools need it.
 
-**Prerequisites:** Node.js 18+, pnpm. See [AGENTS.md](AGENTS.md) for the full toolchain (Go, Docker, Bazel).
-
-```bash
-make install
-make dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-## Online Mode
-
-To run with the Go backend API on `http://localhost:8080`, see [AGENTS.md — Local Development Workflows](AGENTS.md#local-development-workflows). The quickest path:
-
-```bash
-make dev-online
-```
-
-## Developer Documentation
-
-All development, testing, and codegen commands are documented in **[AGENTS.md](AGENTS.md)**. Run `make help` for a quick reference.
-
-## License
-
-This project is private and proprietary.
+To run the archived app, follow [`deprecated/budgy-v1/README.md`](deprecated/budgy-v1/README.md) from inside that folder.
