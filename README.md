@@ -4,10 +4,19 @@ Budgy is being rebuilt as a set of free, public financial planning tools for Aus
 
 ## Status
 
-The new app has not been built yet. The plan is:
+The calculation engine is in place; the web app comes next.
 
 - `packages/engine`: the calculation code (pure TypeScript, integer cents, tested)
-- `apps/web`: the public site, one page per tool, static and login-free
+- `apps/web` (next): the public site, one page per tool, static and login-free
+
+## Development
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm lint
+pnpm test
+```
 
 ## The original app
 

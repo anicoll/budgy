@@ -1,7 +1,13 @@
 version: 2
 updates:
-  # Only GitHub Actions for now. The archived app in deprecated/ is frozen and
-  # gets no dependency updates. npm updates come back with the new app.
+  # The archived app in deprecated/ is frozen and gets no dependency updates.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - dependencies
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
