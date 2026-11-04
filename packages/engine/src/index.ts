@@ -1,5 +1,7 @@
 export * from "./dates";
 export * from "./debt/payoff";
+export * from "./lease/novated";
+export * from "./lease/rules";
 export * from "./money/cents";
 export * from "./mortgage/amortise";
 export * from "./mortgage/coborrow";
