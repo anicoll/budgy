@@ -70,6 +70,18 @@ export default function Home() {
             </span>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/super"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Super at retirement</span>
+            <span className="mt-1 block text-sm text-muted">
+              How much super will your household have, and what income could it pay? See what an
+              extra $50 a week does.
+            </span>
+          </Link>
+        </li>
       </ul>
     </main>
   );

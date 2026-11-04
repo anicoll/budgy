@@ -21,6 +21,7 @@ const PAD = { l: 64, r: 16, t: 16, b: 32 };
 function axisMoney(cents: number): string {
   const d = cents / 100;
   if (d < 1_000) return `$${Math.round(d)}`;
+  if (d >= 1_000_000) return `$${Number((d / 1_000_000).toFixed(2))}m`;
   return `$${Number((d / 1_000).toFixed(d < 10_000 ? 1 : 0))}k`;
 }
 
@@ -36,9 +37,12 @@ function niceStep(max: number): number {
 export function BalanceChart({
   series,
   label = "Loan balance over time for each scenario",
+  markEnd = false,
 }: {
   series: Series[];
   label?: string;
+  /** Put each series' dot on its last point instead of at $0 (for balances that grow). */
+  markEnd?: boolean;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   // Draw at the real pixel width so text stays readable on a phone.
@@ -133,7 +137,7 @@ export function BalanceChart({
             <path d={pathFor(s.points)} fill="none" stroke={s.color} strokeWidth="2" />
             <circle
               cx={geo.xAt(dayOf(s.payoffDate))}
-              cy={geo.yAt(0)}
+              cy={geo.yAt(markEnd ? (s.points.at(-1)?.balance ?? 0) : 0)}
               r="4"
               fill={s.color}
               stroke="var(--surface)"
