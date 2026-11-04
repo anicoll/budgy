@@ -24,6 +24,18 @@ export default function Home() {
         </li>
         <li>
           <Link
+            href="/borrow"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">How much can I borrow?</span>
+            <span className="mt-1 block text-sm text-muted">
+              What a bank would likely lend you, tested the way lenders do, with the range across
+              cautious and generous lenders.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/mortgage"
             className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
           >
@@ -139,6 +151,18 @@ export default function Home() {
             <span className="mt-1 block text-sm text-muted">
               Should a lump sum go on your HELP debt or in your offset or savings? See what
               indexation really costs you.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/buying-costs"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Home buying costs</span>
+            <span className="mt-1 block text-sm text-muted">
+              Stamp duty, first home buyer concessions, mortgage insurance and fees in every state:
+              the cash you need by settlement.
             </span>
           </Link>
         </li>

@@ -27,7 +27,9 @@ export type ToolKey =
   | "sacrifice"
   | "super-mortgage"
   | "lease"
-  | "help";
+  | "help"
+  | "borrow"
+  | "buying";
 
 export interface SharedLoan {
   balance: number; // dollars
@@ -60,6 +62,8 @@ const TOOLS: ToolKey[] = [
   "super-mortgage",
   "lease",
   "help",
+  "borrow",
+  "buying",
 ];
 const FREQUENCIES: Frequency[] = ["weekly", "fortnightly", "monthly"];
 
