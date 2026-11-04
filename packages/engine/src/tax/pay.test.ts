@@ -184,4 +184,47 @@ describe("calculatePay", () => {
     expect(validatePay({ year: "2026-27", salary: -1 as Cents })).not.toEqual([]);
     expect(() => calculatePay({ year: "2026-27", salary: Number.NaN as Cents })).toThrow();
   });
+
+  it("pays super on bonuses but not overtime", () => {
+    const r = pay({ overtime: c(10_000), bonus: c(5_000), allowances: c(1_000) });
+    expect(r.gross).toBe(c(116_000));
+    expect(r.employerSuper).toBe(c(12_600)); // 12% of 105,000
+    expect(r.taxableIncome).toBe(c(116_000));
+  });
+
+  it("packaging cuts taxable income and take-home; fringe benefits count for loans", () => {
+    const r = pay({ otherPackaging: c(10_000), fringeBenefits: c(15_000), studyLoan: true });
+    expect(r.taxableIncome).toBe(c(90_000));
+    expect(r.incomeTax).toBe(c(17_520));
+    expect(r.repaymentIncome).toBe(c(105_000));
+    expect(r.studyLoan).toBe(c((105_000 - 69_528) * 0.15));
+    expect(r.net).toBe(c(90_000 - 17_520 - 1_800 - (105_000 - 69_528) * 0.15));
+  });
+
+  it("deductions lower tax but not take-home cash", () => {
+    const r = pay({ deductions: c(5_000) });
+    expect(r.taxableIncome).toBe(c(95_000));
+    expect(r.totalTax).toBe(c(20_520 - 1_500 + 1_900));
+    expect(r.net).toBe(c(100_000) - r.totalTax);
+  });
+
+  it("working holiday makers pay 15% from the first dollar, no levy", () => {
+    const r = pay({ residency: "whm", salary: c(40_000) });
+    expect(r.incomeTax).toBe(c(6_000));
+    expect(r.medicare).toBe(0);
+    expect(r.lito).toBe(0);
+  });
+
+  it("Medicare exemptions", () => {
+    expect(pay({ medicareExemption: "half" }).medicare).toBe(c(1_000));
+    const full = pay({ medicareExemption: "full", hospitalCover: false, salary: c(150_000) });
+    expect(full.medicare).toBe(0);
+    expect(full.surcharge).toBe(0);
+  });
+
+  it("warns when packaging or deductions exceed pay", () => {
+    const r = pay({ salary: c(10_000), salarySacrifice: c(8_000), otherPackaging: c(5_000) });
+    expect(r.warnings.map((w) => w.kind)).toContain("packaging-too-big");
+    expect(r.otherPackaging).toBe(c(2_000));
+  });
 });

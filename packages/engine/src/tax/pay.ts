@@ -1,11 +1,19 @@
 import type { Cents } from "../money/cents";
 import { SUPER_RULES, type SuperRules } from "../super/rules";
 import { type Bracket, type TaxRules, taxRulesForYear } from "./rules";
+import {
+  type WithholdingFrequency,
+  type WithholdingScale,
+  type WithholdingTables,
+  whmWithholding,
+  withholdForPay,
+  withholdingTablesFor,
+} from "./withholding";
 
 /**
- * Take-home pay for one person on a salary, for a whole financial year, as
- * the ATO would assess it at tax time. Pay slips withhold from the ATO's
- * tables, which land within a few dollars of this over the year.
+ * Take-home pay for one person for a financial year. The tax is what the ATO
+ * would assess at tax time; `withholding` is what each pay slip takes out,
+ * from the ATO's tables, and the gap between them is the refund or bill.
  */
 
 export type PayPeriod = "annual" | "monthly" | "fortnightly" | "weekly";
@@ -16,17 +24,35 @@ export const PAY_PERIODS_PER_YEAR: Record<PayPeriod, number> = {
   weekly: 52,
 };
 
+export type Residency = "resident" | "foreign" | "whm";
+export type MedicareExemption = "none" | "half" | "full";
+
 export interface PayInput {
   year: string; // "2026-27"
-  /** Salary a year, before tax. Excludes employer super unless `includesSuper`. */
+  /** Base salary a year, before tax. Excludes employer super unless `includesSuper`. */
   salary: Cents;
   /** The salary is a package that includes the employer's super. */
   includesSuper?: boolean;
   /** Employer super rate. Leave out for the super guarantee. */
   superRate?: number;
+  /** Overtime a year. Taxed, but no super guarantee on it. */
+  overtime?: Cents;
+  /** Bonuses and commissions a year. Taxed, and super is paid on them. */
+  bonus?: Cents;
+  /** Taxable allowances and other pay a year, without super. */
+  allowances?: Cents;
   /** Salary sacrificed into super a year, before tax. */
   salarySacrifice?: Cents;
-  residency?: "resident" | "foreign";
+  /** Other pre-tax packaging a year, such as a novated lease or a laptop. */
+  otherPackaging?: Cents;
+  /** Reportable fringe benefits on the income statement (grossed-up amount). */
+  fringeBenefits?: Cents;
+  /** Deductions claimed at tax time, such as work expenses. */
+  deductions?: Cents;
+  residency?: Residency;
+  /** Claimed on the tax file number declaration. Only changes withholding. Default true. */
+  taxFreeThreshold?: boolean;
+  medicareExemption?: MedicareExemption;
   /** Has a HELP, VSL, SFSS or other study and training loan. */
   studyLoan?: boolean;
   /** Has private hospital cover, so no Medicare levy surcharge. Default true. */
@@ -39,36 +65,62 @@ export interface PayInput {
 }
 
 export interface PayAmounts {
-  gross: Cents; // salary, excluding employer super
+  /** Everything paid before tax: salary, overtime, bonuses and allowances. */
+  gross: Cents;
   salarySacrifice: Cents;
-  taxableIncome: Cents;
+  otherPackaging: Cents;
   incomeTax: Cents; // after the low income tax offset
   medicare: Cents;
   surcharge: Cents; // Medicare levy surcharge
   studyLoan: Cents;
   /** Everything taken out: tax, levies and study loan repayments. */
   totalTax: Cents;
-  net: Cents; // take-home pay
+  /** Take-home pay: gross less packaging and `totalTax`. */
+  net: Cents;
   employerSuper: Cents;
+}
+
+/** What one pay slip shows, at a pay frequency. */
+export interface PaySlip {
+  frequency: WithholdingFrequency;
+  gross: Cents;
+  packaging: Cents; // salary sacrifice and other packaging
+  tax: Cents; // withheld, including the Medicare levy
+  studyLoan: Cents; // withheld
+  net: Cents;
+  /** Withheld over the year (pays × amounts above). */
+  yearWithheld: Cents;
+  /** Positive: a refund at tax time. Negative: a bill. */
+  atTaxTime: Cents;
 }
 
 export type PayWarning =
   | { kind: "concessional-cap"; total: Cents; cap: Cents }
   | { kind: "division-293"; extra: Cents }
-  | { kind: "sacrifice-too-big" };
+  | { kind: "packaging-too-big" }
+  | { kind: "deductions-too-big" };
 
 export interface PayResult extends PayAmounts {
   year: string;
   /** The year asked for wasn't listed, so these are the nearest year's rules. */
   carriedForward: boolean;
-  /** Tax before the low income tax offset, and the offset itself. */
+  salary: Cents; // base salary, after splitting out super from a package
+  overtime: Cents;
+  bonus: Cents;
+  allowances: Cents;
+  deductions: Cents;
+  taxableIncome: Cents;
+  /** Income for the surcharge and study loan tests (adds back salary sacrifice and fringe benefits). */
+  repaymentIncome: Cents;
   taxBeforeOffsets: Cents;
   lito: Cents;
-  /** Of the next dollar earned, how much goes in tax, levies and loan. */
+  /** Of the next dollar of salary, how much goes in tax, levies and loan. */
   marginalRate: number;
   /** Of the gross, how much goes in tax, levies and loan. */
   averageRate: number;
   periods: Record<PayPeriod, PayAmounts>;
+  /** Pay slips from the ATO's withholding tables, if they're out for this year. */
+  withholding: Record<WithholdingFrequency, PaySlip> | null;
   warnings: PayWarning[];
   notes: string[];
   rules: TaxRules;
@@ -76,6 +128,7 @@ export interface PayResult extends PayAmounts {
 }
 
 const toC = (n: number) => Math.round(n) as Cents;
+const ZERO = 0 as Cents;
 
 /** Tax on `income` from progressive brackets, to the cent. */
 export function bracketTax(income: Cents, brackets: Bracket[]): Cents {
@@ -103,13 +156,13 @@ export function medicareLevy(
   r: TaxRules["medicare"],
   family?: PayInput["family"],
 ): Cents {
-  if (taxable <= r.lowSingle) return 0 as Cents;
+  if (taxable <= r.lowSingle) return ZERO;
   let levy = Math.min(taxable * r.rate, (taxable - r.lowSingle) * r.shadeIn);
   if (family) {
     // A family shades in on family income, and each partner pays their share.
     const low = r.lowFamily + r.perChild * family.children;
     const familyIncome = taxable + family.partnerIncome;
-    if (familyIncome <= low) return 0 as Cents;
+    if (familyIncome <= low) return ZERO;
     const share = ((familyIncome - low) * r.shadeIn * taxable) / familyIncome;
     levy = Math.min(levy, share);
   }
@@ -132,7 +185,7 @@ export function surchargeRate(
 
 /** Compulsory study and training loan repayment for a year. */
 export function studyLoanRepayment(repaymentIncome: Cents, r: TaxRules["help"]): Cents {
-  if (repaymentIncome <= r.nil) return 0 as Cents;
+  if (repaymentIncome <= r.nil) return ZERO;
   if (repaymentIncome >= r.topFrom) return toC(repaymentIncome * r.topRate);
   if (repaymentIncome <= r.band1To) return toC((repaymentIncome - r.nil) * r.band1Rate);
   return toC(r.band2Base + (repaymentIncome - r.band1To) * r.band2Rate);
@@ -163,43 +216,78 @@ export function splitPackage(
 }
 
 interface Core extends PayAmounts {
+  salary: Cents;
+  overtime: Cents;
+  bonus: Cents;
+  allowances: Cents;
+  deductions: Cents;
+  taxableIncome: Cents;
+  repaymentIncome: Cents;
   taxBeforeOffsets: Cents;
   lito: Cents;
 }
 
+const amt = (v: Cents | undefined) => (v ?? 0) as Cents;
+
 function core(input: PayInput, rules: TaxRules, sup: SuperRules): Core {
   const rate = input.superRate ?? sup.sgRate;
-  const { salary, employerSuper } = splitPackage(
+  const { salary } = splitPackage(
     input.salary,
     Boolean(input.includesSuper),
     rate,
     sup.maxContributionBase,
   );
-  const sacrifice = Math.min(input.salarySacrifice ?? 0, salary) as Cents;
-  const taxable = (salary - sacrifice) as Cents;
-  const foreign = input.residency === "foreign";
+  const overtime = amt(input.overtime);
+  const bonus = amt(input.bonus);
+  const allowances = amt(input.allowances);
+  const gross = (salary + overtime + bonus + allowances) as Cents;
 
-  const taxBeforeOffsets = bracketTax(taxable, foreign ? rules.foreign : rules.resident);
-  const lito = foreign ? (0 as Cents) : lowIncomeOffset(taxable, rules.lito);
+  // Super is paid on ordinary time earnings (salary and bonuses, not
+  // overtime), up to the maximum contribution base, before any sacrifice.
+  const ote = salary + bonus;
+  const employerBase = toC(Math.min(ote, sup.maxContributionBase) * rate);
+
+  const sacrifice = Math.min(amt(input.salarySacrifice), gross) as Cents;
+  const packaging = Math.min(amt(input.otherPackaging), gross - sacrifice) as Cents;
+  const cash = gross - sacrifice - packaging;
+  const deductions = Math.min(amt(input.deductions), cash) as Cents;
+  const taxable = (cash - deductions) as Cents;
+
+  const residency = input.residency ?? "resident";
+  const resident = residency === "resident";
+  const exemption = resident ? (input.medicareExemption ?? "none") : "full";
+  const brackets =
+    residency === "foreign" ? rules.foreign : residency === "whm" ? rules.whm : rules.resident;
+
+  const taxBeforeOffsets = bracketTax(taxable, brackets);
+  const lito = resident ? lowIncomeOffset(taxable, rules.lito) : ZERO;
   const incomeTax = Math.max(0, taxBeforeOffsets - lito) as Cents;
-  const medicare = foreign ? (0 as Cents) : medicareLevy(taxable, rules.medicare, input.family);
+  const fullLevy = medicareLevy(taxable, rules.medicare, input.family);
+  const medicare =
+    exemption === "full" ? ZERO : exemption === "half" ? toC(fullLevy / 2) : fullLevy;
 
-  // Salary sacrifice is a reportable super contribution: it counts towards
-  // the surcharge and study loan income tests even though it isn't taxed.
-  const reportable = taxable + sacrifice;
+  // Salary sacrifice is a reportable super contribution, and fringe benefits
+  // are reportable too: both count for the surcharge and study loan tests.
+  const fringe = amt(input.fringeBenefits);
+  const repaymentIncome = (taxable + sacrifice + fringe) as Cents;
   const surcharge =
-    foreign || input.hospitalCover !== false
-      ? (0 as Cents)
-      : toC(taxable * surchargeRate(reportable as Cents, rules.mls, input.family));
-  const studyLoan = input.studyLoan
-    ? studyLoanRepayment(reportable as Cents, rules.help)
-    : (0 as Cents);
+    exemption === "full" || input.hospitalCover !== false
+      ? ZERO
+      : toC((taxable + fringe) * surchargeRate(repaymentIncome, rules.mls, input.family));
+  const studyLoan = input.studyLoan ? studyLoanRepayment(repaymentIncome, rules.help) : ZERO;
 
   const totalTax = (incomeTax + medicare + surcharge + studyLoan) as Cents;
   return {
-    gross: salary,
+    salary,
+    overtime,
+    bonus,
+    allowances,
+    deductions,
+    gross,
     salarySacrifice: sacrifice,
+    otherPackaging: packaging,
     taxableIncome: taxable,
+    repaymentIncome,
     taxBeforeOffsets,
     lito: Math.min(lito, taxBeforeOffsets) as Cents,
     incomeTax,
@@ -207,8 +295,8 @@ function core(input: PayInput, rules: TaxRules, sup: SuperRules): Core {
     surcharge,
     studyLoan,
     totalTax,
-    net: (taxable - totalTax) as Cents,
-    employerSuper: (employerSuper + sacrifice) as Cents,
+    net: (cash - totalTax) as Cents,
+    employerSuper: (employerBase + sacrifice) as Cents,
   };
 }
 
@@ -219,15 +307,60 @@ export function perPeriod(a: PayAmounts, period: PayPeriod): PayAmounts {
   const out = {
     gross: p(a.gross),
     salarySacrifice: p(a.salarySacrifice),
+    otherPackaging: p(a.otherPackaging),
     incomeTax: p(a.incomeTax),
     medicare: p(a.medicare),
     surcharge: p(a.surcharge),
     studyLoan: p(a.studyLoan),
     employerSuper: p(a.employerSuper),
   };
-  const taxableIncome = (out.gross - out.salarySacrifice) as Cents;
   const totalTax = (out.incomeTax + out.medicare + out.surcharge + out.studyLoan) as Cents;
-  return { ...out, taxableIncome, totalTax, net: (taxableIncome - totalTax) as Cents };
+  const net = (out.gross - out.salarySacrifice - out.otherPackaging - totalTax) as Cents;
+  return { ...out, totalTax, net };
+}
+
+function scaleFor(input: PayInput): WithholdingScale {
+  const residency = input.residency ?? "resident";
+  if (residency === "foreign") return "foreign";
+  if (input.taxFreeThreshold === false) return "noThreshold";
+  if (input.medicareExemption === "full") return "fullExemption";
+  if (input.medicareExemption === "half") return "halfExemption";
+  return "threshold";
+}
+
+/** Pay slips at each frequency, with pay spread evenly over the year. */
+function paySlips(
+  input: PayInput,
+  a: Core,
+  tables: WithholdingTables,
+): Record<WithholdingFrequency, PaySlip> {
+  const scale = scaleFor(input);
+  const out = {} as Record<WithholdingFrequency, PaySlip>;
+  for (const frequency of ["weekly", "fortnightly", "monthly"] as const) {
+    const n = PAY_PERIODS_PER_YEAR[frequency];
+    const gross = toC(a.gross / n);
+    const packaging = toC((a.salarySacrifice + a.otherPackaging) / n);
+    const earnings = (gross - packaging) as Cents;
+    const tax =
+      input.residency === "whm"
+        ? whmWithholding((a.gross - a.salarySacrifice - a.otherPackaging) as Cents, n, tables.whm)
+        : withholdForPay(earnings, frequency, tables[scale]);
+    const loanRows =
+      input.taxFreeThreshold === false ? tables.loanNoThreshold : tables.loanThreshold;
+    const studyLoan = input.studyLoan ? withholdForPay(earnings, frequency, loanRows) : ZERO;
+    const yearWithheld = ((tax + studyLoan) * n) as Cents;
+    out[frequency] = {
+      frequency,
+      gross,
+      packaging,
+      tax,
+      studyLoan,
+      net: (earnings - tax - studyLoan) as Cents,
+      yearWithheld,
+      atTaxTime: (yearWithheld - a.totalTax) as Cents,
+    };
+  }
+  return out;
 }
 
 export const MAX_SALARY = 10_000_000_00 as Cents; // $10m
@@ -239,8 +372,20 @@ export function validatePay(input: PayInput): string[] {
     errors.push("Enter a salary between $0 and $10 million.");
   if (input.superRate !== undefined && (!ok(input.superRate) || input.superRate > 1))
     errors.push("Employer super should be between 0% and 100%.");
-  if (input.salarySacrifice !== undefined && !ok(input.salarySacrifice))
-    errors.push("Salary sacrifice can't be negative.");
+  const amounts: [keyof PayInput, string][] = [
+    ["overtime", "Overtime"],
+    ["bonus", "Bonuses"],
+    ["allowances", "Allowances"],
+    ["salarySacrifice", "Salary sacrifice"],
+    ["otherPackaging", "Other packaging"],
+    ["fringeBenefits", "Fringe benefits"],
+    ["deductions", "Deductions"],
+  ];
+  for (const [key, label] of amounts) {
+    const v = input[key];
+    if (v !== undefined && (typeof v !== "number" || !ok(v) || v > MAX_SALARY))
+      errors.push(`${label} should be between $0 and $10 million.`);
+  }
   if (input.family) {
     if (!ok(input.family.partnerIncome)) errors.push("Partner income can't be negative.");
     if (
@@ -268,11 +413,13 @@ export function calculatePay(input: PayInput): PayResult {
   const marginalRate = (next.totalTax - a.totalTax) / grossStep;
 
   const warnings: PayWarning[] = [];
-  if ((input.salarySacrifice ?? 0) > a.gross) warnings.push({ kind: "sacrifice-too-big" });
+  const asked = amt(input.salarySacrifice) + amt(input.otherPackaging);
+  if (asked > a.salarySacrifice + a.otherPackaging) warnings.push({ kind: "packaging-too-big" });
+  if (amt(input.deductions) > a.deductions) warnings.push({ kind: "deductions-too-big" });
   const concessional = a.employerSuper;
   if (concessional > sup.concessionalCap)
     warnings.push({ kind: "concessional-cap", total: concessional, cap: sup.concessionalCap });
-  const div293Income = a.taxableIncome + concessional;
+  const div293Income = a.taxableIncome + amt(input.fringeBenefits) + concessional;
   if (div293Income > sup.division293Threshold) {
     const extra = toC(
       Math.min(concessional, div293Income - sup.division293Threshold) * sup.contributionsTax,
@@ -282,17 +429,16 @@ export function calculatePay(input: PayInput): PayResult {
 
   const periods = {} as Record<PayPeriod, PayAmounts>;
   for (const p of Object.keys(PAY_PERIODS_PER_YEAR) as PayPeriod[]) periods[p] = perPeriod(a, p);
-  const { taxBeforeOffsets, lito, ...amounts } = a;
+  const tables = carriedForward ? undefined : withholdingTablesFor(rules.year);
 
   return {
-    ...amounts,
+    ...a,
     year: rules.year,
     carriedForward,
-    taxBeforeOffsets,
-    lito,
     marginalRate,
     averageRate: a.gross > 0 ? a.totalTax / a.gross : 0,
     periods,
+    withholding: tables ? paySlips(input, a, tables) : null,
     warnings,
     notes: rules.notes,
     rules,

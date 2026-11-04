@@ -20,6 +20,8 @@ export interface TaxRules {
   year: string; // "2026-27"
   resident: Bracket[];
   foreign: Bracket[];
+  /** Working holiday makers (visa 417 or 462). */
+  whm: Bracket[];
   /** Low income tax offset: `max` up to `full`, then two tapers down to nil. */
   lito: {
     max: Cents;
@@ -63,6 +65,7 @@ export interface TaxRules {
 
 const d = (dollars: number) => Math.round(dollars * 100) as Cents;
 
+const ATO_WHM = "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-working-holiday-makers";
 const ATO_RATES = "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents";
 const ATO_CUTS =
   "https://www.ato.gov.au/about-ato/new-legislation/in-detail/individuals/personal-income-tax-new-tax-cuts-for-every-australian-taxpayer";
@@ -73,7 +76,7 @@ const ATO_ML =
 const ATO_MLS =
   "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy-surcharge/medicare-levy-surcharge-income-thresholds-and-rates";
 
-const brackets = (low: number): { resident: Bracket[]; foreign: Bracket[] } => ({
+const brackets = (low: number): Pick<TaxRules, "resident" | "foreign" | "whm"> => ({
   resident: [
     { from: d(18_200), rate: low },
     { from: d(45_000), rate: 0.3 },
@@ -82,6 +85,12 @@ const brackets = (low: number): { resident: Bracket[]; foreign: Bracket[] } => (
   ],
   foreign: [
     { from: d(0), rate: 0.3 },
+    { from: d(135_000), rate: 0.37 },
+    { from: d(190_000), rate: 0.45 },
+  ],
+  whm: [
+    { from: d(0), rate: 0.15 },
+    { from: d(45_000), rate: 0.3 },
     { from: d(135_000), rate: 0.37 },
     { from: d(190_000), rate: 0.45 },
   ],
@@ -142,7 +151,7 @@ export const TAX_RULES: TaxRules[] = [
       topRate: 0.1,
     },
     notes: [],
-    sources: [ATO_RATES, ATO_HELP, ATO_ML, ATO_MLS],
+    sources: [ATO_RATES, ATO_WHM, ATO_HELP, ATO_ML, ATO_MLS],
   },
   {
     year: "2026-27",
@@ -152,7 +161,7 @@ export const TAX_RULES: TaxRules[] = [
     mls: MLS_2026,
     help: HELP_2026,
     notes: ["Medicare levy low-income thresholds are 2025-26's until the ATO publishes 2026-27's."],
-    sources: [ATO_CUTS, ATO_HELP, ATO_ML, ATO_MLS],
+    sources: [ATO_CUTS, ATO_WHM, ATO_HELP, ATO_ML, ATO_MLS],
   },
   {
     year: "2027-28",
@@ -164,7 +173,7 @@ export const TAX_RULES: TaxRules[] = [
     notes: [
       "The 14% rate is law. HELP, Medicare levy and surcharge thresholds are earlier years' until the ATO publishes 2027-28's.",
     ],
-    sources: [ATO_CUTS, ATO_HELP, ATO_ML, ATO_MLS],
+    sources: [ATO_CUTS, ATO_WHM, ATO_HELP, ATO_ML, ATO_MLS],
   },
 ];
 
