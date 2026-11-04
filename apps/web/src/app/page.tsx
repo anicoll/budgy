@@ -58,6 +58,18 @@ export default function Home() {
             </span>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/split"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Co-borrower split</span>
+            <span className="mt-1 block text-sm text-muted">
+              Sharing a home loan? See what each of you pays, what extra repayments do, and who owns
+              how much.
+            </span>
+          </Link>
+        </li>
       </ul>
     </main>
   );

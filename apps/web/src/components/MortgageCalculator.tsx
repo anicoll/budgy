@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
+import { encodeSplitState, splitFromBaseLoan } from "@/lib/splitState";
 import {
   type CalculatorState,
   decodeState,
@@ -202,6 +203,12 @@ export function MortgageCalculator() {
                 onChange={(startDate) => setBase({ startDate })}
               />
             </div>
+            <a
+              href={`../split?${encodeSplitState(splitFromBaseLoan(base))}`}
+              className="mt-3 inline-block text-sm text-accent hover:underline"
+            >
+              Sharing this loan? Split it between borrowers →
+            </a>
           </div>
 
           {state.scenarios.map((sc, i) => (
