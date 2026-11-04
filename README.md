@@ -4,10 +4,10 @@ Budgy is being rebuilt as a set of free, public financial planning tools for Aus
 
 ## Status
 
-The calculation engine is in place; the web app comes next.
+The first tool, the mortgage what-if calculator, is built. It isn't deployed yet.
 
 - `packages/engine`: the calculation code (pure TypeScript, integer cents, tested)
-- `apps/web` (next): the public site, one page per tool, static and login-free
+- `apps/web`: the public site, one page per tool, static and login-free (`/mortgage`)
 
 ## Development
 
@@ -16,6 +16,8 @@ pnpm install
 pnpm typecheck
 pnpm lint
 pnpm test
+pnpm dev     # http://localhost:3000/mortgage
+pnpm build   # static site in apps/web/out
 ```
 
 ## The original app

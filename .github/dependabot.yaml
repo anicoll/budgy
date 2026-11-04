@@ -7,6 +7,11 @@ updates:
       interval: "weekly"
     labels:
       - dependencies
+    ignore:
+      # Next.js needs the TypeScript 6 JavaScript API, so apps/web stays on 6
+      # until Next supports TypeScript 7.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
