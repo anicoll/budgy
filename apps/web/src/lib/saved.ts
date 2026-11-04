@@ -16,7 +16,15 @@ export const SAVED_VERSION = 1;
 /** Remember inputs unless the person has said not to. */
 export const REMEMBER_BY_DEFAULT = true;
 
-export type ToolKey = "mortgage" | "debt" | "refinance" | "fixed" | "split" | "super" | "pay";
+export type ToolKey =
+  | "mortgage"
+  | "debt"
+  | "refinance"
+  | "fixed"
+  | "split"
+  | "super"
+  | "pay"
+  | "sacrifice";
 
 export interface SharedLoan {
   balance: number; // dollars
@@ -37,7 +45,16 @@ export interface SavedData {
 /** The bits of Storage we use, so tests can pass a plain object. */
 export type KeyValueStore = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
-const TOOLS: ToolKey[] = ["mortgage", "debt", "refinance", "fixed", "split", "super", "pay"];
+const TOOLS: ToolKey[] = [
+  "mortgage",
+  "debt",
+  "refinance",
+  "fixed",
+  "split",
+  "super",
+  "pay",
+  "sacrifice",
+];
 const FREQUENCIES: Frequency[] = ["weekly", "fortnightly", "monthly"];
 
 export function emptySaved(remember = REMEMBER_BY_DEFAULT): SavedData {
