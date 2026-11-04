@@ -1,7 +1,10 @@
 import type { Cents } from "../money/cents";
 import {
   averageRatesFor,
+  benchmarkSeries,
   type LoanPurpose,
+  type RateSeries,
+  type RateType,
   RBA_HOUSING_RATES,
   type RbaHousingRates,
   type RepaymentType,
@@ -26,6 +29,8 @@ export interface RateCheckInput {
   termMonths: number;
   purpose: LoanPurpose;
   repayment: RepaymentType;
+  /** Defaults to variable. */
+  rateType?: RateType;
   /** Used to start the simulation; any date works. Defaults to 2026-01-01. */
   startDate?: string;
 }
@@ -53,6 +58,9 @@ export type RateVerdict = "above" | "about" | "below";
 export interface RateCheckResult {
   /** The month and source of the averages used. */
   month: string;
+  published: string;
+  /** Which F6 averages the loan was compared with. */
+  series: RateSeries;
   source: string;
   url: string;
   /** Judged against new loans: the rate a lender would offer you today. */
@@ -73,6 +81,11 @@ export function validateRateCheck(input: RateCheckInput): string[] {
     errors.push("purpose must be owner-occupier or investor");
   if (input.repayment !== "principal-and-interest" && input.repayment !== "interest-only")
     errors.push("repayment must be principal-and-interest or interest-only");
+  if (
+    input.rateType !== undefined &&
+    !["variable", "fixed-up-to-3-years", "fixed-over-3-years"].includes(input.rateType)
+  )
+    errors.push("rate type must be variable, fixed-up-to-3-years or fixed-over-3-years");
   return errors;
 }
 
@@ -83,7 +96,8 @@ export function checkRate(
   const errors = validateRateCheck(input);
   if (errors.length) throw new RangeError(errors.join("; "));
 
-  const averages = averageRatesFor(input.purpose, input.repayment, data);
+  const series = benchmarkSeries(input.repayment, input.rateType ?? "variable");
+  const averages = averageRatesFor(input.purpose, series, data);
   const yours = input.repayment === "principal-and-interest" ? principalAndInterest(input) : null;
 
   const gapFor = (benchmark: Benchmark): BenchmarkGap => {
@@ -118,6 +132,8 @@ export function checkRate(
 
   return {
     month: data.month,
+    published: data.published,
+    series,
     source: data.source,
     url: data.url,
     verdict,

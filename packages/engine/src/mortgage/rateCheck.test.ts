@@ -19,11 +19,17 @@ const DATA: RbaHousingRates = {
   rates: {
     "owner-occupier": {
       all: { new: 0.0624, outstanding: 0.0621 },
+      variable: { new: 0.0615, outstanding: 0.0619 },
+      "fixed-up-to-3-years": { new: 0.0626, outstanding: 0.0561 },
+      "fixed-over-3-years": { new: 0.0685, outstanding: 0.0615 },
       "principal-and-interest": { new: 0.0615, outstanding: 0.0619 },
       "interest-only": { new: 0.0704, outstanding: 0.0685 },
     },
     investor: {
       all: { new: 0.064, outstanding: 0.0644 },
+      variable: { new: 0.064, outstanding: 0.0647 },
+      "fixed-up-to-3-years": { new: 0.0646, outstanding: 0.0574 },
+      "fixed-over-3-years": { new: 0.0758, outstanding: 0.0653 },
       "principal-and-interest": { new: 0.0632, outstanding: 0.0638 },
       "interest-only": { new: 0.0651, outstanding: 0.0657 },
     },
@@ -104,18 +110,37 @@ describe("checkRate", () => {
     expect(r.newLoans.lifetimeInterestGap).toBeNull();
   });
 
-  it("defaults to the bundled RBA snapshot", () => {
+  it("compares fixed loans with the fixed averages for their term", () => {
+    const short = checkRate({ ...BASE, rateType: "fixed-up-to-3-years" }, DATA);
+    expect(short.series).toBe("fixed-up-to-3-years");
+    expect(short.newLoans.averageRate).toBe(0.0626);
+    expect(short.existingLoans.averageRate).toBe(0.0561);
+    const long = checkRate({ ...BASE, rateType: "fixed-over-3-years" }, DATA);
+    expect(long.newLoans.averageRate).toBe(0.0685);
+  });
+
+  it("compares interest-only loans with the interest-only averages, whatever the rate type", () => {
+    const r = checkRate(
+      { ...BASE, repayment: "interest-only", rateType: "fixed-up-to-3-years" },
+      DATA,
+    );
+    expect(r.series).toBe("interest-only");
+    expect(r.newLoans.averageRate).toBe(0.0704);
+  });
+
+  it("defaults to a variable loan and the bundled RBA snapshot", () => {
     const r = checkRate(BASE);
     expect(r.month).toBe(RBA_HOUSING_RATES.month);
-    expect(r.newLoans.averageRate).toBe(
-      averageRatesFor("owner-occupier", "principal-and-interest").new,
-    );
+    expect(r.series).toBe("variable");
+    expect(r.newLoans.averageRate).toBe(averageRatesFor("owner-occupier", "variable").new);
   });
 
   it("rejects bad input", () => {
     expect(validateRateCheck({ ...BASE, balance: cents(0) })).toHaveLength(1);
     expect(validateRateCheck({ ...BASE, annualRate: 0.25 })).toHaveLength(1);
     expect(validateRateCheck({ ...BASE, termMonths: 0 })).toHaveLength(1);
+    // @ts-expect-error not a rate type
+    expect(validateRateCheck({ ...BASE, rateType: "split" })).toHaveLength(1);
     expect(() => checkRate({ ...BASE, annualRate: -0.01 })).toThrow(RangeError);
   });
 });
