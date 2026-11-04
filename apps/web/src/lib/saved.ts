@@ -27,6 +27,7 @@ export type ToolKey =
   | "sacrifice"
   | "super-mortgage"
   | "lease"
+  | "help"
   | "borrow"
   | "buying";
 
@@ -60,6 +61,7 @@ const TOOLS: ToolKey[] = [
   "sacrifice",
   "super-mortgage",
   "lease",
+  "help",
   "borrow",
   "buying",
 ];
