@@ -26,7 +26,7 @@ import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const pill = (on: boolean) =>
-  `rounded-full border px-3 py-2 text-sm ${on ? "border-accent bg-accent text-white dark:text-bg" : "border-border hover:border-accent"}`;
+  `rounded-full border px-3 py-2 text-sm ${on ? "border-accent bg-accent text-on-accent" : "border-border hover:border-accent"}`;
 
 const RATE_CHECK_SAVED: SavedConfig<RateCheckForm> = {
   tool: "rates",
@@ -293,7 +293,7 @@ function Results({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
           </div>
           <a
             href={refinanceHref}
-            className="inline-flex h-11 items-center rounded-lg bg-accent px-4 font-medium text-white hover:opacity-90 dark:text-bg"
+            className="inline-flex h-11 items-center rounded-full bg-accent px-6 font-medium text-on-accent hover:opacity-90"
           >
             Try the refinance check →
           </a>

@@ -567,7 +567,7 @@ function Ownership({ result, hasValue }: { result: CoBorrowResult; hasValue: boo
                 <span className="font-medium">{label(p)}</span>
                 <span className="text-muted">{y === 0 ? "" : monthYear(p.date)}</span>
               </div>
-              <div className="flex h-6 overflow-hidden rounded-md text-xs font-medium text-white">
+              <div className="flex h-6 overflow-hidden rounded-md text-xs font-medium text-bg">
                 {p.shares.map((s, i) => (
                   <div
                     key={parties[i].id}

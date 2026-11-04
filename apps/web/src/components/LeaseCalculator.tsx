@@ -101,7 +101,7 @@ export function LeaseCalculator() {
 
       {result && per && (
         <div
-          className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-text px-4 py-3 text-bg lg:hidden"
+          className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-primary-container px-4 py-3 text-on-primary-container lg:hidden"
           aria-live="polite"
         >
           <div>
@@ -112,7 +112,7 @@ export function LeaseCalculator() {
           <label className="flex flex-col gap-1 text-xs opacity-90">
             Show per
             <select
-              className="rounded-lg border border-white/20 bg-white/10 px-2 py-2 text-base text-bg"
+              className="rounded-lg border border-on-primary-container/20 bg-surface/60 px-2 py-2 text-base text-on-primary-container"
               value={state.show}
               onChange={(e) => set({ show: e.target.value as LeasePer })}
             >
@@ -830,7 +830,9 @@ function Segmented<T extends string>({
             aria-pressed={o.value === value}
             onClick={() => onChange(o.value)}
             className={`rounded-full px-3.5 py-1.5 ${
-              o.value === value ? "bg-text font-semibold text-bg" : "text-muted hover:text-text"
+              o.value === value
+                ? "bg-accent font-semibold text-on-accent"
+                : "text-muted hover:text-text"
             }`}
           >
             {o.label}
@@ -852,7 +854,7 @@ function Segmented<T extends string>({
           aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
           className={`min-h-11 px-1 py-2 ${
-            o.value === value ? "bg-accent font-semibold text-white" : "bg-surface hover:bg-bg"
+            o.value === value ? "bg-accent font-semibold text-on-accent" : "bg-surface hover:bg-bg"
           }`}
         >
           {o.label}

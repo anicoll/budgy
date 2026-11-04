@@ -152,7 +152,7 @@ export function BudgetPlanner() {
 
       {totals && (
         <div
-          className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-text px-4 py-3 text-bg lg:hidden"
+          className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-primary-container px-4 py-3 text-on-primary-container lg:hidden"
           aria-live="polite"
         >
           <div>
@@ -165,7 +165,7 @@ export function BudgetPlanner() {
           <label className="flex flex-col gap-1 text-xs opacity-90">
             Show per
             <select
-              className="rounded-lg border border-white/20 bg-white/10 px-2 py-2 text-base text-bg"
+              className="rounded-lg border border-on-primary-container/20 bg-surface/60 px-2 py-2 text-base text-on-primary-container"
               value={view}
               onChange={(e) => set({ view: e.target.value as BudgetView })}
             >

@@ -4,7 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { parseMoney } from "@/lib/state";
 
 const inputClass =
-  "num w-full rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25";
+  "num w-full rounded-t-[4px] border-0 border-b-2 border-outline bg-surface-container-high px-4 py-2.5 text-base outline-none transition hover:bg-surface-container focus:border-accent focus:bg-surface-container";
 
 const fmt = (n: number | undefined) =>
   n === undefined ? "" : n.toLocaleString("en-AU", { maximumFractionDigits: 2 });
@@ -73,14 +73,14 @@ export function MoneyField({
   return (
     <Field {...field} id={id}>
       <div className="relative">
-        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted">
+        <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted">
           $
         </span>
         <input
           id={id}
           inputMode="decimal"
           autoComplete="off"
-          className={`${inputClass} pl-7 ${bad ? "border-warn" : ""}`}
+          className={`${inputClass} pl-8 ${bad ? "border-warn" : ""}`}
           value={text}
           placeholder={placeholder}
           aria-invalid={bad}
@@ -132,7 +132,7 @@ export function NumberField({
           id={id}
           type="number"
           inputMode="decimal"
-          className={`${inputClass} ${suffix ? "pr-10" : ""}`}
+          className={`${inputClass} ${suffix ? "pr-12" : ""}`}
           value={text}
           min={min}
           max={max}
@@ -143,7 +143,7 @@ export function NumberField({
           onKeyDown={(e) => e.key === "Enter" && commit()}
         />
         {suffix && (
-          <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted">
+          <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm text-muted">
             {suffix}
           </span>
         )}

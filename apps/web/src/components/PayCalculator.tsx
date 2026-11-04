@@ -135,7 +135,7 @@ export function PayCalculator() {
 
       {result && period && (
         <div
-          className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-text px-4 py-3 text-bg lg:hidden"
+          className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-primary-container px-4 py-3 text-on-primary-container lg:hidden"
           aria-live="polite"
         >
           <div>
@@ -148,7 +148,7 @@ export function PayCalculator() {
           <label className="flex flex-col gap-1 text-xs opacity-90">
             Show per
             <select
-              className="rounded-lg border border-white/20 bg-white/10 px-2 py-2 text-base text-bg"
+              className="rounded-lg border border-on-primary-container/20 bg-surface/60 px-2 py-2 text-base text-on-primary-container"
               value={show}
               onChange={(e) => set({ show: e.target.value as ShowPer })}
             >
@@ -332,7 +332,9 @@ function Segmented<T extends string>({
             aria-pressed={o.value === value}
             onClick={() => onChange(o.value)}
             className={`rounded-full px-3.5 py-1.5 ${
-              o.value === value ? "bg-text font-semibold text-bg" : "text-muted hover:text-text"
+              o.value === value
+                ? "bg-accent font-semibold text-on-accent"
+                : "text-muted hover:text-text"
             }`}
           >
             {o.label}
@@ -354,7 +356,7 @@ function Segmented<T extends string>({
           aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
           className={`px-1 py-2 ${
-            o.value === value ? "bg-accent font-semibold text-white" : "bg-surface hover:bg-bg"
+            o.value === value ? "bg-accent font-semibold text-on-accent" : "bg-surface hover:bg-bg"
           }`}
         >
           {o.label}
@@ -921,7 +923,7 @@ function CompareView({
         show={per}
         highlight
       />
-      <aside className="rounded-xl bg-text p-5 text-bg md:col-span-2 xl:col-span-1">
+      <aside className="rounded-xl bg-primary-container p-5 text-on-primary-container md:col-span-2 xl:col-span-1">
         <p className="text-sm opacity-75">The difference</p>
         <p
           className={`num mt-1 text-4xl font-semibold ${diff >= 0 ? "text-[var(--good)]" : "text-[var(--warn)]"}`}
@@ -934,7 +936,7 @@ function CompareView({
           {diff >= 0 ? "more" : "less"} in your pocket {perLabel(per)}
         </p>
         {other && grossDiff !== 0 && (
-          <div className="mt-4 space-y-2 border-t border-white/15 pt-4 text-sm">
+          <div className="mt-4 space-y-2 border-t border-on-primary-container/15 pt-4 text-sm">
             <p>
               Of the {grossDiff > 0 ? "extra" : "lost"} {money(Math.abs(grossDiff))} a year you{" "}
               {grossDiff > 0 ? "keep" : "lose"} <strong>{money(Math.abs(keptDiff))}</strong>.
