@@ -4,6 +4,7 @@ import {
   AGE_PENSION_AGE,
   type Cents,
   extraContributionEffect,
+  type HouseholdYear,
   MAX_ACCOUNTS,
   MAX_PEOPLE,
   type PersonProjection,
@@ -447,6 +448,15 @@ function Results({
     points: p.years.map((y) => ({ date: y.date, balance: y.real })),
     payoffDate: p.retireDate,
   }));
+  if (many) {
+    const h = result.household;
+    series.unshift({
+      name: "Household",
+      color: "var(--text)",
+      points: h.map((y) => ({ date: y.date, balance: y.total })),
+      payoffDate: h[h.length - 1].date,
+    });
+  }
   const warnings = people.flatMap((p) => p.warnings.map((w) => `${p.name}: ${w}`));
   const latest = rulesFor(state.startDate).rules;
 
@@ -502,7 +512,17 @@ function Results({
             {copied ? "Link copied" : "Copy link"}
           </button>
         </div>
-        <BalanceChart series={series} markEnd label="Super balance over time for each person" />
+        <BalanceChart
+          series={series}
+          markEnd
+          label="Super balance over time for the household and each person"
+        />
+        {many && (
+          <p className="text-xs text-muted">
+            Household adds everyone&apos;s super together. Each person&apos;s line ends when they
+            retire. After that, the household total counts them drawing their retirement income.
+          </p>
+        )}
       </div>
 
       <Extra input={input} people={people} perWeek={state.extraPerWeek} onChange={onExtra} />
@@ -522,29 +542,38 @@ function Results({
                   {p.name}
                 </th>
               ))}
+              {many && <th className="py-1.5 pr-3 text-right font-semibold">Household</th>}
             </tr>
           </thead>
           <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td]:pr-3 [&_td:not(:first-child)]:text-right">
             {(
               [
-                ["Balance today", (p) => money(p.years[0].total)],
-                ["Employer contributions", (p) => money(p.employerTotal)],
-                ["Your contributions", (p) => money(p.personalTotal)],
-                ["Contributions tax", (p) => `−${money(p.contributionsTax)}`],
-                ["Admin fees", (p) => `−${money(p.fees)}`],
-                ["Investment earnings", (p) => money(p.earnings)],
-                ["At retirement (future dollars)", (p) => money(p.atRetirement)],
-                ["At retirement (today's dollars)", (p) => money(p.atRetirementReal)],
-                ["Income a year (today's dollars)", (p) => money(p.incomePerYear)],
-              ] as [string, (p: PersonProjection) => string][]
-            ).map(([label, cell]) => (
-              <tr key={label}>
-                <td>{label}</td>
-                {people.map((p) => (
-                  <td key={p.id}>{cell(p)}</td>
-                ))}
-              </tr>
-            ))}
+                ["Balance today", (p) => p.years[0].total],
+                ["Employer contributions", (p) => p.employerTotal],
+                ["Your contributions", (p) => p.personalTotal],
+                ["Contributions tax", (p) => -p.contributionsTax],
+                ["Admin fees", (p) => -p.fees],
+                ["Investment earnings", (p) => p.earnings],
+                ["At retirement (future dollars)", (p) => p.atRetirement],
+                ["At retirement (today's dollars)", (p) => p.atRetirementReal],
+                ["Income a year (today's dollars)", (p) => p.incomePerYear],
+              ] as [string, (p: PersonProjection) => number][]
+            ).map(([label, value]) => {
+              const show = (v: number) => (v < 0 ? `−${money(-v)}` : money(v));
+              return (
+                <tr key={label}>
+                  <td>{label}</td>
+                  {people.map((p) => (
+                    <td key={p.id}>{show(value(p))}</td>
+                  ))}
+                  {many && (
+                    <td className="font-semibold">
+                      {show(people.reduce((s, p) => s + value(p), 0))}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         <p className="mt-2 text-xs text-muted">
@@ -552,7 +581,7 @@ function Results({
         </p>
       </div>
 
-      <YearByYear people={people} />
+      <YearByYear people={people} household={result.household} />
 
       <div className={`${card} text-sm text-muted`}>
         Rules used: {result.rulesYears.join(", ")}. Super guarantee {latest.sgRate * 100}%,
@@ -624,14 +653,32 @@ function Extra({
   );
 }
 
-function YearByYear({ people }: { people: PersonProjection[] }) {
-  const [who, setWho] = useState(0);
+function YearByYear({
+  people,
+  household,
+}: {
+  people: PersonProjection[];
+  household: HouseholdYear[];
+}) {
+  const many = people.length > 1;
+  // -1 = the household view, the default when there's more than one person.
+  const [who, setWho] = useState(-1);
+  const showHousehold = many && who < 0;
   const p = people[who] ?? people[0];
   return (
     <details className={card}>
       <summary className="cursor-pointer font-semibold">Year by year</summary>
-      {people.length > 1 && (
+      {many && (
         <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setWho(-1)}
+            className={`rounded-full border px-3 py-1 text-sm ${
+              showHousehold ? "border-accent text-accent" : "border-border"
+            }`}
+          >
+            Household
+          </button>
           {people.map((x, i) => (
             <button
               key={x.id}
@@ -646,28 +693,58 @@ function YearByYear({ people }: { people: PersonProjection[] }) {
           ))}
         </div>
       )}
-      <div className="mt-3 max-h-[420px] overflow-auto">
-        <table className="num w-full text-sm">
-          <thead className="sticky top-0 bg-surface">
-            <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
-              <th className="text-left">Age</th>
-              <th>Balance</th>
-              <th>Today&apos;s dollars</th>
-            </tr>
-          </thead>
-          <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-1.5 [&_td]:pr-3 [&_td]:text-right">
-            {p.years.map((y) => (
-              <tr key={y.year}>
-                <td className="!text-left">
-                  {Math.floor(y.age)} <span className="text-muted">({y.date.slice(0, 4)})</span>
-                </td>
-                <td>{money(y.total)}</td>
-                <td>{money(y.real)}</td>
+      {showHousehold ? (
+        <div className="mt-3 max-h-[420px] overflow-auto">
+          <table className="num w-full text-sm">
+            <thead className="sticky top-0 bg-surface">
+              <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
+                <th className="text-left">Year</th>
+                {people.map((x) => (
+                  <th key={x.id}>{x.name}</th>
+                ))}
+                <th className="!font-semibold">Household</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-1.5 [&_td]:pr-3 [&_td]:text-right">
+              {household.map((y) => (
+                <tr key={y.year}>
+                  <td className="!text-left">{y.date.slice(0, 4)}</td>
+                  {y.perPerson.map((v, i) => (
+                    <td key={people[i].id}>{money(v)}</td>
+                  ))}
+                  <td className="font-semibold">{money(y.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-2 text-xs text-muted">
+            In today&apos;s dollars. Someone who has retired is drawing their income.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-3 max-h-[420px] overflow-auto">
+          <table className="num w-full text-sm">
+            <thead className="sticky top-0 bg-surface">
+              <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
+                <th className="text-left">Age</th>
+                <th>Balance</th>
+                <th>Today&apos;s dollars</th>
+              </tr>
+            </thead>
+            <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-1.5 [&_td]:pr-3 [&_td]:text-right">
+              {p.years.map((y) => (
+                <tr key={y.year}>
+                  <td className="!text-left">
+                    {Math.floor(y.age)} <span className="text-muted">({y.date.slice(0, 4)})</span>
+                  </td>
+                  <td>{money(y.total)}</td>
+                  <td>{money(y.real)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </details>
   );
 }

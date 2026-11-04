@@ -86,6 +86,8 @@ export interface PersonProjection {
 
 export interface SuperResult {
   people: PersonProjection[];
+  /** Everyone's super combined each year, in today's dollars, until the last person retires. */
+  household: HouseholdYear[];
   householdAtRetirementReal: Cents;
   householdIncomePerYear: Cents;
   /** True when some months use the latest known year's rules for a later year. */
@@ -287,7 +289,68 @@ function projectPerson(p: SuperPerson, input: SuperInput, used: Set<string>) {
     years,
     warnings: [...warnings].filter((w) => w !== "cc" && w !== "ncc"),
     carried,
+    months,
+    netReturn,
   };
+}
+
+/**
+ * A retiree's balance in today's dollars `k` months after retiring, drawing
+ * `incomePerYear` (today's dollars, rising with inflation) from it.
+ */
+function drawnDown(
+  start: number,
+  incomePerYear: number,
+  netReturn: number,
+  inflation: number,
+  k: number,
+): number {
+  const g = ((1 + netReturn) / (1 + inflation)) ** (1 / 12) - 1;
+  const w = incomePerYear / 12;
+  const grow = (1 + g) ** k;
+  const left = Math.abs(g) < 1e-12 ? start - w * k : start * grow - (w * (grow - 1)) / g;
+  return Math.max(0, left);
+}
+
+export interface HouseholdYear {
+  year: number; // 0 = today
+  date: string;
+  perPerson: Cents[]; // today's dollars, same order as people
+  total: Cents; // today's dollars
+}
+
+/**
+ * Everyone's super added up at today and each anniversary until the last
+ * person retires. Someone already retired is drawing their income, so their
+ * balance falls while the others are still building theirs.
+ */
+function householdTimeline(
+  runs: ReturnType<typeof projectPerson>[],
+  input: SuperInput,
+): HouseholdYear[] {
+  const lastMonth = Math.max(...runs.map((r) => r.months));
+  const years = Math.ceil(lastMonth / 12);
+  const out: HouseholdYear[] = [];
+  for (let y = 0; y <= years; y++) {
+    const m = Math.min(y * 12, lastMonth);
+    const perPerson = runs.map((r) => {
+      if (m <= r.months) {
+        // years[] holds today, each anniversary, then the retirement month.
+        const row = m === r.months ? r.years.at(-1) : r.years[m / 12];
+        return row?.real ?? (0 as Cents);
+      }
+      return Math.round(
+        drawnDown(r.atRetirementReal, r.incomePerYear, r.netReturn, input.inflation, m - r.months),
+      ) as Cents;
+    });
+    out.push({
+      year: y,
+      date: addMonths(input.startDate, m),
+      perPerson,
+      total: perPerson.reduce((s, v) => s + v, 0) as Cents,
+    });
+  }
+  return out;
 }
 
 export function projectSuper(input: SuperInput): SuperResult {
@@ -296,7 +359,8 @@ export function projectSuper(input: SuperInput): SuperResult {
   const used = new Set<string>();
   const runs = input.people.map((p) => projectPerson(p, input, used));
   return {
-    people: runs.map(({ carried: _, ...r }) => r),
+    people: runs.map(({ carried: _c, months: _m, netReturn: _n, ...r }) => r),
+    household: householdTimeline(runs, input),
     householdAtRetirementReal: runs.reduce((s, r) => s + r.atRetirementReal, 0) as Cents,
     householdIncomePerYear: runs.reduce((s, r) => s + r.incomePerYear, 0) as Cents,
     rulesCarriedForward: runs.some((r) => r.carried),

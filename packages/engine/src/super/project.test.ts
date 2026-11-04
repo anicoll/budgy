@@ -167,6 +167,25 @@ describe("projectSuper", () => {
     expect(r.householdIncomePerYear).toBe(r.people[0].incomePerYear + r.people[1].incomePerYear);
   });
 
+  it("adds everyone up each year until the last person retires", () => {
+    const r = projectSuper(
+      input({
+        people: [
+          person({ age: 66, retireAge: 67 }),
+          person({ id: "p2", name: "Sam", age: 64, retireAge: 67, salary: 0 as Cents }),
+        ],
+      }),
+    );
+    const h = r.household;
+    expect(h.map((y) => y.date)).toEqual(["2026-07-01", "2027-07-01", "2028-07-01", "2029-07-01"]);
+    expect(h[0].total).toBe(c(200_000));
+    expect(h[1].perPerson).toEqual([c(110_200), c(100_000)]);
+    // After retiring, Alex draws $110,200 / 23 years = $4,791.30 a year at 0% real return.
+    expect(h[2].perPerson[0]).toBe(c(110_200 - r.people[0].incomePerYear / 100));
+    expect(h[3].total).toBe(h[3].perPerson[0] + h[3].perPerson[1]);
+    expect(h[3].perPerson[1]).toBe(c(100_000));
+  });
+
   it("an extra $50 a week before tax adds $2,210 after contributions tax in a year", () => {
     const e = extraContributionEffect(input(), "p1", c(2_600));
     expect(e.atRetirementReal).toBe(c(2_210));
