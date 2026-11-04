@@ -36,6 +36,18 @@ export default function Home() {
         </li>
         <li>
           <Link
+            href="/borrow"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">How much can I borrow?</span>
+            <span className="mt-1 block text-sm text-muted">
+              What a bank would likely lend you, tested the way lenders do, with the range across
+              cautious and generous lenders.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/mortgage"
             className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
           >
@@ -67,6 +79,18 @@ export default function Home() {
             <span className="mt-1 block text-sm text-muted">
               Is switching to a lower rate worth it after fees and cashback? See when it pays for
               itself.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/rate-check"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Am I paying too much?</span>
+            <span className="mt-1 block text-sm text-muted">
+              Compare your home loan rate with the Reserve Bank&apos;s averages and see what the gap
+              costs you.
             </span>
           </Link>
         </li>
@@ -115,6 +139,54 @@ export default function Home() {
             <span className="mt-1 block text-sm text-muted">
               What extra salary sacrifice really costs in take-home pay, the tax it saves, and how
               much cap room is left, for you or your whole household.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/super-or-mortgage"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Super or mortgage?</span>
+            <span className="mt-1 block text-sm text-muted">
+              Should spare cash go on the home loan or into super through salary sacrifice? See
+              which comes out ahead, and what you can reach before retirement.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/novated-lease"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Novated lease calculator</span>
+            <span className="mt-1 block text-sm text-muted">
+              What a car really costs out of your pay on a novated lease, with the EV tax exemption,
+              compared with a car loan or paying cash.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/pay-off-help"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Pay off HELP early?</span>
+            <span className="mt-1 block text-sm text-muted">
+              Should a lump sum go on your HELP debt or in your offset or savings? See what
+              indexation really costs you.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/buying-costs"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Home buying costs</span>
+            <span className="mt-1 block text-sm text-muted">
+              Stamp duty, first home buyer concessions, mortgage insurance and fees in every state:
+              the cash you need by settlement.
             </span>
           </Link>
         </li>
