@@ -15,6 +15,7 @@ import { useMemo, useState } from "react";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
 import { money, moneyExact } from "@/lib/format";
+import { LEASE_PEOPLE } from "@/lib/household";
 import {
   decodeLeaseState,
   encodeLeaseState,
@@ -25,15 +26,18 @@ import {
   switchQuoteAmounts,
   toLeaseInput,
 } from "@/lib/leaseState";
-import { readSaved } from "@/lib/saved";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const LEASE_SAVED: SavedConfig<LeaseState> = {
   tool: "lease",
-  initial: () => leaseStateFromPay(readSaved().tools.pay ?? null),
+  // The same start on the server and in the browser; saved pay comes in after.
+  initial: () => leaseStateFromPay(null),
   decode: (q) => decodeLeaseState(q),
   encode: encodeLeaseState,
+  people: LEASE_PEOPLE,
+  adopt: (s, { data, fresh }) =>
+    fresh && data.tools.pay ? { ...s, year: leaseStateFromPay(data.tools.pay).year } : s,
 };
 
 const SHOW: { value: LeasePer; label: string; per: string; n: number }[] = [

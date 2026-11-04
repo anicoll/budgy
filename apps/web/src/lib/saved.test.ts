@@ -25,7 +25,7 @@ function memory(): KeyValueStore & { data: Map<string, string> } {
 describe("saved inputs", () => {
   it("starts empty and remembering", () => {
     const s = readSaved(memory());
-    expect(s).toEqual({ v: 1, remember: true, loan: {}, tools: {} });
+    expect(s).toEqual({ v: 1, remember: true, loan: {}, tools: {}, people: [] });
   });
 
   it("saves each tool and merges the shared loan", () => {
@@ -59,7 +59,7 @@ describe("saved inputs", () => {
     const store = memory();
     saveTool("debt", "v=1&s=a", {}, store);
     forgetAll(store);
-    expect(readSaved(store)).toEqual({ v: 1, remember: false, loan: {}, tools: {} });
+    expect(readSaved(store)).toEqual({ v: 1, remember: false, loan: {}, tools: {}, people: [] });
     saveTool("debt", "v=1&s=b", {}, store);
     expect(readSaved(store).tools).toEqual({});
     rememberAgain(store);
@@ -94,7 +94,7 @@ describe("saved inputs", () => {
 describe("where a tool starts", () => {
   const mine = encodeState(defaultState("2026-01-01"));
   const theirs = encodeState({ ...defaultState("2026-01-01"), scenarios: [] });
-  const data = { v: 1 as const, remember: true, loan: {}, tools: { mortgage: mine } };
+  const data = { v: 1 as const, remember: true, loan: {}, tools: { mortgage: mine }, people: [] };
 
   it("opens saved inputs when the URL is empty", () => {
     expect(startingPoint("mortgage", "", data)).toEqual({ query: mine, mode: "saved" });

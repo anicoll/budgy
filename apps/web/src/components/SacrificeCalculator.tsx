@@ -19,6 +19,7 @@ import { useMemo, useState } from "react";
 import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
 import { money, moneyExact } from "@/lib/format";
+import { SACRIFICE_PEOPLE } from "@/lib/household";
 import {
   activePeople,
   decodeSacrificeState,
@@ -42,6 +43,7 @@ const SAVED: SavedConfig<SacrificeState> = {
   initial: () => defaultSacrificeState(),
   decode: (q) => decodeSacrificeState(q),
   encode: encodeSacrificeState,
+  people: SACRIFICE_PEOPLE,
 };
 
 const SHOW: { value: ShowPer; label: string; per: string }[] = [

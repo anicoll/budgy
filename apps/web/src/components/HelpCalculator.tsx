@@ -14,6 +14,7 @@ import { MoneyField, NumberField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
 import { money } from "@/lib/format";
 import { decodeHelp, defaultHelp, encodeHelp, type HelpForm, toHelpInput } from "@/lib/helpState";
+import { HELP_PEOPLE } from "@/lib/household";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
@@ -26,6 +27,7 @@ const HELP_SAVED: SavedConfig<HelpForm> = {
   initial: () => defaultHelp(),
   decode: (q) => decodeHelp(q),
   encode: encodeHelp,
+  people: HELP_PEOPLE,
 };
 
 const LAST_KNOWN = HELP_INDEXATION[HELP_INDEXATION.length - 1];

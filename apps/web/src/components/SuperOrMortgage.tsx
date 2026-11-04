@@ -14,6 +14,7 @@ import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
 import { duration, money, monthYear } from "@/lib/format";
+import { SOM_PEOPLE } from "@/lib/household";
 import {
   applySomLoan,
   decodeSomState,
@@ -42,6 +43,7 @@ const SOM_SAVED: SavedConfig<SomState> = {
   decode: (q) => decodeSomState(q),
   encode: encodeSomState,
   loan: { read: readSomLoan, apply: applySomLoan },
+  people: SOM_PEOPLE,
 };
 
 const PER_LABEL: Record<SparePer, string> = {

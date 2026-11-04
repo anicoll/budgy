@@ -35,6 +35,7 @@ import {
   toBudgetInput,
 } from "@/lib/budgetState";
 import { moneyExact } from "@/lib/format";
+import { BUDGET_PEOPLE } from "@/lib/household";
 import { encodePayState, hasAdvanced } from "@/lib/payState";
 import { parseMoney } from "@/lib/state";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
@@ -49,6 +50,7 @@ const BUDGET_SAVED: SavedConfig<BudgetState> = {
   initial: () => defaultBudgetState(),
   decode: (q) => decodeBudgetState(q),
   encode: encodeBudgetState,
+  people: BUDGET_PEOPLE,
   adopt: (s, { search, data, fresh }) => adoptPay(s, search, data.tools.pay, fresh),
 };
 

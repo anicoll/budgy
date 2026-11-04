@@ -59,13 +59,13 @@ export function defaultSuperState(start = today()): SuperState {
   return {
     people: [
       {
-        ...newPerson("p1", "Alex"),
+        ...newPerson("p1", "You"),
         age: 38,
         salary: 95_000,
         accounts: [{ ...newAccount("p1a1", "Super fund", true), balance: 110_000 }],
       },
       {
-        ...newPerson("p2", "Sam"),
+        ...newPerson("p2", "Partner"),
         age: 35,
         salary: 78_000,
         accounts: [{ ...newAccount("p2a1", "Super fund", true), balance: 65_000 }],
