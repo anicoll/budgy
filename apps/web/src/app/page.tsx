@@ -24,6 +24,18 @@ export default function Home() {
         </li>
         <li>
           <Link
+            href="/budget"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Budget planner</span>
+            <span className="mt-1 block text-sm text-muted">
+              Start from your real take-home pay, add your bills however often they come, and see
+              where every dollar goes.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/borrow"
             className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
           >

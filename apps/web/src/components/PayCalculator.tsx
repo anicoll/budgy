@@ -12,6 +12,7 @@ import {
 import { useMemo, useState } from "react";
 import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
+import { budgetLinkFromPay } from "@/lib/budgetState";
 import { money, moneyExact } from "@/lib/format";
 import {
   annualise,
@@ -254,6 +255,19 @@ export function PayCalculator() {
             <CompareView state={state} set={set} now={result} other={compare} />
           ) : (
             <PayView state={state} set={set} result={result} />
+          )}
+
+          {result && (
+            <a
+              href={budgetLinkFromPay(state)}
+              className={`${card} block font-medium text-accent transition hover:border-accent`}
+            >
+              Plan a budget with this pay →
+              <span className="mt-1 block text-sm font-normal text-muted">
+                Start the budget planner from {moneyExact(result.periods.monthly.net)} a month
+                take-home.
+              </span>
+            </a>
           )}
 
           {result && <Footer result={result} copied={copied} onCopy={copyLink} />}
