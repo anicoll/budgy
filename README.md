@@ -11,8 +11,22 @@ The first tool, the mortgage what-if calculator, is built. It isn't deployed yet
 
 ## Development
 
+Needs Node 24+ and pnpm 11 (the exact version is pinned in `package.json`; CI uses the same one).
+
+- **Node from nvm, fnm or nodejs.org:** `corepack enable` sets up the pinned pnpm.
+- **Node from apt (Ubuntu/Debian, WSL):** the bundled corepack can't write to `/usr/bin` and is too old to run pnpm 11. Install a current corepack in your home folder instead:
+
+  ```bash
+  npm config set prefix ~/.local
+  npm install -g corepack@latest     # ~/.local/bin must come before /usr/bin in PATH
+  corepack enable --install-directory ~/.local/bin
+  ```
+
+  Or skip corepack: `curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=11.28.10 sh -`
+
+Always use pnpm 11 when changing dependencies: it refuses packages published less than a day ago, and a lockfile made with an older pnpm can fail CI.
+
 ```bash
-corepack enable   # uses the pnpm version pinned in package.json
 pnpm install
 pnpm typecheck
 pnpm lint
