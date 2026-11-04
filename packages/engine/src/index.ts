@@ -1,3 +1,4 @@
+export * from "./borrowing/power";
 export * from "./dates";
 export * from "./debt/payoff";
 export * from "./lease/novated";
