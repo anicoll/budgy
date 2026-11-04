@@ -1,3 +1,10 @@
 packages:
   - "packages/*"
   - "apps/*"
+
+# Packages allowed to run install scripts. sharp is only used by next/image,
+# which this static site doesn't optimise, so its native build is skipped.
+allowBuilds:
+  sharp: false
+ignoredBuiltDependencies:
+  - sharp
