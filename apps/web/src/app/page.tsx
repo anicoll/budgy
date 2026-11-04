@@ -24,6 +24,18 @@ export default function Home() {
         </li>
         <li>
           <Link
+            href="/borrow"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">How much can I borrow?</span>
+            <span className="mt-1 block text-sm text-muted">
+              What a bank would likely lend you, tested the way lenders do, with the range across
+              cautious and generous lenders.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/mortgage"
             className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
           >
