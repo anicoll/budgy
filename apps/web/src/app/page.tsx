@@ -72,6 +72,18 @@ export default function Home() {
         </li>
         <li>
           <Link
+            href="/rate-check"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Am I paying too much?</span>
+            <span className="mt-1 block text-sm text-muted">
+              Compare your home loan rate with the Reserve Bank&apos;s averages and see what the gap
+              costs you.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/fixed-vs-variable"
             className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
           >

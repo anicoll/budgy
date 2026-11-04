@@ -9,6 +9,8 @@ export * from "./mortgage/amortise";
 export * from "./mortgage/coborrow";
 export * from "./mortgage/fixed";
 export * from "./mortgage/inverse";
+export * from "./mortgage/rateCheck";
+export * from "./mortgage/rbaRates";
 export * from "./mortgage/refinance";
 export * from "./mortgage/scenarios";
 export {
