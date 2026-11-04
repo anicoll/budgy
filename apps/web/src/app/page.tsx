@@ -34,6 +34,18 @@ export default function Home() {
             </span>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/refinance"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Refinance check</span>
+            <span className="mt-1 block text-sm text-muted">
+              Is switching to a lower rate worth it after fees and cashback? See when it pays for
+              itself.
+            </span>
+          </Link>
+        </li>
       </ul>
     </main>
   );

@@ -67,9 +67,21 @@ describe("simulateLoan: minimum monthly repayments", () => {
   });
 
   it("logs a balance on each monthly charge date", () => {
-    expect(r.balances[0]).toEqual({ date: "2026-01-15", balance: BASE.balance });
+    expect(r.balances[0]).toEqual({
+      date: "2026-01-15",
+      balance: BASE.balance,
+      interestToDate: 0,
+    });
     expect(r.balances[1].date).toBe("2026-02-15");
     expect(r.balances.at(-1)?.balance).toBe(0);
+  });
+
+  it("tracks interest to date on each point, ending at the total", () => {
+    expect(r.balances[1].interestToDate).toBeGreaterThan(0);
+    for (let i = 1; i < r.balances.length; i++) {
+      expect(r.balances[i].interestToDate).toBeGreaterThanOrEqual(r.balances[i - 1].interestToDate);
+    }
+    expect(r.balances.at(-1)?.interestToDate).toBe(r.totalInterest);
   });
 
   it("has no warnings", () => {

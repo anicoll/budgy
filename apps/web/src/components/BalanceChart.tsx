@@ -1,13 +1,17 @@
 "use client";
 
 import type { BalancePoint } from "@budgy/engine";
+
+/** Any dated balance: loan simulations and debt plans both draw here. */
+type Point = Pick<BalancePoint, "date" | "balance">;
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { money, monthYearShort } from "@/lib/format";
 
 export interface Series {
   name: string;
   color: string;
-  points: BalancePoint[];
+  points: Point[];
   payoffDate: string;
 }
 
@@ -68,7 +72,7 @@ export function BalanceChart({
     return { x0, x1, xAt, yAt, yTicks, xTicks };
   }, [series, W, H]);
 
-  const pathFor = (pts: BalancePoint[]) =>
+  const pathFor = (pts: Point[]) =>
     pts
       .map(
         (p, i) =>
@@ -77,7 +81,7 @@ export function BalanceChart({
       .join("");
 
   const hoverDay = hover === null ? null : geo.x0 + hover * (geo.x1 - geo.x0);
-  const at = (pts: BalancePoint[], d: number) => {
+  const at = (pts: Point[], d: number) => {
     let last = pts[0];
     for (const p of pts) {
       if (dayOf(p.date) > d) break;
