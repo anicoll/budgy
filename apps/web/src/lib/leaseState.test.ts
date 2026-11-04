@@ -6,9 +6,11 @@ import {
   encodeLeaseState,
   type LeaseState,
   leaseStateFromPay,
+  switchQuoteAmounts,
   toLeaseInput,
 } from "./leaseState";
 import { defaultPayState, encodePayState } from "./payState";
+import { b64urlEncode } from "./state";
 
 const FULL: LeaseState = {
   ...defaultLeaseState("2026-11-04"),
@@ -24,6 +26,11 @@ const FULL: LeaseState = {
   ratePct: 8.25,
   residualPct: 30,
   fee: 650,
+  establishmentFee: 214.63,
+  financedFees: 29.95,
+  otherMonthly: 28.44,
+  inAdvance: true,
+  quoteAmounts: true,
   energy: 1_400,
   rego: 950,
   insurance: 1_800,
@@ -60,6 +67,31 @@ describe("lease URL state", () => {
   });
 });
 
+describe("switchQuoteAmounts", () => {
+  it("turns yearly amounts with GST into monthly ones without, and back", () => {
+    const d = { ...defaultLeaseState("2026-11-04"), insurance: 2_640, rego: 900 };
+    const q = switchQuoteAmounts(d, true);
+    expect(q.insurance).toBe(200);
+    expect(q.rego).toBe(75);
+    expect(switchQuoteAmounts(q, false).insurance).toBe(2_640);
+    // The engine packages the same amount either way: $2,640 with GST is $200 a month without.
+    expect(toLeaseInput(q).running.insurance).toBe(
+      Math.round(toLeaseInput(d).running.insurance / 1.1),
+    );
+  });
+
+  it("decodes links made before the quote fields existed", () => {
+    const old = new URLSearchParams({
+      v: "1",
+      n: b64urlEncode(JSON.stringify({ p: [90_000] })),
+    }).toString();
+    const s = decodeLeaseState(old, defaultLeaseState("2026-11-04"));
+    expect(s.salary).toBe(90_000);
+    expect(s.quoteAmounts).toBe(false);
+    expect(s.financedFees).toBe(0);
+  });
+});
+
 describe("leaseStateFromPay", () => {
   it("takes salary, year, HELP and hospital cover from the pay calculator", () => {
     const pay = {
@@ -84,7 +116,8 @@ describe("toLeaseInput", () => {
     expect(input.rate).toBeCloseTo(0.0825);
     expect(input.residualRate).toBeCloseTo(0.3);
     expect(input.loanRate).toBeUndefined();
-    expect(input.running.maintenance).toBe(90_000);
+    expect(input.running.maintenance).toBe(1_080_000); // a month, as on a quote
+    expect(input.otherCharges).toBe(341_28);
     expect(() => calculateNovatedLease(input)).not.toThrow();
   });
 });

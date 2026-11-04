@@ -223,6 +223,61 @@ describe("calculateNovatedLease", () => {
   });
 });
 
+describe("a provider-style quote", () => {
+  // Laid out the way a provider's quote is: a $76,700 EV over the car limit,
+  // SA on-roads, a PPSR fee financed, monthly budgets without GST, an
+  // establishment fee spread over the term and a luxury car charge.
+  const m = (monthly: number) => c(monthly * 12);
+  const quote: NovatedLeaseInput = {
+    ...base,
+    pay: { year: "2026-27", salary: c(150_000) },
+    price: c(76_700.01),
+    onRoadCosts: c(4_003.01),
+    financedFees: c(29.95),
+    rate: 0.0926,
+    managementFee: m(19),
+    establishmentFee: c(195.12),
+    otherCharges: m(28.44),
+    amountsExGst: true,
+    running: {
+      energy: m(68.38),
+      registration: m(39.82),
+      insurance: m(200),
+      tyres: m(69.11),
+      maintenance: m(38.11),
+    },
+  };
+
+  it("finances the drive-away price less the capped GST credit, plus fees", () => {
+    const r = calculateNovatedLease(quote);
+    expect(r.gstCredit).toBe(c(6_353));
+    expect(Math.abs(r.financed - c(74_379.96))).toBeLessThanOrEqual(1);
+    expect(r.residual).toBe(c(34_869.33));
+    expect(r.residualWithGst).toBe(c(38_356.26));
+  });
+
+  it("adds up to the quote's monthly total at the rate it implies", () => {
+    const r0 = calculateNovatedLease(quote);
+    const rate = impliedLeaseRate(r0.financed, r0.residual, 36, c(1_530.29));
+    expect(rate).not.toBeNull();
+    const r = calculateNovatedLease({ ...quote, rate: rate ?? 0 });
+    expect(r.monthlyRental).toBe(c(1_530.29));
+    expect(r.runningPackaged).toBe(m(415.42));
+    expect(r.otherPackaged).toBe(c(195.12 / 3 + 28.44 * 12));
+    expect(Math.abs(r.years[0].packageCost / 12 - c(1_998.57))).toBeLessThanOrEqual(1);
+    // Exempt EV: all of it before tax.
+    expect(r.years[0].postTax).toBe(0);
+  });
+
+  it("charges less a month in advance at the same rate", () => {
+    const arrears = calculateNovatedLease(quote).monthlyRental;
+    const advance = calculateNovatedLease({ ...quote, inAdvance: true }).monthlyRental;
+    expect(advance).toBe(Math.round(arrears / (1 + 0.0926 / 12)));
+    const r = calculateNovatedLease(quote);
+    expect(impliedLeaseRate(r.financed, r.residual, 36, advance, true)).toBeCloseTo(0.0926, 4);
+  });
+});
+
 describe("validateLease", () => {
   it("accepts the example and rejects bad input", () => {
     expect(validateLease(base)).toEqual([]);
