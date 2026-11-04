@@ -2,8 +2,9 @@ import { addMonths, isIsoDate, monthsBetween } from "../dates";
 import type { Cents } from "../money/cents";
 import type { Frequency, LoanInput, SimulationResult } from "../mortgage/simulate";
 import { simulateLoan, validateLoan } from "../mortgage/simulate";
-import { calculatePay, type PayInput, validatePay } from "../tax/pay";
-import { financialYear, PRESERVATION_AGE, rulesFor, type SuperRules } from "./rules";
+import { validatePay } from "../tax/pay";
+import { financialYear, PRESERVATION_AGE, rulesFor } from "./rules";
+import { maxExtra, type SacrificePerson, sacrificeEffect, sacrificeForTakeHome } from "./sacrifice";
 
 /**
  * Super or mortgage: where should spare cash go?
@@ -34,13 +35,10 @@ import { financialYear, PRESERVATION_AGE, rulesFor, type SuperRules } from "./ru
  * tax as funds report it, and the cap headroom is held at this year's.
  */
 
-export interface SomPerson {
-  id: string;
-  name: string;
+/** A person as for the salary sacrifice check (pay, funds, unused caps), plus ages. */
+export interface SomPerson extends SacrificePerson {
   age: number; // today
   retireAge: number;
-  /** This year's pay, as for the pay calculator, including any sacrifice already made. */
-  pay: Omit<PayInput, "year">;
 }
 
 export interface SomLoan {
@@ -174,63 +172,25 @@ function loanInput(input: SuperOrMortgageInput, extraPerPeriod: number): LoanInp
 
 const PER_YEAR: Record<Frequency, number> = { weekly: 52, fortnightly: 26, monthly: 12 };
 
-/** Low income super tax offset: 15% of concessional contributions, up to $500, at $37,000 or less. */
-function listo(adjustedTaxable: number, concessional: number): number {
-  return adjustedTaxable <= 3_700_000 ? Math.min(50_000, concessional * 0.15) : 0;
-}
-
 /**
  * What it takes, through one person, to put a year of take-home dollars into
- * super: the sacrifice that costs that much take-home pay, up to the cap, and
- * after-tax money for the rest.
+ * super: the extra sacrifice that costs that much take-home pay (from the
+ * salary sacrifice check), up to the cap, and after-tax money for the rest.
  */
-export function sacrificeFor(
-  pay: PayInput,
-  takeHome: Cents,
-  sup: SuperRules = rulesFor(`${pay.year.slice(0, 4)}-07-01`).rules,
-): SacrificeYear {
-  const already = pay.salarySacrifice ?? 0;
-  const at = (extra: number) => calculatePay({ ...pay, salarySacrifice: toC(already + extra) });
-  const base = at(0);
-  const div293 = (r: ReturnType<typeof calculatePay>) =>
-    r.warnings.reduce((s, w) => (w.kind === "division-293" ? s + w.extra : s), 0);
-  const capHeadroom = Math.max(0, sup.concessionalCap - base.employerSuper);
-  // Can't sacrifice more than the cash pay left after what's already packaged.
-  const room = Math.max(0, base.gross - base.salarySacrifice - base.otherPackaging);
-  const maxSacrifice = Math.min(capHeadroom, room);
-  const cost = (s: number) => base.net - at(s).net;
-
-  let sacrifice: number;
-  if (takeHome <= 0 || maxSacrifice <= 0) sacrifice = 0;
-  else if (cost(maxSacrifice) <= takeHome) sacrifice = maxSacrifice;
-  else {
-    // Take-home cost rises with the sacrifice, so bisect to the cent.
-    let lo = 0;
-    let hi = maxSacrifice;
-    while (hi - lo > 1) {
-      const mid = Math.floor((lo + hi) / 2);
-      if (cost(mid) <= takeHome) lo = mid;
-      else hi = mid;
-    }
-    sacrifice = lo;
-  }
-  const after = at(sacrifice);
-  const spent = base.net - after.net;
-  const afterTax = Math.max(0, takeHome - spent);
-  const offset = (r: ReturnType<typeof calculatePay>) =>
-    listo(r.taxableIncome + (pay.fringeBenefits ?? 0), r.employerSuper);
-  const contributionsTax =
-    sacrifice * sup.contributionsTax +
-    (div293(after) - div293(base)) -
-    (offset(after) - offset(base));
+export function sacrificeFor(p: SacrificePerson, year: string, takeHome: Cents): SacrificeYear {
+  const capHeadroom = maxExtra(p, year);
+  const extra = sacrificeForTakeHome(p, year, takeHome);
+  const e = sacrificeEffect(p, year, extra);
+  // Whatever the sacrifice doesn't use (past the cap, or the last dollar) goes in after tax.
+  const afterTax = Math.max(0, takeHome - e.takeHomeCost);
   return {
     takeHome,
-    sacrifice: toC(sacrifice),
+    sacrifice: e.extra,
     afterTax: toC(afterTax),
-    taxSaved: toC(sacrifice - spent),
-    contributionsTax: toC(contributionsTax),
-    intoSuper: toC(sacrifice - contributionsTax + afterTax),
-    capHeadroom: toC(capHeadroom),
+    taxSaved: toC(e.extra - e.takeHomeCost),
+    contributionsTax: toC(e.extra - e.intoSuper),
+    intoSuper: toC(e.intoSuper + afterTax),
+    capHeadroom,
   };
 }
 
@@ -336,7 +296,7 @@ export function compareSuperOrMortgage(input: SuperOrMortgageInput): SuperOrMort
     const key = `${i}:${takeHome}`;
     let s = cache.get(key);
     if (!s) {
-      s = sacrificeFor({ ...input.people[i].pay, year: taxYear }, toC(takeHome), sup);
+      s = sacrificeFor(input.people[i], taxYear, toC(takeHome));
       cache.set(key, s);
     }
     return s;
@@ -387,14 +347,9 @@ export function compareSuperOrMortgage(input: SuperOrMortgageInput): SuperOrMort
   input.people.forEach((p, i) => {
     const s = into(i, spareYear);
     if (s.afterTax > 0) warnings.push({ kind: "over-cap", personId: p.id, afterTax: s.afterTax });
-    const r = calculatePay({
-      ...p.pay,
-      year: taxYear,
-      salarySacrifice: toC((p.pay.salarySacrifice ?? 0) + s.sacrifice),
-    });
-    for (const w of r.warnings)
-      if (w.kind === "division-293")
-        warnings.push({ kind: "division-293", personId: p.id, extra: w.extra });
+    const e = sacrificeEffect(p, taxYear, s.sacrifice);
+    if (e.division293 > 0)
+      warnings.push({ kind: "division-293", personId: p.id, extra: e.division293 });
     if (p.age + years < releaseAge(p))
       warnings.push({ kind: "locked", personId: p.id, releaseAge: releaseAge(p) });
   });
