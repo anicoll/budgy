@@ -94,6 +94,18 @@ export default function Home() {
             </span>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/novated-lease"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Novated lease calculator</span>
+            <span className="mt-1 block text-sm text-muted">
+              What a car really costs out of your pay on a novated lease, with the EV tax exemption,
+              compared with a car loan or paying cash.
+            </span>
+          </Link>
+        </li>
       </ul>
     </main>
   );
