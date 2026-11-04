@@ -12,6 +12,18 @@ export default function Home() {
       <ul className="mt-10 grid gap-4">
         <li>
           <Link
+            href="/pay"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Pay calculator</span>
+            <span className="mt-1 block text-sm text-muted">
+              Your take-home pay after tax, Medicare and HELP, with overtime, salary sacrifice and
+              what your pay slip will show.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/mortgage"
             className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
           >
