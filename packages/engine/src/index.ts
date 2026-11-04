@@ -2,6 +2,7 @@ export * from "./dates";
 export * from "./debt/payoff";
 export * from "./money/cents";
 export * from "./mortgage/amortise";
+export * from "./mortgage/coborrow";
 export * from "./mortgage/fixed";
 export * from "./mortgage/inverse";
 export * from "./mortgage/refinance";
