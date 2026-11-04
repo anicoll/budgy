@@ -107,7 +107,7 @@ export function BorrowingCalculator() {
                     onClick={() => setCouple(two)}
                     className={`min-h-9 px-3.5 py-1.5 ${
                       couple === two
-                        ? "bg-accent font-semibold text-white"
+                        ? "bg-accent font-semibold text-on-accent"
                         : "bg-surface text-muted"
                     }`}
                   >

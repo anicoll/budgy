@@ -29,9 +29,9 @@ type View = "questions" | "dashboard" | "all";
 
 const card = "rounded-2xl border border-border bg-surface";
 const primary =
-  "inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-semibold text-white hover:opacity-90";
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-6 text-[15px] font-medium text-on-accent hover:opacity-90";
 const secondary =
-  "inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-4 text-sm font-medium hover:border-accent";
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-tertiary-container px-5 text-sm font-medium text-on-tertiary-container hover:opacity-90";
 const href = (key: ToolKey) => `${tool(key).href}/`;
 
 export function Home() {
@@ -175,8 +175,8 @@ function Chips<T extends string>(props: {
             onClick={() => props.onPick(o.value)}
             className={`min-h-11 rounded-full px-4 text-[15px] transition ${
               on
-                ? "border-2 border-accent bg-accent/10 font-semibold text-text"
-                : "border border-border bg-surface hover:border-accent"
+                ? "border border-transparent bg-primary-container font-medium text-on-primary-container"
+                : "border border-outline bg-surface hover:bg-surface-container"
             }`}
           >
             {o.label}
@@ -498,7 +498,7 @@ function Plan(props: { journey: JourneyStep[]; done: Set<ToolKey>; next: ToolKey
         </span>
       </div>
       <div
-        className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--grid)]"
+        className="mt-3 h-2 overflow-hidden rounded-full bg-primary-container"
         role="progressbar"
         aria-label="Plan progress"
         aria-valuenow={pct}
@@ -517,9 +517,9 @@ function Plan(props: { journey: JourneyStep[]; done: Set<ToolKey>; next: ToolKey
                 href={href(s.key)}
                 className={`flex min-h-[76px] flex-col gap-1 rounded-xl p-3 ${
                   isNext
-                    ? "border-2 border-accent bg-accent/5"
+                    ? "border border-transparent bg-primary-container text-on-primary-container"
                     : isDone
-                      ? "border border-border bg-surface"
+                      ? "border border-transparent bg-surface-container"
                       : "border border-dashed border-border bg-bg"
                 } hover:border-accent`}
               >

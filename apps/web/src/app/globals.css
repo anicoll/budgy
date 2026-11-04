@@ -1,49 +1,86 @@
 @import "tailwindcss";
+@import "@fontsource-variable/roboto-flex/opsz.css";
 
+/* Material 3 Expressive, Harbour palette: deep teal primary, apricot
+   tertiary, sage as a third chart colour. Older token names (bg, surface,
+   text, accent...) map onto M3 roles so every tool picks them up. */
 :root {
-  --bg: #f7f7f5;
-  --surface: #ffffff;
-  --text: #16181d;
-  --muted: #5d6370;
-  --border: #e3e3df;
-  --accent: #1f6feb;
-  --good: #0f7b4a;
-  --warn: #9a6200;
-  --series-base: #8a8f98;
-  --series-a: #1f6feb;
-  --series-b: #d9480f;
-  --series-c: #2b8a3e;
-  --grid: #ececea;
+  --bg: #f5fafb; /* M3 surface */
+  --surface: #ffffff; /* surface-container-lowest */
+  --surface-container: #e9eff0;
+  --surface-container-high: #e1e8e9;
+  --text: #171d1e;
+  --muted: #3f484a;
+  --border: #d5dde0;
+  --outline: #6f797a;
+  --accent: #00616f; /* primary */
+  --on-accent: #ffffff;
+  --primary-container: #a6eeff;
+  --on-primary-container: #001f25;
+  --tertiary: #8d4f2c;
+  --tertiary-container: #ffdbca;
+  --on-tertiary-container: #351000;
+  --good: #2a7a4b;
+  --warn: #b0541a;
+  --series-base: #8a9597;
+  --series-a: #00616f;
+  --series-b: #c25f33;
+  --series-c: #5a8667;
+  --grid: #e1e8e9;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111317;
-    --surface: #191c21;
-    --text: #eceef2;
-    --muted: #a0a6b1;
-    --border: #2c3038;
-    --accent: #6ea8ff;
-    --good: #4cc38a;
-    --warn: #f0b44c;
-    --series-base: #8a8f98;
-    --series-a: #6ea8ff;
-    --series-b: #ff8a50;
-    --series-c: #5fd17a;
-    --grid: #262a31;
+    --bg: #0e1415;
+    --surface: #171d1e;
+    --surface-container: #1b2122;
+    --surface-container-high: #252b2c;
+    --text: #dee3e5;
+    --muted: #bfc8ca;
+    --border: #333c3e;
+    --outline: #899294;
+    --accent: #83d2e3;
+    --on-accent: #00363e;
+    --primary-container: #004e59;
+    --on-primary-container: #a6eeff;
+    --tertiary: #ffb68f;
+    --tertiary-container: #6f3817;
+    --on-tertiary-container: #ffdbca;
+    --good: #68cf92;
+    --warn: #f2a062;
+    --series-base: #899294;
+    --series-a: #83d2e3;
+    --series-b: #e5875a;
+    --series-c: #9cc8a9;
+    --grid: #252b2c;
   }
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
   --color-text: var(--text);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  --color-outline: var(--outline);
   --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-on-tertiary-container: var(--on-tertiary-container);
   --color-good: var(--good);
   --color-warn: var(--warn);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Roboto Flex Variable", "Roboto Flex", Roboto, ui-sans-serif, system-ui, sans-serif;
+  /* M3 shape scale: small 8, medium 12, large 16, extra large 28. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 28px;
+  --radius-2xl: 32px;
 }
 
 html {

@@ -140,7 +140,7 @@ export function SacrificeCalculator() {
 
       {total && (
         <div
-          className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-text px-4 py-3 text-bg lg:hidden"
+          className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-primary-container px-4 py-3 text-on-primary-container lg:hidden"
           aria-live="polite"
         >
           <div>
@@ -327,7 +327,9 @@ function Segmented<T extends string>({
           aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
           className={`min-h-9 rounded-full px-3.5 py-1.5 ${
-            o.value === value ? "bg-text font-semibold text-bg" : "text-muted hover:text-text"
+            o.value === value
+              ? "bg-accent font-semibold text-on-accent"
+              : "text-muted hover:text-text"
           }`}
         >
           {o.label}
@@ -674,7 +676,7 @@ function Statement({
 }) {
   if (effect.extra <= 0) {
     return (
-      <div className="rounded-xl bg-text p-5 text-bg sm:p-6">
+      <div className="rounded-xl bg-primary-container p-5 text-on-primary-container sm:p-6">
         <p className="text-lg">
           Enter an extra amount to sacrifice, or try one of the ideas below.
         </p>
@@ -682,17 +684,20 @@ function Statement({
     );
   }
   return (
-    <div className="space-y-3 rounded-xl bg-text p-5 text-bg sm:p-6" aria-live="polite">
+    <div
+      className="space-y-3 rounded-xl bg-primary-container p-5 text-on-primary-container sm:p-6"
+      aria-live="polite"
+    >
       <p className="text-lg leading-relaxed sm:text-xl">
         Sacrificing <strong className="num">{fmt(effect.extra)}</strong> {perLabel(show)} costs you{" "}
         <strong className="num">{fmt(effect.takeHomeCost)}</strong> in take-home pay and puts{" "}
         <strong className="num">{fmt(effect.intoSuper)}</strong> more into your super.
       </p>
       <div className="flex flex-wrap gap-2 text-sm">
-        <span className="num rounded-full bg-white/10 px-3 py-1.5">
+        <span className="num rounded-full bg-on-primary-container/10 px-3 py-1.5">
           ${effect.superPerDollar.toFixed(2)} into super for every $1 you give up
         </span>
-        <span className="num rounded-full bg-white/10 px-3 py-1.5">
+        <span className="num rounded-full bg-on-primary-container/10 px-3 py-1.5">
           {effect.netGain >= 0
             ? `${money(effect.netGain)} a year better off overall`
             : `${money(-effect.netGain)} a year worse off overall`}
@@ -722,7 +727,7 @@ function Bar({
         {shown.map((p) => (
           <div
             key={p.label}
-            className={`flex items-center overflow-hidden px-2 whitespace-nowrap ${p.dark ? "text-white" : "text-text"}`}
+            className={`flex items-center overflow-hidden px-2 whitespace-nowrap ${p.dark ? "text-bg" : "text-text"}`}
             style={{ width: `${(p.value / sum) * 100}%`, background: p.color }}
           >
             {p.value / sum > 0.12 ? `${p.label} ${money(p.value)}` : ""}
@@ -953,7 +958,7 @@ function Ideas({
             <button
               type="button"
               onClick={() => onUse(p.id, s.extra)}
-              className="min-h-11 rounded-lg border border-accent px-4 text-sm font-medium text-accent hover:bg-accent hover:text-white"
+              className="min-h-11 rounded-full border border-outline px-5 text-sm font-medium text-accent hover:bg-accent hover:text-on-accent"
             >
               Use this
             </button>
@@ -1033,7 +1038,7 @@ function BudgetSplit({
   );
   if (!used.length) {
     return (
-      <div className="rounded-xl bg-text p-5 text-bg sm:p-6">
+      <div className="rounded-xl bg-primary-container p-5 text-on-primary-container sm:p-6">
         <p className="text-lg">
           No one has room under their cap for that budget. Try a bigger amount.
         </p>
@@ -1041,7 +1046,10 @@ function BudgetSplit({
     );
   }
   return (
-    <div className="space-y-3 rounded-xl bg-text p-5 text-bg sm:p-6" aria-live="polite">
+    <div
+      className="space-y-3 rounded-xl bg-primary-container p-5 text-on-primary-container sm:p-6"
+      aria-live="polite"
+    >
       <p className="text-lg leading-relaxed sm:text-xl">
         Have{" "}
         {used.map((s, i) => (

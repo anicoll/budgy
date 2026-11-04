@@ -18,7 +18,7 @@ import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const seg = (on: boolean) =>
-  `min-h-11 flex-1 px-3 text-sm font-medium transition ${on ? "bg-accent text-white" : "bg-surface hover:text-accent"}`;
+  `min-h-11 flex-1 px-3 text-sm font-medium transition ${on ? "bg-accent text-on-accent" : "bg-surface hover:text-accent"}`;
 const pct = (r: number, dp = 2) => `${(r * 100).toFixed(dp)}%`;
 
 const HELP_SAVED: SavedConfig<HelpForm> = {
