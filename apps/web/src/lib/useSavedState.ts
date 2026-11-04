@@ -12,6 +12,7 @@ import {
   forgetAll,
   readSaved,
   rememberAgain,
+  type SavedData,
   type SavedMode,
   type SharedLoan,
   saveTool,
@@ -29,6 +30,8 @@ export interface SavedConfig<T> {
     read: (state: T) => Partial<SharedLoan>;
     apply: (state: T, loan: Partial<SharedLoan>) => T;
   };
+  /** A last say on opening, such as taking in another tool's saved inputs. */
+  adopt?: (state: T, ctx: { search: string; data: SavedData; fresh: boolean }) => T;
 }
 
 /** What the "remembered on this device" line needs. */
@@ -64,6 +67,7 @@ export function useSavedState<T>(cfg: SavedConfig<T>): Saved<T> {
       const start = startingPoint(cfg.tool, search, data);
       let s = start.query ? cfg.decode(start.query) : cfg.initial();
       if (start.mode === "saved" && cfg.loan) s = cfg.loan.apply(s, data.loan);
+      if (cfg.adopt) s = cfg.adopt(s, { search, data, fresh: !start.query });
       setState(s);
       setMode(start.mode);
       setHasOwn(Boolean(data.tools[cfg.tool]));
