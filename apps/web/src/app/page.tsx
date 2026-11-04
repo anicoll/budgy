@@ -106,6 +106,42 @@ export default function Home() {
             </span>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/salary-sacrifice"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Salary sacrifice check</span>
+            <span className="mt-1 block text-sm text-muted">
+              What extra salary sacrifice really costs in take-home pay, the tax it saves, and how
+              much cap room is left, for you or your whole household.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/super-or-mortgage"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Super or mortgage?</span>
+            <span className="mt-1 block text-sm text-muted">
+              Should spare cash go on the home loan or into super through salary sacrifice? See
+              which comes out ahead, and what you can reach before retirement.
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/novated-lease"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Novated lease calculator</span>
+            <span className="mt-1 block text-sm text-muted">
+              What a car really costs out of your pay on a novated lease, with the EV tax exemption,
+              compared with a car loan or paying cash.
+            </span>
+          </Link>
+        </li>
       </ul>
     </main>
   );
