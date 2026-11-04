@@ -483,7 +483,7 @@ function Results({
             </button>
           </div>
         </div>
-        <BenefitChart points={points} breakEvenMonth={r.breakEvenMonths} />
+        <BenefitChart points={points} markerMonth={r.breakEvenMonths} />
         <p className="mt-1 text-xs text-muted">
           Interest and fees saved, less the cost to switch. Above $0 means switching has paid for
           itself.

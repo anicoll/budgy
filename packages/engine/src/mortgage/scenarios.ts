@@ -1,6 +1,16 @@
 import { toDay } from "../dates";
 import type { Cents } from "../money/cents";
-import { type LoanInput, type SimulationResult, simulateLoan } from "./simulate";
+import { type BalancePoint, type LoanInput, type SimulationResult, simulateLoan } from "./simulate";
+
+/** Interest charged up to and including `day`, from a simulation's balance points. */
+export function interestBy(points: BalancePoint[], day: number): number {
+  let last = 0;
+  for (const p of points) {
+    if (toDay(p.date) > day) break;
+    last = p.interestToDate;
+  }
+  return last;
+}
 
 export interface ScenarioComparison {
   interestSaved: Cents; // base interest minus scenario interest (negative = costs more)

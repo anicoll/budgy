@@ -46,6 +46,18 @@ export default function Home() {
             </span>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/fixed-vs-variable"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Fixed or variable</span>
+            <span className="mt-1 block text-sm text-muted">
+              What if rates rise 1% next year, or you fix half? Test a rate path and see what fixing
+              saves or costs.
+            </span>
+          </Link>
+        </li>
       </ul>
     </main>
   );
