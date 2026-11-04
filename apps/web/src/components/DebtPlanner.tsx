@@ -6,9 +6,10 @@ import {
   solveExtraPerMonth,
   validateDebts,
 } from "@budgy/engine";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
+import { SavedBar } from "@/components/SavedBar";
 import {
   type DebtPlanState,
   type DebtRow,
@@ -23,6 +24,7 @@ import {
   toPayoffInput,
 } from "@/lib/debtState";
 import { duration, money, moneyExact, monthYear } from "@/lib/format";
+import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const chip = "rounded-full border px-3 py-1.5 text-sm";
@@ -47,23 +49,17 @@ const COLOR: Record<string, string> = {
 
 const months = (n: number) => duration(n * 30.4375);
 
-export function DebtPlanner() {
-  const [state, setState] = useState<DebtPlanState>(() => defaultDebtState());
-  const [loaded, setLoaded] = useState(false);
-  const [copied, setCopied] = useState(false);
+const DEBT_SAVED: SavedConfig<DebtPlanState> = {
+  tool: "debt",
+  initial: () => defaultDebtState(),
+  decode: (q) => decodeDebtState(q),
+  encode: encodeDebtState,
+};
 
-  useEffect(() => {
-    if (window.location.search) setState(decodeDebtState(window.location.search));
-    setLoaded(true);
-  }, []);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => {
-    if (!loaded) return;
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      window.history.replaceState(null, "", `?${encodeDebtState(state)}`);
-    }, 300);
-  }, [state, loaded]);
+export function DebtPlanner() {
+  const saved = useSavedState(DEBT_SAVED);
+  const { state, setState } = saved;
+  const [copied, setCopied] = useState(false);
 
   const input = useMemo(() => toPayoffInput(state), [state]);
   const errors = useMemo(() => validateDebts(input.debts, input.extraPerMonth), [input]);
@@ -123,6 +119,7 @@ export function DebtPlanner() {
           List your debts and what you can put towards them each month. See which to pay first and
           when you&apos;ll be debt-free. Your numbers never leave your device.
         </p>
+        <SavedBar saved={saved} />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">

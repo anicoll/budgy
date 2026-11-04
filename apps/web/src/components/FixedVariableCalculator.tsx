@@ -10,10 +10,11 @@ import {
   rateOn,
   validateFixedVsVariable,
 } from "@budgy/engine";
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { BenefitChart } from "@/components/BenefitChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { RateChart } from "@/components/RateChart";
+import { SavedBar } from "@/components/SavedBar";
 import {
   decodeFixed,
   defaultFixed,
@@ -26,6 +27,8 @@ import {
   toFixedInput,
 } from "@/lib/fixedRate";
 import { money, moneyExact, monthYear, perPeriod } from "@/lib/format";
+import { withLoanFields } from "@/lib/saved";
+import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const FREQUENCIES: { value: Frequency; label: string }[] = [
   { value: "monthly", label: "Monthly" },
@@ -52,23 +55,25 @@ function planName(share: number) {
   return `fixing ${share}%`;
 }
 
-export function FixedVariableCalculator() {
-  const [form, setForm] = useState<FixedForm>(() => defaultFixed());
-  const [loaded, setLoaded] = useState(false);
-  const [copied, setCopied] = useState(false);
+const FIXED_SAVED: SavedConfig<FixedForm> = {
+  tool: "fixed",
+  initial: () => defaultFixed(),
+  decode: (q) => decodeFixed(q),
+  encode: encodeFixed,
+  loan: {
+    // Its variable rate is the rate on the loan today.
+    read: (f) => ({ ...f, ratePct: f.variableRatePct }),
+    apply: (f, loan) => ({
+      ...withLoanFields(f, loan),
+      variableRatePct: loan.ratePct ?? f.variableRatePct,
+    }),
+  },
+};
 
-  useEffect(() => {
-    if (window.location.search) setForm(decodeFixed(window.location.search));
-    setLoaded(true);
-  }, []);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => {
-    if (!loaded) return;
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      window.history.replaceState(null, "", `?${encodeFixed(form)}`);
-    }, 300);
-  }, [form, loaded]);
+export function FixedVariableCalculator() {
+  const saved = useSavedState(FIXED_SAVED);
+  const { state: form, setState: setForm } = saved;
+  const [copied, setCopied] = useState(false);
 
   const input = useMemo(() => toFixedInput(form), [form]);
   const errors = useMemo(() => validateFixedVsVariable(input), [input]);
@@ -117,6 +122,7 @@ export function FixedVariableCalculator() {
           fixing all or part of your loan would save or cost. Coming off a fixed rate? Enter the
           balance you&apos;ll owe on the roll-off date. Your numbers never leave your device.
         </p>
+        <SavedBar saved={saved} />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">

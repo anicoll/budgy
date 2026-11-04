@@ -12,10 +12,12 @@ import {
   splitLoan,
   validateCoBorrow,
 } from "@budgy/engine";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
+import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
+import { withLoanFields } from "@/lib/saved";
 import {
   type Borrower,
   decodeSplitState,
@@ -27,6 +29,7 @@ import {
   type SplitState,
   toCoBorrowInput,
 } from "@/lib/splitState";
+import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const COLORS = ["var(--series-a)", "var(--series-b)", "var(--series-c)", "var(--series-base)"];
@@ -41,23 +44,21 @@ const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
 const addYearsIso = (iso: string, years: number) =>
   `${Number(iso.slice(0, 4)) + years}${iso.slice(4)}`;
 
-export function SplitCalculator() {
-  const [state, setState] = useState<SplitState>(() => defaultSplitState());
-  const [loaded, setLoaded] = useState(false);
-  const [copied, setCopied] = useState(false);
+const SPLIT_SAVED: SavedConfig<SplitState> = {
+  tool: "split",
+  initial: () => defaultSplitState(),
+  decode: (q) => decodeSplitState(q),
+  encode: encodeSplitState,
+  loan: {
+    read: ({ loan }) => loan,
+    apply: (s, loan) => ({ ...s, loan: withLoanFields(s.loan, loan) }),
+  },
+};
 
-  useEffect(() => {
-    if (window.location.search) setState(decodeSplitState(window.location.search));
-    setLoaded(true);
-  }, []);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => {
-    if (!loaded) return;
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      window.history.replaceState(null, "", `?${encodeSplitState(state)}`);
-    }, 300);
-  }, [state, loaded]);
+export function SplitCalculator() {
+  const saved = useSavedState(SPLIT_SAVED);
+  const { state, setState } = saved;
+  const [copied, setCopied] = useState(false);
 
   const input = useMemo(() => toCoBorrowInput(state), [state]);
   const errors = useMemo(() => validateCoBorrow(input), [input]);
@@ -121,6 +122,7 @@ export function SplitCalculator() {
           you pays, what happens when one of you pays extra, and who owns how much. Your numbers
           never leave your device.
         </p>
+        <SavedBar saved={saved} />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">

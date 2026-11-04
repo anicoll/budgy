@@ -7,10 +7,12 @@ import {
   type SimulationResult,
   validateLoan,
 } from "@budgy/engine";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
+import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
+import { OWN_LINK_PARAM, withLoanFields } from "@/lib/saved";
 import { encodeSplitState, splitFromBaseLoan } from "@/lib/splitState";
 import {
   type CalculatorState,
@@ -22,6 +24,7 @@ import {
   toChanges,
   toLoanInput,
 } from "@/lib/state";
+import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const COLORS = ["var(--series-a)", "var(--series-b)", "var(--series-c)"];
 const LETTERS = "ABC";
@@ -53,24 +56,21 @@ function presets(start: string): { label: string; scenario: Omit<Scenario, "name
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 
-export function MortgageCalculator() {
-  const [state, setState] = useState<CalculatorState>(() => defaultState());
-  const [loaded, setLoaded] = useState(false);
-  const [copied, setCopied] = useState(false);
+const MORTGAGE_SAVED: SavedConfig<CalculatorState> = {
+  tool: "mortgage",
+  initial: () => defaultState(),
+  decode: (q) => decodeState(q, defaultState()),
+  encode: encodeState,
+  loan: {
+    read: ({ base }) => base,
+    apply: (s, loan) => ({ ...s, base: withLoanFields(s.base, loan) }),
+  },
+};
 
-  // Read the URL once on load, then keep it in step with the inputs.
-  useEffect(() => {
-    if (window.location.search) setState(decodeState(window.location.search, defaultState()));
-    setLoaded(true);
-  }, []);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => {
-    if (!loaded) return;
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      window.history.replaceState(null, "", `?${encodeState(state)}`);
-    }, 300);
-  }, [state, loaded]);
+export function MortgageCalculator() {
+  const saved = useSavedState(MORTGAGE_SAVED);
+  const { state, setState } = saved;
+  const [copied, setCopied] = useState(false);
 
   const { base } = state;
   const input = useMemo(() => toLoanInput(base), [base]);
@@ -138,6 +138,7 @@ export function MortgageCalculator() {
           Enter your loan, then try changes. Results update as you type, and your numbers never
           leave your device.
         </p>
+        <SavedBar saved={saved} />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
@@ -204,7 +205,7 @@ export function MortgageCalculator() {
               />
             </div>
             <a
-              href={`../split?${encodeSplitState(splitFromBaseLoan(base))}`}
+              href={`../split?${encodeSplitState(splitFromBaseLoan(base))}&${OWN_LINK_PARAM}=1`}
               className="mt-3 inline-block text-sm text-accent hover:underline"
             >
               Sharing this loan? Split it between borrowers →
