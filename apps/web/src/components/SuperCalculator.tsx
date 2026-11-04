@@ -13,9 +13,10 @@ import {
   type SuperResult,
   validateSuper,
 } from "@budgy/engine";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField } from "@/components/fields";
+import { SavedBar } from "@/components/SavedBar";
 import { money, monthYear } from "@/lib/format";
 import {
   type AccountRow,
@@ -29,29 +30,24 @@ import {
   type SuperState,
   toSuperInput,
 } from "@/lib/superState";
+import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const COLORS = ["var(--series-a)", "var(--series-b)", "var(--series-c)", "var(--series-base)"];
 const chip =
   "rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent";
 
-export function SuperCalculator() {
-  const [state, setState] = useState<SuperState>(() => defaultSuperState());
-  const [loaded, setLoaded] = useState(false);
-  const [copied, setCopied] = useState(false);
+const SUPER_SAVED: SavedConfig<SuperState> = {
+  tool: "super",
+  initial: () => defaultSuperState(),
+  decode: (q) => decodeSuperState(q),
+  encode: encodeSuperState,
+};
 
-  useEffect(() => {
-    if (window.location.search) setState(decodeSuperState(window.location.search));
-    setLoaded(true);
-  }, []);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => {
-    if (!loaded) return;
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      window.history.replaceState(null, "", `?${encodeSuperState(state)}`);
-    }, 300);
-  }, [state, loaded]);
+export function SuperCalculator() {
+  const saved = useSavedState(SUPER_SAVED);
+  const { state, setState } = saved;
+  const [copied, setCopied] = useState(false);
 
   const input = useMemo(() => toSuperInput(state), [state]);
   const errors = useMemo(() => validateSuper(input), [input]);
@@ -154,6 +150,7 @@ export function SuperCalculator() {
           How much super will you have, and what income could it pay? Add everyone in your household
           and all their funds. Your numbers never leave your device.
         </p>
+        <SavedBar saved={saved} />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">

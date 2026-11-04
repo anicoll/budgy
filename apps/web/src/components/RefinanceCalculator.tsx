@@ -7,9 +7,10 @@ import {
   type RefinanceResult,
   validateRefinance,
 } from "@budgy/engine";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { BenefitChart } from "@/components/BenefitChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
+import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import {
   decodeRefinance,
@@ -18,6 +19,8 @@ import {
   type RefinanceForm,
   toRefinanceInput,
 } from "@/lib/refinance";
+import { withLoanFields } from "@/lib/saved";
+import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const FREQUENCIES: { value: Frequency; label: string }[] = [
   { value: "monthly", label: "Monthly" },
@@ -29,23 +32,18 @@ const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const pill = (on: boolean) =>
   `rounded-full border px-3 py-1.5 text-sm ${on ? "border-accent text-accent" : "border-border hover:border-accent"}`;
 
-export function RefinanceCalculator() {
-  const [form, setForm] = useState<RefinanceForm>(() => defaultRefinance());
-  const [loaded, setLoaded] = useState(false);
-  const [copied, setCopied] = useState(false);
+const REFINANCE_SAVED: SavedConfig<RefinanceForm> = {
+  tool: "refinance",
+  initial: () => defaultRefinance(),
+  decode: (q) => decodeRefinance(q),
+  encode: encodeRefinance,
+  loan: { read: (f) => f, apply: withLoanFields },
+};
 
-  useEffect(() => {
-    if (window.location.search) setForm(decodeRefinance(window.location.search));
-    setLoaded(true);
-  }, []);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => {
-    if (!loaded) return;
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      window.history.replaceState(null, "", `?${encodeRefinance(form)}`);
-    }, 300);
-  }, [form, loaded]);
+export function RefinanceCalculator() {
+  const saved = useSavedState(REFINANCE_SAVED);
+  const { state: form, setState: setForm } = saved;
+  const [copied, setCopied] = useState(false);
 
   const input = useMemo(() => toRefinanceInput(form), [form]);
   const errors = useMemo(() => validateRefinance(input), [input]);
@@ -81,6 +79,7 @@ export function RefinanceCalculator() {
           Is switching to a lower rate worth it after fees and cashback? Enter your loan and the
           offer to see when it pays for itself. Your numbers never leave your device.
         </p>
+        <SavedBar saved={saved} />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
