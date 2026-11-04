@@ -12,6 +12,7 @@ The first tool, the mortgage what-if calculator, is built. It isn't deployed yet
 ## Development
 
 ```bash
+corepack enable   # uses the pnpm version pinned in package.json
 pnpm install
 pnpm typecheck
 pnpm lint
