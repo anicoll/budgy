@@ -22,6 +22,18 @@ export default function Home() {
             </span>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/debt"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Debt payoff planner</span>
+            <span className="mt-1 block text-sm text-muted">
+              Credit cards, car and personal loans: see which to pay first and when you&apos;ll be
+              debt-free.
+            </span>
+          </Link>
+        </li>
       </ul>
     </main>
   );

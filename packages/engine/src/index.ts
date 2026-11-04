@@ -1,4 +1,5 @@
 export * from "./dates";
+export * from "./debt/payoff";
 export * from "./money/cents";
 export * from "./mortgage/amortise";
 export * from "./mortgage/inverse";

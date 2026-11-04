@@ -111,14 +111,14 @@ export const URL_VERSION = 1;
 const FREQ = { weekly: "w", fortnightly: "f", monthly: "m" } as const;
 const FREQ_BACK: Record<string, Frequency> = { w: "weekly", f: "fortnightly", m: "monthly" };
 
-function b64urlEncode(s: string): string {
+export function b64urlEncode(s: string): string {
   const bytes = new TextEncoder().encode(s);
   let bin = "";
   for (const b of bytes) bin += String.fromCharCode(b);
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function b64urlDecode(s: string): string {
+export function b64urlDecode(s: string): string {
   const pad = s.length % 4 ? "=".repeat(4 - (s.length % 4)) : "";
   const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/") + pad);
   return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
