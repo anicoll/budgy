@@ -47,6 +47,8 @@ export interface SavedData {
   remember: boolean;
   loan: Partial<SharedLoan>;
   tools: Partial<Record<ToolKey, string>>;
+  /** The home page questions, once answered. Shape checked by profile.ts. */
+  profile?: unknown;
 }
 
 /** The bits of Storage we use, so tests can pass a plain object. */
@@ -111,6 +113,7 @@ export function parseSaved(text: string | null): SavedData {
       remember: typeof raw.remember === "boolean" ? raw.remember : REMEMBER_BY_DEFAULT,
       loan: cleanLoan(raw.loan),
       tools,
+      ...(raw.profile && typeof raw.profile === "object" ? { profile: raw.profile } : {}),
     };
   } catch {
     return emptySaved();
@@ -172,6 +175,13 @@ export function forgetAll(store = browserStore()): void {
     /* blocked */
   }
   writeSaved(emptySaved(false), store);
+}
+
+/** Save the home page answers. Does nothing when remembering is off. */
+export function saveProfile(profile: unknown, store = browserStore()): void {
+  const data = readSaved(store);
+  if (!data.remember) return;
+  writeSaved({ ...data, profile }, store);
 }
 
 /** Start remembering again. */

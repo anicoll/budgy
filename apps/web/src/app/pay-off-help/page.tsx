@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { HelpCalculator } from "@/components/HelpCalculator";
+import { JourneyBar } from "@/components/JourneyBar";
 
 export const metadata: Metadata = {
   title: "Pay off HELP early?",
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function PayOffHelpPage() {
   return (
-    <Suspense>
-      <HelpCalculator />
-    </Suspense>
+    <>
+      <JourneyBar current="help" />
+      <Suspense>
+        <HelpCalculator />
+      </Suspense>
+    </>
   );
 }

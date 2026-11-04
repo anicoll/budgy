@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { JourneyBar } from "@/components/JourneyBar";
 import { SuperCalculator } from "@/components/SuperCalculator";
 
 export const metadata: Metadata = {
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function SuperPage() {
   return (
-    <Suspense>
-      <SuperCalculator />
-    </Suspense>
+    <>
+      <JourneyBar current="super" />
+      <Suspense>
+        <SuperCalculator />
+      </Suspense>
+    </>
   );
 }

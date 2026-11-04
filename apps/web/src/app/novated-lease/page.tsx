@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { JourneyBar } from "@/components/JourneyBar";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 
 export const metadata: Metadata = {
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function NovatedLeasePage() {
   return (
-    <Suspense>
-      <LeaseCalculator />
-    </Suspense>
+    <>
+      <JourneyBar current="lease" />
+      <Suspense>
+        <LeaseCalculator />
+      </Suspense>
+    </>
   );
 }
