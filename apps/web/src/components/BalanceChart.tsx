@@ -1,17 +1,28 @@
 "use client";
 
 import type { BalancePoint } from "@budgy/engine";
+
+/** Any dated balance: loan simulations and debt plans both draw here. */
+type Point = Pick<BalancePoint, "date" | "balance">;
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { money, monthYearShort } from "@/lib/format";
 
 export interface Series {
   name: string;
   color: string;
-  points: BalancePoint[];
+  points: Point[];
   payoffDate: string;
 }
 
 const PAD = { l: 64, r: 16, t: 16, b: 32 };
+
+/** "$0", "$500", "$2.5k", "$600k" from cents. */
+function axisMoney(cents: number): string {
+  const d = cents / 100;
+  if (d < 1_000) return `$${Math.round(d)}`;
+  return `$${Number((d / 1_000).toFixed(d < 10_000 ? 1 : 0))}k`;
+}
 
 const dayOf = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
 
@@ -22,7 +33,13 @@ function niceStep(max: number): number {
 }
 
 /** Loan balance over time, one line per scenario, payoff marked with a dot. */
-export function BalanceChart({ series }: { series: Series[] }) {
+export function BalanceChart({
+  series,
+  label = "Loan balance over time for each scenario",
+}: {
+  series: Series[];
+  label?: string;
+}) {
   const [hover, setHover] = useState<number | null>(null);
   // Draw at the real pixel width so text stays readable on a phone.
   const box = useRef<HTMLDivElement>(null);
@@ -48,13 +65,14 @@ export function BalanceChart({ series }: { series: Series[] }) {
     const yTicks = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step);
     const y0 = new Date(x0 * 86_400_000).getUTCFullYear();
     const y1 = new Date(x1 * 86_400_000).getUTCFullYear();
-    const every = Math.max(1, Math.ceil((y1 - y0) / (W < 480 ? 4 : 6) / 5) * 5);
+    const span = (y1 - y0) / (W < 480 ? 4 : 6);
+    const every = span <= 1 ? 1 : span <= 2 ? 2 : Math.ceil(span / 5) * 5;
     const xTicks: number[] = [];
     for (let y = Math.ceil(y0 / every) * every; y <= y1; y += every) xTicks.push(y);
     return { x0, x1, xAt, yAt, yTicks, xTicks };
   }, [series, W, H]);
 
-  const pathFor = (pts: BalancePoint[]) =>
+  const pathFor = (pts: Point[]) =>
     pts
       .map(
         (p, i) =>
@@ -63,7 +81,7 @@ export function BalanceChart({ series }: { series: Series[] }) {
       .join("");
 
   const hoverDay = hover === null ? null : geo.x0 + hover * (geo.x1 - geo.x0);
-  const at = (pts: BalancePoint[], d: number) => {
+  const at = (pts: Point[], d: number) => {
     let last = pts[0];
     for (const p of pts) {
       if (dayOf(p.date) > d) break;
@@ -78,7 +96,7 @@ export function BalanceChart({ series }: { series: Series[] }) {
         viewBox={`0 0 ${W} ${H}`}
         className="w-full touch-none select-none"
         role="img"
-        aria-label="Loan balance over time for each scenario"
+        aria-label={label}
         onPointerMove={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           const x = ((e.clientX - r.left) / r.width) * W;
@@ -98,7 +116,7 @@ export function BalanceChart({ series }: { series: Series[] }) {
               fill="var(--muted)"
               className="num"
             >
-              {v === 0 ? "$0" : `$${Math.round(v / 100_000)}k`}
+              {axisMoney(v)}
             </text>
           </g>
         ))}
