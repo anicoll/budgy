@@ -106,6 +106,18 @@ export default function Home() {
             </span>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/super-or-mortgage"
+            className="block rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+          >
+            <span className="text-lg font-medium">Super or mortgage?</span>
+            <span className="mt-1 block text-sm text-muted">
+              Should spare cash go on the home loan or into super through salary sacrifice? See
+              which comes out ahead, and what you can reach before retirement.
+            </span>
+          </Link>
+        </li>
       </ul>
     </main>
   );
