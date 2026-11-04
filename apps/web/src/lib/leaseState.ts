@@ -23,7 +23,13 @@ export interface LeaseState {
   termYears: number;
   ratePct: number;
   residualPct?: number; // blank = the ATO minimum
-  fee: number; // management fee a year, with GST
+  fee: number; // management fee: a year with GST, or a month without (quote amounts)
+  establishmentFee: number; // one-off
+  financedFees: number; // PPSR, brokerage: added to the amount financed
+  otherMonthly: number; // other provider charges a month, such as a luxury car charge
+  inAdvance: boolean; // rentals at the start of each month
+  /** Running costs and fees typed as a quote shows them: a month, without GST. */
+  quoteAmounts: boolean;
   energy: number;
   rego: number;
   insurance: number;
@@ -53,6 +59,11 @@ export function defaultLeaseState(on = today()): LeaseState {
     termYears: 3,
     ratePct: 7.5,
     fee: 500,
+    establishmentFee: 0,
+    financedFees: 0,
+    otherMonthly: 0,
+    inAdvance: false,
+    quoteAmounts: false,
     energy: 800,
     rego: 900,
     insurance: 1_500,
@@ -92,7 +103,29 @@ export function toPayFromLease(s: LeaseState): PayInput {
   };
 }
 
+/**
+ * Switch running costs and the management fee between a year with GST and a
+ * month without GST (registration has none), keeping what they cost.
+ */
+export function switchQuoteAmounts(s: LeaseState, quoteAmounts: boolean): LeaseState {
+  if (s.quoteAmounts === quoteAmounts) return s;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const gst = (v: number) => r2(quoteAmounts ? v / 1.1 / 12 : v * 1.1 * 12);
+  const plain = (v: number) => r2(quoteAmounts ? v / 12 : v * 12);
+  return {
+    ...s,
+    quoteAmounts,
+    fee: gst(s.fee),
+    energy: gst(s.energy),
+    rego: plain(s.rego),
+    insurance: gst(s.insurance),
+    servicing: gst(s.servicing),
+  };
+}
+
 export function toLeaseInput(s: LeaseState, termYears = s.termYears): NovatedLeaseInput {
+  // Quote amounts are a month; the engine wants a year.
+  const yr = (v: number) => toCents(s.quoteAmounts ? v * 12 : v);
   return {
     pay: toPayFromLease(s),
     car: s.car,
@@ -102,13 +135,18 @@ export function toLeaseInput(s: LeaseState, termYears = s.termYears): NovatedLea
     termYears,
     rate: s.ratePct / 100,
     residualRate: s.residualPct === undefined ? undefined : s.residualPct / 100,
-    managementFee: toCents(s.fee),
+    managementFee: yr(s.fee),
+    establishmentFee: toCents(s.establishmentFee),
+    financedFees: toCents(s.financedFees),
+    otherCharges: toCents(s.otherMonthly * 12),
+    amountsExGst: s.quoteAmounts,
+    inAdvance: s.inAdvance,
     running: {
-      energy: toCents(s.energy),
-      registration: toCents(s.rego),
-      insurance: toCents(s.insurance),
+      energy: yr(s.energy),
+      registration: yr(s.rego),
+      insurance: yr(s.insurance),
       tyres: 0 as Cents,
-      maintenance: toCents(s.servicing),
+      maintenance: yr(s.servicing),
     },
     loanRate: s.loanPct === undefined ? undefined : s.loanPct / 100,
     savingsRate: s.savingsPct / 100,
@@ -139,6 +177,13 @@ export function encodeLeaseState(s: LeaseState): string {
     r: [s.energy, s.rego, s.insurance, s.servicing],
     x: [s.loanPct ?? null, s.savingsPct, SHOWS.indexOf(s.show)],
     q: [s.quoteFinanced ?? null, s.quoteResidual ?? null, s.quoteRental ?? null],
+    k: [
+      s.establishmentFee,
+      s.financedFees,
+      s.otherMonthly,
+      s.inAdvance ? 1 : 0,
+      s.quoteAmounts ? 1 : 0,
+    ],
   };
   return new URLSearchParams({
     v: String(LEASE_URL_VERSION),
@@ -153,7 +198,7 @@ export function decodeLeaseState(query: string, fallback = defaultLeaseState()):
     if (!raw || params.get("v") !== String(LEASE_URL_VERSION)) return fallback;
     const o = JSON.parse(b64urlDecode(raw));
     const arr = (v: unknown) => (Array.isArray(v) ? v : []);
-    const [p, c, l, r, x, q] = [o.p, o.c, o.l, o.r, o.x, o.q].map(arr);
+    const [p, c, l, r, x, q, k] = [o.p, o.c, o.l, o.r, o.x, o.q, o.k].map(arr);
     return {
       salary: money(p[0], fallback.salary),
       year: LEASE_YEARS.includes(p[1]) ? p[1] : fallback.year,
@@ -167,6 +212,11 @@ export function decodeLeaseState(query: string, fallback = defaultLeaseState()):
       ratePct: clamp(num(l[1], fallback.ratePct), 0, 30),
       residualPct: optional(l[2], 0, 99),
       fee: money(l[3], fallback.fee),
+      establishmentFee: money(k[0], 0),
+      financedFees: money(k[1], 0),
+      otherMonthly: money(k[2], 0),
+      inAdvance: k[3] === 1,
+      quoteAmounts: k[4] === 1,
       energy: money(r[0], fallback.energy),
       rego: money(r[1], fallback.rego),
       insurance: money(r[2], fallback.insurance),

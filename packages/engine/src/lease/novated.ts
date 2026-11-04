@@ -54,9 +54,25 @@ export interface NovatedLeaseInput {
   rate: number;
   /** Residual as a share of the amount financed. Default: the ATO minimum for the term. */
   residualRate?: number;
-  /** Provider's management fee a year, including GST. */
+  /** Provider's management fee a year, including GST (or without, with `amountsExGst`). */
   managementFee?: Cents;
+  /** One-off lease establishment fee, spread over the term like most providers do. */
+  establishmentFee?: Cents;
+  /** Fees added to the amount financed, such as a PPSR fee or brokerage. No GST. */
+  financedFees?: Cents;
+  /**
+   * Other provider charges a year, packaged as they are, such as a
+   * "luxury car charge" when the car costs more than the car limit.
+   */
+  otherCharges?: Cents;
   running: RunningCosts;
+  /**
+   * Running costs and fees are already without GST, as a provider's quote
+   * shows its budgets. Otherwise they include GST and it's taken off.
+   */
+  amountsExGst?: boolean;
+  /** Rentals are charged at the start of each month, not the end. */
+  inAdvance?: boolean;
   /** Car loan rate for the comparison, such as 0.08. Leave out to skip the loan. */
   loanRate?: number;
   /** What cash would earn a year in savings or an offset, before tax, for the cash comparison. */
@@ -133,6 +149,8 @@ export interface NovatedLeaseResult {
   /** Running costs a year without GST, as packaged. */
   runningPackaged: Cents;
   managementFeePackaged: Cents;
+  /** Establishment fee and other charges a year, as packaged. */
+  otherPackaged: Cents;
   years: LeaseYear[];
   /** First-year figures per pay period. */
   perPay: Record<
@@ -191,17 +209,22 @@ export function luxuryCarTax(price: Cents, car: CarKind, rules: CarRules): Cents
   return toC(((price - threshold) / 1.1) * (LCT_RATE / (1 + LCT_RATE / 1.1)));
 }
 
-/** Finance rental a month (in arrears) to pay `financed` down to `residual` over `months`. */
+/**
+ * Finance rental a month to pay `financed` down to `residual` over `months`,
+ * paid at the end of each month, or at the start with `inAdvance`.
+ */
 export function leaseRental(
   financed: number,
   residual: number,
   annualRate: number,
   months: number,
+  inAdvance = false,
 ): Cents {
   const r = annualRate / 12;
   if (r === 0) return toC((financed - residual) / months);
   const f = (1 + r) ** months;
-  return toC(((financed * f - residual) * r) / (f - 1));
+  const arrears = ((financed * f - residual) * r) / (f - 1);
+  return toC(inAdvance ? arrears / (1 + r) : arrears);
 }
 
 /**
@@ -213,8 +236,9 @@ export function impliedLeaseRate(
   residual: Cents,
   months: number,
   monthlyRental: Cents,
+  inAdvance = false,
 ): number | null {
-  const at = (rate: number) => leaseRental(financed, residual, rate, months);
+  const at = (rate: number) => leaseRental(financed, residual, rate, months, inAdvance);
   let lo = 0;
   let hi = 0.5;
   if (monthlyRental < at(lo) || monthlyRental > at(hi)) return null;
@@ -257,6 +281,13 @@ export function validateLease(input: NovatedLeaseInput): string[] {
     (!money(input.managementFee) || input.managementFee > MAX_PRICE)
   )
     errors.push("The management fee should be between $0 and $1 million.");
+  for (const [v, label] of [
+    [input.establishmentFee, "The establishment fee"],
+    [input.financedFees, "Financed fees"],
+    [input.otherCharges, "Other charges"],
+  ] as const)
+    if (v !== undefined && (!money(v) || v > MAX_PRICE))
+      errors.push(`${label} should be between $0 and $1 million.`);
   const r = input.running;
   for (const v of [r.energy, r.registration, r.insurance, r.tyres, r.maintenance, amt(r.other)])
     if (!money(v) || v > MAX_PRICE) {
@@ -289,18 +320,24 @@ export function calculateNovatedLease(input: NovatedLeaseInput): NovatedLeaseRes
 
   // What's financed, and the rental.
   const gstCredit = toC(Math.min(price, rules.carLimit) / 11);
-  const financed = (price - gstCredit + amt(input.onRoadCosts)) as Cents;
+  const financed = (price - gstCredit + amt(input.onRoadCosts) + amt(input.financedFees)) as Cents;
   const minimum = atoResidual(years);
   const residualRate = input.residualRate ?? minimum;
   if (residualRate < minimum - 1e-9) warnings.push({ kind: "residual-below-ato", minimum });
   const residual = toC(financed * residualRate);
   const residualWithGst = toC(residual * 1.1);
-  const monthlyRental = leaseRental(financed, residual, input.rate, months);
+  const monthlyRental = leaseRental(financed, residual, input.rate, months, input.inAdvance);
   const r = input.running;
+  // The employer claims back GST, so what's packaged has none.
+  const exGst = (v: number) => (input.amountsExGst ? v : v / 1.1);
   const gstable = r.energy + r.insurance + r.tyres + r.maintenance + amt(r.other);
-  const runningPackaged = toC(gstable / 1.1 + r.registration);
-  const managementFeePackaged = toC(amt(input.managementFee) / 1.1);
-  const packageCost = (monthlyRental * 12 + runningPackaged + managementFeePackaged) as Cents;
+  const runningPackaged = toC(exGst(gstable) + r.registration);
+  const managementFeePackaged = toC(exGst(amt(input.managementFee)));
+  const otherPackaged = toC(exGst(amt(input.establishmentFee)) / years + amt(input.otherCharges));
+  const packageCost = (monthlyRental * 12 +
+    runningPackaged +
+    managementFeePackaged +
+    otherPackaged) as Cents;
 
   const payBefore = calculatePay(input.pay);
   const leaseYears: LeaseYear[] = [];
@@ -357,7 +394,7 @@ export function calculateNovatedLease(input: NovatedLeaseInput): NovatedLeaseRes
   const leaseTotal = (totals.cost + residualWithGst) as Cents;
 
   // Cash: pay the GST-inclusive price and on-roads now, running costs with GST from net pay.
-  const runningWithGst = gstable + r.registration;
+  const runningWithGst = (input.amountsExGst ? gstable * 1.1 : gstable) + r.registration;
   const upfront = (price + amt(input.onRoadCosts)) as Cents;
   const afterTaxSavings = (input.savingsRate ?? 0) * (1 - payBefore.marginalRate);
   const lostInterest = toC(upfront * ((1 + afterTaxSavings) ** years - 1));
@@ -395,6 +432,7 @@ export function calculateNovatedLease(input: NovatedLeaseInput): NovatedLeaseRes
     financeCharges: (monthlyRental * months + residual - financed) as Cents,
     runningPackaged,
     managementFeePackaged,
+    otherPackaged,
     years: leaseYears,
     perPay: { weekly: per(52), fortnightly: per(26), monthly: per(12) },
     totals,

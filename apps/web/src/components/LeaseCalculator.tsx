@@ -22,6 +22,7 @@ import {
   type LeasePer,
   type LeaseState,
   leaseStateFromPay,
+  switchQuoteAmounts,
   toLeaseInput,
 } from "@/lib/leaseState";
 import { readSaved } from "@/lib/saved";
@@ -49,6 +50,8 @@ const TERMS = [1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: `${n} yr` }
 
 const pct = (v: number, digits = 2) =>
   `${(v * 100).toLocaleString("en-AU", { minimumFractionDigits: digits, maximumFractionDigits: digits })}%`;
+const hasQuoteExtras = (s: LeaseState) =>
+  s.establishmentFee > 0 || s.financedFees > 0 || s.otherMonthly > 0 || s.inAdvance;
 const years = (n: number) => `${n} year${n === 1 ? "" : "s"}`;
 
 function safe<T>(fn: () => T): T | null {
@@ -124,7 +127,7 @@ export function LeaseCalculator() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
-        <Inputs state={state} set={set} result={result} />
+        <Inputs state={state} set={set} setAll={setState} result={result} />
 
         <section className="min-w-0 space-y-4" aria-label="Results">
           {errors.length > 0 && (
@@ -189,10 +192,12 @@ export function LeaseCalculator() {
 function Inputs({
   state,
   set,
+  setAll,
   result,
 }: {
   state: LeaseState;
   set: (p: Partial<LeaseState>) => void;
+  setAll: (f: (s: LeaseState) => LeaseState) => void;
   result: NovatedLeaseResult | null;
 }) {
   const min = atoResidual(state.termYears);
@@ -277,7 +282,7 @@ function Inputs({
           />
           <MoneyField
             label="Management fee"
-            hint="A year, with GST"
+            hint={state.quoteAmounts ? "A month, no GST" : "A year, with GST"}
             value={state.fee}
             onChange={(v) => set({ fee: v ?? 0 })}
           />
@@ -299,10 +304,52 @@ function Inputs({
             onChange={(v) => set({ residualPct: v })}
           />
         </div>
+        <details className="group" open={hasQuoteExtras(state)}>
+          <summary className="cursor-pointer text-sm font-medium text-accent">
+            Fees and charges from a quote
+          </summary>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <MoneyField
+              label="Establishment fee"
+              hint="One-off, spread over the lease"
+              value={state.establishmentFee}
+              onChange={(v) => set({ establishmentFee: v ?? 0 })}
+            />
+            <MoneyField
+              label="Fees financed"
+              hint="Such as PPSR or brokerage"
+              value={state.financedFees}
+              onChange={(v) => set({ financedFees: v ?? 0 })}
+            />
+            <MoneyField
+              label="Other charges a month"
+              hint="Such as a luxury car charge"
+              value={state.otherMonthly}
+              onChange={(v) => set({ otherMonthly: v ?? 0 })}
+            />
+          </div>
+          <div className="mt-3">
+            <Check
+              label="Payments at the start of each month"
+              hint="Some providers charge rentals in advance"
+              checked={state.inAdvance}
+              onChange={(v) => set({ inAdvance: v })}
+            />
+          </div>
+        </details>
       </section>
 
       <section className={`${card} space-y-4`} aria-label="Running costs">
-        <h2 className="font-semibold">Running costs a year</h2>
+        <h2 className="font-semibold">Running costs</h2>
+        <Segmented
+          label="Running costs are"
+          options={[
+            { value: "year", label: "A year, with GST" },
+            { value: "quote", label: "A month, no GST" },
+          ]}
+          value={state.quoteAmounts ? "quote" : "year"}
+          onChange={(v) => setAll((s) => switchQuoteAmounts(s, v === "quote"))}
+        />
         <div className="grid grid-cols-2 gap-3">
           <MoneyField
             label={
@@ -328,8 +375,10 @@ function Inputs({
           />
         </div>
         <p className="text-xs text-muted">
-          Include GST. Your employer claims it back, so the lease packages them without it
-          {result ? ` (${moneyExact(result.runningPackaged)} a year)` : ""}.
+          {state.quoteAmounts
+            ? "As a provider's quote shows its budgets, a month without GST"
+            : "Include GST. Your employer claims it back, so the lease packages them without it"}
+          {result ? ` (${moneyExact(result.runningPackaged)} a year packaged)` : ""}.
         </p>
       </section>
 
@@ -424,6 +473,9 @@ function Breakdown({ result }: { result: NovatedLeaseResult }) {
     ["Lease payments, no GST", (result.monthlyRental * 12) as Cents],
     ["Running costs, no GST", result.runningPackaged],
     ["Management fee, no GST", result.managementFeePackaged],
+    ...(result.otherPackaged > 0
+      ? [["Establishment fee and other charges", result.otherPackaged] as [string, Cents]]
+      : []),
     ["From your pay before tax", y.preTax],
     ["From your pay after tax, to cover FBT", y.postTax],
     ["Less tax and Medicare you save", -y.taxSaved as Cents, "text-good"],
@@ -614,15 +666,19 @@ function QuoteCheck({
   set: (p: Partial<LeaseState>) => void;
   result: NovatedLeaseResult;
 }) {
-  const [open, setOpen] = useState(state.quoteRental !== undefined);
+  const [opened, setOpen] = useState(false);
+  // Saved inputs load after the first render, so open for a saved quote then too.
+  const open = opened || state.quoteRental !== undefined;
   const financed = state.quoteFinanced ?? result.financed / 100;
   const residual = state.quoteResidual ?? result.residual / 100;
   const months = state.termYears * 12;
   const rental = state.quoteRental;
   const c = (d: number) => Math.round(d * 100) as Cents;
   const implied =
-    rental === undefined ? null : impliedLeaseRate(c(financed), c(residual), months, c(rental));
-  const bench = leaseRental(c(financed), c(residual), state.ratePct / 100, months);
+    rental === undefined
+      ? null
+      : impliedLeaseRate(c(financed), c(residual), months, c(rental), state.inAdvance);
+  const bench = leaseRental(c(financed), c(residual), state.ratePct / 100, months, state.inAdvance);
   const extra = rental === undefined ? 0 : c(rental) - bench;
   return (
     <div className={card}>
@@ -695,8 +751,9 @@ function QuoteCheck({
                 </>
               )}
               <p className="mt-2 text-xs text-muted">
-                Monthly payments in arrears. If your provider charges in advance, the real rate is a
-                little higher than shown.
+                {state.inAdvance
+                  ? "Payments at the start of each month, as set in the lease above."
+                  : "Payments at the end of each month. If your provider charges at the start, tick that in the lease above."}
               </p>
             </div>
           )}
@@ -714,8 +771,8 @@ function Sources({ result, year }: { result: NovatedLeaseResult; year: string })
       employer claims back ({moneyExact(result.gstCredit)} here), the{" "}
       <a href={result.carRules.sources[0]}>luxury car tax thresholds</a>, and the FBT statutory
       formula (20% of the car&apos;s price) with the employee contribution method, which almost
-      every provider uses. Payments are monthly in arrears, and later years use this year&apos;s tax
-      rates. Not financial advice: check a real quote before you sign.
+      every provider uses. Later years use this year&apos;s tax rates. Not financial advice: check a
+      real quote before you sign.
     </p>
   );
 }
