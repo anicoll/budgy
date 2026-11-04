@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { JourneyBar } from "@/components/JourneyBar";
 import { MortgageCalculator } from "@/components/MortgageCalculator";
 
 export const metadata: Metadata = {
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function MortgagePage() {
   return (
-    <Suspense>
-      <MortgageCalculator />
-    </Suspense>
+    <>
+      <JourneyBar current="mortgage" />
+      <Suspense>
+        <MortgageCalculator />
+      </Suspense>
+    </>
   );
 }

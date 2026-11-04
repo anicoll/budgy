@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { JourneyBar } from "@/components/JourneyBar";
 import { SuperOrMortgage } from "@/components/SuperOrMortgage";
 
 export const metadata: Metadata = {
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function SuperOrMortgagePage() {
   return (
-    <Suspense>
-      <SuperOrMortgage />
-    </Suspense>
+    <>
+      <JourneyBar current="super-mortgage" />
+      <Suspense>
+        <SuperOrMortgage />
+      </Suspense>
+    </>
   );
 }

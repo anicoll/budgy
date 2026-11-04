@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { JourneyBar } from "@/components/JourneyBar";
 import { PayCalculator } from "@/components/PayCalculator";
 
 export const metadata: Metadata = {
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function PayPage() {
   return (
-    <Suspense>
-      <PayCalculator />
-    </Suspense>
+    <>
+      <JourneyBar current="pay" />
+      <Suspense>
+        <PayCalculator />
+      </Suspense>
+    </>
   );
 }

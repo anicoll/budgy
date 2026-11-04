@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BorrowingCalculator } from "@/components/BorrowingCalculator";
+import { JourneyBar } from "@/components/JourneyBar";
 
 export const metadata: Metadata = {
   title: "How much can I borrow?",
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function BorrowPage() {
   return (
-    <Suspense>
-      <BorrowingCalculator />
-    </Suspense>
+    <>
+      <JourneyBar current="borrow" />
+      <Suspense>
+        <BorrowingCalculator />
+      </Suspense>
+    </>
   );
 }

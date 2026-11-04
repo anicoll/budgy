@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BudgetPlanner } from "@/components/BudgetPlanner";
+import { JourneyBar } from "@/components/JourneyBar";
 
 export const metadata: Metadata = {
   title: "Budget planner",
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function BudgetPage() {
   return (
-    <Suspense>
-      <BudgetPlanner />
-    </Suspense>
+    <>
+      <JourneyBar current="budget" />
+      <Suspense>
+        <BudgetPlanner />
+      </Suspense>
+    </>
   );
 }

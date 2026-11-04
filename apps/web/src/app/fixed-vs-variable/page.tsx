@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { FixedVariableCalculator } from "@/components/FixedVariableCalculator";
+import { JourneyBar } from "@/components/JourneyBar";
 
 export const metadata: Metadata = {
   title: "Fixed or variable",
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 
 export default function FixedVsVariablePage() {
   return (
-    <Suspense>
-      <FixedVariableCalculator />
-    </Suspense>
+    <>
+      <JourneyBar current="fixed" />
+      <Suspense>
+        <FixedVariableCalculator />
+      </Suspense>
+    </>
   );
 }
