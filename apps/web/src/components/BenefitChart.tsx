@@ -22,15 +22,17 @@ const tickLabel = (v: number) => {
 };
 
 /**
- * How far ahead (or behind) switching leaves you, month by month. One line,
- * a zero line, and a dot where it breaks even.
+ * How far ahead (or behind) a choice leaves you, month by month. One line,
+ * a zero line, and a dot on the month that matters (break-even, say).
  */
 export function BenefitChart({
   points,
-  breakEvenMonth,
+  markerMonth,
+  label = "How far ahead switching leaves you over time",
 }: {
-  points: RefinancePoint[];
-  breakEvenMonth: number | null;
+  points: Pick<RefinancePoint, "date" | "benefit">[];
+  markerMonth: number | null;
+  label?: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -69,7 +71,7 @@ export function BenefitChart({
     .map((p, i) => `${i ? "L" : "M"}${geo.xAt(i).toFixed(1)} ${geo.yAt(p.benefit).toFixed(1)}`)
     .join("");
   const shown = hover === null ? null : points[hover];
-  const be = breakEvenMonth !== null && breakEvenMonth < points.length ? breakEvenMonth : null;
+  const be = markerMonth !== null && markerMonth < points.length ? markerMonth : null;
 
   return (
     <figure ref={box}>
@@ -77,7 +79,7 @@ export function BenefitChart({
         viewBox={`0 0 ${W} ${H}`}
         className="w-full touch-none select-none"
         role="img"
-        aria-label="How far ahead switching leaves you over time"
+        aria-label={label}
         onPointerMove={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           const x = ((e.clientX - r.left) / r.width) * W;

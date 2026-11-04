@@ -1,7 +1,7 @@
 import { addMonths, monthsBetween, toDay, toIso } from "../dates";
 import type { Cents } from "../money/cents";
+import { interestBy } from "./scenarios";
 import {
-  type BalancePoint,
   type LoanInput,
   minimumRepayment,
   type RateChange,
@@ -144,16 +144,6 @@ export function proposedLoanInput(input: RefinanceInput): LoanInput {
     loan.repayment = Math.max(now, min) as Cents;
   }
   return loan;
-}
-
-/** Interest charged up to `day`, from the monthly balance points. */
-function interestBy(points: BalancePoint[], day: number): number {
-  let last = 0;
-  for (const p of points) {
-    if (toDay(p.date) > day) break;
-    last = p.interestToDate;
-  }
-  return last;
 }
 
 /** Ongoing fees charged by `month`, a twelfth a month while the loan is open. */
