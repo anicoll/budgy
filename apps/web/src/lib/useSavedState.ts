@@ -8,6 +8,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { PAY_PEOPLE, type PeopleMap } from "./household";
+import { decodePayState } from "./payState";
+import { parseProfile } from "./profile";
 import {
   forgetAll,
   readSaved,
@@ -30,6 +33,8 @@ export interface SavedConfig<T> {
     read: (state: T) => Partial<SharedLoan>;
     apply: (state: T, loan: Partial<SharedLoan>) => T;
   };
+  /** How this tool's people map onto the shared household. Leave out if it asks about nobody. */
+  people?: PeopleMap<T>;
   /** A last say on opening, such as taking in another tool's saved inputs. */
   adopt?: (state: T, ctx: { search: string; data: SavedData; fresh: boolean }) => T;
 }
@@ -67,6 +72,18 @@ export function useSavedState<T>(cfg: SavedConfig<T>): Saved<T> {
       const start = startingPoint(cfg.tool, search, data);
       let s = start.query ? cfg.decode(start.query) : cfg.initial();
       if (start.mode === "saved" && cfg.loan) s = cfg.loan.apply(s, data.loan);
+      if (start.mode === "saved" && cfg.people) {
+        const who = parseProfile(data.profile)?.who;
+        // Saves from before people were shared: start from the pay calculator.
+        const people =
+          data.people.length || !data.tools.pay
+            ? data.people
+            : PAY_PEOPLE.read(decodePayState(data.tools.pay));
+        s = cfg.people.apply(s, people, {
+          fresh: !start.query,
+          household: who === "two" ? 2 : who === "me" ? 1 : null,
+        });
+      }
       if (cfg.adopt) s = cfg.adopt(s, { search, data, fresh: !start.query });
       setState(s);
       setMode(start.mode);
@@ -84,7 +101,13 @@ export function useSavedState<T>(cfg: SavedConfig<T>): Saved<T> {
   // Save straight away, so following a link right after an edit keeps it.
   useEffect(() => {
     if (!loaded || mode !== "saved") return;
-    saveTool(cfg.tool, cfg.encode(state), cfg.loan?.read(state));
+    saveTool(
+      cfg.tool,
+      cfg.encode(state),
+      cfg.loan?.read(state),
+      undefined,
+      cfg.people?.read(state),
+    );
     setHasOwn(true);
   }, [state, loaded, mode, cfg]);
 

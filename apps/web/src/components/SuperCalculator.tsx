@@ -19,6 +19,7 @@ import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
 import { money, monthYear } from "@/lib/format";
+import { SUPER_PEOPLE } from "@/lib/household";
 import {
   type AccountRow,
   decodeSuperState,
@@ -43,6 +44,7 @@ const SUPER_SAVED: SavedConfig<SuperState> = {
   initial: () => defaultSuperState(),
   decode: (q) => decodeSuperState(q),
   encode: encodeSuperState,
+  people: SUPER_PEOPLE,
 };
 
 export function SuperCalculator() {

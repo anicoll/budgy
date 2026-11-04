@@ -42,11 +42,25 @@ export interface SharedLoan {
   offset: number; // dollars
 }
 
+/** One person in the household, shared by the tools that ask about people. */
+export interface SharedPerson {
+  name?: string;
+  salary?: number; // dollars a year, before tax, without employer super
+  help?: boolean; // has a HELP or other study loan
+  hospitalCover?: boolean;
+  age?: number;
+  superBalance?: number; // dollars
+}
+
+export const MAX_SHARED_PEOPLE = 4;
+
 export interface SavedData {
   v: typeof SAVED_VERSION;
   remember: boolean;
   loan: Partial<SharedLoan>;
   tools: Partial<Record<ToolKey, string>>;
+  /** You, then your partner. Each tool fills in what it knows. */
+  people: SharedPerson[];
   /** The home page questions, once answered. Shape checked by profile.ts. */
   profile?: unknown;
 }
@@ -74,7 +88,7 @@ const TOOLS: ToolKey[] = [
 const FREQUENCIES: Frequency[] = ["weekly", "fortnightly", "monthly"];
 
 export function emptySaved(remember = REMEMBER_BY_DEFAULT): SavedData {
-  return { v: SAVED_VERSION, remember, loan: {}, tools: {} };
+  return { v: SAVED_VERSION, remember, loan: {}, tools: {}, people: [] };
 }
 
 const inRange = (v: unknown, lo: number, hi: number): v is number =>
@@ -95,6 +109,32 @@ export function cleanLoan(raw: unknown): Partial<SharedLoan> {
   return out;
 }
 
+/** Keep only people fields that are present and sensible. */
+export function cleanPeople(raw: unknown): SharedPerson[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, MAX_SHARED_PEOPLE).map((r) => {
+    const out: SharedPerson = {};
+    if (!r || typeof r !== "object") return out;
+    const p = r as Record<string, unknown>;
+    if (typeof p.name === "string" && p.name.trim() && p.name.length <= 40)
+      out.name = p.name.trim();
+    if (inRange(p.salary, 0, 1e8)) out.salary = p.salary;
+    if (typeof p.help === "boolean") out.help = p.help;
+    if (typeof p.hospitalCover === "boolean") out.hospitalCover = p.hospitalCover;
+    if (inRange(p.age, 0, 120)) out.age = p.age;
+    if (inRange(p.superBalance, 0, 1e9)) out.superBalance = p.superBalance;
+    return out;
+  });
+}
+
+/** Lay `update` over `base`, person by person, keeping fields `update` doesn't set. */
+export function mergePeople(base: SharedPerson[], update: SharedPerson[]): SharedPerson[] {
+  const n = Math.max(base.length, update.length);
+  const out: SharedPerson[] = [];
+  for (let i = 0; i < n; i++) out.push({ ...base[i], ...cleanPeople([update[i] ?? {}])[0] });
+  return cleanPeople(out);
+}
+
 /** Parse what's stored. Anything missing, old or broken gives a clean start. */
 export function parseSaved(text: string | null): SavedData {
   if (!text) return emptySaved();
@@ -113,6 +153,7 @@ export function parseSaved(text: string | null): SavedData {
       remember: typeof raw.remember === "boolean" ? raw.remember : REMEMBER_BY_DEFAULT,
       loan: cleanLoan(raw.loan),
       tools,
+      people: cleanPeople(raw.people),
       ...(raw.profile && typeof raw.profile === "object" ? { profile: raw.profile } : {}),
     };
   } catch {
@@ -154,6 +195,7 @@ export function saveTool(
   query: string,
   loan: Partial<SharedLoan> = {},
   store = browserStore(),
+  people: SharedPerson[] = [],
 ): void {
   const data = readSaved(store);
   if (!data.remember) return;
@@ -162,6 +204,7 @@ export function saveTool(
       ...data,
       loan: { ...data.loan, ...cleanLoan(loan) },
       tools: { ...data.tools, [tool]: query },
+      people: mergePeople(data.people, people),
     },
     store,
   );

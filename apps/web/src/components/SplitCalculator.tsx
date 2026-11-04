@@ -17,6 +17,7 @@ import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
+import { SPLIT_PEOPLE } from "@/lib/household";
 import { withLoanFields } from "@/lib/saved";
 import {
   type Borrower,
@@ -53,6 +54,7 @@ const SPLIT_SAVED: SavedConfig<SplitState> = {
     read: ({ loan }) => loan,
     apply: (s, loan) => ({ ...s, loan: withLoanFields(s.loan, loan) }),
   },
+  people: SPLIT_PEOPLE,
 };
 
 export function SplitCalculator() {

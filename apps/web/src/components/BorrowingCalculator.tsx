@@ -20,6 +20,7 @@ import {
   toBorrowInput,
 } from "@/lib/borrowState";
 import { money } from "@/lib/format";
+import { BORROW_PEOPLE } from "@/lib/household";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
@@ -29,6 +30,7 @@ const BORROW_SAVED: SavedConfig<BorrowForm> = {
   initial: () => defaultBorrow(),
   decode: (q) => decodeBorrow(q),
   encode: encodeBorrow,
+  people: BORROW_PEOPLE,
 };
 
 /** Lenders quote in round thousands, so do we. */

@@ -14,6 +14,7 @@ import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
 import { budgetLinkFromPay } from "@/lib/budgetState";
 import { money, moneyExact } from "@/lib/format";
+import { PAY_PEOPLE } from "@/lib/household";
 import {
   annualise,
   decodePayState,
@@ -35,6 +36,7 @@ const PAY_SAVED: SavedConfig<PayState> = {
   initial: () => defaultPayState(),
   decode: (q) => decodePayState(q),
   encode: encodePayState,
+  people: PAY_PEOPLE,
 };
 
 const ENTRY: { value: EntryPer; label: string }[] = [

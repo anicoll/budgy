@@ -66,8 +66,8 @@ export function newSomPerson(id: string, name: string): SomPersonRow {
 export function defaultSomState(start = today()): SomState {
   return {
     people: [
-      { ...newSomPerson("p1", "Alex"), salary: 120_000, superBalance: 150_000 },
-      { ...newSomPerson("p2", "Sam"), age: 38, salary: 70_000, superBalance: 90_000 },
+      { ...newSomPerson("p1", "You"), salary: 120_000, superBalance: 150_000 },
+      { ...newSomPerson("p2", "Partner"), age: 38, salary: 70_000, superBalance: 90_000 },
     ],
     loan: { balance: 600_000, ratePct: 6, termYears: 25, frequency: "monthly", offset: 0 },
     spare: 500,

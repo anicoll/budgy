@@ -56,8 +56,8 @@ export function defaultSplitState(start = today()): SplitState {
       propertyValue: 800_000,
     },
     borrowers: [
-      { ...newBorrower("p1", "Alex", 50), deposit: 120_000, extra: 300 },
-      { ...newBorrower("p2", "Sam", 50), deposit: 80_000 },
+      { ...newBorrower("p1", "You", 50), deposit: 120_000, extra: 300 },
+      { ...newBorrower("p2", "Partner", 50), deposit: 80_000 },
     ],
   };
 }
