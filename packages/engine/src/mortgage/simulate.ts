@@ -66,6 +66,8 @@ export interface YearRow {
 export interface BalancePoint {
   date: string;
   balance: Cents;
+  /** Interest charged from the start up to and including this date. */
+  interestToDate: Cents;
 }
 
 export interface SimulationResult {
@@ -202,7 +204,9 @@ export function simulateLoan(input: LoanInput): SimulationResult {
   }
 
   const events: LoanEvent[] = [];
-  const balances: BalancePoint[] = [{ date: startDate, balance: balance as Cents }];
+  const balances: BalancePoint[] = [
+    { date: startDate, balance: balance as Cents, interestToDate: 0 as Cents },
+  ];
   const yearly: YearRow[] = [];
   let yearInterest = 0;
   let yearPrincipal = 0;
@@ -296,7 +300,13 @@ export function simulateLoan(input: LoanInput): SimulationResult {
       events.push({ date: toIso(day), type: "lump-sum", amount: paid as Cents });
     }
 
-    if (chargeDay) balances.push({ date: toIso(day), balance: balance as Cents });
+    if (chargeDay) {
+      balances.push({
+        date: toIso(day),
+        balance: balance as Cents,
+        interestToDate: totalInterest as Cents,
+      });
+    }
 
     if (balance <= 0 && accrued < 0.5) {
       payoffDay = day;
@@ -317,7 +327,11 @@ export function simulateLoan(input: LoanInput): SimulationResult {
   if (paidOff) {
     if (yearInterest !== 0 || yearPrincipal !== 0) closeYear(payoffDay);
     if (balances.at(-1)?.date !== toIso(payoffDay)) {
-      balances.push({ date: toIso(payoffDay), balance: 0 as Cents });
+      balances.push({
+        date: toIso(payoffDay),
+        balance: 0 as Cents,
+        interestToDate: totalInterest as Cents,
+      });
     }
   } else {
     payoffDay = lastDay;

@@ -2,6 +2,7 @@ export * from "./dates";
 export * from "./money/cents";
 export * from "./mortgage/amortise";
 export * from "./mortgage/inverse";
+export * from "./mortgage/refinance";
 export * from "./mortgage/scenarios";
 export {
   type BalancePoint,
