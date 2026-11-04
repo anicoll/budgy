@@ -1,0 +1,71 @@
+name: Update RBA rates
+
+# The RBA publishes Table F6 about five business days into each month.
+# This checks on the 10th and opens a PR when there's a new month.
+on:
+  schedule:
+    - cron: "0 22 10 * *" # 10th, 22:00 UTC (morning of the 11th in Australia)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # PRs opened with the default GITHUB_TOKEN don't trigger CI, so use a
+          # token with contents and pull-requests write when one is set.
+          token: ${{ secrets.RBA_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Refresh the F6 snapshot
+        id: refresh
+        run: |
+          python3 -I scripts/update_rba_rates.py | tee summary.txt
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "month=$(grep -oP '^  month: "\K[0-9-]+' packages/engine/src/mortgage/rbaRates.ts)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.refresh.outputs.changed == 'true'
+        uses: pnpm/action-setup@v6
+
+      - if: steps.refresh.outputs.changed == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Test the engine
+        if: steps.refresh.outputs.changed == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @budgy/engine test
+
+      - name: Open a PR
+        if: steps.refresh.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RBA_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          MONTH: ${{ steps.refresh.outputs.month }}
+        run: |
+          branch="rba-rates/$MONTH"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "$branch already exists; leaving it alone"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -am "Update RBA average home loan rates to $MONTH"
+          git push -u origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "Update RBA average home loan rates to $MONTH" \
+            --body "$(printf '%s\n\n%s\n\n%s\n' \
+              "Monthly refresh of the RBA Table F6 averages used by the rate check." \
+              "$(cat summary.txt)" \
+              "Source: https://www.rba.gov.au/statistics/tables/#interest-rates. Check a couple of figures against the RBA's table before merging.")"
