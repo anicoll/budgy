@@ -346,7 +346,8 @@ export function compareSuperOrMortgage(input: SuperOrMortgageInput): SuperOrMort
   if (carriedForward) warnings.push({ kind: "rules-carried-forward", year: sup.year });
   input.people.forEach((p, i) => {
     const s = into(i, spareYear);
-    if (s.afterTax > 0) warnings.push({ kind: "over-cap", personId: p.id, afterTax: s.afterTax });
+    if (s.afterTax > 0 && s.sacrifice >= s.capHeadroom)
+      warnings.push({ kind: "over-cap", personId: p.id, afterTax: s.afterTax });
     const e = sacrificeEffect(p, taxYear, s.sacrifice);
     if (e.division293 > 0)
       warnings.push({ kind: "division-293", personId: p.id, extra: e.division293 });
