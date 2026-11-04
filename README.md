@@ -4,7 +4,7 @@ Budgy is being rebuilt as a set of free, public financial planning tools for Aus
 
 ## Status
 
-The first tool, the mortgage what-if calculator, is built. It isn't deployed yet.
+The tools are live at https://anicoll.github.io/budgy/. Every green CI run on `main` deploys the static site to GitHub Pages (`.github/workflows/deploy.yml`), built with `BASE_PATH=/budgy`.
 
 - `packages/engine`: the calculation code (pure TypeScript, integer cents, tested)
 - `apps/web`: the public site, one page per tool, static and login-free (`/mortgage`)
