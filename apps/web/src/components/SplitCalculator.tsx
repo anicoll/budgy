@@ -114,12 +114,7 @@ export function SplitCalculator() {
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
       <header className="mb-6">
-        <a href=".." className="text-sm text-muted hover:text-text">
-          ← All tools
-        </a>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-          Co-borrower split
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Co-borrower split</h1>
         <p className="mt-1 max-w-2xl text-muted">
           Sharing a home loan with a partner, friend or family? Split it by share, see what each of
           you pays, what happens when one of you pays extra, and who owns how much. Your numbers

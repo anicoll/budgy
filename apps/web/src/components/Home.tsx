@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { HOME_HREF, type HomeView, SAVED_CHANGED, viewParam } from "@/components/SiteHeader";
 import { type Idea, ideas, snapshot, type Tile } from "@/lib/dashboard";
 import {
   buildJourney,
@@ -35,54 +37,59 @@ const secondary =
 const href = (key: ToolKey) => `${tool(key).href}/`;
 
 export function Home() {
+  const router = useRouter();
+  const asked = viewParam(useSearchParams().get("view"));
   const [data, setData] = useState<SavedData>(() => emptySaved());
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [view, setView] = useState<View>("questions");
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const load = () => {
       const d = readSaved();
-      const p = parseProfile(d.profile);
       setData(d);
-      setProfile((was) => p ?? was);
-      return p;
+      setProfile(parseProfile(d.profile));
     };
-    if (load()) setView("dashboard");
+    load();
+    setLoaded(true);
     // Another tab may fill in a tool or change the answers.
-    const onStorage = () => load();
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener("storage", load);
+    return () => window.removeEventListener("storage", load);
   }, []);
+
+  // The header links choose the view; without one, answered means the dashboard.
+  const view: View =
+    asked === "all" ? "all" : asked === "answers" || !profile ? "questions" : "dashboard";
+  const go = (to: HomeView) => {
+    router.push(HOME_HREF[to]);
+    window.scrollTo({ top: 0 });
+  };
+  const changed = () => {
+    setData(readSaved());
+    window.dispatchEvent(new Event(SAVED_CHANGED));
+  };
 
   const finish = (p: Profile) => {
     saveProfile(storeProfile(p));
     setProfile(p);
-    setData(readSaved());
-    setView("dashboard");
-    window.scrollTo({ top: 0 });
+    changed();
+    go("dashboard");
   };
 
   return (
     <div className="min-h-dvh">
-      <SiteHeader
-        view={view}
-        hasProfile={profile !== null}
-        onDashboard={() => setView(profile ? "dashboard" : "questions")}
-        onAll={() => setView("all")}
-        onAnswers={() => setView("questions")}
-        remembering={data.remember}
-      />
       {view === "questions" && (
         <Questions
+          // A fresh form once the saved answers are in.
+          key={loaded && profile ? "editing" : "new"}
           initial={profile ?? defaultProfile()}
           editing={profile !== null}
           remembering={data.remember}
           onRemember={() => {
             rememberAgain();
-            setData(readSaved());
+            changed();
           }}
           onDone={finish}
-          onSkip={() => setView("all")}
+          onSkip={() => go("all")}
         />
       )}
       {view === "questions" && !profile && <ToolIndex />}
@@ -90,64 +97,17 @@ export function Home() {
         <Dashboard
           profile={profile}
           data={data}
-          onEdit={() => setView("questions")}
+          onEdit={() => go("answers")}
           onForget={() => {
             forgetAll();
-            setData(readSaved());
             setProfile(null);
-            setView("questions");
+            changed();
+            go("dashboard");
           }}
         />
       )}
-      {view === "all" && (
-        <AllTools hasProfile={profile !== null} onAsk={() => setView("questions")} />
-      )}
+      {view === "all" && <AllTools hasProfile={profile !== null} onAsk={() => go("answers")} />}
     </div>
-  );
-}
-
-function SiteHeader(props: {
-  view: View;
-  hasProfile: boolean;
-  remembering: boolean;
-  onDashboard: () => void;
-  onAll: () => void;
-  onAnswers: () => void;
-}) {
-  const navBtn = (active: boolean) =>
-    `min-h-11 text-[15px] ${active ? "font-semibold text-text" : "text-muted hover:text-text"}`;
-  return (
-    <header className="border-b border-border bg-surface">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-7 gap-y-1 px-4 py-2 sm:px-6">
-        <span className="text-xl font-bold tracking-tight">Budgy</span>
-        <nav aria-label="Main" className="flex flex-wrap gap-x-5">
-          {props.hasProfile && (
-            <button
-              type="button"
-              className={navBtn(props.view === "dashboard")}
-              onClick={props.onDashboard}
-            >
-              My dashboard
-            </button>
-          )}
-          <button type="button" className={navBtn(props.view === "all")} onClick={props.onAll}>
-            All tools
-          </button>
-          {props.hasProfile && (
-            <button
-              type="button"
-              className={navBtn(props.view === "questions")}
-              onClick={props.onAnswers}
-            >
-              My answers
-            </button>
-          )}
-        </nav>
-        <span className="ml-auto text-[13px] text-muted">
-          {props.remembering ? "Saved on this device only" : "Free, no sign-up"}
-        </span>
-      </div>
-    </header>
   );
 }
 
@@ -311,7 +271,7 @@ function Questions(props: {
 
       <aside
         aria-labelledby="p-h"
-        className={`${card} min-w-0 flex-[1_1_320px] p-5 lg:sticky lg:top-6`}
+        className={`${card} min-w-0 flex-[1_1_320px] p-5 lg:sticky lg:top-[calc(var(--header-h)+1.5rem)]`}
       >
         <h2 id="p-h" className="text-lg font-semibold">
           Your plan will be

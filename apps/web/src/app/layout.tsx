@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,7 +21,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en-AU">
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        <Suspense>
+          <SiteHeader />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }

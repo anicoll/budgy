@@ -128,10 +128,7 @@ export function SacrificeCalculator() {
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
       <header className="mb-6">
-        <a href=".." className="text-sm text-muted hover:text-text">
-          ← All tools
-        </a>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           Salary sacrifice check
         </h1>
         <p className="mt-1 max-w-2xl text-muted">
@@ -143,7 +140,7 @@ export function SacrificeCalculator() {
 
       {total && (
         <div
-          className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-primary-container px-4 py-3 text-on-primary-container lg:hidden"
+          className="sticky top-[var(--header-h)] z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-primary-container px-4 py-3 text-on-primary-container lg:hidden"
           aria-live="polite"
         >
           <div>
