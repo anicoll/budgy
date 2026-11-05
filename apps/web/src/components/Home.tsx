@@ -379,9 +379,6 @@ function Dashboard(props: {
 
       <footer className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-[13px] text-muted">
         <span>General information only, not financial advice.</span>
-        <Link href="/privacy/" className="text-accent hover:underline">
-          Privacy
-        </Link>
         <button type="button" className="text-accent hover:underline" onClick={props.onForget}>
           Forget everything on this device
         </button>
