@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { LogoMark } from "@/components/Logo";
 import { parseProfile } from "@/lib/profile";
 import { readSaved } from "@/lib/saved";
 
@@ -79,8 +80,13 @@ export function SiteHeader() {
       className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur"
     >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-7 gap-y-0 px-4 py-1.5 sm:px-6">
-        <Link href="/" className="text-xl font-bold tracking-tight">
-          Budgy
+        <Link
+          href="/"
+          aria-label="budgy home"
+          className="inline-flex min-h-11 items-center gap-2.5 text-[22px] font-bold tracking-tight text-[#0e5561] dark:text-accent"
+        >
+          <LogoMark size={30} />
+          <span aria-hidden="true">budgy</span>
         </Link>
         <nav aria-label="Main" className="flex flex-wrap gap-x-5">
           {hasProfile && item("dashboard", "My dashboard")}
