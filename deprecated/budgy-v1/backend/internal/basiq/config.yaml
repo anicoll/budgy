@@ -1,5 +1,0 @@
-package: basiq
-generate:
-  client: true
-  models: true
-output: client.gen.go
