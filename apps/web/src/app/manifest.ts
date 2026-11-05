@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 // Needed for a static export.
 export const dynamic = "force-static";
 
-// Icon paths are relative so they resolve under the /budgy base path on Pages.
+// Icon paths are relative so they resolve under any base path.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "budgy: free Australian money tools",
