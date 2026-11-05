@@ -2,9 +2,9 @@
 
 import { useEffect, useId, useState } from "react";
 import { parseMoney } from "@/lib/state";
+import { DatePicker, filledField, Select } from "./ui";
 
-const inputClass =
-  "num w-full rounded-t-[4px] border-0 border-b-2 border-outline bg-surface-container-high px-4 py-2.5 text-base outline-none transition hover:bg-surface-container focus:border-accent focus:bg-surface-container";
+const inputClass = filledField;
 
 const fmt = (n: number | undefined) =>
   n === undefined ? "" : n.toLocaleString("en-AU", { maximumFractionDigits: 2 });
@@ -155,19 +155,15 @@ export function NumberField({
 export function DateField({
   value,
   onChange,
-  ...field
+  label,
+  hint,
+  className,
 }: FieldProps & { value: string; onChange: (v: string) => void }) {
-  const id = useId();
   return (
-    <Field {...field} id={id}>
-      <input
-        id={id}
-        type="date"
-        className={inputClass}
-        value={value}
-        onChange={(e) => e.target.value && onChange(e.target.value)}
-      />
-    </Field>
+    <div className={className}>
+      <DatePicker label={label} value={value} onChange={onChange} />
+      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
+    </div>
   );
 }
 
@@ -175,27 +171,18 @@ export function SelectField<T extends string>({
   value,
   onChange,
   options,
-  ...field
+  label,
+  hint,
+  className,
 }: FieldProps & {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
 }) {
-  const id = useId();
   return (
-    <Field {...field} id={id}>
-      <select
-        id={id}
-        className={inputClass}
-        value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </Field>
+    <div className={className}>
+      <Select label={label} value={value} onChange={onChange} options={options} />
+      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
+    </div>
   );
 }

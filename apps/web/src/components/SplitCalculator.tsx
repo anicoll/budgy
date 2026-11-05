@@ -31,6 +31,7 @@ import {
   toCoBorrowInput,
 } from "@/lib/splitState";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const COLORS = ["var(--series-a)", "var(--series-b)", "var(--series-c)", "var(--series-base)"];
@@ -379,16 +380,13 @@ function BorrowerCard({
           <div />
         )}
         {b.lumpSum && (
-          <label className="col-span-2 -mt-1 flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={b.lumpSum.yearly}
-              onChange={(e) =>
-                b.lumpSum && onChange({ lumpSum: { ...b.lumpSum, yearly: e.target.checked } })
-              }
-            />
+          <Checkbox
+            className="col-span-2 -mt-1 flex items-center gap-2 text-sm"
+            isSelected={b.lumpSum.yearly}
+            onChange={(v) => b.lumpSum && onChange({ lumpSum: { ...b.lumpSum, yearly: v } })}
+          >
             Repeat every year
-          </label>
+          </Checkbox>
         )}
       </div>
     </div>

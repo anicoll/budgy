@@ -39,10 +39,10 @@ import { BUDGET_PEOPLE } from "@/lib/household";
 import { encodePayState, hasAdvanced } from "@/lib/payState";
 import { parseMoney } from "@/lib/state";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox, filledField, Select } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
-const input =
-  "w-full min-w-0 rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25";
+const input = `${filledField} min-w-0`;
 const linkBtn = "py-1.5 text-sm font-medium text-accent hover:underline";
 
 const BUDGET_SAVED: SavedConfig<BudgetState> = {
@@ -164,20 +164,16 @@ export function BudgetPlanner() {
               {perLabel(view)}: {moneyExact(totals.income)} in, {moneyExact(totals.spend)} out
             </p>
           </div>
-          <label className="flex flex-col gap-1 text-xs opacity-90">
-            Show per
-            <select
-              className="rounded-lg border border-on-primary-container/20 bg-surface/60 px-2 py-2 text-base text-on-primary-container"
+          <div className="flex flex-col gap-1 text-xs opacity-90">
+            <span aria-hidden>Show per</span>
+            <Select<BudgetView>
+              ariaLabel="Show per"
+              triggerClassName="rounded-lg border border-on-primary-container/20 bg-surface/60 px-2 py-2 text-base text-on-primary-container"
               value={view}
-              onChange={(e) => set({ view: e.target.value as BudgetView })}
-            >
-              {VIEW_TABS.map((o) => (
-                <option key={o.value} value={o.value} className="text-black">
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(view) => set({ view })}
+              options={VIEW_TABS}
+            />
+          </div>
         </div>
       )}
 
@@ -315,20 +311,19 @@ export function BudgetPlanner() {
                               onChange={(e) => setCategory(i, { name: e.target.value })}
                             />
                           </label>
-                          <label className="text-sm">
+                          <div className="text-sm">
                             <span className="mb-1 block font-medium">Counts as</span>
-                            <select
-                              className={input}
+                            <Select<BudgetBucket>
+                              ariaLabel="Counts as"
                               value={c.bucket}
-                              onChange={(e) =>
-                                setCategory(i, { bucket: e.target.value as BudgetBucket })
-                              }
-                            >
-                              <option value="need">A need</option>
-                              <option value="want">A want</option>
-                              <option value="save">Saving</option>
-                            </select>
-                          </label>
+                              onChange={(bucket) => setCategory(i, { bucket })}
+                              options={[
+                                { value: "need", label: "A need" },
+                                { value: "want", label: "A want" },
+                                { value: "save", label: "Saving" },
+                              ]}
+                            />
+                          </div>
                         </div>
                         <ul className="space-y-3">
                           {c.lines.map((l, j) => (
@@ -494,15 +489,13 @@ function PersonRow({
             </p>
           )}
           {salary && (
-            <label className="mt-1 flex min-h-7 cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                className="size-[18px] accent-[var(--accent)]"
-                checked={p.pay.studyLoan}
-                onChange={(e) => onChange({ pay: { ...p.pay, studyLoan: e.target.checked } })}
-              />
+            <Checkbox
+              className="mt-1 flex min-h-7 cursor-pointer items-center gap-2"
+              isSelected={p.pay.studyLoan}
+              onChange={(v) => onChange({ pay: { ...p.pay, studyLoan: v } })}
+            >
               <span className="text-text">Has a HELP or other study loan</span>
-            </label>
+            </Checkbox>
           )}
           <div className="mt-1 flex flex-wrap gap-x-4">
             {salary && (
@@ -596,18 +589,12 @@ function FrequencySelect({
   only?: BudgetFrequency[];
 }) {
   return (
-    <select
-      aria-label={label}
-      className={input}
+    <Select<BudgetFrequency>
+      ariaLabel={label}
       value={value}
-      onChange={(e) => onChange(e.target.value as BudgetFrequency)}
-    >
-      {only.map((f) => (
-        <option key={f} value={f}>
-          {FREQ_LABEL[f]}
-        </option>
-      ))}
-    </select>
+      onChange={onChange}
+      options={only.map((f) => ({ value: f, label: FREQ_LABEL[f] }))}
+    />
   );
 }
 

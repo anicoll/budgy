@@ -29,6 +29,7 @@ import {
 import { money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import { withLoanFields } from "@/lib/saved";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Slider } from "./ui";
 
 const FREQUENCIES: { value: Frequency; label: string }[] = [
   { value: "monthly", label: "Monthly" },
@@ -253,15 +254,14 @@ export function FixedVariableCalculator() {
                     </button>
                   ))}
                 </div>
-                <input
-                  type="range"
-                  aria-label="Share of the loan to fix"
-                  className="mt-3 w-full accent-[var(--accent)]"
+                <Slider
+                  label="Share of the loan to fix"
+                  className="mt-1"
                   min={0}
                   max={100}
                   step={5}
                   value={form.fixedSharePct}
-                  onChange={(e) => set({ fixedSharePct: Number(e.target.value) })}
+                  onChange={(fixedSharePct) => set({ fixedSharePct })}
                 />
                 <p className="num text-xs text-muted">
                   {money(form.balance * form.fixedSharePct)} fixed,{" "}

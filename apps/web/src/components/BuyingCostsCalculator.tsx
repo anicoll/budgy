@@ -23,6 +23,7 @@ import {
 } from "@/lib/buyingState";
 import { money, moneyExact } from "@/lib/format";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface";
 
@@ -185,20 +186,18 @@ export function BuyingCostsCalculator() {
             options={PROPERTIES}
             onChange={(property) => set({ property })}
           />
-          <label className="flex items-start gap-2.5 text-sm">
-            <input
-              type="checkbox"
-              className="mt-0.5 size-4.5"
-              checked={form.foreign}
-              onChange={(e) => set({ foreign: e.target.checked })}
-            />
+          <Checkbox
+            className="flex items-start gap-2.5 text-sm"
+            isSelected={form.foreign}
+            onChange={(v) => set({ foreign: v })}
+          >
             <span>
               A buyer isn&apos;t an Australian citizen or permanent resident
               <span className="mt-0.5 block text-xs text-muted">
                 Adds the foreign purchaser surcharge and removes most concessions.
               </span>
             </span>
-          </label>
+          </Checkbox>
           <details className="border-t border-border pt-4">
             <summary className="cursor-pointer text-sm font-medium">
               Other costs (conveyancing, inspections, loan fees)
@@ -394,26 +393,22 @@ export function BuyingCostsCalculator() {
                   </>
                 )}
                 {r.homeGuaranteeEligible && (
-                  <label className="flex min-h-11 items-center gap-2.5 text-sm">
-                    <input
-                      type="checkbox"
-                      className="size-4.5"
-                      checked={form.homeGuarantee}
-                      onChange={(e) => set({ homeGuarantee: e.target.checked })}
-                    />
+                  <Checkbox
+                    className="flex min-h-11 items-center gap-2.5 text-sm"
+                    isSelected={form.homeGuarantee}
+                    onChange={(v) => set({ homeGuarantee: v })}
+                  >
                     Show costs with the Home Guarantee Scheme
-                  </label>
+                  </Checkbox>
                 )}
                 {r.lmi.premium > 0 && (
-                  <label className="flex min-h-11 items-center gap-2.5 text-sm">
-                    <input
-                      type="checkbox"
-                      className="size-4.5"
-                      checked={form.lmiOnLoan}
-                      onChange={(e) => set({ lmiOnLoan: e.target.checked })}
-                    />
+                  <Checkbox
+                    className="flex min-h-11 items-center gap-2.5 text-sm"
+                    isSelected={form.lmiOnLoan}
+                    onChange={(v) => set({ lmiOnLoan: v })}
+                  >
                     Add LMI to the loan instead of paying it upfront
-                  </label>
+                  </Checkbox>
                 )}
               </div>
             )}
