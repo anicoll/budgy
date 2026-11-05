@@ -42,3 +42,39 @@ export function LogoMark({ size = 32, className = "" }: { size?: number; classNa
     </svg>
   );
 }
+
+/**
+ * The mark struck as a nickel, a nod to the nicoll.dev domain. For places
+ * with room for a bit of fun, like the 404 page.
+ */
+export function LogoCoin({ size = 96, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <circle cx="32" cy="32" r="31" className="fill-[#f4a27a] dark:fill-[#ffb693]" />
+      <circle
+        cx="32"
+        cy="32"
+        r="27.5"
+        fill="none"
+        strokeWidth="2.5"
+        strokeDasharray="1.6 1.6"
+        className="stroke-[#0e5561] dark:stroke-[#004e5a]"
+      />
+      <circle cx="32" cy="32" r="25" className="fill-[#0e5561] dark:fill-[#004e5a]" />
+      <g transform="translate(32 33) scale(0.62) translate(-32 -33)">
+        <g transform="skewX(-12) translate(7 0)">
+          <rect x="13" y="34" width="9" height="18" rx="4.5" fill="#f8fafa" />
+          <rect x="27.5" y="24" width="9" height="28" rx="4.5" fill="#f8fafa" />
+          <rect x="42" y="14" width="9" height="38" rx="4.5" fill="#f4a27a" />
+        </g>
+      </g>
+    </svg>
+  );
+}
