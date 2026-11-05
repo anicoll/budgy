@@ -64,12 +64,7 @@ export function HelpCalculator() {
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
       <header className="mb-6">
-        <a href=".." className="text-sm text-muted hover:text-text">
-          ← All tools
-        </a>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-          Pay off HELP early?
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Pay off HELP early?</h1>
         <p className="mt-1 max-w-2xl text-muted">
           Your HELP debt grows with indexation each 1 June, not interest. See whether a lump sum
           does more on the loan or in your offset or savings. Your numbers never leave your device.

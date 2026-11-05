@@ -109,12 +109,7 @@ export function DebtPlanner() {
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
       <header className="mb-6">
-        <a href=".." className="text-sm text-muted hover:text-text">
-          ← All tools
-        </a>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-          Debt payoff planner
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Debt payoff planner</h1>
         <p className="mt-1 max-w-2xl text-muted">
           List your debts and what you can put towards them each month. See which to pay first and
           when you&apos;ll be debt-free. Your numbers never leave your device.

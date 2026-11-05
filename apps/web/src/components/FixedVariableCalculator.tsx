@@ -112,12 +112,7 @@ export function FixedVariableCalculator() {
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
       <header className="mb-6">
-        <a href=".." className="text-sm text-muted hover:text-text">
-          ← All tools
-        </a>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-          Fixed or variable
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Fixed or variable</h1>
         <p className="mt-1 max-w-2xl text-muted">
           What if rates rise 1% next year, or you fix half? Pick a path for rates and see what
           fixing all or part of your loan would save or cost. Coming off a fixed rate? Enter the

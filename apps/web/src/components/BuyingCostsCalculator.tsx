@@ -138,12 +138,7 @@ export function BuyingCostsCalculator() {
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
       <header className="mb-6">
-        <a href=".." className="text-sm text-muted hover:text-text">
-          ← All tools
-        </a>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-          Home buying costs
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Home buying costs</h1>
         <p className="mt-1 max-w-2xl text-muted">
           Stamp duty, first home buyer concessions, mortgage insurance and fees in every state, so
           you know the cash you need on settlement day. Your numbers never leave your device.
