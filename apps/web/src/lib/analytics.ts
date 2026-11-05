@@ -1,9 +1,9 @@
 /**
- * Cloudflare Web Analytics site token for budgy.nicoll.dev. It is public (it
- * ships in every page), so it lives here, not in a secret. Empty turns the
- * beacon off, which is what local dev and preview builds want.
+ * Cloudflare Web Analytics site token. The deploy workflow sets it from the
+ * CF_BEACON_TOKEN repository variable. It is not a secret: it ships in every
+ * page, like any analytics ID. Left unset (local dev, forks), the beacon is off.
  */
-export const CF_BEACON_TOKEN = "";
+export const CF_BEACON_TOKEN = process.env.NEXT_PUBLIC_CF_BEACON_TOKEN ?? "";
 
 /** Only the production site reports, so localhost and forks stay out of the numbers. */
 export const ANALYTICS_HOST = "budgy.nicoll.dev";

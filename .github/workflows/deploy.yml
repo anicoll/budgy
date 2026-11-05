@@ -45,6 +45,10 @@ jobs:
       # Served from the root of budgy.nicoll.dev (the repo's Pages custom
       # domain), so no BASE_PATH.
       - run: pnpm build
+        env:
+          # Cloudflare Web Analytics site token (a public ID, so a repo
+          # variable, not a secret). Unset turns the beacon off.
+          NEXT_PUBLIC_CF_BEACON_TOKEN: ${{ vars.CF_BEACON_TOKEN }}
 
       - uses: actions/configure-pages@v6
 
