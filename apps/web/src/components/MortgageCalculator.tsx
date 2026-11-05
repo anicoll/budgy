@@ -25,6 +25,7 @@ import {
   toLoanInput,
 } from "@/lib/state";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox } from "./ui";
 
 const COLORS = ["var(--series-a)", "var(--series-b)", "var(--series-c)"];
 const LETTERS = "ABC";
@@ -387,16 +388,13 @@ function ScenarioCard({
           <div />
         )}
         {sc.lumpSum && (
-          <label className="col-span-2 -mt-1 flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={sc.lumpSum.yearly}
-              onChange={(e) =>
-                sc.lumpSum && onChange({ lumpSum: { ...sc.lumpSum, yearly: e.target.checked } })
-              }
-            />
+          <Checkbox
+            className="col-span-2 -mt-1 flex items-center gap-2 text-sm"
+            isSelected={sc.lumpSum.yearly}
+            onChange={(v) => sc.lumpSum && onChange({ lumpSum: { ...sc.lumpSum, yearly: v } })}
+          >
             Repeat every year (a tax refund or bonus)
-          </label>
+          </Checkbox>
         )}
         <NumberField
           label="New interest rate"

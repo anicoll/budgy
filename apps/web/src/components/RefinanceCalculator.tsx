@@ -21,6 +21,7 @@ import {
 } from "@/lib/refinance";
 import { withLoanFields } from "@/lib/saved";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox } from "./ui";
 
 const FREQUENCIES: { value: Frequency; label: string }[] = [
   { value: "monthly", label: "Monthly" },
@@ -265,14 +266,13 @@ export function RefinanceCalculator() {
                 value={form.startDate}
                 onChange={(startDate) => set({ startDate })}
               />
-              <label className="col-span-2 flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.addCostsToLoan}
-                  onChange={(e) => set({ addCostsToLoan: e.target.checked })}
-                />
+              <Checkbox
+                className="col-span-2 flex items-center gap-2 text-sm"
+                isSelected={form.addCostsToLoan}
+                onChange={(v) => set({ addCostsToLoan: v })}
+              >
                 Add the costs to the new loan
-              </label>
+              </Checkbox>
             </div>
           </div>
         </section>

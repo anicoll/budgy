@@ -30,6 +30,7 @@ import {
 } from "@/lib/superMortgageState";
 import { nextId } from "@/lib/superState";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const PERSON_COLORS = ["var(--series-a)", "var(--series-b)", "var(--series-base)", "var(--text)"];
@@ -398,22 +399,20 @@ function PersonCard({
             value={p.superBalance}
             onChange={(v) => onChange({ superBalance: v ?? 0 })}
           />
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={p.help}
-              onChange={(e) => onChange({ help: e.target.checked })}
-            />
+          <Checkbox
+            className="flex items-center gap-2"
+            isSelected={p.help}
+            onChange={(v) => onChange({ help: v })}
+          >
             Has a HELP or other study loan
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={p.privateCover}
-              onChange={(e) => onChange({ privateCover: e.target.checked })}
-            />
+          </Checkbox>
+          <Checkbox
+            className="flex items-center gap-2"
+            isSelected={p.privateCover}
+            onChange={(v) => onChange({ privateCover: v })}
+          >
             Has private hospital cover
-          </label>
+          </Checkbox>
         </div>
       </details>
     </div>

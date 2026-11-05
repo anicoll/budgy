@@ -36,6 +36,7 @@ import {
   toSacrificePerson,
 } from "@/lib/sacrificeState";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox, filledField, Slider } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const SAVED: SavedConfig<SacrificeState> = {
@@ -351,15 +352,13 @@ function Check({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex min-h-7 cursor-pointer gap-3">
-      <input
-        type="checkbox"
-        className="mt-0.5 size-[18px] shrink-0 accent-[var(--accent)]"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
+    <Checkbox
+      className="flex min-h-7 cursor-pointer gap-3"
+      isSelected={checked}
+      onChange={(v) => onChange(v)}
+    >
       <span>{label}</span>
-    </label>
+    </Checkbox>
   );
 }
 
@@ -403,15 +402,13 @@ function ExtraField({
         value={perPeriod}
         onChange={(v) => onChange({ extra: (v ?? 0) * n })}
       />
-      <input
-        type="range"
-        aria-label="Extra to sacrifice"
+      <Slider
+        label="Extra to sacrifice"
         min={0}
         max={Math.max(1, Math.floor(cap))}
         step={1}
         value={Math.min(perPeriod, Math.floor(cap))}
-        onChange={(e) => onChange({ extra: Number(e.target.value) * n })}
-        className="h-7 w-full accent-[var(--accent)]"
+        onChange={(v) => onChange({ extra: v * n })}
       />
       <p className="num flex justify-between text-xs text-muted">
         <span>$0</span>
@@ -550,7 +547,7 @@ function PersonForm({
                 <label className="min-w-0 flex-[1.3]">
                   <span className="mb-1 block text-sm font-medium">Name</span>
                   <input
-                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none focus:border-accent"
+                    className={filledField}
                     value={f.name}
                     maxLength={40}
                     onChange={(e) => setFund(f.id, { name: e.target.value })}

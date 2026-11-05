@@ -22,6 +22,7 @@ import {
 import { money } from "@/lib/format";
 import { BORROW_PEOPLE } from "@/lib/household";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 
@@ -165,15 +166,13 @@ export function BorrowingCalculator() {
                       value={p.other}
                       onChange={(other) => setPerson(i, { other })}
                     />
-                    <label className="col-span-2 flex min-h-7 cursor-pointer items-center gap-3">
-                      <input
-                        type="checkbox"
-                        className="size-[18px] shrink-0 accent-[var(--accent)]"
-                        checked={p.help}
-                        onChange={(e) => setPerson(i, { help: e.target.checked })}
-                      />
+                    <Checkbox
+                      className="col-span-2 flex min-h-7 cursor-pointer items-center gap-3"
+                      isSelected={p.help}
+                      onChange={(v) => setPerson(i, { help: v })}
+                    >
                       {i === 0 ? "I have" : "They have"} a HELP or other study debt
-                    </label>
+                    </Checkbox>
                   </div>
                 ))}
                 <p className="text-xs text-muted">

@@ -27,6 +27,7 @@ import {
   toLeaseInput,
 } from "@/lib/leaseState";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox, Select } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const LEASE_SAVED: SavedConfig<LeaseState> = {
@@ -113,20 +114,16 @@ export function LeaseCalculator() {
             <p className="num text-2xl font-semibold">{moneyExact(per.cost)}</p>
             <p className="text-xs opacity-75">{show.per}</p>
           </div>
-          <label className="flex flex-col gap-1 text-xs opacity-90">
-            Show per
-            <select
-              className="rounded-lg border border-on-primary-container/20 bg-surface/60 px-2 py-2 text-base text-on-primary-container"
+          <div className="flex flex-col gap-1 text-xs opacity-90">
+            <span aria-hidden>Show per</span>
+            <Select<LeasePer>
+              ariaLabel="Show per"
+              triggerClassName="rounded-lg border border-on-primary-container/20 bg-surface/60 px-2 py-2 text-base text-on-primary-container"
               value={state.show}
-              onChange={(e) => set({ show: e.target.value as LeasePer })}
-            >
-              {SHOW.map((o) => (
-                <option key={o.value} value={o.value} className="text-black">
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(show) => set({ show })}
+              options={SHOW}
+            />
+          </div>
         </div>
       )}
 
@@ -793,18 +790,16 @@ function Check({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex min-h-7 cursor-pointer gap-3">
-      <input
-        type="checkbox"
-        className="mt-0.5 size-[18px] shrink-0 accent-[var(--accent)]"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
+    <Checkbox
+      className="flex min-h-7 cursor-pointer gap-3"
+      isSelected={checked}
+      onChange={(v) => onChange(v)}
+    >
       <span>
         <span className="block">{label}</span>
         {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
-    </label>
+    </Checkbox>
   );
 }
 
