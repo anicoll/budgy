@@ -1,6 +1,5 @@
 version: 2
 updates:
-  # The archived app in deprecated/ is frozen and gets no dependency updates.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:

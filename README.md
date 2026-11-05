@@ -37,6 +37,4 @@ pnpm build   # static site in apps/web/out
 
 ## The original app
 
-The previous personal budgeting app (Next.js front end, Go backend, bank sync) is archived, unchanged, in [`deprecated/budgy-v1`](deprecated/budgy-v1). It is no longer deployed or built in CI. Its mortgage and super maths will be moved into `packages/engine` as the new tools need it.
-
-To run the archived app, follow [`deprecated/budgy-v1/README.md`](deprecated/budgy-v1/README.md) from inside that folder.
+The previous personal budgeting app (Next.js front end, Go backend, bank sync) has been removed from the repo. Its mortgage and super maths now live in `packages/engine`. The last commit that still has it is [`df23c52`](https://github.com/anicoll/budgy/tree/df23c52/deprecated/budgy-v1), if you ever need to look back at it.
