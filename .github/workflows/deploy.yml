@@ -1,6 +1,6 @@
 name: Deploy
 
-# Publishes the static site to GitHub Pages (https://anicoll.github.io/budgy/)
+# Publishes the static site to GitHub Pages at https://budgy.nicoll.dev/
 # after CI passes on main. Can also be run by hand from the Actions tab.
 on:
   workflow_run:
@@ -42,9 +42,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Served from the root of budgy.nicoll.dev (the repo's Pages custom
+      # domain), so no BASE_PATH.
       - run: pnpm build
-        env:
-          BASE_PATH: /budgy
 
       - uses: actions/configure-pages@v6
 

@@ -4,7 +4,7 @@ Budgy is being rebuilt as a set of free, public financial planning tools for Aus
 
 ## Status
 
-The tools are live at https://anicoll.github.io/budgy/. Every green CI run on `main` deploys the static site to GitHub Pages (`.github/workflows/deploy.yml`), built with `BASE_PATH=/budgy`.
+The tools are live at https://budgy.nicoll.dev/. Every green CI run on `main` deploys the static site to GitHub Pages (`.github/workflows/deploy.yml`), using the repo's Pages custom domain. DNS for nicoll.dev is on Cloudflare, with a `budgy` CNAME to `anicoll.github.io` set to DNS only (grey cloud).
 
 - `packages/engine`: the calculation code (pure TypeScript, integer cents, tested)
 - `apps/web`: the public site, one page per tool, static and login-free (`/mortgage`)

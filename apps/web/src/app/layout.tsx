@@ -4,6 +4,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  // Absolute URLs for share images and canonical links.
+  metadataBase: new URL("https://budgy.nicoll.dev"),
   title: { default: "Budgy: free Australian money tools", template: "%s · Budgy" },
   description:
     "Free, private financial calculators for Australians. No sign-up, and your numbers never leave your device.",

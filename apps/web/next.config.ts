@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-// GitHub Pages serves the site from /budgy, so the deploy workflow sets
-// BASE_PATH=/budgy. Locally and on a root domain it stays empty.
+// The site is served from the root of https://budgy.nicoll.dev, so BASE_PATH
+// is normally empty. Set it only to host the export under a sub-path.
 const basePath = process.env.BASE_PATH ?? "";
 
 const nextConfig: NextConfig = {
