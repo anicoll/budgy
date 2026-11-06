@@ -5,8 +5,8 @@
 // https://www.ato.gov.au, paste this into the developer console, and it fetches
 // the pages below from the same site, keeps the tables the engine uses, and
 // prints the snapshot (and copies it to the clipboard where the browser
-// allows). Save it over ato-pages.json, run `pnpm lint:fix`, then
-// `pnpm --filter @budgy/engine test` says which rules need updating.
+// allows). Save it to a file and run
+// `scripts/update-ato-rules.sh --snapshot that-file.json`.
 //
 // It does what scripts/update_ato_rules.py does. Keep PAGES, the caption
 // patterns and MIN_YEAR the same in both.

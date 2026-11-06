@@ -12,15 +12,19 @@ import {
 import snapshot from "./data/ato-pages.json";
 
 /**
- * The engine against the ATO's own tables, as scripts/ato-snapshot.browser.js
- * last copied them. Each July to September the ATO rules reminder
- * (.github/workflows/ato-rules.yml) opens an issue to refresh the snapshot, and
- * this test then fails until the rules tables catch up, naming each value and
- * the page it comes from.
+ * The engine against the ATO's own tables, as scripts/update-ato-rules.sh last
+ * copied them. That script refreshes the snapshot each July to September and
+ * opens a PR, and this test fails on it until the rules tables catch up,
+ * naming each value and the page it comes from.
  */
 
 const ato = snapshot as AtoSnapshot;
 const clone = (): AtoSnapshot => JSON.parse(JSON.stringify(ato));
+// The tests below change the snapshot and look only at what the change adds, so
+// they still pass on a refreshed snapshot that the rules haven't caught up with.
+const before = new Set(compareWithEngine(ato).map((f) => JSON.stringify(f)));
+const added = (s: AtoSnapshot) =>
+  compareWithEngine(s).filter((f) => !before.has(JSON.stringify(f)));
 // The engine has no Node or DOM types; vitest prints this to the job log.
 declare const console: { log(message: string): void };
 
@@ -78,7 +82,7 @@ describe("the engine against the ATO snapshot", () => {
   it("matches every published figure", () => {
     const findings = compareWithEngine(ato);
     if (findings.length) {
-      // Marked so it is easy to find in the test log.
+      // scripts/update-ato-rules.sh copies this block into the PR it opens.
       console.log(`<!-- ato-report -->\n${formatFindings(findings)}\n<!-- /ato-report -->`);
     }
     expect(findings).toEqual([]);
@@ -87,7 +91,7 @@ describe("the engine against the ATO snapshot", () => {
   it("flags a changed threshold", () => {
     const s = clone();
     s.help.tables[0].rows[1][0] = "$0 – $70,000";
-    expect(compareWithEngine(s)).toMatchObject([
+    expect(added(s)).toMatchObject([
       {
         page: "help",
         year: "2026-27",
@@ -103,7 +107,7 @@ describe("the engine against the ATO snapshot", () => {
     const s = clone();
     s.contributionCaps.tables[0].rows.splice(1, 0, ["2027–28", "n/a", "All ages", "$35,000"]);
     s.helpIndexation.tables[0].rows.splice(1, 0, ["2027", "3.1%"]);
-    const found = compareWithEngine(s);
+    const found = added(s);
     expect(found).toMatchObject([
       { page: "helpIndexation", year: "2027", kind: "missing year" },
       { page: "contributionCaps", year: "2027-28", field: "SUPER_RULES", kind: "missing year" },
@@ -117,16 +121,15 @@ describe("the engine against the ATO snapshot", () => {
     next.caption = "Table 1: 2027–28 repayment thresholds and rates";
     next.rows[1][0] = "$0 – $71,000";
     s.help.tables.unshift(next);
-    const fields = compareWithEngine(s).map((f) => f.field);
+    const fields = added(s).map((f) => f.field);
     expect(fields).toContain("HELP_THRESHOLDS_PUBLISHED_TO");
     expect(fields).toContain("TAX_RULES 2027-28 help.nil");
   });
 
   it("treats 'onwards' past the last super year as carried forward, unless the rate changes", () => {
-    expect(compareWithEngine(ato).filter((f) => f.page === "superGuarantee")).toEqual([]);
     const s = clone();
     s.superGuarantee.tables[0].rows[1] = ["1 July 2027 onwards", "12.50", "12"];
-    expect(compareWithEngine(s)).toMatchObject([
+    expect(added(s)).toMatchObject([
       { page: "superGuarantee", year: "2027-28", kind: "differs", ato: "12.5%", engine: "12%" },
     ]);
   });
@@ -135,7 +138,7 @@ describe("the engine against the ATO snapshot", () => {
     const s = clone();
     s.mls.tables[0].rows[1][2] = "see below";
     for (const t of s.resident.tables) t.caption = "Rates for residents";
-    const kinds = compareWithEngine(s).map((f) => `${f.page} ${f.kind}`);
+    const kinds = added(s).map((f) => `${f.page} ${f.kind}`);
     expect(kinds).toEqual(["resident unreadable", "mls unreadable"]);
   });
 });
