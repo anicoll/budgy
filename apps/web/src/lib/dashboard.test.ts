@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ideas, snapshot } from "./dashboard";
+import { defaultBudgetState, encodeBudgetState } from "./budgetState";
+import { cashFlow, debtList, ideas, loanOutlook, savedLoan, snapshot } from "./dashboard";
 import { defaultDebtState, encodeDebtState } from "./debtState";
 import { defaultHelp, encodeHelp } from "./helpState";
 import { defaultPayState, encodePayState } from "./payState";
@@ -57,5 +58,51 @@ describe("ways to get ahead", () => {
 
   it("only offers ideas for tools in the plan", () => {
     expect(ideas(filled(), new Set<ToolKey>(["debt"])).map((i) => i.key)).toEqual(["debt"]);
+  });
+});
+
+describe("dashboard pictures", () => {
+  it("shows take-home alone until there's a budget", () => {
+    const flow = cashFlow(filled());
+    expect(flow?.income).toBeGreaterThan(0);
+    expect(flow?.left).toBeNull();
+    expect(flow?.parts).toEqual([]);
+  });
+
+  it("splits a budget into its biggest categories and what's left", () => {
+    const data = filled();
+    const b = defaultBudgetState("2026-11-04");
+    b.categories = b.categories.map((c, i) => ({
+      ...c,
+      lines: c.lines.map((l, j) =>
+        j === 0 ? { ...l, amount: 100 * (i + 1), per: "fortnight" } : l,
+      ),
+    }));
+    data.tools.budget = encodeBudgetState(b);
+    const flow = cashFlow(data);
+    expect(flow).not.toBeNull();
+    expect(flow?.parts.length).toBeLessThanOrEqual(4);
+    expect(flow?.parts[0].amount).toBeGreaterThanOrEqual(flow?.parts[1]?.amount ?? 0);
+    const spent = flow?.parts.reduce((t, p) => t + p.amount, 0) ?? 0;
+    // Rounding to the cent per part can be out by a few cents in all.
+    expect(Math.abs((flow?.income ?? 0) - spent - (flow?.left ?? 0))).toBeLessThan(10);
+  });
+
+  it("pays the home loan off sooner with a little extra", () => {
+    const loan = savedLoan(filled());
+    const o = loan ? loanOutlook(loan) : null;
+    expect(o).not.toBeNull();
+    expect(o?.per).toBe("a month");
+    expect((o?.more.payoffDate ?? "") < (o?.now.payoffDate ?? "")).toBe(true);
+    expect(o?.saved).toBeGreaterThan(0);
+  });
+
+  it("lists each debt and HELP, biggest first", () => {
+    const list = debtList(filled());
+    expect(list.map((d) => d.key)).toContain("help");
+    expect(list.filter((d) => d.key === "debt").length).toBeGreaterThan(0);
+    for (let i = 1; i < list.length; i++)
+      expect(list[i - 1].balance).toBeGreaterThanOrEqual(list[i].balance);
+    for (const d of list) expect(d.note).not.toMatch(/NaN|undefined/);
   });
 });

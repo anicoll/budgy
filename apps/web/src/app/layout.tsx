@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Analytics } from "@/components/Analytics";
+import { BottomNav, SideNav, TopBar } from "@/components/AppNav";
 import { SiteFooter } from "@/components/SiteFooter";
-import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,11 +26,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en-AU">
       <body className="min-h-dvh">
+        <div className="lg:flex">
+          <Suspense>
+            <SideNav />
+          </Suspense>
+          <div className="min-w-0 flex-1 pb-[var(--bottom-nav-h)]">
+            <TopBar />
+            {children}
+            <SiteFooter />
+          </div>
+        </div>
         <Suspense>
-          <SiteHeader />
+          <BottomNav />
         </Suspense>
-        {children}
-        <SiteFooter />
         <Analytics />
       </body>
     </html>
