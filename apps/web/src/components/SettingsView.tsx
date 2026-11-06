@@ -14,6 +14,7 @@ import {
   WHO_OPTIONS,
 } from "@/components/answers";
 import { ChevronIcon } from "@/components/Icons";
+import { QrCode } from "@/components/QrCode";
 import { money } from "@/lib/format";
 import { isEmpty, moveLink } from "@/lib/moveLink";
 import type { Profile } from "@/lib/profile";
@@ -62,16 +63,19 @@ function Answer<T extends string>(props: {
  * with the link can see them.
  */
 function CopyLink({ data }: { data: SavedData }) {
-  const [state, setState] = useState<"idle" | "copied" | { link: string }>("idle");
+  const [copied, setCopied] = useState(false);
+  const [shown, setShown] = useState<string | null>(null); // link typed out, when the clipboard is blocked
+  const [qr, setQr] = useState<string | null>(null);
   const copy = async () => {
     const link = await moveLink(data, window.location.origin);
     try {
       await navigator.clipboard.writeText(link);
-      setState("copied");
+      setCopied(true);
     } catch {
-      setState({ link }); // no clipboard: show it to copy by hand
+      setShown(link);
     }
   };
+  const toggleQr = async () => setQr(qr ? null : await moveLink(data, window.location.origin));
   return (
     <div className="border-t border-surface-container">
       <button
@@ -81,7 +85,7 @@ function CopyLink({ data }: { data: SavedData }) {
       >
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-base font-medium">
-            {state === "copied" ? "Link copied" : "Copy a link to my numbers"}
+            {copied ? "Link copied" : "Copy a link to my numbers"}
           </span>
           <span className="text-[13px] text-muted">
             Open it on your phone or another computer to bring everything across. Anyone with the
@@ -89,13 +93,30 @@ function CopyLink({ data }: { data: SavedData }) {
           </span>
         </span>
       </button>
-      {typeof state === "object" && (
+      <button
+        type="button"
+        onClick={toggleQr}
+        aria-expanded={!!qr}
+        className="mx-4 mb-3 min-h-11 rounded-full border border-outline px-4 text-sm font-medium hover:bg-surface-container"
+      >
+        {qr ? "Hide the QR code" : "Show a QR code"}
+      </button>
+      {qr && (
+        <div className="flex flex-col items-center gap-2 px-4 pb-4">
+          <QrCode value={qr} label="QR code that opens your numbers on another device" />
+          <p className="text-center text-[13px] text-muted">
+            Point your phone&apos;s camera at it. Close it when you&apos;re done so no one else can
+            scan it.
+          </p>
+        </div>
+      )}
+      {shown && (
         <div className="px-4 pb-4">
           <label className="flex flex-col gap-1.5 text-[13px] text-muted">
             Copy this link
             <input
               readOnly
-              value={state.link}
+              value={shown}
               onFocus={(e) => e.currentTarget.select()}
               className="min-h-11 rounded-xl border border-border bg-surface-container px-3 text-sm text-text"
             />
