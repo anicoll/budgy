@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { JourneyBar } from "@/components/JourneyBar";
+import { JsonLd } from "@/components/JsonLd";
 import { MortgageCalculator } from "@/components/MortgageCalculator";
+import { toolJsonLd, toolMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Mortgage what-if calculator",
-  description:
-    "How much sooner could you own your home? Try extra repayments, offset savings, lump sums and rate changes, and see your new payoff date and interest saved. Built for Australian home loans.",
-};
+export const metadata: Metadata = toolMetadata("mortgage");
 
 export default function MortgagePage() {
   return (
     <>
+      <JsonLd data={toolJsonLd("mortgage")} />
       <JourneyBar current="mortgage" />
       <Suspense>
         <MortgageCalculator />

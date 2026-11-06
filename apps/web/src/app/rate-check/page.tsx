@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { JourneyBar } from "@/components/JourneyBar";
+import { JsonLd } from "@/components/JsonLd";
 import { RateCheckCalculator } from "@/components/RateCheckCalculator";
+import { toolJsonLd, toolMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Am I paying too much? Home loan rate check",
-  description:
-    "Compare your home loan rate with the Reserve Bank's average rates for new and existing loans, and see what the gap costs you each month and over the loan.",
-};
+export const metadata: Metadata = toolMetadata("rates");
 
 export default function RateCheckPage() {
   return (
     <>
+      <JsonLd data={toolJsonLd("rates")} />
       <JourneyBar current="rates" />
       <Suspense>
         <RateCheckCalculator />

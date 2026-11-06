@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: "/privacy",
   title: "Privacy",
   description:
     "What budgy collects: anonymous page visit counts, and nothing you type. Your numbers stay on your device.",
-};
+});
 
 export default function PrivacyPage() {
   return (

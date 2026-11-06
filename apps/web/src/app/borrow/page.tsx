@@ -2,16 +2,15 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BorrowingCalculator } from "@/components/BorrowingCalculator";
 import { JourneyBar } from "@/components/JourneyBar";
+import { JsonLd } from "@/components/JsonLd";
+import { toolJsonLd, toolMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "How much can I borrow?",
-  description:
-    "An estimate of what an Australian lender would lend you: take-home pay after tax, living costs, card limits and other debts, tested at your rate plus APRA's 3% buffer. Shows the range across lenders. Free and private.",
-};
+export const metadata: Metadata = toolMetadata("borrow");
 
 export default function BorrowPage() {
   return (
     <>
+      <JsonLd data={toolJsonLd("borrow")} />
       <JourneyBar current="borrow" />
       <Suspense>
         <BorrowingCalculator />

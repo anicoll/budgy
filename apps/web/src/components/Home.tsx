@@ -114,6 +114,26 @@ export function Home() {
   );
 }
 
+/**
+ * The first-visit page as static HTML, shown until the browser has read the
+ * URL and saved answers. It's what crawlers and people without JavaScript see.
+ */
+export function HomeFallback() {
+  const noop = () => {};
+  return (
+    <div className="min-h-dvh">
+      <Questions
+        initial={defaultProfile()}
+        remembering
+        onRemember={noop}
+        onDone={noop}
+        onSkip={noop}
+      />
+      <ToolIndex />
+    </div>
+  );
+}
+
 // ── First visit: the questions ──────────────────────────────────────────────
 
 function Question(props: { title: string; hint: string; children: React.ReactNode }) {
