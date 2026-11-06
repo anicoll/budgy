@@ -220,6 +220,21 @@ export function forgetAll(store = browserStore()): void {
   writeSaved(emptySaved(false), store);
 }
 
+/**
+ * Replace everything saved on this device with a record brought in from
+ * another one (a move link). Remembering is switched on, since the person
+ * asked to keep it. False when storage is blocked.
+ */
+export function replaceSaved(data: SavedData, store = browserStore()): boolean {
+  if (!store) return false;
+  writeSaved(parseSaved(JSON.stringify({ ...data, remember: true })), store);
+  try {
+    return store.getItem(SAVED_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
 /** Save the home page answers. Does nothing when remembering is off. */
 export function saveProfile(profile: unknown, store = browserStore()): void {
   const data = readSaved(store);
