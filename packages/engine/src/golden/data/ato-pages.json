@@ -1,0 +1,328 @@
+{
+  "resident": {
+    "url": "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents",
+    "updated": "2026-08-13",
+    "tables": [
+      {
+        "caption": "Resident tax rates 2026–27",
+        "rows": [
+          ["Taxable income", "Tax on this income"],
+          ["0 – $18,200", "Nil"],
+          ["$18,201 – $45,000", "15c for each $1 over $18,200"],
+          ["$45,001 – $135,000", "$4,020 plus 30c for each $1 over $45,000"],
+          ["$135,001 – $190,000", "$31,020 plus 37c for each $1 over $135,000"],
+          ["$190,001 and over", "$51,370 plus 45c for each $1 over $190,000"]
+        ]
+      },
+      {
+        "caption": "Resident tax rates 2025–26",
+        "rows": [
+          ["Taxable income", "Tax on this income"],
+          ["0 – $18,200", "Nil"],
+          ["$18,201 – $45,000", "16c for each $1 over $18,200"],
+          ["$45,001 – $135,000", "$4,288 plus 30c for each $1 over $45,000"],
+          ["$135,001 – $190,000", "$31,288 plus 37c for each $1 over $135,000"],
+          ["$190,001 and over", "$51,638 plus 45c for each $1 over $190,000"]
+        ]
+      },
+      {
+        "caption": "Resident tax rates 2024–25",
+        "rows": [
+          ["Taxable income", "Tax on this income"],
+          ["0 – $18,200", "Nil"],
+          ["$18,201 – $45,000", "16c for each $1 over $18,200"],
+          ["$45,001 – $135,000", "$4,288 plus 30c for each $1 over $45,000"],
+          ["$135,001 – $190,000", "$31,288 plus 37c for each $1 over $135,000"],
+          ["$190,001 and over", "$51,638 plus 45c for each $1 over $190,000"]
+        ]
+      }
+    ]
+  },
+  "foreign": {
+    "url": "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-foreign-residents",
+    "updated": "2026-06-01",
+    "tables": [
+      {
+        "caption": "Foreign resident tax rates 2025–26",
+        "rows": [
+          ["Taxable income", "Tax on this income"],
+          ["0 – $135,000", "30c for each $1"],
+          ["$135,001 – $190,000", "$40,500 plus 37c for each $1 over $135,000"],
+          ["$190,001 and over", "$60,850 plus 45c for each $1 over $190,000"]
+        ]
+      },
+      {
+        "caption": "Foreign resident tax rates 2024–25",
+        "rows": [
+          ["Taxable income", "Tax on this income"],
+          ["0 – $135,000", "30c for each $1"],
+          ["$135,001 – $190,000", "$40,500 plus 37c for each $1 over $135,000"],
+          ["$190,001 and over", "$60,850 plus 45c for each $1 over $190,000"]
+        ]
+      }
+    ]
+  },
+  "whm": {
+    "url": "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-working-holiday-makers",
+    "updated": "2026-06-01",
+    "tables": [
+      {
+        "caption": "Working holiday maker tax rates 2025–26",
+        "rows": [
+          ["Taxable income", "Tax on this income"],
+          ["0 – $45,000", "15c for each $1"],
+          ["$45,001 – $135,000", "$6,750 plus 30c for each $1 over $45,000"],
+          ["$135,001 – $190,000", "$33,750 plus 37c for each $1 over $135,000"],
+          ["$190,001 and over", "$54,100 plus 45c for each $1 over $190,000"]
+        ]
+      },
+      {
+        "caption": "Working holiday maker tax rates 2024–25",
+        "rows": [
+          ["Taxable income", "Tax on this income"],
+          ["0 – $45,000", "15c for each $1"],
+          ["$45,001 – $135,000", "$6,750 plus 30c for each $1 over $45,000"],
+          ["$135,001 – $190,000", "$33,750 plus 37c for each $1 over $135,000"],
+          ["$190,001 and over", "$54,100 plus 45c for each $1 over $190,000"]
+        ]
+      }
+    ]
+  },
+  "help": {
+    "url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-loan-minimum-repayment-income-and-rates",
+    "updated": "2026-06-30",
+    "tables": [
+      {
+        "caption": "Table 1: 2026–27 repayment thresholds and rates",
+        "rows": [
+          ["Repayment income", "Repayment on this income"],
+          ["$0 – $69,528", "Nil"],
+          ["$69,529 – $129,717", "15c for each $1 over $69,528"],
+          ["$129,718 – $186,050", "$9,028 plus 17c for each $1 over $129,717"],
+          ["$186,051 and over", "10% of your total repayment income"]
+        ]
+      },
+      {
+        "caption": "Table 2: 2025–26 repayment thresholds and rates",
+        "rows": [
+          ["Repayment income", "Repayment on this income"],
+          ["$0 – $67,000", "Nil"],
+          ["$67,001 – $125,000", "15c for each $1 over $67,000"],
+          ["$125,001 – $179,285", "$8,700 plus 17c for each $1 over $125,000"],
+          ["$179,286 and over", "10% of your total repayment income"]
+        ]
+      },
+      {
+        "caption": "Table 3: 2024–25 repayment income thresholds and rates",
+        "rows": [
+          ["Repayment income", "Repayment rate (% of repayment income)"],
+          ["Below $54,435", "Nil"],
+          ["$54,435 – $62,850", "1.0%"],
+          ["$62,851 – $66,620", "2.0%"],
+          ["$66,621 – $70,618", "2.5%"],
+          ["$70,619 – $74,855", "3.0%"],
+          ["$74,856 – $79,346", "3.5%"],
+          ["$79,347 – $84,107", "4.0%"],
+          ["$84,108 – $89,154", "4.5%"],
+          ["$89,155 – $94,503", "5.0%"],
+          ["$94,504 – $100,174", "5.5%"],
+          ["$100,175 – $106,185", "6.0%"],
+          ["$106,186 – $112,556", "6.5%"],
+          ["$112,557 – $119,309", "7.0%"],
+          ["$119,310 – $126,467", "7.5%"],
+          ["$126,468 – $134,056", "8.0%"],
+          ["$134,057 – $142,100", "8.5%"],
+          ["$142,101 – $150,626", "9.0%"],
+          ["$150,627 – $159,663", "9.5%"],
+          ["$159,664 and above", "10.0%"]
+        ]
+      }
+    ]
+  },
+  "helpIndexation": {
+    "url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+    "updated": "2026-10-13",
+    "tables": [
+      {
+        "caption": "Indexation rate table",
+        "rows": [
+          ["Year", "Indexation rate"],
+          ["2026", "2.8%"],
+          ["2025", "3.2%"],
+          ["2024", "4% (previously 4.7%)"],
+          ["2023", "3.2% (previously 7.1%)"],
+          ["2022", "3.9%"],
+          ["2021", "0.6%"],
+          ["2020", "1.8%"],
+          ["2019", "1.8%"],
+          ["2018", "1.9%"],
+          ["2017", "1.5%"],
+          ["2016", "1.5%"],
+          ["2015", "2.1%"],
+          ["2014", "2.6%"],
+          ["2013", "2.0%"]
+        ]
+      }
+    ]
+  },
+  "medicare": {
+    "url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners",
+    "updated": "2026-06-30",
+    "tables": [
+      {
+        "caption": "Table: Medicare levy thresholds for a single individual",
+        "rows": [
+          ["Category", "Lower threshold", "Upper threshold"],
+          [
+            "If you're entitled to the Seniors and pensioners tax offset",
+            "$44,268",
+            "$55,335 (see note 1)"
+          ],
+          ["All other taxpayers", "$28,011", "$35,013"]
+        ]
+      }
+    ],
+    "year": "2025–26"
+  },
+  "mls": {
+    "url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy-surcharge/medicare-levy-surcharge-income-thresholds-and-rates",
+    "updated": "2026-06-22",
+    "tables": [
+      {
+        "caption": "MLS income thresholds and rates for 2026–27",
+        "rows": [
+          ["Threshold", "Base tier", "Tier 1", "Tier 2", "Tier 3"],
+          [
+            "Single threshold",
+            "$105,000 or less",
+            "$105,001 – $123,000",
+            "$123,001 – $164,000",
+            "$164,001 or more"
+          ],
+          [
+            "Family threshold",
+            "$210,000 or less",
+            "$210,001 – $246,000",
+            "$246,001 – $328,000",
+            "$328,001 or more"
+          ],
+          ["Medicare levy surcharge", "0%", "1%", "1.25%", "1.5%"]
+        ]
+      },
+      {
+        "caption": "MLS income thresholds and rates for 2025–26",
+        "rows": [
+          ["Threshold", "Base tier", "Tier 1", "Tier 2", "Tier 3"],
+          [
+            "Single threshold",
+            "$101,000 or less",
+            "$101,001 – $118,000",
+            "$118,001 – $158,000",
+            "$158,001 or more"
+          ],
+          [
+            "Family threshold",
+            "$202,000 or less",
+            "$202,001 – $236,000",
+            "$236,001 – $316,000",
+            "$316,001 or more"
+          ],
+          ["Medicare levy surcharge", "0%", "1%", "1.25%", "1.5%"]
+        ]
+      },
+      {
+        "caption": "MLS income thresholds and rates for 2024–25",
+        "rows": [
+          ["Threshold", "Base tier", "Tier 1", "Tier 2", "Tier 3"],
+          [
+            "Single threshold",
+            "$97,000 or less",
+            "$97,001 – $113,000",
+            "$113,001 – $151,000",
+            "$151,001 or more"
+          ],
+          [
+            "Family threshold",
+            "$194,000 or less",
+            "$194,001 – $226,000",
+            "$226,001 – $302,000",
+            "$302,001 or more"
+          ],
+          ["Medicare levy surcharge", "0%", "1%", "1.25%", "1.5%"]
+        ]
+      }
+    ]
+  },
+  "superGuarantee": {
+    "url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee",
+    "updated": "2026-04-17",
+    "tables": [
+      {
+        "caption": "Table 21: Super guarantee percentage",
+        "rows": [
+          [
+            "Period",
+            "General super guarantee (%)",
+            "Super guarantee (%) for Norfolk Island (transitional rate) (from 1 July 2016)"
+          ],
+          ["1 July 2027 onwards", "12.00", "12"],
+          ["1 July 2026 – 30 June 2027", "12.00", "11"],
+          ["1 July 2025 – 30 June 2026", "12.00", "10"],
+          ["1 July 2024 – 30 June 2025", "11.50", "9"],
+          ["1 July 2023 – 30 June 2024", "11.00", "8"],
+          ["1 July 2022 – 30 June 2023", "10.50", "7"],
+          ["1 July 2021 – 30 June 2022", "10.00", "6"],
+          ["1 July 2020 – 30 June 2021", "9.50", "5"],
+          ["1 July 2019 – 30 June 2020", "9.50", "4"],
+          ["1 July 2018 – 30 June 2019", "9.50", "3"],
+          ["1 July 2017 – 30 June 2018", "9.50", "2"],
+          ["1 July 2016 – 30 June 2017", "9.50", "1"],
+          ["1 July 2015 – 30 June 2016", "9.50", "0"],
+          ["1 July 2014 – 30 June 2015", "9.50", "0"],
+          ["1 July 2013 – 30 June 2014", "9.25", "0"],
+          ["1 July 2002 – 30 June 2013", "9.00", "0"]
+        ]
+      },
+      {
+        "caption": "Table 23: Maximum contribution base from 1 July 2026",
+        "rows": [["Income year", "Maximum contribution base (annual)"], ["2026–27", "$270,830"]]
+      },
+      {
+        "caption": "Table 24: Maximum contribution base up to 30 June 2026",
+        "rows": [
+          [
+            "Income year",
+            "Maximum contribution base (maximum income per quarter for super guarantee purposes)",
+            "Maximum super guarantee payment amount per quarter"
+          ],
+          ["2025–26", "$62,500", "$7,500.00"],
+          ["2024–25", "$65,070", "$7,483.05"]
+        ]
+      }
+    ]
+  },
+  "contributionCaps": {
+    "url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+    "updated": "2026-09-11",
+    "tables": [
+      {
+        "caption": "Table 1.1: Concessional contributions caps",
+        "rows": [
+          ["Income year", "Date", "Your age at this date", "Your concessional contribution cap"],
+          ["2026–27", "n/a", "All ages", "$32,500"],
+          ["2025–26", "n/a", "All ages", "$30,000"],
+          ["2024–25", "n/a", "All ages", "$30,000"]
+        ]
+      },
+      {
+        "caption": "Table 4: Non-concessional contributions cap",
+        "rows": [
+          ["Income year", "Amount of cap"],
+          ["2026–27", "$130,000 see Note 1"],
+          ["2025–26", "$120,000, see Note 1"],
+          ["2024–25", "$120,000 see Note 1"]
+        ]
+      }
+    ]
+  }
+}
