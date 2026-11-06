@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import {
   answerLabels,
   Chips,
@@ -14,6 +15,7 @@ import {
 } from "@/components/answers";
 import { ChevronIcon } from "@/components/Icons";
 import { money } from "@/lib/format";
+import { isEmpty, moveLink } from "@/lib/moveLink";
 import type { Profile } from "@/lib/profile";
 import type { SavedData } from "@/lib/saved";
 
@@ -51,6 +53,56 @@ function Answer<T extends string>(props: {
         <Chips options={props.options} isOn={props.isOn} onPick={props.onPick} />
       </div>
     </details>
+  );
+}
+
+/**
+ * Copy a link that carries everything saved here to another device. The
+ * numbers ride in the link's # part, so they never reach a server, but anyone
+ * with the link can see them.
+ */
+function CopyLink({ data }: { data: SavedData }) {
+  const [state, setState] = useState<"idle" | "copied" | { link: string }>("idle");
+  const copy = async () => {
+    const link = await moveLink(data, window.location.origin);
+    try {
+      await navigator.clipboard.writeText(link);
+      setState("copied");
+    } catch {
+      setState({ link }); // no clipboard: show it to copy by hand
+    }
+  };
+  return (
+    <div className="border-t border-surface-container">
+      <button
+        type="button"
+        onClick={copy}
+        className={`${row} w-full text-left hover:bg-surface-container`}
+      >
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="text-base font-medium">
+            {state === "copied" ? "Link copied" : "Copy a link to my numbers"}
+          </span>
+          <span className="text-[13px] text-muted">
+            Open it on your phone or another computer to bring everything across. Anyone with the
+            link can see your numbers, so only send it to yourself.
+          </span>
+        </span>
+      </button>
+      {typeof state === "object" && (
+        <div className="px-4 pb-4">
+          <label className="flex flex-col gap-1.5 text-[13px] text-muted">
+            Copy this link
+            <input
+              readOnly
+              value={state.link}
+              onFocus={(e) => e.currentTarget.select()}
+              className="min-h-11 rounded-xl border border-border bg-surface-container px-3 text-sm text-text"
+            />
+          </label>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -173,6 +225,7 @@ export function SettingsView(props: {
             </button>
           )}
         </div>
+        {!isEmpty(data) && <CopyLink data={data} />}
         <button
           type="button"
           onClick={() => {
