@@ -35,7 +35,7 @@
 }
 
 html {
-  /* The site header's height, kept up to date by SiteHeader, for things that stick under it. */
+  /* The site header's height, kept up to date by TopBar (0 on wide screens), for things that stick under it. */
   --header-h: 3.5rem;
   background: var(--bg);
   color: var(--text);
@@ -50,4 +50,14 @@ body {
 
 .num {
   font-variant-numeric: tabular-nums;
+}
+
+/* The phone tab bar's height, so fixed bars and the page end sit above it. None on wide screens. */
+html {
+  --bottom-nav-h: 0px;
+}
+@media (width < 64rem) {
+  html {
+    --bottom-nav-h: calc(4.5rem + env(safe-area-inset-bottom));
+  }
 }
