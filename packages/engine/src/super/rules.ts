@@ -3,9 +3,9 @@ import type { Cents } from "../money/cents";
 /**
  * Australian super rules by financial year, each with its source.
  *
- * Add a new year each July once the ATO publishes it. The ATO rules workflow
- * opens a PR when the ATO's tables change, and src/golden/ato.snapshot.test.ts
- * says which values here need updating. Years after the last one listed
+ * Add a new year each July once the ATO publishes it. Run
+ * scripts/update-ato-rules.sh to refresh the ATO snapshot, and
+ * src/golden/ato.snapshot.test.ts says which values here need updating. Years after the last one listed
  * reuse the last year's values (caps are indexed, so later years are
  * conservative), and `rulesFor` says when it has done that.
  */

@@ -4,9 +4,9 @@ import { financialYear } from "../super/rules";
 /**
  * Australian individual tax rules by financial year, each with its source.
  *
- * Add a year each July once the ATO publishes it. The ATO rules workflow
- * (.github/workflows/ato-rules.yml) opens a PR when the ATO's tables change,
- * and src/golden/ato.snapshot.test.ts says which values here need updating.
+ * Add a year each July once the ATO publishes it. Run
+ * scripts/update-ato-rules.sh each July to September: it refreshes the ATO
+ * snapshot and src/golden/ato.snapshot.test.ts says which values need updating.
  * Thresholds that aren't out yet reuse the year before and are listed in
  * `notes`, so the page can say so.
  * Years after the last one listed reuse the last year, and `taxRulesFor` says
