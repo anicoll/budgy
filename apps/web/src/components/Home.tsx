@@ -31,6 +31,7 @@ import {
   type SavedData,
   saveProfile,
 } from "@/lib/saved";
+import { startClock } from "@/lib/state";
 import { AREAS, TOOLS, tool } from "@/lib/tools";
 
 const card = "rounded-2xl border border-border bg-surface";
@@ -45,6 +46,7 @@ export function Home() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    startClock();
     const load = () => {
       const d = readSaved();
       setData(d);

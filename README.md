@@ -33,7 +33,14 @@ pnpm lint
 pnpm test
 pnpm dev     # http://localhost:3000/mortgage
 pnpm build   # static site in apps/web/out
+pnpm --filter @budgy/web e2e   # browser smoke tests against apps/web/out (build first)
 ```
+
+The first time, install the test browser with `pnpm --filter @budgy/web exec playwright install chromium`.
+
+### Accuracy tests
+
+`packages/engine/src/golden` checks the engine against numbers someone else published: the ATO's worked examples and payroll sample data, the revenue offices' duty examples, and what Moneysmart's and CommBank's repayment calculators show. Each case names its source and the date it was checked. When a source changes (each July, or at a state budget), check the page again and update the case. `apps/web/e2e` types the same headline cases into the pages, and loads every page at phone and desktop sizes with the clock moved on a couple of days, failing on any console error.
 
 ## The original app
 

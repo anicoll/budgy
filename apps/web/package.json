@@ -7,7 +7,8 @@
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "colors": "node scripts/m3-colors.mjs"
+    "colors": "node scripts/m3-colors.mjs",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@budgy/engine": "workspace:*",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@material/material-color-utilities": "0.4.0",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4.3.2",
     "@types/node": "^26.1.0",
     "@types/react": "^19.2.17",

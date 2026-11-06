@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   images: { unoptimized: true },
   transpilePackages: ["@budgy/engine"],
+  // The day the pages were prerendered. See `today()` in src/lib/state.ts.
+  env: { BUDGY_BUILD_DAY: new Date().toISOString().slice(0, 10) },
 };
 
 export default nextConfig;
