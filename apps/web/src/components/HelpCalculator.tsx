@@ -15,6 +15,7 @@ import { SavedBar } from "@/components/SavedBar";
 import { money } from "@/lib/format";
 import { decodeHelp, defaultHelp, encodeHelp, type HelpForm, toHelpInput } from "@/lib/helpState";
 import { HELP_PEOPLE } from "@/lib/household";
+import { today } from "@/lib/state";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
@@ -400,7 +401,7 @@ function Stat({ label, value, note }: { label: string; value: string; note: stri
 
 /** Balance from today, then after each year's tax return (shown at 30 June). */
 function toSeries(name: string, color: string, s: HelpScenario, start: number): Series {
-  const now = new Date().toISOString().slice(0, 10);
+  const now = today();
   const endOf = (fy: string) => `${Number(fy.slice(0, 4)) + 1}-06-30`;
   const points = [{ date: now, balance: start }];
   for (const y of s.years) {

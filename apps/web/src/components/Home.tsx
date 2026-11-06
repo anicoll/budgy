@@ -25,6 +25,7 @@ import {
   saveProfile,
   type ToolKey,
 } from "@/lib/saved";
+import { startClock } from "@/lib/state";
 import { AREAS, TOOLS, tool } from "@/lib/tools";
 
 type View = "questions" | "dashboard" | "all";
@@ -44,6 +45,7 @@ export function Home() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    startClock();
     const load = () => {
       const d = readSaved();
       setData(d);

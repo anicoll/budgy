@@ -22,6 +22,7 @@ import {
   startingPoint,
   type ToolKey,
 } from "./saved";
+import { startClock } from "./state";
 
 export interface SavedConfig<T> {
   tool: ToolKey;
@@ -94,6 +95,7 @@ export function useSavedState<T>(cfg: SavedConfig<T>): Saved<T> {
 
   // Work out where to start once, in the browser.
   useEffect(() => {
+    startClock();
     open(window.location.search);
     setLoaded(true);
   }, [open]);

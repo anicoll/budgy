@@ -37,8 +37,21 @@ export interface CalculatorState {
 
 export const MAX_SCENARIOS = 3;
 
+// Pages are prerendered when the site is built, so the browser's first render
+// has to use the build's date too. Otherwise anything worked out from today (a
+// payoff date, a balance chart) renders different text the day after a deploy,
+// and React throws the prerendered page away (error #418). `startClock` moves
+// on to the real date once the page has hydrated.
+const BUILD_DAY = process.env.BUDGY_BUILD_DAY;
+let live = !BUILD_DAY;
+
+/** Use the real date from now on. Call it from an effect, after hydration. */
+export function startClock(): void {
+  live = true;
+}
+
 export function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return live || !BUILD_DAY ? new Date().toISOString().slice(0, 10) : BUILD_DAY;
 }
 
 export function defaultState(start = today()): CalculatorState {
