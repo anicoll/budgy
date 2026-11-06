@@ -36,7 +36,10 @@ export interface SavedConfig<T> {
   /** How this tool's people map onto the shared household. Leave out if it asks about nobody. */
   people?: PeopleMap<T>;
   /** A last say on opening, such as taking in another tool's saved inputs. */
-  adopt?: (state: T, ctx: { search: string; data: SavedData; fresh: boolean }) => T;
+  adopt?: (
+    state: T,
+    ctx: { search: string; data: SavedData; fresh: boolean; mode: SavedMode },
+  ) => T;
 }
 
 /** What the "remembered on this device" line needs. */
@@ -84,7 +87,7 @@ export function useSavedState<T>(cfg: SavedConfig<T>): Saved<T> {
           household: who === "two" ? 2 : who === "me" ? 1 : null,
         });
       }
-      if (cfg.adopt) s = cfg.adopt(s, { search, data, fresh: !start.query });
+      if (cfg.adopt) s = cfg.adopt(s, { search, data, fresh: !start.query, mode: start.mode });
       setState(s);
       setMode(start.mode);
       setHasOwn(Boolean(data.tools[cfg.tool]));
