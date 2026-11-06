@@ -10,6 +10,12 @@ shows up as a failing test that names the value and the page.
 This script only copies text out of the pages. Reading the numbers happens in
 TypeScript (src/golden/atoSnapshot.ts), next to the rules it checks.
 
+The ATO answers GitHub Actions (and other cloud servers) with a 403, so the
+yearly refresh uses scripts/ato-snapshot.browser.js in a browser instead,
+which does the same extraction. Keep PAGES, the caption patterns and MIN_YEAR
+the same in both. This script still works from a network the ATO accepts, and
+with --html-dir on saved pages.
+
 Usage: python3 -I scripts/update_ato_rules.py [--html-dir DIR]
 With --html-dir it reads DIR/<key>.html instead of fetching (for testing).
 Standard library only. Exits non-zero if a page can't be fetched or a table

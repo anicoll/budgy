@@ -12,10 +12,11 @@ import {
 import snapshot from "./data/ato-pages.json";
 
 /**
- * The engine against the ATO's own tables, as scripts/update_ato_rules.py last
- * copied them. The yearly workflow (.github/workflows/ato-rules.yml) refreshes
- * the snapshot and opens a PR, and this test fails on that PR until the rules
- * tables catch up, naming each value and the page it comes from.
+ * The engine against the ATO's own tables, as scripts/ato-snapshot.browser.js
+ * last copied them. Each July to September the ATO rules reminder
+ * (.github/workflows/ato-rules.yml) opens an issue to refresh the snapshot, and
+ * this test then fails until the rules tables catch up, naming each value and
+ * the page it comes from.
  */
 
 const ato = snapshot as AtoSnapshot;
@@ -77,7 +78,7 @@ describe("the engine against the ATO snapshot", () => {
   it("matches every published figure", () => {
     const findings = compareWithEngine(ato);
     if (findings.length) {
-      // The workflow copies this block into the PR it opens.
+      // Marked so it is easy to find in the test log.
       console.log(`<!-- ato-report -->\n${formatFindings(findings)}\n<!-- /ato-report -->`);
     }
     expect(findings).toEqual([]);
