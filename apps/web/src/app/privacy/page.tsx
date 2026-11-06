@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: "/privacy",
   title: "Privacy",
   description:
     "What budgy collects: anonymous page visit counts, and nothing you type. Your numbers stay on your device.",
-};
+});
 
 export default function PrivacyPage() {
   return (
@@ -19,6 +21,12 @@ export default function PrivacyPage() {
           If you let a tool remember your inputs, they are saved in your browser&apos;s local
           storage on this device only. You can clear them any time with &ldquo;Forget everything on
           this device&rdquo; on the home page.
+        </p>
+        <p>
+          To move your numbers to another device, Settings can copy a link that carries them. The
+          numbers sit in the part of the link after the <code>#</code>, which browsers never send to
+          a server, so they travel only inside the link. Anyone you give the link to can see them,
+          so send it only to yourself.
         </p>
         <h2 className="pt-2 text-xl font-semibold">Visit counts</h2>
         <p>

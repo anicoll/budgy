@@ -1,16 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 import { Analytics } from "@/components/Analytics";
+import { BottomNav, SideNav, TopBar } from "@/components/AppNav";
 import { SiteFooter } from "@/components/SiteFooter";
-import { SiteHeader } from "@/components/SiteHeader";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
   // Absolute URLs for share images and canonical links.
-  metadataBase: new URL("https://budgy.nicoll.dev"),
-  title: { default: "Budgy: free Australian money tools", template: "%s · Budgy" },
-  description:
-    "Free, private financial calculators for Australians. No sign-up, and your numbers never leave your device.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: "%s · budgy" },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_AU",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image" },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
@@ -26,11 +35,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en-AU">
       <body className="min-h-dvh">
-        <Suspense>
-          <SiteHeader />
-        </Suspense>
-        {children}
-        <SiteFooter />
+        <div className="lg:flex">
+          <SideNav />
+          <div className="min-w-0 flex-1 pb-[var(--bottom-nav-h)]">
+            <TopBar />
+            {children}
+            <SiteFooter />
+          </div>
+        </div>
+        <BottomNav />
         <Analytics />
       </body>
     </html>

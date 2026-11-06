@@ -1,14 +1,21 @@
 import {
+  budgetForView,
   type Cents,
   calculatePay,
   checkRate,
   compareHelpEarly,
   compareStrategies,
+  perView,
+  planBudget,
+  type SimulationResult,
   simulateLoan,
+  simulatePayoff,
 } from "@budgy/engine";
+import { decodeBudgetState, toBudgetInput } from "./budgetState";
 import { decodeDebtState, toPayoffInput } from "./debtState";
-import { money, monthYear } from "./format";
+import { money, monthYear, monthYearShort } from "./format";
 import { decodeHelp, toHelpInput } from "./helpState";
+import { withBudgetLease, withSavedLease } from "./novatedPay";
 import { decodePayState, toPayInput } from "./payState";
 import { decodeRateCheck, toRateCheckInput } from "./rateCheck";
 import type { SavedData, SharedLoan, ToolKey } from "./saved";
@@ -41,9 +48,9 @@ function attempt<T>(fn: () => T): T | null {
   }
 }
 
-function payTile(q: string): Tile | null {
+function payTile(q: string, data: SavedData): Tile | null {
   return attempt(() => {
-    const r = calculatePay(toPayInput(decodePayState(q)));
+    const r = calculatePay(toPayInput(withSavedLease(decodePayState(q), data)));
     if (r.gross <= 0) return null;
     return {
       key: "pay",
@@ -112,7 +119,7 @@ function helpTile(q: string): Tile | null {
 /** The "at a glance" numbers, from whatever the tools have saved. */
 export function snapshot(data: SavedData): Tile[] {
   const tiles: (Tile | null)[] = [];
-  if (data.tools.pay) tiles.push(payTile(data.tools.pay));
+  if (data.tools.pay) tiles.push(payTile(data.tools.pay, data));
   const loan = savedLoan(data);
   if (loan) tiles.push(loanTile(loan));
   if (data.tools.debt) tiles.push(debtTile(data.tools.debt));
@@ -139,30 +146,14 @@ function rateIdea(data: SavedData, loan: SharedLoan | null): Idea | null {
 }
 
 function extraIdea(loan: SharedLoan | null): Idea | null {
-  if (!loan) return null;
-  return attempt(() => {
-    const input = {
-      balance: C(loan.balance),
-      annualRate: loan.ratePct / 100,
-      termMonths: Math.round(loan.termYears * 12),
-      startDate: today(),
-      frequency: loan.frequency,
-      fortnightlyMethod: loan.fortnightlyMethod,
-      offsetBalance: C(loan.offset),
-    };
-    const extra = loan.frequency === "monthly" ? 200 : loan.frequency === "fortnightly" ? 100 : 50;
-    const now = simulateLoan(input);
-    const more = simulateLoan({ ...input, extraPerPeriod: C(extra) });
-    const saved = now.totalInterest - more.totalInterest;
-    if (saved <= 0) return null;
-    const per = { weekly: "week", fortnightly: "fortnight", monthly: "month" }[loan.frequency];
-    return {
-      key: "mortgage",
-      area: "Home loan",
-      headline: `${money(saved)} less interest`,
-      text: `An extra $${extra} a ${per} on the home loan could pay it off by ${monthYear(more.payoffDate)} instead of ${monthYear(now.payoffDate)}.`,
-    };
-  });
+  const o = loan ? loanOutlook(loan) : null;
+  if (!o || o.saved <= 0) return null;
+  return {
+    key: "mortgage",
+    area: "Home loan",
+    headline: `${money(o.saved)} less interest`,
+    text: `An extra $${o.extra} ${o.per} on the home loan could pay it off by ${monthYear(o.more.payoffDate)} instead of ${monthYear(o.now.payoffDate)}.`,
+  };
 }
 
 function debtIdea(q: string | undefined): Idea | null {
@@ -217,4 +208,150 @@ export function ideas(data: SavedData, inPlan: Set<ToolKey>): Idea[] {
     inPlan.has("mortgage") ? extraIdea(loan) : null,
     inPlan.has("help") ? helpIdea(data.tools.help) : null,
   ].filter((i): i is Idea => i !== null);
+}
+
+// ── Pictures for the dashboard ──────────────────────────────────────────────
+
+export interface FlowPart {
+  label: string;
+  /** Cents a fortnight. */
+  amount: Cents;
+}
+
+/** Where a fortnight's take-home pay goes. */
+export interface CashFlow {
+  /** Take-home a fortnight. */
+  income: Cents;
+  /** Income less spending, or null when there's no budget yet. */
+  left: Cents | null;
+  /** The biggest budget categories, then everything else. Empty without a budget. */
+  parts: FlowPart[];
+}
+
+/** From the budget planner if it's filled in, else just take-home from the pay calculator. */
+export function cashFlow(data: SavedData): CashFlow | null {
+  const q = data.tools.budget;
+  const fromBudget = q
+    ? attempt((): CashFlow | null => {
+        const r = planBudget(toBudgetInput(withBudgetLease(decodeBudgetState(q), data)));
+        const v = budgetForView(r, "fortnight");
+        if (v.income <= 0 && v.spend <= 0) return null;
+        const cats = r.categories.filter((c) => c.year > 0).sort((a, b) => b.year - a.year);
+        const parts: FlowPart[] = cats
+          .slice(0, 3)
+          .map((c) => ({ label: c.name, amount: perView(c.year, "fortnight") }));
+        const rest = cats.slice(3).reduce((t, c) => t + c.year, 0) as Cents;
+        if (rest > 0) parts.push({ label: "Everything else", amount: perView(rest, "fortnight") });
+        return { income: v.income, left: v.left, parts };
+      })
+    : null;
+  if (fromBudget) return fromBudget;
+  const p = data.tools.pay;
+  if (!p) return null;
+  return attempt(() => {
+    const r = calculatePay(toPayInput(withSavedLease(decodePayState(p), data)));
+    if (r.gross <= 0) return null;
+    return { income: r.periods.fortnightly.net, left: null, parts: [] };
+  });
+}
+
+/** The home loan as it is, and with a little extra each repayment. */
+export interface LoanOutlook {
+  loan: SharedLoan;
+  repayment: Cents;
+  /** "a month", "a fortnight" or "a week". */
+  per: string;
+  /** Extra dollars each repayment in the "more" run. */
+  extra: number;
+  now: SimulationResult;
+  more: SimulationResult;
+  /** Interest the extra saves. */
+  saved: Cents;
+}
+
+const EXTRA = { monthly: 200, fortnightly: 100, weekly: 50 } as const;
+const PER = { weekly: "a week", fortnightly: "a fortnight", monthly: "a month" } as const;
+
+export function loanOutlook(loan: SharedLoan): LoanOutlook | null {
+  return attempt(() => {
+    const input = {
+      balance: C(loan.balance),
+      annualRate: loan.ratePct / 100,
+      termMonths: Math.round(loan.termYears * 12),
+      startDate: today(),
+      frequency: loan.frequency,
+      fortnightlyMethod: loan.fortnightlyMethod,
+      offsetBalance: C(loan.offset),
+    };
+    const extra = EXTRA[loan.frequency];
+    const now = simulateLoan(input);
+    const more = simulateLoan({ ...input, extraPerPeriod: C(extra) });
+    if (!now.paidOff) return null;
+    return {
+      loan,
+      repayment: now.repayment,
+      per: PER[loan.frequency],
+      extra,
+      now,
+      more,
+      saved: (now.totalInterest - more.totalInterest) as Cents,
+    };
+  });
+}
+
+/** One debt on the dashboard. */
+export interface DebtLine {
+  key: ToolKey;
+  name: string;
+  balance: Cents;
+  /** "20.99%, cleared by Jun 2028". */
+  note: string;
+}
+
+const pct = (rate: number) => `${Number((rate * 100).toFixed(2))}%`;
+
+/** Each debt from the debt planner, on the plan it's set to, and HELP. Biggest first. */
+export function debtList(data: SavedData): DebtLine[] {
+  const out: DebtLine[] = [];
+  const q = data.tools.debt;
+  if (q) {
+    const lines = attempt(() => {
+      const s = decodeDebtState(q);
+      const input = toPayoffInput(s);
+      const r = simulatePayoff({ ...input, strategy: s.strategy });
+      return input.debts.flatMap((d, i): DebtLine[] => {
+        if (d.balance <= 0) return [];
+        const o = r.debts[i];
+        const when = o?.payoffDate
+          ? `cleared by ${monthYearShort(o.payoffDate)}`
+          : "not cleared at this pace";
+        return [
+          {
+            key: "debt",
+            name: d.name || "Debt",
+            balance: d.balance,
+            note: `${pct(d.annualRate)}, ${when}`,
+          },
+        ];
+      });
+    });
+    if (lines) out.push(...lines);
+  }
+  const h = data.tools.help;
+  if (h) {
+    const line = attempt((): DebtLine | null => {
+      const f = decodeHelp(h);
+      if (f.balance <= 0) return null;
+      const r = compareHelpEarly({ ...toHelpInput(f), lumpSum: 0 as Cents });
+      const cleared = r.keep.clearedIn;
+      return {
+        key: "help",
+        name: "HELP",
+        balance: C(f.balance),
+        note: cleared ? `paid off in ${cleared}` : "not paid off on current income",
+      };
+    });
+    if (line) out.push(line);
+  }
+  return out.sort((a, b) => b.balance - a.balance);
 }

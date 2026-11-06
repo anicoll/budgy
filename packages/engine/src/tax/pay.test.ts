@@ -201,6 +201,21 @@ describe("calculatePay", () => {
     expect(r.net).toBe(c(90_000 - 17_520 - 1_800 - (105_000 - 69_528) * 0.15));
   });
 
+  it("after-tax deductions come off take-home but not tax", () => {
+    const base = pay();
+    const r = pay({ afterTax: c(2_600) });
+    expect(r.totalTax).toBe(base.totalTax);
+    expect(r.afterTax).toBe(c(2_600));
+    expect(r.net).toBe(base.net - c(2_600));
+    expect(r.periods.fortnightly.afterTax).toBe(c(100));
+    expect(r.periods.fortnightly.net).toBe(base.periods.fortnightly.net - c(100));
+    const slip = r.withholding?.fortnightly;
+    expect(slip?.afterTax).toBe(c(100));
+    expect(slip?.net).toBe((base.withholding?.fortnightly.net ?? 0) - c(100));
+    // Never more than what's left after tax.
+    expect(pay({ salary: c(1_000), afterTax: c(5_000) }).net).toBe(0);
+  });
+
   it("deductions lower tax but not take-home cash", () => {
     const r = pay({ deductions: c(5_000) });
     expect(r.taxableIncome).toBe(c(95_000));

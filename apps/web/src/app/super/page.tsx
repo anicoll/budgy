@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { JourneyBar } from "@/components/JourneyBar";
+import { JsonLd } from "@/components/JsonLd";
 import { SuperCalculator } from "@/components/SuperCalculator";
+import { toolJsonLd, toolMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Super at retirement",
-  description:
-    "How much super will you have at retirement, and what income could it pay? Add your whole household and every fund. Uses this year's ATO super guarantee rate and caps. Free and private.",
-};
+export const metadata: Metadata = toolMetadata("super");
 
 export default function SuperPage() {
   return (
     <>
+      <JsonLd data={toolJsonLd("super")} />
       <JourneyBar current="super" />
       <Suspense>
         <SuperCalculator />

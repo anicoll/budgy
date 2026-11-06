@@ -3,6 +3,7 @@
 import {
   annualise,
   BUCKET_GUIDE,
+  BUDGET_PERIODS_PER_YEAR,
   type BudgetBucket,
   type BudgetFrequency,
   type BudgetResult,
@@ -36,7 +37,9 @@ import {
 } from "@/lib/budgetState";
 import { moneyExact } from "@/lib/format";
 import { BUDGET_PEOPLE } from "@/lib/household";
-import { encodePayState, hasAdvanced } from "@/lib/payState";
+import { leaseInPay, toggleLease, withBudgetLease } from "@/lib/novatedPay";
+import { encodePayState, hasAdvanced, type LeaseInPay } from "@/lib/payState";
+import { readSaved } from "@/lib/saved";
 import { parseMoney } from "@/lib/state";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 import { Checkbox, filledField, Select } from "./ui";
@@ -51,7 +54,10 @@ const BUDGET_SAVED: SavedConfig<BudgetState> = {
   decode: (q) => decodeBudgetState(q),
   encode: encodeBudgetState,
   people: BUDGET_PEOPLE,
-  adopt: (s, { search, data, fresh }) => adoptPay(s, search, data.tools.pay, fresh),
+  adopt: (s, { search, data, fresh, mode }) => {
+    const adopted = adoptPay(s, search, data.tools.pay, fresh);
+    return mode === "saved" ? withBudgetLease(adopted, data) : adopted;
+  },
 };
 
 const VIEW_TABS: { value: BudgetView; label: string; per: string }[] = [
@@ -107,6 +113,9 @@ export function BudgetPlanner() {
   const { state, setState } = saved;
   const view = state.view;
   const [open, setOpen] = useState<Record<number, boolean>>({ 0: true });
+  // The novated lease saved on this device, which is yours (the first person's).
+  const [savedLease, setSavedLease] = useState<LeaseInPay | null>(null);
+  useEffect(() => setSavedLease(leaseInPay(readSaved().tools.lease)), []);
 
   const { result, errors } = useMemo(() => {
     const input = toBudgetInput(state);
@@ -198,6 +207,8 @@ export function BudgetPlanner() {
                   net={result ? incomeForView(result.income[i], view) : null}
                   view={view}
                   canRemove={state.people.length > 1}
+                  lease={i === 0 ? (p.pay.lease ?? savedLease) : p.pay.lease}
+                  onLease={(on) => setPerson(i, { pay: toggleLease(p.pay, on, readSaved()) })}
                   onChange={(patch) => setPerson(i, patch)}
                   onRemove={() => set({ people: state.people.filter((_, j) => j !== i) })}
                 />
@@ -428,6 +439,8 @@ function PersonRow({
   net,
   view,
   canRemove,
+  lease,
+  onLease,
   onChange,
   onRemove,
 }: {
@@ -435,6 +448,9 @@ function PersonRow({
   net: Cents | null;
   view: BudgetView;
   canRemove: boolean;
+  /** The novated lease this person could take out of their pay. */
+  lease: LeaseInPay | null;
+  onLease: (on: boolean) => void;
   onChange: (patch: Partial<PersonState>) => void;
   onRemove: () => void;
 }) {
@@ -492,6 +508,25 @@ function PersonRow({
               onChange={(v) => onChange({ pay: { ...p.pay, studyLoan: v } })}
             >
               <span className="text-text">Has a HELP or other study loan</span>
+            </Checkbox>
+          )}
+          {salary && lease && (
+            <Checkbox
+              className="mt-1 flex min-h-7 cursor-pointer items-center gap-2"
+              isSelected={Boolean(p.pay.lease)}
+              onChange={onLease}
+            >
+              <span className="text-text">
+                Take out my novated lease
+                <span className="block text-xs text-muted">
+                  {moneyExact(
+                    Math.round(
+                      ((lease.preTax + lease.postTax) * 100) / BUDGET_PERIODS_PER_YEAR[view],
+                    ),
+                  )}{" "}
+                  {perLabel(view)}, before and after tax
+                </span>
+              </span>
             </Checkbox>
           )}
           <div className="mt-1 flex flex-wrap gap-x-4">

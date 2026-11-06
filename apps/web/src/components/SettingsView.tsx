@@ -1,0 +1,270 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import {
+  answerLabels,
+  Chips,
+  DEBT_OPTIONS,
+  EARN_OPTIONS,
+  HOME_OPTIONS,
+  LEASE_OPTIONS,
+  type Option,
+  toggleDebt,
+  WHO_OPTIONS,
+} from "@/components/answers";
+import { ChevronIcon } from "@/components/Icons";
+import { QrCode } from "@/components/QrCode";
+import { money } from "@/lib/format";
+import { isEmpty, moveLink } from "@/lib/moveLink";
+import type { Profile } from "@/lib/profile";
+import type { SavedData } from "@/lib/saved";
+
+const row = "flex min-h-15 items-center gap-3 px-4 py-2.5";
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="mx-1 text-sm font-semibold text-muted">{title}</h2>
+      <div className="overflow-hidden rounded-3xl bg-surface">{children}</div>
+    </section>
+  );
+}
+
+/** One answer: its current value, opening to the chips. Saves as you tap. */
+function Answer<T extends string>(props: {
+  title: string;
+  value: string;
+  options: Option<T>[];
+  isOn: (v: T) => boolean;
+  onPick: (v: T) => void;
+}) {
+  return (
+    <details className="group border-t border-surface-container first:border-t-0">
+      <summary
+        className={`${row} cursor-pointer list-none hover:bg-surface-container [&::-webkit-details-marker]:hidden`}
+      >
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="text-base font-medium">{props.title}</span>
+          <span className="text-[13px] text-muted">{props.value}</span>
+        </span>
+        <ChevronIcon className="shrink-0 text-muted transition group-open:rotate-90" />
+      </summary>
+      <div className="px-4 pt-1 pb-4">
+        <Chips options={props.options} isOn={props.isOn} onPick={props.onPick} />
+      </div>
+    </details>
+  );
+}
+
+/**
+ * Copy a link that carries everything saved here to another device. The
+ * numbers ride in the link's # part, so they never reach a server, but anyone
+ * with the link can see them.
+ */
+function CopyLink({ data }: { data: SavedData }) {
+  const [copied, setCopied] = useState(false);
+  const [shown, setShown] = useState<string | null>(null); // link typed out, when the clipboard is blocked
+  const [qr, setQr] = useState<string | null>(null);
+  const copy = async () => {
+    const link = await moveLink(data, window.location.origin);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      setShown(link);
+    }
+  };
+  const toggleQr = async () => setQr(qr ? null : await moveLink(data, window.location.origin));
+  return (
+    <div className="border-t border-surface-container">
+      <button
+        type="button"
+        onClick={copy}
+        className={`${row} w-full text-left hover:bg-surface-container`}
+      >
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="text-base font-medium">
+            {copied ? "Link copied" : "Copy a link to my numbers"}
+          </span>
+          <span className="text-[13px] text-muted">
+            Open it on your phone or another computer to bring everything across. Anyone with the
+            link can see your numbers, so only send it to yourself.
+          </span>
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={toggleQr}
+        aria-expanded={!!qr}
+        className="mx-4 mb-3 min-h-11 rounded-full border border-outline px-4 text-sm font-medium hover:bg-surface-container"
+      >
+        {qr ? "Hide the QR code" : "Show a QR code"}
+      </button>
+      {qr && (
+        <div className="flex flex-col items-center gap-2 px-4 pb-4">
+          <QrCode value={qr} label="QR code that opens your numbers on another device" />
+          <p className="text-center text-[13px] text-muted">
+            Point your phone&apos;s camera at it. Close it when you&apos;re done so no one else can
+            scan it.
+          </p>
+        </div>
+      )}
+      {shown && (
+        <div className="px-4 pb-4">
+          <label className="flex flex-col gap-1.5 text-[13px] text-muted">
+            Copy this link
+            <input
+              readOnly
+              value={shown}
+              onFocus={(e) => e.currentTarget.select()}
+              className="min-h-11 rounded-xl border border-border bg-surface-container px-3 text-sm text-text"
+            />
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function SettingsView(props: {
+  profile: Profile;
+  data: SavedData;
+  onChange: (p: Profile) => void;
+  onRemember: () => void;
+  onForget: () => void;
+}) {
+  const { profile: p, data } = props;
+  const labels = answerLabels(p);
+  const set =
+    <K extends keyof Profile>(k: K) =>
+    (v: Profile[K]) =>
+      props.onChange({ ...p, [k]: v });
+  // Names the tools have saved. Placeholder names are never shared, so these are real.
+  const people = data.people.slice(0, p.who === "two" ? 2 : 1);
+
+  return (
+    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 pt-6 pb-12 sm:px-6 sm:pt-8">
+      <div>
+        <h1 className="text-[28px] font-semibold tracking-tight sm:text-4xl">Settings</h1>
+        <p className="mt-1.5 text-[15px] text-muted">
+          Your answers shape your dashboard and plan. Changes save straight away.
+        </p>
+      </div>
+
+      <Group title="Your situation">
+        <Answer
+          title="How you earn"
+          value={labels.earn}
+          options={EARN_OPTIONS}
+          isOn={(v) => p.earn === v}
+          onPick={set("earn")}
+        />
+        <Answer
+          title="Home"
+          value={labels.home}
+          options={HOME_OPTIONS}
+          isOn={(v) => p.home === v}
+          onPick={set("home")}
+        />
+        <Answer
+          title="Debts"
+          value={labels.debts}
+          options={DEBT_OPTIONS}
+          isOn={(v) => (v === "none" ? p.debts.length === 0 : p.debts.includes(v))}
+          onPick={(v) => props.onChange({ ...p, debts: toggleDebt(p.debts, v) })}
+        />
+        <Answer
+          title="Novated lease"
+          value={labels.lease}
+          options={LEASE_OPTIONS}
+          isOn={(v) => p.lease === v}
+          onPick={set("lease")}
+        />
+        <Answer
+          title="Planning for"
+          value={labels.who}
+          options={WHO_OPTIONS}
+          isOn={(v) => p.who === v}
+          onPick={set("who")}
+        />
+      </Group>
+
+      <Group title="Household">
+        {(people.length ? people : [{}]).map((person, i) => {
+          const name = person.name ?? (i === 0 ? "You" : "Partner");
+          const bits = [
+            person.salary ? `${money(person.salary * 100)} a year` : "No salary saved yet",
+            person.help ? "HELP" : null,
+          ].filter(Boolean);
+          return (
+            <Link
+              key={i}
+              href="/pay/"
+              className={`${row} border-t border-surface-container first:border-t-0 hover:bg-surface-container`}
+            >
+              <span
+                aria-hidden="true"
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-semibold ${
+                  i === 0
+                    ? "bg-primary-container text-on-primary-container"
+                    : "bg-tertiary-container text-on-tertiary-container"
+                }`}
+              >
+                {name.charAt(0).toUpperCase()}
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-base font-medium">{name}</span>
+                <span className="text-[13px] text-muted">{bits.join(", ")}</span>
+              </span>
+              <ChevronIcon className="shrink-0 text-muted" />
+            </Link>
+          );
+        })}
+      </Group>
+      <p className="-mt-4 mx-1 text-[13px] text-muted">
+        Names and salaries come from the pay calculator and carry into every tool.
+      </p>
+
+      <Group title="Your data">
+        <div className={row}>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-base font-medium">
+              {data.remember ? "Remembered on this device" : "Not remembering your inputs"}
+            </span>
+            <span className="text-[13px] text-muted">
+              Everything stays in this browser. Nothing is sent anywhere.
+            </span>
+          </span>
+          {!data.remember && (
+            <button
+              type="button"
+              onClick={props.onRemember}
+              className="min-h-11 rounded-full bg-accent px-4 text-sm font-semibold text-on-accent hover:opacity-90"
+            >
+              Remember
+            </button>
+          )}
+        </div>
+        {!isEmpty(data) && <CopyLink data={data} />}
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm("Forget your answers and every tool's inputs on this device?"))
+              props.onForget();
+          }}
+          className={`${row} w-full border-t border-surface-container text-left text-base font-medium text-warn hover:bg-surface-container`}
+        >
+          Forget everything on this device
+        </button>
+      </Group>
+
+      <p className="text-center text-xs text-muted">
+        <Link href="/privacy/" className="text-accent hover:underline">
+          Privacy
+        </Link>{" "}
+        · General information only, not financial advice.
+      </p>
+    </main>
+  );
+}
