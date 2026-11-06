@@ -1,12 +1,21 @@
+import { deflateRawSync } from "node:zlib";
+import { encode } from "uqr";
 import { describe, expect, it } from "vitest";
+import { defaultBudgetState, encodeBudgetState } from "./budgetState";
+import { defaultDebtState, encodeDebtState } from "./debtState";
 import {
   decodeMoveFragment,
   describeSaved,
   encodeMoveFragment,
   isEmpty,
   moveLink,
+  packQuery,
+  unpackQuery,
 } from "./moveLink";
+import { defaultPayState, encodePayState } from "./payState";
 import { emptySaved, type KeyValueStore, readSaved, replaceSaved, type SavedData } from "./saved";
+import { defaultState, encodeState } from "./state";
+import { defaultSuperState, encodeSuperState } from "./superState";
 
 function memory(): KeyValueStore {
   const data = new Map<string, string>();
@@ -29,7 +38,7 @@ const sample: SavedData = {
 describe("move link", () => {
   it("round-trips a full record, compressed", async () => {
     const frag = await encodeMoveFragment(sample);
-    expect(frag.startsWith("d1.")).toBe(true);
+    expect(frag.startsWith("d2.")).toBe(true);
     expect(frag).not.toMatch(/[+/=]/);
     const back = await decodeMoveFragment(`#${frag}`);
     expect(back).toEqual({ ...sample, remember: true });
@@ -43,6 +52,42 @@ describe("move link", () => {
     expect(frag.length).toBeLessThan(1_000);
   });
 
+  it("keeps a full household's QR code small", async () => {
+    // The tools a household is most likely to have filled in.
+    const day = "2026-11-06";
+    const tools: SavedData["tools"] = {
+      mortgage: encodeState(defaultState(day)),
+      pay: encodePayState(defaultPayState(day)),
+      budget: encodeBudgetState(defaultBudgetState(day)),
+      debt: encodeDebtState(defaultDebtState(day)),
+      super: encodeSuperState(defaultSuperState(day)),
+    };
+    const link = await moveLink({ ...sample, tools }, "https://budgy.nicoll.dev");
+    const plain = Buffer.from(JSON.stringify({ ...sample, tools })).toString("base64url");
+    expect(link.length).toBeLessThan(plain.length / 4);
+    expect(encode(link, { ecc: "L" }).version).toBeLessThanOrEqual(12);
+  });
+
+  it("packs base64 JSON inside query strings, nested too, and gives it back exactly", () => {
+    const day = "2026-11-06";
+    for (const q of [
+      encodeBudgetState(defaultBudgetState(day)), // base64 JSON holding another query string
+      encodeSuperState(defaultSuperState(day)),
+      "v=1&b=30000&i=90000",
+      "v=1&s=not+base64%20at=all",
+      "plain text",
+      "",
+    ]) {
+      expect(unpackQuery(packQuery(q))).toBe(q);
+    }
+    expect(JSON.stringify(packQuery(encodeSuperState(defaultSuperState(day))))).toContain('"$j"');
+  });
+
+  it("still reads older d1 links", async () => {
+    const d1 = deflateRawSync(JSON.stringify(sample)).toString("base64url");
+    expect(await decodeMoveFragment(`d1.${d1}`)).toEqual({ ...sample, remember: true });
+  });
+
   it("reads the plain JSON form", async () => {
     const json = Buffer.from(JSON.stringify(sample)).toString("base64url");
     expect(await decodeMoveFragment(`j1.${json}`)).toEqual({ ...sample, remember: true });
@@ -50,13 +95,14 @@ describe("move link", () => {
 
   it("builds a link to the import page", async () => {
     const link = await moveLink(sample, "https://budgy.nicoll.dev");
-    expect(link.startsWith("https://budgy.nicoll.dev/import/#d1.")).toBe(true);
+    expect(link.startsWith("https://budgy.nicoll.dev/import/#d2.")).toBe(true);
   });
 
   it("gives nothing for broken, foreign or empty links", async () => {
     expect(await decodeMoveFragment("")).toBeNull();
     expect(await decodeMoveFragment("#")).toBeNull();
     expect(await decodeMoveFragment("#d1.not-really-deflate")).toBeNull();
+    expect(await decodeMoveFragment("#d2.not-really-deflate")).toBeNull();
     expect(await decodeMoveFragment("#x9.abc")).toBeNull();
     const wrongVersion = Buffer.from(JSON.stringify({ ...sample, v: 99 })).toString("base64url");
     expect(await decodeMoveFragment(`j1.${wrongVersion}`)).toBeNull();
