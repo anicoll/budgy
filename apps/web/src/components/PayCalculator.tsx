@@ -9,12 +9,13 @@ import {
   type PayWarning,
   validatePay,
 } from "@budgy/engine";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
 import { budgetLinkFromPay } from "@/lib/budgetState";
 import { money, moneyExact } from "@/lib/format";
 import { PAY_PEOPLE } from "@/lib/household";
+import { leaseInPay, saysHasLease, toggleLease, withSavedLease } from "@/lib/novatedPay";
 import {
   annualise,
   decodePayState,
@@ -23,11 +24,13 @@ import {
   encodePayState,
   fromAnnual,
   hasAdvanced,
+  type LeaseInPay,
   PAY_YEARS,
   type PayState,
   type ShowPer,
   toPayInput,
 } from "@/lib/payState";
+import { readSaved } from "@/lib/saved";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 import { Checkbox, Select } from "./ui";
 
@@ -38,6 +41,8 @@ const PAY_SAVED: SavedConfig<PayState> = {
   decode: (q) => decodePayState(q),
   encode: encodePayState,
   people: PAY_PEOPLE,
+  // Your own pay picks up the novated lease you've saved; a shared link keeps its own.
+  adopt: (s, { data, mode }) => (mode === "saved" ? withSavedLease(s, data) : s),
 };
 
 const ENTRY: { value: EntryPer; label: string }[] = [
@@ -96,6 +101,17 @@ export function PayCalculator() {
     [state],
   );
   const more = moreOpen ?? hasAdvanced(state);
+
+  // The lease saved on this device, and whether the home page said there is one.
+  const [savedLease, setSavedLease] = useState<{ lease: LeaseInPay | null; says: boolean }>({
+    lease: null,
+    says: false,
+  });
+  useEffect(() => {
+    const data = readSaved();
+    setSavedLease({ lease: leaseInPay(data.tools.lease), says: saysHasLease(data) });
+  }, []);
+  const setLease = (on: boolean) => setState((s) => toggleLease(s, on, readSaved()));
 
   const switchPer = (per: EntryPer) =>
     setState((s) => {
@@ -196,6 +212,13 @@ export function PayCalculator() {
             label="I have a HELP or other study loan"
             checked={state.studyLoan}
             onChange={(v) => set({ studyLoan: v })}
+          />
+
+          <LeaseOption
+            state={state}
+            saved={savedLease.lease}
+            says={savedLease.says}
+            onToggle={setLease}
           />
 
           <SelectField
@@ -383,6 +406,57 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+const yearMoney = (dollars: number) => money(Math.round(dollars * 100));
+
+/** Your novated lease, from the lease calculator, taken out of this pay. */
+function LeaseOption({
+  state,
+  saved,
+  says,
+  onToggle,
+}: {
+  state: PayState;
+  saved: LeaseInPay | null;
+  says: boolean;
+  onToggle: (on: boolean) => void;
+}) {
+  const lease = state.lease ?? saved;
+  if (!lease) {
+    if (!says) return null;
+    return (
+      <p className="rounded-lg bg-bg p-3 text-sm">
+        You said you have a novated lease. Put it in the{" "}
+        <a className="font-medium text-accent hover:underline" href="../novated-lease">
+          novated lease calculator
+        </a>{" "}
+        and it comes out of your pay here and in your budget.
+      </p>
+    );
+  }
+  const parts = [`${yearMoney(lease.preTax)} before tax`];
+  if (lease.postTax > 0) parts.push(`${yearMoney(lease.postTax)} after tax`);
+  return (
+    <div>
+      <Check
+        label="Take my novated lease out of this pay"
+        hint={`${parts.join(" and ")} a year${
+          lease.fringe > 0 ? `, plus ${yearMoney(lease.fringe)} of reportable fringe benefits` : ""
+        }, from the first year of your lease.`}
+        checked={Boolean(state.lease)}
+        onChange={onToggle}
+      />
+      {saved && (
+        <a
+          className="mt-1 ml-9 inline-block text-sm font-medium text-accent hover:underline"
+          href="../novated-lease"
+        >
+          Change your lease
+        </a>
+      )}
+    </div>
+  );
+}
+
 function MoreOptions({ state, set }: { state: PayState; set: (patch: Partial<PayState>) => void }) {
   const resident = state.residency === "resident";
   return (
@@ -463,7 +537,11 @@ function MoreOptions({ state, set }: { state: PayState; set: (patch: Partial<Pay
         <div className="grid grid-cols-2 gap-3">
           <MoneyField
             label="Other packaging"
-            hint="Before tax, a year, such as a novated lease"
+            hint={
+              state.lease
+                ? "Before tax, a year, on top of your novated lease"
+                : "Before tax, a year, such as a novated lease"
+            }
             value={state.packaging}
             onChange={(v) => set({ packaging: v ?? 0 })}
           />
@@ -573,7 +651,11 @@ function slices(a: PayAmounts): Slice[] {
     { key: "tax", label: "Income tax", value: a.incomeTax },
     { key: "medicare", label: "Medicare", value: a.medicare + a.surcharge },
     { key: "loan", label: "HELP", value: a.studyLoan },
-    { key: "packaging", label: "Packaging", value: a.salarySacrifice + a.otherPackaging },
+    {
+      key: "packaging",
+      label: a.afterTax > 0 ? "Packaging and lease" : "Packaging",
+      value: a.salarySacrifice + a.otherPackaging + a.afterTax,
+    },
   ];
   return all.filter((s) => s.value > 0);
 }
@@ -605,7 +687,10 @@ function Breakdown({ a }: { a: PayAmounts }) {
 
 const COLS: ShowPer[] = ["weekly", "fortnightly", "monthly", "annual"];
 
-function PayTable({ result }: { result: PayResult }) {
+const packagingLabel = (lease: boolean) =>
+  lease ? "Packaging, with your lease" : "Other packaging";
+
+function PayTable({ result, lease }: { result: PayResult; lease: boolean }) {
   const rows: { label: string; get: (a: PayAmounts) => number; sign?: -1; show: boolean }[] = [
     { label: "Gross pay", get: (a) => a.gross, show: true },
     {
@@ -615,7 +700,7 @@ function PayTable({ result }: { result: PayResult }) {
       show: result.salarySacrifice > 0,
     },
     {
-      label: "Other packaging",
+      label: packagingLabel(lease),
       get: (a) => a.otherPackaging,
       sign: -1,
       show: result.otherPackaging > 0,
@@ -629,6 +714,12 @@ function PayTable({ result }: { result: PayResult }) {
       show: result.surcharge > 0,
     },
     { label: "HELP repayment", get: (a) => a.studyLoan, sign: -1, show: result.studyLoan > 0 },
+    {
+      label: "Novated lease after tax",
+      get: (a) => a.afterTax,
+      sign: -1,
+      show: result.afterTax > 0,
+    },
   ];
   const cell = "border-b border-grid py-2.5";
   const fmt = (v: number, sign?: -1) => (sign && v > 0 ? `−${moneyExact(v)}` : moneyExact(v));
@@ -687,7 +778,7 @@ function PayTable({ result }: { result: PayResult }) {
 }
 
 /** One period as a list, for phones, where four columns don't fit. */
-function PeriodList({ a }: { a: PayAmounts }) {
+function PeriodList({ a, lease }: { a: PayAmounts; lease: boolean }) {
   const row = "flex justify-between border-b border-grid py-2.5";
   const out = (label: string, v: number) =>
     v > 0 ? (
@@ -703,11 +794,12 @@ function PeriodList({ a }: { a: PayAmounts }) {
         <dd>{moneyExact(a.gross)}</dd>
       </div>
       {out("Salary sacrifice", a.salarySacrifice)}
-      {out("Other packaging", a.otherPackaging)}
+      {out(packagingLabel(lease), a.otherPackaging)}
       {out("Income tax", a.incomeTax)}
       {out("Medicare levy", a.medicare)}
       {out("Medicare levy surcharge", a.surcharge)}
       {out("HELP repayment", a.studyLoan)}
+      {out("Novated lease after tax", a.afterTax)}
       <div className="flex justify-between py-3 font-semibold">
         <dt>Take-home pay</dt>
         <dd>{moneyExact(a.net)}</dd>
@@ -763,8 +855,8 @@ function PayView({
           {result.salarySacrifice > 0 ? ", including your salary sacrifice" : ""}
         </p>
         <Breakdown a={result} />
-        <PayTable result={result} />
-        <PeriodList a={p} />
+        <PayTable result={result} lease={Boolean(state.lease)} />
+        <PeriodList a={p} lease={Boolean(state.lease)} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -807,6 +899,12 @@ function PayView({
                 <>
                   {" "}
                   and <strong className="num">{moneyExact(slip.studyLoan)}</strong> for HELP
+                </>
+              )}
+              {slip.afterTax > 0 && (
+                <>
+                  , your lease takes <strong className="num">{moneyExact(slip.afterTax)}</strong>{" "}
+                  after tax
                 </>
               )}
               , so <strong className="num">{moneyExact(slip.net)}</strong> lands in your account.

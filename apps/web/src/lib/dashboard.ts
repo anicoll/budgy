@@ -15,6 +15,7 @@ import { decodeBudgetState, toBudgetInput } from "./budgetState";
 import { decodeDebtState, toPayoffInput } from "./debtState";
 import { money, monthYear, monthYearShort } from "./format";
 import { decodeHelp, toHelpInput } from "./helpState";
+import { withBudgetLease, withSavedLease } from "./novatedPay";
 import { decodePayState, toPayInput } from "./payState";
 import { decodeRateCheck, toRateCheckInput } from "./rateCheck";
 import type { SavedData, SharedLoan, ToolKey } from "./saved";
@@ -47,9 +48,9 @@ function attempt<T>(fn: () => T): T | null {
   }
 }
 
-function payTile(q: string): Tile | null {
+function payTile(q: string, data: SavedData): Tile | null {
   return attempt(() => {
-    const r = calculatePay(toPayInput(decodePayState(q)));
+    const r = calculatePay(toPayInput(withSavedLease(decodePayState(q), data)));
     if (r.gross <= 0) return null;
     return {
       key: "pay",
@@ -118,7 +119,7 @@ function helpTile(q: string): Tile | null {
 /** The "at a glance" numbers, from whatever the tools have saved. */
 export function snapshot(data: SavedData): Tile[] {
   const tiles: (Tile | null)[] = [];
-  if (data.tools.pay) tiles.push(payTile(data.tools.pay));
+  if (data.tools.pay) tiles.push(payTile(data.tools.pay, data));
   const loan = savedLoan(data);
   if (loan) tiles.push(loanTile(loan));
   if (data.tools.debt) tiles.push(debtTile(data.tools.debt));
@@ -232,7 +233,7 @@ export function cashFlow(data: SavedData): CashFlow | null {
   const q = data.tools.budget;
   const fromBudget = q
     ? attempt((): CashFlow | null => {
-        const r = planBudget(toBudgetInput(decodeBudgetState(q)));
+        const r = planBudget(toBudgetInput(withBudgetLease(decodeBudgetState(q), data)));
         const v = budgetForView(r, "fortnight");
         if (v.income <= 0 && v.spend <= 0) return null;
         const cats = r.categories.filter((c) => c.year > 0).sort((a, b) => b.year - a.year);
@@ -248,7 +249,7 @@ export function cashFlow(data: SavedData): CashFlow | null {
   const p = data.tools.pay;
   if (!p) return null;
   return attempt(() => {
-    const r = calculatePay(toPayInput(decodePayState(p)));
+    const r = calculatePay(toPayInput(withSavedLease(decodePayState(p), data)));
     if (r.gross <= 0) return null;
     return { income: r.periods.fortnightly.net, left: null, parts: [] };
   });

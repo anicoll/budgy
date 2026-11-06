@@ -36,6 +36,8 @@ const FULL: PayState = {
   packaging: 8_000,
   fringe: 9_500,
   deductions: 1_750,
+  lease: { preTax: 9_000, postTax: 1_500, fringe: 0 },
+  leaseOff: false,
   show: "monthly",
   raise: 7_500,
   compareAmount: 50,
@@ -93,7 +95,9 @@ describe("pay state", () => {
   it("feeds the engine", () => {
     const r = calculatePay(toPayInput(FULL));
     expect(r.salary).toBeGreaterThan(0);
-    expect(r.otherPackaging).toBe(800_000);
+    // Other packaging plus the novated lease before tax; its after-tax part comes off too.
+    expect(r.otherPackaging).toBe(1_700_000);
+    expect(r.afterTax).toBe(150_000);
     const compare = calculatePay(toPayInput(FULL, FULL.compareAmount));
     expect(compare.gross).toBeGreaterThan(r.gross);
   });

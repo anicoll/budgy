@@ -49,6 +49,11 @@ export interface PayInput {
   fringeBenefits?: Cents;
   /** Deductions claimed at tax time, such as work expenses. */
   deductions?: Cents;
+  /**
+   * Taken out of pay after tax a year, such as the employee contribution
+   * towards a novated lease. Doesn't change the tax, only what lands in the bank.
+   */
+  afterTax?: Cents;
   residency?: Residency;
   /** Claimed on the tax file number declaration. Only changes withholding. Default true. */
   taxFreeThreshold?: boolean;
@@ -75,7 +80,9 @@ export interface PayAmounts {
   studyLoan: Cents;
   /** Everything taken out: tax, levies and study loan repayments. */
   totalTax: Cents;
-  /** Take-home pay: gross less packaging and `totalTax`. */
+  /** Taken out after tax, such as a novated lease's employee contribution. */
+  afterTax: Cents;
+  /** Take-home pay: gross less packaging, `totalTax` and `afterTax`. */
   net: Cents;
   employerSuper: Cents;
 }
@@ -87,6 +94,7 @@ export interface PaySlip {
   packaging: Cents; // salary sacrifice and other packaging
   tax: Cents; // withheld, including the Medicare levy
   studyLoan: Cents; // withheld
+  afterTax: Cents; // taken out after tax, such as a lease contribution
   net: Cents;
   /** Withheld over the year (pays × amounts above). */
   yearWithheld: Cents;
@@ -277,6 +285,7 @@ function core(input: PayInput, rules: TaxRules, sup: SuperRules): Core {
   const studyLoan = input.studyLoan ? studyLoanRepayment(repaymentIncome, rules.help) : ZERO;
 
   const totalTax = (incomeTax + medicare + surcharge + studyLoan) as Cents;
+  const afterTax = Math.min(amt(input.afterTax), Math.max(0, cash - totalTax)) as Cents;
   return {
     salary,
     overtime,
@@ -295,7 +304,8 @@ function core(input: PayInput, rules: TaxRules, sup: SuperRules): Core {
     surcharge,
     studyLoan,
     totalTax,
-    net: (cash - totalTax) as Cents,
+    afterTax,
+    net: (cash - totalTax - afterTax) as Cents,
     employerSuper: (employerBase + sacrifice) as Cents,
   };
 }
@@ -312,10 +322,15 @@ export function perPeriod(a: PayAmounts, period: PayPeriod): PayAmounts {
     medicare: p(a.medicare),
     surcharge: p(a.surcharge),
     studyLoan: p(a.studyLoan),
+    afterTax: p(a.afterTax),
     employerSuper: p(a.employerSuper),
   };
   const totalTax = (out.incomeTax + out.medicare + out.surcharge + out.studyLoan) as Cents;
-  const net = (out.gross - out.salarySacrifice - out.otherPackaging - totalTax) as Cents;
+  const net = (out.gross -
+    out.salarySacrifice -
+    out.otherPackaging -
+    totalTax -
+    out.afterTax) as Cents;
   return { ...out, totalTax, net };
 }
 
@@ -349,13 +364,15 @@ function paySlips(
       input.taxFreeThreshold === false ? tables.loanNoThreshold : tables.loanThreshold;
     const studyLoan = input.studyLoan ? withholdForPay(earnings, frequency, loanRows) : ZERO;
     const yearWithheld = ((tax + studyLoan) * n) as Cents;
+    const afterTax = toC(a.afterTax / n);
     out[frequency] = {
       frequency,
       gross,
       packaging,
       tax,
       studyLoan,
-      net: (earnings - tax - studyLoan) as Cents,
+      afterTax,
+      net: (earnings - tax - studyLoan - afterTax) as Cents,
       yearWithheld,
       atTaxTime: (yearWithheld - a.totalTax) as Cents,
     };
@@ -380,6 +397,7 @@ export function validatePay(input: PayInput): string[] {
     ["otherPackaging", "Other packaging"],
     ["fringeBenefits", "Fringe benefits"],
     ["deductions", "Deductions"],
+    ["afterTax", "After-tax deductions"],
   ];
   for (const [key, label] of amounts) {
     const v = input[key];

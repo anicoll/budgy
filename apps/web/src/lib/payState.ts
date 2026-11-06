@@ -10,6 +10,17 @@ import { b64urlDecode, b64urlEncode, today } from "./state";
 export type EntryPer = "year" | "month" | "fortnight" | "week" | "hour";
 export type ShowPer = "weekly" | "fortnightly" | "monthly" | "annual";
 
+/**
+ * A novated lease's effect on pay, a year in dollars, from the novated lease
+ * calculator: packaged before tax, the employee contribution after tax, and
+ * the reportable fringe benefits on the income statement.
+ */
+export interface LeaseInPay {
+  preTax: number;
+  postTax: number;
+  fringe: number;
+}
+
 /** The pay calculator's inputs as typed, in dollars and percent. */
 export interface PayState {
   amount: number;
@@ -34,6 +45,10 @@ export interface PayState {
   packaging: number; // other pre-tax, a year
   fringe: number; // reportable fringe benefits, a year
   deductions: number; // a year
+  /** The novated lease, included in pay. Null: no lease in this pay. */
+  lease: LeaseInPay | null;
+  /** The person turned their lease off here, so don't bring it back in. */
+  leaseOff: boolean;
   show: ShowPer;
   raise: number; // a year, for "what you'd keep"
   compareAmount: number; // the other salary in the compare view, same `per`
@@ -66,6 +81,8 @@ export function defaultPayState(on = today()): PayState {
     packaging: 0,
     fringe: 0,
     deductions: 0,
+    lease: null,
+    leaseOff: false,
     show: "fortnightly",
     raise: 5_000,
     compareAmount: 110_000,
@@ -104,6 +121,7 @@ export function overtimeAnnual(s: PayState, amount = s.amount): number {
 }
 
 export function toPayInput(s: PayState, amount = s.amount): PayInput {
+  const lease = s.lease ?? { preTax: 0, postTax: 0, fringe: 0 };
   return {
     year: s.year,
     salary: toCents(annualise(amount, s.per, s.hoursPerWeek)),
@@ -113,9 +131,10 @@ export function toPayInput(s: PayState, amount = s.amount): PayInput {
     bonus: toCents(s.bonus),
     allowances: toCents(s.allowances),
     salarySacrifice: toCents(s.sacrifice),
-    otherPackaging: toCents(s.packaging),
-    fringeBenefits: toCents(s.fringe),
+    otherPackaging: toCents(s.packaging + lease.preTax),
+    fringeBenefits: toCents(s.fringe + lease.fringe),
     deductions: toCents(s.deductions),
+    afterTax: toCents(lease.postTax),
     residency: s.residency,
     taxFreeThreshold: s.taxFreeThreshold,
     medicareExemption: s.medicareExemption,
@@ -186,6 +205,8 @@ export function encodePayState(s: PayState): string {
       s.deductions,
     ],
     v: [SHOWS.indexOf(s.show), s.raise, s.compareAmount, s.view === "compare" ? 1 : 0],
+    n: s.lease ? [s.lease.preTax, s.lease.postTax, s.lease.fringe] : null,
+    o: s.leaseOff ? 1 : 0,
   };
   return new URLSearchParams({
     v: String(PAY_URL_VERSION),
@@ -204,6 +225,7 @@ export function decodePayState(query: string, fallback = defaultPayState()): Pay
     const x = Array.isArray(c.x) ? c.x : [];
     const v = Array.isArray(c.v) ? c.v : [];
     const m = Array.isArray(c.m) ? c.m : null;
+    const n = Array.isArray(c.n) ? c.n : null;
     const superPct =
       typeof a[4] === "number" && Number.isFinite(a[4]) ? clamp(a[4], 0, 100) : undefined;
     return {
@@ -229,6 +251,8 @@ export function decodePayState(query: string, fallback = defaultPayState()): Pay
       packaging: money(x[5], 0),
       fringe: money(x[6], 0),
       deductions: money(x[7], 0),
+      lease: n ? { preTax: money(n[0], 0), postTax: money(n[1], 0), fringe: money(n[2], 0) } : null,
+      leaseOff: c.o === 1,
       show: pick(SHOWS[num(v[0], -1)], SHOWS, fallback.show),
       raise: money(v[1], fallback.raise),
       compareAmount: money(v[2], fallback.compareAmount),
