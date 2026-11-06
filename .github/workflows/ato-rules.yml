@@ -1,0 +1,122 @@
+name: Check ATO rules
+
+# The ATO publishes the new income year's rates, thresholds and caps from
+# about May to August, so this checks weekly from June to September and
+# monthly the rest of the year. When an ATO table we rely on changes it opens
+# (or refreshes) one PR with the new snapshot. The engine test
+# src/golden/ato.snapshot.test.ts fails on that PR until TAX_RULES,
+# SUPER_RULES and HELP_INDEXATION catch up, and the PR lists what to change.
+on:
+  schedule:
+    - cron: "0 22 * 6-9 1" # Mondays June to September, 22:00 UTC (Tuesday morning in Australia)
+    - cron: "0 22 1 1-5,10-12 *" # the 1st of every other month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ato-rules
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ato-rules/update
+      SNAPSHOT: packages/engine/src/golden/data/ato-pages.json
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # PRs opened with the default GITHUB_TOKEN don't trigger CI, so use a
+          # token with contents and pull-requests write when one is set.
+          token: ${{ secrets.RBA_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # If last run's PR is still open, work on top of it so fixes pushed to it are kept.
+      - name: Find an open rules PR
+        id: open
+        env:
+          GH_TOKEN: ${{ secrets.RBA_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          if [ -n "$pr" ]; then
+            git fetch origin "$BRANCH"
+            git switch "$BRANCH"
+          fi
+
+      - name: Refresh the ATO snapshot
+        id: refresh
+        run: |
+          python3 -I scripts/update_ato_rules.py | tee changes.txt
+          pnpm exec biome format --write "$SNAPSHOT"
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "The ATO's tables match the snapshot." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compare the engine with the ATO
+        if: steps.refresh.outputs.changed == 'true'
+        run: |
+          set +e
+          pnpm --filter @budgy/engine exec vitest run src/golden/ato.snapshot.test.ts > ato-test.log 2>&1
+          status=$?
+          set -e
+          sed -n '/<!-- ato-report -->/,/<!-- \/ato-report -->/p' ato-test.log | sed '1d;$d' > report.md
+          if [ "$status" = 0 ]; then
+            echo "The engine still matches every ATO figure. Only page dates or tables outside the engine's years changed." > report.md
+          elif [ ! -s report.md ]; then
+            echo "The ATO snapshot test failed without a report. See the Test check on this PR." > report.md
+          fi
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or refresh the PR
+        if: steps.refresh.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RBA_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          PR: ${{ steps.open.outputs.pr }}
+        run: |
+          {
+            echo "The ATO has changed a table the engine's rules come from. This PR updates the snapshot in \`$SNAPSHOT\`."
+            echo
+            echo "## Pages that changed"
+            echo
+            cat changes.txt
+            echo
+            echo "## What the engine needs"
+            echo
+            cat report.md
+            echo
+            echo "## To finish this PR"
+            echo
+            echo "- [ ] Update \`TAX_RULES\` (packages/engine/src/tax/rules.ts), \`SUPER_RULES\` (super/rules.ts) or \`HELP_INDEXATION\` and \`HELP_THRESHOLDS_PUBLISHED_TO\` (help/early.ts) on this branch until the Test check is green."
+            echo "- [ ] Drop any \`notes\` that say a value was carried from the year before, now the ATO has published it."
+            echo "- [ ] If tax rates changed, check the withholding coefficients and golden cases in packages/engine/src/golden too, and move \`checked\` on in golden/sources.ts."
+            echo "- [ ] Check a couple of figures against the ATO pages linked above before merging."
+          } > body.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$PR" ]; then
+            git commit -am "Update the ATO rules snapshot ($(date -u +%Y-%m-%d))"
+            git push origin "$BRANCH"
+            gh pr edit "$PR" --body-file body.md
+          else
+            git switch -C "$BRANCH"
+            git commit -am "Update the ATO rules snapshot ($(date -u +%Y-%m-%d))"
+            # No open PR, so anything left on this branch is from a closed one.
+            git push --force -u origin "$BRANCH"
+            gh pr create --base main --head "$BRANCH" \
+              --title "Update tax and super rules from the ATO" --body-file body.md
+          fi
