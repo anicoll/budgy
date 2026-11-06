@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { JourneyBar } from "@/components/JourneyBar";
+import { JsonLd } from "@/components/JsonLd";
 import { PayCalculator } from "@/components/PayCalculator";
+import { toolJsonLd, toolMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Pay calculator",
-  description:
-    "What you take home each week, fortnight or month after tax, Medicare and HELP. Uses the ATO's current rates and withholding tables, with overtime, salary sacrifice and packaging. Free and private.",
-};
+export const metadata: Metadata = toolMetadata("pay");
 
 export default function PayPage() {
   return (
     <>
+      <JsonLd data={toolJsonLd("pay")} />
       <JourneyBar current="pay" />
       <Suspense>
         <PayCalculator />

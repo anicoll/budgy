@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { HomeIcon, IdeasIcon, SettingsIcon, ToolsIcon } from "@/components/Icons";
 import { LogoMark } from "@/components/Logo";
 import { HOME_HREF, type HomeView, SAVED_CHANGED, viewParam } from "@/lib/nav";
@@ -32,9 +32,24 @@ function Brand({ size = 30 }: { size?: number }) {
   );
 }
 
-/** The side menu on wide screens: the home views, then every tool by area. */
+/**
+ * The side menu on wide screens: the home views, then every tool by area.
+ * Reading ?view= opts out of static rendering, so the exported HTML gets the
+ * same menu with no home view marked, and crawlers still see every tool link.
+ */
 export function SideNav() {
-  const active = useActiveView();
+  return (
+    <Suspense fallback={<SideMenu active={null} />}>
+      <LiveSideMenu />
+    </Suspense>
+  );
+}
+
+function LiveSideMenu() {
+  return <SideMenu active={useActiveView()} />;
+}
+
+function SideMenu({ active }: { active: HomeView | null }) {
   const path = trim(usePathname());
   const [remembering, setRemembering] = useState(true);
 
@@ -155,7 +170,18 @@ const TABS: { view: HomeView; label: string; Icon: (p: { size?: number }) => Rea
 
 /** The tab bar at the bottom on phones. A tool page counts as Tools. */
 export function BottomNav() {
-  const active = useActiveView() ?? "tools";
+  return (
+    <Suspense fallback={<TabBar active={null} />}>
+      <LiveTabBar />
+    </Suspense>
+  );
+}
+
+function LiveTabBar() {
+  return <TabBar active={useActiveView() ?? "tools"} />;
+}
+
+function TabBar({ active }: { active: HomeView | null }) {
   return (
     <nav
       aria-label="Main"
