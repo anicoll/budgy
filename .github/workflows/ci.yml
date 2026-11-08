@@ -87,7 +87,7 @@ jobs:
       - run: pnpm --filter @budgy/web exec playwright install --with-deps chromium
       - run: pnpm --filter @budgy/web e2e
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-traces
           path: apps/web/test-results/
