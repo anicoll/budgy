@@ -426,7 +426,7 @@ function LeaseOption({
     return (
       <p className="rounded-lg bg-bg p-3 text-sm">
         You said you have a novated lease. Put it in the{" "}
-        <a className="font-medium text-accent hover:underline" href="../novated-lease">
+        <a className="font-medium text-accent hover:underline" href="../novated-lease/">
           novated lease calculator
         </a>{" "}
         and it comes out of your pay here and in your budget.
@@ -448,7 +448,7 @@ function LeaseOption({
       {saved && (
         <a
           className="mt-1 ml-9 inline-block text-sm font-medium text-accent hover:underline"
-          href="../novated-lease"
+          href="../novated-lease/"
         >
           Change your lease
         </a>

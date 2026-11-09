@@ -531,7 +531,7 @@ function PersonRow({
           )}
           <div className="mt-1 flex flex-wrap gap-x-4">
             {salary && (
-              <a className={linkBtn} href={`../pay?${encodePayState(p.pay)}`}>
+              <a className={linkBtn} href={`../pay/?${encodePayState(p.pay)}`}>
                 Super, salary sacrifice and more in the pay calculator
               </a>
             )}
@@ -893,7 +893,7 @@ function Results({
           {home && home.year > 0 && income > 0 && (
             <p>
               {home.name} takes {pct(home.year / income)} of your take-home.{" "}
-              <a href="../mortgage" className="font-medium text-accent hover:underline">
+              <a href="../mortgage/" className="font-medium text-accent hover:underline">
                 See what extra mortgage repayments do
               </a>
             </p>
@@ -901,7 +901,7 @@ function Results({
           {debts && debts.year > 0 && (
             <p>
               You pay {moneyExact(perView(debts.year, "month"))} a month on debts.{" "}
-              <a href="../debt" className="font-medium text-accent hover:underline">
+              <a href="../debt/" className="font-medium text-accent hover:underline">
                 Plan which to clear first
               </a>
             </p>
