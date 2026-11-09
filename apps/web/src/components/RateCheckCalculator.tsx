@@ -205,7 +205,7 @@ function Results({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
   const fixed = form.rateType !== "variable" && !interestOnly;
   const month = monthYear(`${r.month}-01`);
 
-  const refinanceHref = `../refinance?${encodeRefinance({
+  const refinanceHref = `../refinance/?${encodeRefinance({
     ...defaultRefinance(),
     balance: form.balance,
     ratePct: form.ratePct,

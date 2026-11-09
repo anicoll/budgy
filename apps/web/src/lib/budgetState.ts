@@ -248,7 +248,7 @@ export const FROM_PAY_PARAM = "pay";
 
 /** The budget planner's address from another tool's page, carrying the pay calculator's inputs. */
 export function budgetLinkFromPay(pay: PayState): string {
-  return `../budget?${new URLSearchParams({ [FROM_PAY_PARAM]: encodePayState(pay) })}`;
+  return `../budget/?${new URLSearchParams({ [FROM_PAY_PARAM]: encodePayState(pay) })}`;
 }
 
 /** Put a pay calculator's inputs on the first person, as a salary. */

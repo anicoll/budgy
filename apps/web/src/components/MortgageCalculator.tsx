@@ -203,7 +203,7 @@ export function MortgageCalculator() {
               />
             </div>
             <a
-              href={`../split?${encodeSplitState(splitFromBaseLoan(base))}&${OWN_LINK_PARAM}=1`}
+              href={`../split/?${encodeSplitState(splitFromBaseLoan(base))}&${OWN_LINK_PARAM}=1`}
               className="mt-3 inline-block text-sm text-accent hover:underline"
             >
               Sharing this loan? Split it between borrowers →

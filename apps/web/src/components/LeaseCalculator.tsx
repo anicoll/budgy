@@ -229,7 +229,7 @@ function Inputs({
           onChange={(v) => set({ hospitalCover: v })}
         />
         <p className="text-xs text-muted">
-          More pay options are in the <a href="../pay">pay calculator</a>.
+          More pay options are in the <a href="../pay/">pay calculator</a>.
         </p>
       </section>
 
