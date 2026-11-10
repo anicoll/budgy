@@ -15,6 +15,7 @@ const FULL: RefinanceForm = {
   repayment: 2_100.5,
   currentFee: 395,
   offset: 12_000,
+  homeValue: 720_000,
   newTermYears: 30,
   introRatePct: 5.49,
   introYears: 2,

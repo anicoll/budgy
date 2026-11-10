@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  type Cents,
   compareRefinance,
+  estimateLmi,
   type Frequency,
   type LoanInput,
   type RefinanceResult,
@@ -243,6 +245,14 @@ export function RefinanceCalculator() {
             <h2 className="mb-3 font-semibold">Cost to switch</h2>
             <div className="grid grid-cols-2 gap-3">
               <MoneyField
+                className="col-span-2"
+                label="What your home is worth (optional)"
+                hint="For your loan-to-value ratio. Over 80%, a new lender may charge mortgage insurance."
+                optional
+                value={form.homeValue}
+                onChange={(homeValue) => set({ homeValue })}
+              />
+              <MoneyField
                 label="Leaving your lender"
                 hint="Discharge fee, plus break costs on a fixed rate."
                 value={form.exitCosts}
@@ -282,6 +292,13 @@ export function RefinanceCalculator() {
           aria-label="Results"
           aria-live="polite"
         >
+          {result && (
+            <LmiNote
+              loan={form.balance}
+              value={form.homeValue}
+              onAdd={(premium) => set({ setupCosts: form.setupCosts + premium })}
+            />
+          )}
           {!result ? (
             <div className={`${card} text-warn`}>
               {errors.length
@@ -555,5 +572,59 @@ function Method() {
         </p>
       </div>
     </details>
+  );
+}
+
+/**
+ * A new lender charges lenders mortgage insurance when the loan is over 80%
+ * of the home's value, even if you paid it with your current lender.
+ */
+function LmiNote({
+  loan,
+  value,
+  onAdd,
+}: {
+  loan: number;
+  value?: number;
+  onAdd: (premium: number) => void;
+}) {
+  const [added, setAdded] = useState<number | null>(null);
+  if (!value || value <= 0) return null;
+  const lmi = estimateLmi(Math.round(value * 100) as Cents, Math.round(loan * 100) as Cents);
+  if (lmi.lvr <= 0.8) return null;
+  const lvr = `${(lmi.lvr * 100).toFixed(1)}%`;
+  return (
+    <div className="rounded-xl border border-warn/40 bg-warn/10 p-4 text-sm sm:p-5">
+      <p className="font-semibold">Your loan is {lvr} of your home&apos;s value</p>
+      {lmi.available ? (
+        <>
+          <p className="mt-1">
+            Over 80%, the new lender will usually charge lenders mortgage insurance, even if you
+            paid it when you bought. It could be around{" "}
+            <strong className="num">{money(lmi.premium)}</strong>. That&apos;s a rough estimate: ask
+            the lender for a quote.
+          </p>
+          {added === lmi.premium ? (
+            <p className="mt-3 font-medium text-good">Added to the setup costs ✓</p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                onAdd(Math.round(lmi.premium / 100));
+                setAdded(lmi.premium);
+              }}
+              className="mt-3 min-h-11 rounded-full border border-outline bg-surface px-5 font-medium text-accent hover:bg-accent hover:text-on-accent"
+            >
+              Add {money(lmi.premium)} to the setup costs
+            </button>
+          )}
+        </>
+      ) : (
+        <p className="mt-1">
+          Over 95%, most lenders won&apos;t refinance the loan. Paying it down, or a new valuation,
+          may change that.
+        </p>
+      )}
+    </div>
   );
 }
