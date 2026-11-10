@@ -1,4 +1,5 @@
 export * from "./borrowing/power";
+export * from "./budget/payPeriod";
 export * from "./budget/plan";
 export * from "./dates";
 export * from "./debt/payoff";
