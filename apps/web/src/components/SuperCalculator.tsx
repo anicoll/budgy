@@ -20,6 +20,7 @@ import { DateField, MoneyField, NumberField } from "@/components/fields";
 import { SavedBar } from "@/components/SavedBar";
 import { money, monthYear } from "@/lib/format";
 import { SUPER_PEOPLE } from "@/lib/household";
+import { verb } from "@/lib/names";
 import {
   type AccountRow,
   decodeSuperState,
@@ -241,7 +242,7 @@ export function SuperCalculator() {
       {result && (
         <a
           href="#results"
-          className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
+          className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
         >
           <span className="num min-w-0">
             About <strong>{money(result.householdIncomePerYear)}</strong> a year in retirement
@@ -476,12 +477,13 @@ function Results({
             </span>{" "}
             {p.yearsToRetire > 0 ? (
               <>
-                retires in {monthYear(p.retireDate)} with{" "}
+                {verb(p.name, "retires", "retire")} in {monthYear(p.retireDate)} with{" "}
                 <strong className="num">{money(p.atRetirementReal)}</strong>
               </>
             ) : (
               <>
-                has <strong className="num">{money(p.atRetirementReal)}</strong>
+                {verb(p.name, "has", "have")}{" "}
+                <strong className="num">{money(p.atRetirementReal)}</strong>
               </>
             )}
             , about <strong className="num">{money(p.incomePerYear)}</strong> a year.
@@ -643,8 +645,10 @@ function Extra({
         </ul>
       </div>
       <p className="mt-2 text-xs text-muted">
-        Salary sacrifice is taxed 15% going into super instead of at your marginal rate. A check of
-        what it costs your take-home pay is coming next.
+        Salary sacrifice is taxed 15% going into super instead of at your marginal rate.{" "}
+        <a className="text-accent hover:underline" href="../salary-sacrifice/">
+          See what it costs your take-home pay →
+        </a>
       </p>
     </div>
   );

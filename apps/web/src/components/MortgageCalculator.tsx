@@ -133,8 +133,8 @@ export function MortgageCalculator() {
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Mortgage what-if</h1>
         <p className="mt-1 max-w-2xl text-muted">
-          Enter your loan, then try changes. Results update as you type, and your numbers never
-          leave your device.
+          Enter your loan, then try changes. Results update as soon as you leave a field, and your
+          numbers never leave your device.
         </p>
         <SavedBar saved={saved} />
       </header>
@@ -290,7 +290,7 @@ function MobileSummary({ base, runs }: { base: SimulationResult; runs: ScenarioR
   return (
     <a
       href="#results"
-      className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
     >
       <span className="num min-w-0">
         Debt-free <strong>{monthYear((best?.result ?? base).payoffDate)}</strong>

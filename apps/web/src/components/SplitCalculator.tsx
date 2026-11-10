@@ -18,6 +18,7 @@ import { DateField, MoneyField, NumberField, SelectField } from "@/components/fi
 import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import { SPLIT_PEOPLE } from "@/lib/household";
+import { objectName, verb } from "@/lib/names";
 import { withLoanFields } from "@/lib/saved";
 import {
   type Borrower,
@@ -256,7 +257,7 @@ export function SplitCalculator() {
       {result && (
         <a
           href="#results"
-          className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
+          className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
         >
           <span className="num min-w-0">
             Together <strong>{moneyExact(result.monthlyRepayment)}</strong> a month · free{" "}
@@ -429,7 +430,7 @@ function Results({
                 <span className="font-semibold" style={{ color: COLORS[i] }}>
                   {p.name}
                 </span>{" "}
-                is clear in {monthYear(p.result.payoffDate)}
+                {verb(p.name, "is", "are")} clear in {monthYear(p.result.payoffDate)}
               </span>
             ))}
             .
@@ -437,9 +438,10 @@ function Results({
         )}
         {savers.map((p) => (
           <p key={p.id}>
-            Paying extra saves {p.name}{" "}
+            Paying extra saves {objectName(p.name)}{" "}
             <strong className="num text-good">{money(p.interestSaved)}</strong> in interest and{" "}
-            {duration(p.daysSaved)}. Splitting the interest by share would charge {p.name}{" "}
+            {duration(p.daysSaved)}. Splitting the interest by share would charge{" "}
+            {objectName(p.name)}{" "}
             <strong className="num">{money(p.proRataInterest - p.result.totalInterest)}</strong> too
             much.
           </p>

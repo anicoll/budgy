@@ -118,7 +118,12 @@ export function NumberField({
   const [text, setText] = useState(value === undefined ? "" : String(value));
   useEffect(() => setText(value === undefined ? "" : String(value)), [value]);
   const commit = () => {
-    if (text.trim() === "" && optional) return onChange(undefined);
+    if (text.trim() === "") {
+      if (optional) return onChange(undefined);
+      // A required field left blank keeps its last value, rather than
+      // Number("") turning it into 0 and then the minimum.
+      return setText(value === undefined ? "" : String(value));
+    }
     const n = Number(text);
     if (!Number.isFinite(n)) return setText(value === undefined ? "" : String(value));
     const clamped = Math.min(max, Math.max(min, n));

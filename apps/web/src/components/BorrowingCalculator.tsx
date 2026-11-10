@@ -335,7 +335,7 @@ export function BorrowingCalculator() {
       {result && (
         <a
           href="#results"
-          className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
+          className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
         >
           <span className="num min-w-0">
             {result.range.typical.maxLoan > 0 ? (
