@@ -17,6 +17,7 @@ import {
 import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField } from "@/components/fields";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { money, monthYear } from "@/lib/format";
 import { SUPER_PEOPLE } from "@/lib/household";
@@ -240,15 +241,9 @@ export function SuperCalculator() {
       </div>
 
       {result && (
-        <a
-          href="#results"
-          className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
-        >
-          <span className="num min-w-0">
-            About <strong>{money(result.householdIncomePerYear)}</strong> a year in retirement
-          </span>
-          <span className="shrink-0 text-accent">See results ↓</span>
-        </a>
+        <ResultsBar>
+          About <strong>{money(result.householdIncomePerYear)}</strong> a year in retirement
+        </ResultsBar>
       )}
     </main>
   );

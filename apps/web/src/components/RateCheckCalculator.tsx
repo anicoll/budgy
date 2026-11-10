@@ -11,6 +11,7 @@ import {
 } from "@budgy/engine";
 import { useMemo } from "react";
 import { MoneyField, NumberField } from "@/components/fields";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { money, monthYear } from "@/lib/format";
 import {
@@ -469,23 +470,17 @@ function Stat({
 function MobileSummary({ r }: { r: RateCheckResult }) {
   const gap = r.newLoans.gap;
   return (
-    <a
-      href="#results"
-      className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
-    >
-      <span className="num min-w-0">
-        {r.verdict === "about" ? (
-          <strong>About average</strong>
-        ) : (
-          <>
-            <strong className={gap > 0 ? "text-warn" : "text-good"}>
-              {pct(Math.abs(gap))} {gap > 0 ? "above" : "below"}
-            </strong>{" "}
-            average
-          </>
-        )}
-      </span>
-      <span className="shrink-0 text-accent">See results ↓</span>
-    </a>
+    <ResultsBar>
+      {r.verdict === "about" ? (
+        <strong>About average</strong>
+      ) : (
+        <>
+          <strong className={gap > 0 ? "text-warn" : "text-good"}>
+            {pct(Math.abs(gap))} {gap > 0 ? "above" : "below"}
+          </strong>{" "}
+          average
+        </>
+      )}
+    </ResultsBar>
   );
 }
