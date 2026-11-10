@@ -180,6 +180,28 @@ describe("simulateLoan: changes", () => {
     expect(r.payoffDate < base.payoffDate).toBe(true);
   });
 
+  it("with followMinimum, a rate cut lowers the repayment to the new minimum", () => {
+    const cut = [{ date: "2027-01-01", annualRate: 0.05 }];
+    const keep = simulateLoan({ ...BASE, rateChanges: cut });
+    const follow = simulateLoan({ ...BASE, rateChanges: cut, followMinimum: true });
+    const lowered = follow.events.find((e) => e.type === "repayment-lowered");
+    expect(lowered).toBeDefined();
+    if (lowered?.type === "repayment-lowered") expect(lowered.to).toBeLessThan(lowered.from);
+    // Paying the lower minimum runs to the full term and costs more interest than keeping on.
+    expect(Math.abs(monthsBetween(BASE.startDate, follow.payoffDate) - 360)).toBeLessThanOrEqual(1);
+    expect(follow.totalInterest).toBeGreaterThan(keep.totalInterest);
+  });
+
+  it("followMinimum leaves a repayment you set alone", () => {
+    const r = simulateLoan({
+      ...BASE,
+      repayment: cents(350_000),
+      followMinimum: true,
+      rateChanges: [{ date: "2027-01-01", annualRate: 0.05 }],
+    });
+    expect(r.events.some((e) => e.type === "repayment-lowered")).toBe(false);
+  });
+
   it("a repayment above the minimum is kept when rates rise a little", () => {
     const r = simulateLoan({
       ...BASE,

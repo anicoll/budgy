@@ -48,11 +48,18 @@ export interface LoanInput {
   offsetMonthlyDeposit?: Cents;
   lumpSums?: LumpSum[];
   rateChanges?: RateChange[];
+  /**
+   * With no `repayment` set, reset the repayment to the new minimum at every
+   * rate change, so it falls when rates fall, as many lenders do. Default
+   * false: the repayment only ever rises to meet a higher minimum.
+   */
+  followMinimum?: boolean;
 }
 
 export type LoanEvent =
   | { date: string; type: "rate-change"; annualRate: number; minimumRepayment: Cents }
   | { date: string; type: "repayment-raised"; from: Cents; to: Cents }
+  | { date: string; type: "repayment-lowered"; from: Cents; to: Cents }
   | { date: string; type: "lump-sum"; amount: Cents };
 
 export interface YearRow {
@@ -255,6 +262,9 @@ export function simulateLoan(input: LoanInput): SimulationResult {
       });
       if (base < min) {
         events.push({ date: toIso(day), type: "repayment-raised", from: base as Cents, to: min });
+        base = min;
+      } else if (input.followMinimum && input.repayment === undefined && base > min) {
+        events.push({ date: toIso(day), type: "repayment-lowered", from: base as Cents, to: min });
         base = min;
       }
     }

@@ -28,7 +28,11 @@ const FULL: CalculatorState = {
       offsetDeposit: 500,
       lumpSum: { amount: 10_000, date: "2026-07-01", yearly: true },
     },
-    { name: "Rates up", rateChange: { date: "2027-01-01", ratePct: 6.54 }, frequency: "monthly" },
+    {
+      name: "Rates up",
+      rateChange: { date: "2027-01-01", ratePct: 6.54, followMinimum: true },
+      frequency: "monthly",
+    },
   ],
 };
 
