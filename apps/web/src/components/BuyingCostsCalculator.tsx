@@ -14,6 +14,7 @@ import {
 import { useMemo } from "react";
 import { MoneyField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import {
   type BuyingForm,
@@ -284,7 +285,7 @@ export function BuyingCostsCalculator() {
             </p>
           </section>
         ) : (
-          <section className="min-w-0 space-y-5" aria-label="Your costs">
+          <section id="results" className="min-w-0 scroll-mt-4 space-y-5" aria-label="Your costs">
             <div className={`${card} p-6 sm:p-7`} aria-live="polite">
               <div className="text-sm text-muted">Cash you need by settlement</div>
               <div className="num mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -468,6 +469,12 @@ export function BuyingCostsCalculator() {
           </section>
         )}
       </div>
+
+      {form.view !== "compare" && (
+        <ResultsBar>
+          <strong>{money(r.cashNeeded)}</strong> needed by settlement
+        </ResultsBar>
+      )}
     </main>
   );
 }
