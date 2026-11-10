@@ -9,7 +9,7 @@ import {
   type RepaymentType,
   validateRateCheck,
 } from "@budgy/engine";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { MoneyField, NumberField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
@@ -295,6 +295,13 @@ function Results({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
           >
             Try the refinance check →
           </a>
+          {!fixed && (
+            <CallScript
+              yours={pct(form.ratePct / 100)}
+              target={pct(n.averageRate)}
+              balance={money(form.balance * 100)}
+            />
+          )}
         </div>
       )}
 
@@ -484,5 +491,56 @@ function MobileSummary({ r }: { r: RateCheckResult }) {
         </>
       )}
     </ResultsBar>
+  );
+}
+
+/** A short, plain script for asking your lender for a better rate. */
+function CallScript({
+  yours,
+  target,
+  balance,
+}: {
+  yours: string;
+  target: string;
+  balance: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const lines = [
+    "Hi, I'd like to speak to someone about the rate on my home loan. I'm thinking about refinancing.",
+    `I'm paying ${yours} on about ${balance}. New customers are being offered around ${target} for loans like mine. Can you match that?`,
+    "If they offer a lower rate: Thanks. Can you confirm the new rate and the date it starts in writing?",
+    "If they say no: What's the best rate you can offer me before I apply with another lender?",
+  ];
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(lines.join("\n\n"));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked: the text is on the page to read out */
+    }
+  };
+  return (
+    <details className="w-full border-t border-border pt-3">
+      <summary className="min-h-7 cursor-pointer text-sm font-medium text-accent">
+        What to say when you call
+      </summary>
+      <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed">
+        {lines.map((l) => (
+          <li key={l}>{l}</li>
+        ))}
+      </ol>
+      <p className="mt-3 text-xs text-muted">
+        Have your loan number handy. Ask about any fees on the new rate, and compare the comparison
+        rate, not just the headline rate. A general guide only, not financial advice.
+      </p>
+      <button
+        type="button"
+        onClick={copy}
+        className="mt-3 rounded-lg border border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent"
+      >
+        {copied ? "Copied" : "Copy the script"}
+      </button>
+    </details>
   );
 }
