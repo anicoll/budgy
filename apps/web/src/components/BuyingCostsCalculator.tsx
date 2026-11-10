@@ -505,9 +505,7 @@ export function BuyingCostsCalculator() {
             )}
 
             <details className={`${card} p-5 sm:p-6`} open>
-              <summary className="cursor-pointer font-semibold">
-                How we worked out your stamp duty
-              </summary>
+              <summary className="cursor-pointer font-semibold">How this is calculated</summary>
               <div className="mt-4 space-y-2.5 text-sm">
                 {duty.steps.map((s, i) => {
                   const last = i === duty.steps.length - 1 && duty.steps.length > 1;

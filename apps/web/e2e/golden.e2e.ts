@@ -25,9 +25,8 @@ async function showPer(page: Page, per: string) {
       .click();
 }
 
-/** The "How we worked out your stamp duty" breakdown, open or not. */
-const dutyWorking = (page: Page) =>
-  page.locator("details", { hasText: "How we worked out your stamp duty" });
+/** The stamp duty breakdown ("How this is calculated"), open or not. */
+const dutyWorking = (page: Page) => page.locator("details", { hasText: "How this is calculated" });
 
 test(`pay: ${PAY_100K_2025_26.name}`, async ({ page }) => {
   const { input, expected } = PAY_100K_2025_26;

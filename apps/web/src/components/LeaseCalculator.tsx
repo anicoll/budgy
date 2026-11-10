@@ -765,15 +765,18 @@ function QuoteCheck({
 
 function Sources({ result, year }: { result: NovatedLeaseResult; year: string }) {
   return (
-    <p className="text-sm text-muted">
-      Uses the ATO&apos;s {year} tax rates, Medicare levy and HELP thresholds, the{" "}
-      {result.carRules.year} <a href={result.carRules.sources[1]}>car limit</a> for the GST your
-      employer claims back ({moneyExact(result.gstCredit)} here), the{" "}
-      <a href={result.carRules.sources[0]}>luxury car tax thresholds</a>, and the FBT statutory
-      formula (20% of the car&apos;s price) with the employee contribution method, which almost
-      every provider uses. Later years use this year&apos;s tax rates. Not financial advice: check a
-      real quote before you sign.
-    </p>
+    <details className={`${card} text-sm`}>
+      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
+      <p className="mt-3 text-muted">
+        Uses the ATO&apos;s {year} tax rates, Medicare levy and HELP thresholds, the{" "}
+        {result.carRules.year} <a href={result.carRules.sources[1]}>car limit</a> for the GST your
+        employer claims back ({moneyExact(result.gstCredit)} here), the{" "}
+        <a href={result.carRules.sources[0]}>luxury car tax thresholds</a>, and the FBT statutory
+        formula (20% of the car&apos;s price) with the employee contribution method, which almost
+        every provider uses. Later years use this year&apos;s tax rates. Not financial advice: check
+        a real quote before you sign.
+      </p>
+    </details>
   );
 }
 

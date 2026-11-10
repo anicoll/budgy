@@ -305,16 +305,19 @@ function Results({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
         </div>
       )}
 
-      <p className="text-xs text-muted">
-        Averages are from the{" "}
-        <a href={r.url} className="underline hover:text-text">
-          Reserve Bank of Australia, Table F6 Housing Lending Rates
-        </a>
-        , {month}. They cover all lenders, loan sizes and deposits, and the RBA splits loans one way
-        at a time, so the variable and fixed averages mix principal-and-interest with interest-only
-        loans. A loan with a small deposit may sit a little above them. Repayments and interest are
-        estimates on today&apos;s balance with no rate changes.
-      </p>
+      <details className={`${card} text-sm`}>
+        <summary className="cursor-pointer font-semibold">How this is calculated</summary>
+        <p className="mt-3 text-muted">
+          Averages are from the{" "}
+          <a href={r.url} className="underline hover:text-text">
+            Reserve Bank of Australia, Table F6 Housing Lending Rates
+          </a>
+          , {month}. They cover all lenders, loan sizes and deposits, and the RBA splits loans one
+          way at a time, so the variable and fixed averages mix principal-and-interest with
+          interest-only loans. A loan with a small deposit may sit a little above them. Repayments
+          and interest are estimates on today&apos;s balance with no rate changes.
+        </p>
+      </details>
     </>
   );
 }
