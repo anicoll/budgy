@@ -1,7 +1,9 @@
 "use client";
 
 import {
-  AGE_PENSION_AGE,
+  AGE_PENSION_RULES,
+  type AgePensionResult,
+  agePension,
   type Cents,
   extraContributionEffect,
   type HouseholdYear,
@@ -20,7 +22,7 @@ import { DateField, MoneyField, NumberField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
-import { money, monthYear } from "@/lib/format";
+import { money, moneyExact, monthYear } from "@/lib/format";
 import { SUPER_PEOPLE } from "@/lib/household";
 import { verb } from "@/lib/names";
 import {
@@ -31,6 +33,7 @@ import {
   newAccount,
   newPerson,
   nextId,
+  type PensionRow,
   type PersonRow,
   type SuperState,
   toSuperInput,
@@ -41,6 +44,10 @@ const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const COLORS = ["var(--series-a)", "var(--series-b)", "var(--series-c)", "var(--series-base)"];
 const chip =
   "rounded-full border border-dashed border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent";
+
+const seg = (on: boolean) =>
+  `min-h-11 px-4 text-sm font-medium transition ${on ? "bg-accent text-on-accent" : "bg-surface hover:text-accent"}`;
+const toCents = (dollars: number) => Math.round(dollars * 100) as Cents;
 
 const SUPER_SAVED: SavedConfig<SuperState> = {
   tool: "super",
@@ -143,6 +150,25 @@ export function SuperCalculator() {
 
   const sg = rulesFor(state.startDate).rules.sgRate * 100;
 
+  // The Age Pension on super at retirement, in today's dollars. Only for a
+  // single person or a couple: more people aren't one pension household.
+  const pension = useMemo((): AgePensionResult | null => {
+    if (!result || state.people.length > 2) return null;
+    const super_ = result.householdAtRetirementReal;
+    const financial = (super_ + toCents(state.pension.savings)) as Cents;
+    try {
+      return agePension({
+        couple: state.people.length === 2,
+        homeowner: state.pension.homeowner,
+        assets: (financial + toCents(state.pension.otherAssets)) as Cents,
+        financialAssets: financial,
+        otherIncomeFortnight: toCents(state.pension.otherIncome),
+      });
+    } catch {
+      return null;
+    }
+  }, [result, state.people.length, state.pension]);
+
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
       <header className="mb-6">
@@ -175,6 +201,13 @@ export function SuperCalculator() {
               + Person
             </button>
           )}
+
+          <PensionCard
+            pension={state.pension}
+            couple={state.people.length === 2}
+            people={state.people.length}
+            onChange={(patch) => setState((s) => ({ ...s, pension: { ...s.pension, ...patch } }))}
+          />
 
           <div className={card}>
             <h2 className="mb-3 font-semibold">Assumptions</h2>
@@ -235,6 +268,20 @@ export function SuperCalculator() {
               onExtra={(extraPerWeek) => setState((s) => ({ ...s, extraPerWeek }))}
               onCopy={copyLink}
               copied={copied}
+              pension={
+                pension && (
+                  <PensionResults
+                    pension={pension}
+                    assets={toCents(
+                      result.householdAtRetirementReal / 100 +
+                        state.pension.savings +
+                        state.pension.otherAssets,
+                    )}
+                    couple={state.people.length === 2}
+                    homeowner={state.pension.homeowner}
+                  />
+                )
+              }
             />
           )}
           <GoodToKnow tool="super" />
@@ -427,6 +474,7 @@ function Results({
   onExtra,
   onCopy,
   copied,
+  pension,
 }: {
   result: SuperResult;
   input: SuperInput;
@@ -434,6 +482,7 @@ function Results({
   onExtra: (v: number) => void;
   onCopy: () => void;
   copied: boolean;
+  pension?: React.ReactNode;
 }) {
   const { people } = result;
   const many = people.length > 1;
@@ -487,8 +536,7 @@ function Results({
           </p>
         ))}
         <p className="text-sm text-muted">
-          All in today&apos;s dollars, after {state.inflationPct}% inflation a year. Age Pension not
-          included.
+          All in today&apos;s dollars, after {state.inflationPct}% inflation a year.
         </p>
         {warnings.map((w) => (
           <p key={w} className="text-sm text-warn">
@@ -496,6 +544,8 @@ function Results({
           </p>
         ))}
       </div>
+
+      {pension}
 
       <div className={card}>
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -766,8 +816,15 @@ function Method() {
         <p>
           The income figure is the most you could draw each year, rising with inflation, so the
           money lasts until the age you choose. Earnings continue at the same return. Retirement
-          income from super is tax-free from age 60. It doesn&apos;t include the Age Pension, which
-          most people can claim from {AGE_PENSION_AGE} and which may add to it.
+          income from super is tax-free from age 60.
+        </p>
+        <p>
+          The Age Pension estimate uses Services Australia&apos;s rates from{" "}
+          {monthYear(AGE_PENSION_RULES.from)}. It tests your super at retirement, plus your other
+          assets, against the assets test, and deems your super and savings to earn income for the
+          income test. The lower of the two is what you&apos;d get. It assumes you&apos;re both{" "}
+          {AGE_PENSION_RULES.age} or older, and leaves out the Work Bonus, Rent Assistance and
+          special cases.
         </p>
         <p>
           Returns aren&apos;t guaranteed and will go up and down. This is general information, not
@@ -775,5 +832,214 @@ function Method() {
         </p>
       </div>
     </details>
+  );
+}
+
+function PensionCard({
+  pension: v,
+  couple,
+  people,
+  onChange,
+}: {
+  pension: PensionRow;
+  couple: boolean;
+  people: number;
+  onChange: (patch: Partial<PensionRow>) => void;
+}) {
+  return (
+    <div className={card}>
+      <h2 className="font-semibold">For the Age Pension</h2>
+      {people > 2 ? (
+        <p className="mt-1 text-sm text-muted">
+          The Age Pension is worked out for a single person or a couple. Remove people to see an
+          estimate.
+        </p>
+      ) : (
+        <>
+          <p className="mt-1 mb-3 text-sm text-muted">
+            Centrelink tests your assets and income. Your home doesn&apos;t count.
+          </p>
+          <div className="space-y-3">
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-medium">Do you own your home?</legend>
+              <div className="flex w-fit overflow-hidden rounded-lg border border-border">
+                <button
+                  type="button"
+                  className={seg(v.homeowner)}
+                  aria-pressed={v.homeowner}
+                  onClick={() => onChange({ homeowner: true })}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  className={seg(!v.homeowner)}
+                  aria-pressed={!v.homeowner}
+                  onClick={() => onChange({ homeowner: false })}
+                >
+                  {couple ? "No, we rent" : "No, I rent"}
+                </button>
+              </div>
+            </fieldset>
+            <MoneyField
+              label="Savings and shares outside super"
+              hint="Centrelink counts these as earning income, like your super."
+              value={v.savings}
+              onChange={(n) => n !== undefined && onChange({ savings: n })}
+            />
+            <MoneyField
+              label="Other assets"
+              hint="Cars, contents, an investment property, a caravan. What they'd sell for."
+              value={v.otherAssets}
+              onChange={(n) => n !== undefined && onChange({ otherAssets: n })}
+            />
+            <MoneyField
+              label="Other income a fortnight"
+              hint="Rent, part-time work. Super is counted for you."
+              value={v.otherIncome}
+              onChange={(n) => n !== undefined && onChange({ otherIncome: n })}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PensionResults({
+  pension: r,
+  assets,
+  couple,
+  homeowner,
+}: {
+  pension: AgePensionResult;
+  assets: Cents;
+  couple: boolean;
+  homeowner: boolean;
+}) {
+  const rules = r.rules;
+  const max = couple ? rules.maxRate.coupleEach * 2 : rules.maxRate.single;
+  const limits = couple ? rules.assetsLimit.couple : rules.assetsLimit.single;
+  const limit = homeowner ? limits.homeowner : limits.nonHomeowner;
+  // Assets where the pension reaches nil, to the nearest $1,000.
+  const cutoff = limit + Math.ceil(max / rules.assetsTaperPer1000) * 100_000;
+  const scale = cutoff / 0.8;
+  const at = (c: number) => `${Math.min(100, (c / scale) * 100).toFixed(1)}%`;
+  const youPos = Math.min(98, (assets / scale) * 100);
+  const together = couple ? " together" : "";
+  const sets =
+    r.limitedBy === "full"
+      ? "That's the full rate."
+      : r.limitedBy === "assets"
+        ? "Your assets set the rate, not your income."
+        : "Your income sets the rate, not your assets.";
+
+  return (
+    <>
+      <div className="space-y-2 rounded-2xl bg-primary-container p-5 text-on-primary-container sm:p-6">
+        {r.fortnight > 0 ? (
+          <>
+            <p className="text-lg leading-relaxed sm:text-xl">
+              From {rules.age} you could also get about{" "}
+              <strong className="num">{money(r.fortnight)} a fortnight</strong>
+              {together} from the Age Pension. That&apos;s{" "}
+              <strong className="num">{money(r.year)} a year</strong> on top of your super income.
+            </p>
+            <p className="text-sm">
+              {couple && <span className="num">{moneyExact(r.each)} each. </span>}
+              {sets}
+            </p>
+          </>
+        ) : (
+          <p className="text-lg leading-relaxed sm:text-xl">
+            With this much put away you likely wouldn&apos;t get the Age Pension at {rules.age}.{" "}
+            {r.byAssetsTest === 0
+              ? `Your assets are over the ${money(cutoff)} cut-off.`
+              : "Your income is over the cut-off."}{" "}
+            As you draw down your super, you may qualify later.
+          </p>
+        )}
+      </div>
+
+      <div className={card}>
+        <h2 className="mb-3 font-semibold">Where your assets sit</h2>
+        <div className="relative h-16" aria-hidden="true">
+          <div
+            className="absolute top-7 left-0 h-3 rounded-l-full bg-good"
+            style={{ width: at(limit) }}
+          />
+          <div
+            className="absolute top-7 h-3 bg-primary-container"
+            style={{ left: at(limit), width: `calc(${at(cutoff)} - ${at(limit)})` }}
+          />
+          <div
+            className="absolute top-7 right-0 h-3 rounded-r-full bg-border"
+            style={{ left: at(cutoff) }}
+          />
+          <div
+            className="absolute top-5 h-6 w-[3px] bg-text"
+            style={{ left: `${youPos.toFixed(1)}%` }}
+          />
+          <span
+            className="num absolute top-0 text-xs font-semibold whitespace-nowrap sm:text-sm"
+            style={
+              youPos > 60
+                ? { right: `${(100 - youPos + 1).toFixed(1)}%` }
+                : { left: `${(youPos + 1).toFixed(1)}%` }
+            }
+          >
+            {couple ? "You both" : "You"}: {money(assets)}
+          </span>
+        </div>
+        <div className="num -mt-5 flex justify-between gap-2 text-xs text-muted">
+          <span>Full pension to {money(limit)}</span>
+          <span className="text-right">None over {money(cutoff)}</span>
+        </div>
+        <p className="mt-3 text-sm text-muted">
+          Each $1,000 over {money(limit)} takes {moneyExact(rules.assetsTaperPer1000)} a fortnight
+          off {couple ? "your combined" : "your"} pension. As you draw down your super, your pension
+          usually goes up.
+        </p>
+        <p className="sr-only">
+          Your assessable assets are {money(assets)}. The full pension limit is {money(limit)} and
+          it stops at {money(cutoff)}.
+        </p>
+      </div>
+
+      <div className={card}>
+        <h2 className="mb-2 font-semibold">How Centrelink tests it</h2>
+        <table className="num w-full text-sm">
+          <tbody>
+            <tr className="border-t border-border">
+              <td className="py-2.5 pr-3">Most you could get{couple ? " (couple)" : ""}</td>
+              <td className="py-2.5 text-right">{moneyExact(max)}</td>
+            </tr>
+            <tr
+              className={`border-t border-border ${r.limitedBy === "income" ? "font-semibold" : ""}`}
+            >
+              <td className="py-2.5 pr-3">
+                Under the income test (super and savings deemed to earn{" "}
+                {money(r.deemedIncomeFortnight)} a fortnight)
+              </td>
+              <td className="py-2.5 text-right">{moneyExact(r.byIncomeTest)}</td>
+            </tr>
+            <tr
+              className={`border-t border-border ${r.limitedBy === "assets" ? "font-semibold" : ""}`}
+            >
+              <td className="py-2.5 pr-3">Under the assets test</td>
+              <td className="py-2.5 text-right">{moneyExact(r.byAssetsTest)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="mt-3 text-xs text-muted">
+          A fortnight, in today&apos;s dollars. The lower test applies. Rates from{" "}
+          <a className="underline" href={rules.sources[0]} target="_blank" rel="noreferrer">
+            Services Australia
+          </a>{" "}
+          from {monthYear(rules.from)}. An estimate on your super at retirement only: it leaves out
+          the Work Bonus, Rent Assistance and special cases.
+        </p>
+      </div>
+    </>
   );
 }

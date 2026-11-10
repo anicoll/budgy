@@ -230,8 +230,8 @@ export const TIPS: Partial<Record<ToolKey, React.ReactNode[]>> = {
       to year.
     </>,
     <>
-      This doesn&apos;t include the Age Pension. Services Australia has an estimator if you want to
-      see what you might get.
+      The Age Pension estimate is a rough guide. Services Australia&apos;s own estimator, or a free
+      chat with their Financial Information Service, can look at your situation in more detail.
     </>,
   ],
   lease: [

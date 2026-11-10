@@ -31,7 +31,23 @@ export interface SuperState {
   incomeUntil: number;
   startDate: string;
   extraPerWeek: number; // for the "what an extra does" card
+  pension: PensionRow;
 }
+
+/** What the Age Pension estimate needs beyond super, in dollars. */
+export interface PensionRow {
+  homeowner: boolean;
+  savings: number; // savings and shares outside super: deemed
+  otherAssets: number; // cars, contents, investment property: not deemed
+  otherIncome: number; // a fortnight: rent, work
+}
+
+export const defaultPension = (): PensionRow => ({
+  homeowner: true,
+  savings: 0,
+  otherAssets: 20_000,
+  otherIncome: 0,
+});
 
 export function newAccount(id: string, name = "Super fund", employer = false): AccountRow {
   return { id, name, balance: 0, returnPct: 7, feeFixed: 100, feePct: 0.2, employer };
@@ -76,6 +92,7 @@ export function defaultSuperState(start = today()): SuperState {
     incomeUntil: 90,
     startDate: start,
     extraPerWeek: 50,
+    pension: defaultPension(),
   };
 }
 
@@ -143,11 +160,28 @@ export function encodeSuperState(s: SuperState): string {
     })),
     g: [s.wageGrowthPct, s.inflationPct, s.incomeUntil, s.extraPerWeek],
     t: s.startDate,
+    a: [
+      s.pension.homeowner ? 1 : 0,
+      s.pension.savings,
+      s.pension.otherAssets,
+      s.pension.otherIncome,
+    ],
   };
   return new URLSearchParams({
     v: String(SUPER_URL_VERSION),
     s: b64urlEncode(JSON.stringify(compact)),
   }).toString();
+}
+
+function decodePension(v: unknown): PensionRow {
+  const d = defaultPension();
+  if (!Array.isArray(v)) return d;
+  return {
+    homeowner: v[0] !== 0,
+    savings: Math.max(0, num(v[1], d.savings)),
+    otherAssets: Math.max(0, num(v[2], d.otherAssets)),
+    otherIncome: Math.max(0, num(v[3], d.otherIncome)),
+  };
 }
 
 export function decodeSuperState(query: string, fallback = defaultSuperState()): SuperState {
@@ -202,6 +236,7 @@ export function decodeSuperState(query: string, fallback = defaultSuperState()):
       incomeUntil: clamp(num(g[2], fallback.incomeUntil), 50, 110),
       extraPerWeek: Math.max(0, num(g[3], fallback.extraPerWeek)),
       startDate: isDate(c.t) ? c.t : fallback.startDate,
+      pension: decodePension(c.a),
     };
   } catch {
     return fallback;
