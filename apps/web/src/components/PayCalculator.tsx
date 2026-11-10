@@ -856,6 +856,19 @@ function PayView({
           Plus {moneyExact(p.employerSuper)} in super from your employer
           {result.salarySacrifice > 0 ? ", including your salary sacrifice" : ""}
         </p>
+        {slip && Math.abs(slip.atTaxTime) >= 100_00 && (
+          <a
+            href="#pay-slip"
+            className={`num mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${
+              slip.atTaxTime > 0 ? "bg-good/10 text-good" : "bg-warn/10 text-warn"
+            }`}
+          >
+            {slip.atTaxTime > 0
+              ? `About ${money(slip.atTaxTime)} back at tax time`
+              : `About ${money(-slip.atTaxTime)} to pay at tax time`}
+            <span aria-hidden="true">↓</span>
+          </a>
+        )}
         <Breakdown a={result} />
         <PayTable result={result} lease={Boolean(state.lease)} />
         <PeriodList a={p} lease={Boolean(state.lease)} />
@@ -890,7 +903,7 @@ function PayView({
         </div>
       </div>
 
-      <div className={card}>
+      <div id="pay-slip" className={`${card} scroll-mt-20`}>
         <h2 className="font-semibold">Your pay slip</h2>
         {slip ? (
           <>
