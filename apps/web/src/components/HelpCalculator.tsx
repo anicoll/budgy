@@ -11,6 +11,7 @@ import {
 import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { MoneyField, NumberField } from "@/components/fields";
+import { NextSteps } from "@/components/NextSteps";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { money } from "@/lib/format";
@@ -369,6 +370,7 @@ function Results({
             can lift your borrowing power.
           </li>
         </ul>
+        <NextSteps tool="help" />
       </div>
 
       <details className={card}>

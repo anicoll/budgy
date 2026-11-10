@@ -469,6 +469,20 @@ function Results({
     .map((row, i) => ({ row, i }))
     .filter(({ row, i }) => i > 0 && (row.year % 5 === 0 || i === r.mortgage.rows.length - 1));
 
+  // Extra repayments' reachable money falls once the freed repayments go into locked super.
+  const reachDips = r.mortgage.rows.some(
+    (row, i) => i > 0 && row.reachable < r.mortgage.rows[i - 1].reachable - 100,
+  );
+
+  // Options within a dollar of each other share a place.
+  const places: number[] = [];
+  r.options.forEach((o, i) => {
+    places.push(i > 0 && r.options[i - 1].gain - o.gain < 100 ? places[i - 1] : i);
+  });
+  const tied = (i: number) => places.filter((p) => p === places[i]).length > 1;
+  const placeLabel = (i: number) =>
+    `${["BEST", "2ND", "3RD"][places[i]] ?? `${places[i] + 1}TH`}${tied(i) ? ", TIED" : ""}`;
+
   const ppy = { weekly: 52, fortnightly: 26, monthly: 12 }[state.loan.frequency];
   const freedMonthly = (r.baseLoan.repayment * ppy) / 12 + spare;
 
@@ -524,13 +538,13 @@ function Results({
           <li
             key={`${o.kind}${o.personId}`}
             className={`rounded-xl bg-surface p-4 ${
-              i === 0 ? "border-2 border-good" : "border border-border"
+              places[i] === 0 ? "border-2 border-good" : "border border-border"
             }`}
           >
             <p
-              className={`text-xs font-semibold tracking-wide ${i === 0 ? "text-good" : "text-muted"}`}
+              className={`text-xs font-semibold tracking-wide ${places[i] === 0 ? "text-good" : "text-muted"}`}
             >
-              {i === 0 ? "BEST" : i === 1 ? "2ND" : i === 2 ? "3RD" : `${i + 1}TH`}
+              {placeLabel(i)}
             </p>
             <p className="mt-1 font-semibold" style={{ color: lineColor(o) }}>
               {o.kind === "mortgage"
@@ -645,6 +659,15 @@ function Results({
               </tbody>
             </table>
           </div>
+          {reachDips && (
+            <p className="mt-3 text-xs text-muted">
+              Once the loan&apos;s gone in {monthYear(r.mortgage.loanPaidOff)}, the repayments you
+              no longer make go into {nameOf(r.mortgage.personId)}&apos;s super, so they&apos;re
+              locked away until {nameOf(r.mortgage.personId)} can draw it. That&apos;s why what you
+              can reach from extra repayments falls in later years. Keep some in redraw or savings
+              if you might need it before then.
+            </p>
+          )}
         </div>
       )}
 
