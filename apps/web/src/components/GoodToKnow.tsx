@@ -234,6 +234,12 @@ export const TIPS: Partial<Record<ToolKey, React.ReactNode[]>> = {
       see what you might get.
     </>,
   ],
+  help: [
+    <>
+      Lenders count HELP repayments when working out how much you can borrow, so clearing it can
+      lift your borrowing power.
+    </>,
+  ],
   lease: [
     <>
       If you leave your job, the lease usually passes to you, and the payments come out of your
