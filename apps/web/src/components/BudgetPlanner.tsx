@@ -11,15 +11,21 @@ import {
   budgetForView,
   type Cents,
   incomeForView,
+  type PayEvery,
+  type PayItem,
+  type PayPeriodResult,
   perView,
   planBudget,
+  planPayPeriod,
   validateBudget,
+  validatePayPeriod,
 } from "@budgy/engine";
 import { useEffect, useMemo, useState } from "react";
 import { GoodToKnow } from "@/components/GoodToKnow";
 import { SavedBar } from "@/components/SavedBar";
 import {
   adoptPay,
+  type BudgetMode,
   type BudgetState,
   type CategoryState,
   decodeBudgetState,
@@ -33,17 +39,27 @@ import {
   MAX_PEOPLE,
   newId,
   newPerson,
+  PAY_EVERY,
   type PersonState,
+  payEveryFor,
   toBudgetInput,
+  toPayPeriodBills,
 } from "@/lib/budgetState";
+import {
+  BUDGET_TEMPLATES,
+  type BudgetTemplate,
+  budgetIsEmpty,
+  templateCategories,
+  templateLineCount,
+} from "@/lib/budgetTemplates";
 import { moneyExact } from "@/lib/format";
 import { BUDGET_PEOPLE } from "@/lib/household";
 import { leaseInPay, toggleLease, withBudgetLease } from "@/lib/novatedPay";
 import { encodePayState, hasAdvanced, type LeaseInPay } from "@/lib/payState";
 import { readSaved } from "@/lib/saved";
-import { parseMoney } from "@/lib/state";
+import { parseMoney, today } from "@/lib/state";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
-import { Checkbox, filledField, Select } from "./ui";
+import { Checkbox, DatePicker, filledField, Select } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const input = `${filledField} min-w-0`;
@@ -106,6 +122,26 @@ const PALETTE = [
 const colorFor = (i: number) => PALETTE[i % PALETTE.length];
 const LEFT_COLOR = "var(--series-base)";
 
+const PAY_EVERY_LABEL: Record<PayEvery, string> = {
+  week: "Every week",
+  fortnight: "Every fortnight",
+  month: "Every month",
+};
+const longDay = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
+const shortDay = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-AU", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+
 const pct = (v: number) => `${(v * 100).toLocaleString("en-AU", { maximumFractionDigits: 1 })}%`;
 const toCents = (dollars: number) => Math.round(dollars * 100) as Cents;
 
@@ -147,6 +183,23 @@ export function BudgetPlanner() {
     }));
 
   const totals = result ? budgetForView(result, view) : null;
+  const payMode = state.mode === "pay";
+  // Templates show by themselves while nothing's been entered, or on request.
+  const [templatesOpen, setTemplatesOpen] = useState<boolean | null>(null);
+  const showTemplates = templatesOpen ?? budgetIsEmpty(state.categories);
+  const setMode = (mode: BudgetMode) =>
+    set({
+      mode,
+      payDay:
+        mode === "pay" && !state.payDay.last
+          ? { ...state.payDay, every: payEveryFor(state) }
+          : state.payDay,
+    });
+  const applyTemplate = (t: BudgetTemplate) => {
+    set({ categories: templateCategories(t) });
+    setOpen({ 0: true });
+    setTemplatesOpen(false);
+  };
 
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
@@ -157,9 +210,34 @@ export function BudgetPlanner() {
           see where every dollar goes. Your numbers never leave your device.
         </p>
         <SavedBar saved={saved} />
+        <fieldset
+          aria-label="Show the budget by"
+          className="m-0 mt-4 inline-flex min-w-0 rounded-full border border-border bg-bg p-0.5 text-sm"
+        >
+          {(
+            [
+              ["month", "Month"],
+              ["pay", "This pay"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={state.mode === value}
+              onClick={() => setMode(value)}
+              className={`min-h-10 rounded-full px-4 py-1.5 ${
+                state.mode === value
+                  ? "bg-surface font-semibold shadow-sm"
+                  : "text-muted hover:text-text"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </fieldset>
       </header>
 
-      {totals && (
+      {totals && !payMode && (
         <div
           className="sticky top-[var(--header-h)] z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-primary-container px-4 py-3 text-on-primary-container lg:hidden"
           aria-live="polite"
@@ -280,7 +358,25 @@ export function BudgetPlanner() {
             <p className="mt-1 text-sm text-muted">
               Enter each amount the way you pay it: weekly, monthly, quarterly or yearly. It&apos;s
               converted for you.
+              {payMode && " Add a next due date to a bill to see which pay it lands in."}
             </p>
+
+            {showTemplates ? (
+              <TemplatePicker
+                hasAmounts={!budgetIsEmpty(state.categories)}
+                lineCount={state.categories.reduce((n, c) => n + c.lines.length, 0)}
+                onUse={applyTemplate}
+                onClose={budgetIsEmpty(state.categories) ? null : () => setTemplatesOpen(false)}
+              />
+            ) : (
+              <button
+                type="button"
+                className={`${linkBtn} mt-2`}
+                onClick={() => setTemplatesOpen(true)}
+              >
+                Start from a template
+              </button>
+            )}
 
             <div className="mt-3">
               {state.categories.map((c, i) => {
@@ -340,6 +436,7 @@ export function BudgetPlanner() {
                               <LineRow
                                 line={l}
                                 view={view}
+                                showDue={payMode}
                                 nameLabel="What it is"
                                 onChange={(patch) =>
                                   setLines(i, (ls) =>
@@ -420,7 +517,10 @@ export function BudgetPlanner() {
               ))}
             </div>
           )}
-          {result && totals && (
+          {payMode && (
+            <PaySetup state={state} onChange={(payDay) => set({ payDay })} result={result} />
+          )}
+          {result && totals && !payMode && (
             <Results
               result={result}
               state={state}
@@ -564,11 +664,13 @@ function LineRow({
   line,
   view,
   nameLabel,
+  showDue = false,
   onChange,
   onRemove,
 }: {
   line: LineState;
   view: BudgetView;
+  showDue?: boolean;
   nameLabel: string;
   onChange: (patch: Partial<LineState>) => void;
   onRemove: () => void;
@@ -607,6 +709,26 @@ function LineRow({
           <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" fill="none" />
         </svg>
       </button>
+      {showDue && (
+        <div className="col-span-3 flex items-end gap-2 sm:col-span-5">
+          <div className="w-52 max-w-full">
+            <DatePicker
+              label={`${line.label || "This bill"}: next due (optional)`}
+              value={line.due ?? ""}
+              onChange={(due) => onChange({ due })}
+            />
+          </div>
+          {line.due && (
+            <button
+              type="button"
+              className="min-h-10 px-2 text-sm text-muted hover:text-text hover:underline"
+              onClick={() => onChange({ due: undefined })}
+            >
+              Clear date
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -919,5 +1041,278 @@ function Results({
         </p>
       </details>
     </>
+  );
+}
+
+function TemplatePicker({
+  hasAmounts,
+  lineCount,
+  onUse,
+  onClose,
+}: {
+  hasAmounts: boolean;
+  lineCount: number;
+  onUse: (t: BudgetTemplate) => void;
+  onClose: (() => void) | null;
+}) {
+  const [pending, setPending] = useState<BudgetTemplate | null>(null);
+  const pick = (t: BudgetTemplate) => (hasAmounts ? setPending(t) : onUse(t));
+  return (
+    <div className="mt-3 rounded-xl border border-border bg-bg p-3 sm:p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-sm font-semibold">Start from a template</h3>
+        {onClose && (
+          <button type="button" className="text-sm text-muted hover:underline" onClick={onClose}>
+            Close
+          </button>
+        )}
+      </div>
+      <p className="mt-1 text-sm text-muted">
+        It adds the usual bills for that kind of household, with every amount at $0 so you can add
+        your own. You can remove any of them.
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        {BUDGET_TEMPLATES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            aria-pressed={pending?.id === t.id}
+            onClick={() => pick(t)}
+            className={`flex min-h-12 flex-col gap-1 rounded-xl border bg-surface p-3 text-left hover:border-accent ${
+              pending?.id === t.id ? "border-2 border-accent" : "border-border"
+            }`}
+          >
+            <span className="font-semibold">{t.title}</span>
+            <span className="text-sm text-muted">{t.blurb}</span>
+            <span className="text-sm text-accent">{templateLineCount(t)} bills to fill in</span>
+          </button>
+        ))}
+      </div>
+      {pending && (
+        <div
+          className="mt-3 rounded-lg bg-primary-container p-3 text-sm text-on-primary-container"
+          role="alert"
+        >
+          <p>
+            This replaces the {lineCount} {lineCount === 1 ? "line" : "lines"} in Money out with the{" "}
+            {pending.title.toLowerCase()} list, all at $0. Your income stays as it is.
+          </p>
+          <div className="mt-2 flex gap-4">
+            <button
+              type="button"
+              className="min-h-10 font-semibold underline"
+              onClick={() => {
+                onUse(pending);
+                setPending(null);
+              }}
+            >
+              Replace my lines
+            </button>
+            <button type="button" className="min-h-10" onClick={() => setPending(null)}>
+              Keep what I have
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaySetup({
+  state,
+  onChange,
+  result,
+}: {
+  state: BudgetState;
+  onChange: (p: BudgetState["payDay"]) => void;
+  result: BudgetResult | null;
+}) {
+  const { every, last } = state.payDay;
+  const now = today();
+  const plan = useMemo(() => {
+    if (!result || !last) return { error: null, plan: null as PayPeriodResult | null };
+    const input = {
+      payEvery: every,
+      lastPay: last,
+      today: now,
+      income: budgetForView(result, every).income,
+      bills: toPayPeriodBills(state),
+    };
+    const errors = validatePayPeriod(input);
+    if (errors.length) return { error: errors.join(" "), plan: null };
+    return { error: null, plan: planPayPeriod(input) };
+  }, [result, every, last, now, state]);
+
+  return (
+    <>
+      <section className={card} aria-labelledby="pay-setup">
+        <h2 id="pay-setup" className="font-semibold">
+          Your pay day
+        </h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="text-sm">
+            <span className="mb-1 block font-medium" aria-hidden="true">
+              How often you&apos;re paid
+            </span>
+            <Select<PayEvery>
+              ariaLabel="How often you're paid"
+              value={every}
+              onChange={(v) => onChange({ every: v, last })}
+              options={PAY_EVERY.map((f) => ({ value: f, label: PAY_EVERY_LABEL[f] }))}
+            />
+          </div>
+          <DatePicker
+            label="Last pay date"
+            value={last}
+            onChange={(v) => onChange({ every, last: v })}
+          />
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          Any recent pay date will do. Pay is your take-home pay from Money in.
+        </p>
+      </section>
+      {!last && (
+        <section className={card}>
+          <p className="text-sm text-muted">
+            Enter your last pay date to see what&apos;s planned until your next pay.
+          </p>
+        </section>
+      )}
+      {plan.error && (
+        <div className={`${card} text-sm text-warn`} role="alert">
+          {plan.error}
+        </div>
+      )}
+      {plan.plan && <PayResults plan={plan.plan} now={now} />}
+    </>
+  );
+}
+
+function PayResults({ plan, now }: { plan: PayPeriodResult; now: string }) {
+  const short = plan.left < 0;
+  const base = Math.max(plan.income, plan.planned) || 1;
+  const w = (v: number) => `${(v / base) * 100}%`;
+  const tagFor = (i: PayItem) =>
+    i.kind === "setAside"
+      ? { text: "Set aside", cls: "bg-primary-container text-on-primary-container" }
+      : i.kind === "spread"
+        ? { text: "Spread", cls: "bg-border text-text" }
+        : i.date && i.date < now
+          ? { text: "Earlier", cls: "bg-border text-text" }
+          : { text: "Due", cls: "bg-warn/15 text-warn" };
+  const when = (i: PayItem) =>
+    i.date ? shortDay(i.date) : i.nextDue ? `Next due ${shortDay(i.nextDue)}` : "Every pay";
+  return (
+    <>
+      <section className={card} aria-label="This pay">
+        <p className="text-sm text-muted">
+          Pay started {longDay(plan.start)}. Next pay {longDay(plan.next)}.
+        </p>
+        <p className="text-sm text-muted">
+          Day {plan.dayOf} of {plan.days}
+        </p>
+        <p className="mt-4 text-muted">
+          {short ? "Planned to run short by" : "Planned left until payday"}
+        </p>
+        <p
+          className={`num mt-1 text-4xl font-semibold tracking-tight ${short ? "text-warn" : "text-good"}`}
+          aria-live="polite"
+        >
+          {moneyExact(Math.abs(plan.left))}
+        </p>
+        {!short && plan.left > 0 && (
+          <p className="mt-1 text-sm">
+            About <strong className="num">{moneyExact(plan.perDay)} a day</strong> for the{" "}
+            {plan.daysLeft} {plan.daysLeft === 1 ? "day" : "days"} until payday.
+          </p>
+        )}
+        <div
+          className="mt-4 flex h-3 gap-0.5 overflow-hidden rounded-full bg-border"
+          aria-hidden="true"
+        >
+          <div style={{ width: w(plan.datedTotal), background: "var(--accent)" }} />
+          <div style={{ width: w(plan.spreadTotal + plan.setAsideTotal), background: "#d9480f" }} />
+        </div>
+        <ul className="num mt-3 space-y-1 text-sm">
+          <LegendRow color="var(--accent)" label="Bills due this pay" cents={plan.datedTotal} />
+          <LegendRow
+            color="#d9480f"
+            label="Spread and set aside"
+            cents={(plan.spreadTotal + plan.setAsideTotal) as Cents}
+          />
+          <LegendRow
+            color="var(--series-base)"
+            label={short ? "Short by" : "Left"}
+            cents={Math.abs(plan.left) as Cents}
+            outline
+          />
+        </ul>
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          Out of {moneyExact(plan.income)} take-home pay. These are planned amounts from your
+          budget. This planner doesn&apos;t see your bank account, so it can&apos;t show what
+          you&apos;ve spent so far.
+        </p>
+      </section>
+
+      <section className={card} aria-labelledby="pay-bills">
+        <h3 id="pay-bills" className="text-sm font-semibold">
+          Planned in this pay
+        </h3>
+        {plan.items.length > 0 ? (
+          <ul className="num mt-2 text-sm">
+            {plan.items.map((i, k) => {
+              const tag = tagFor(i);
+              return (
+                <li
+                  key={`${i.id}-${i.date ?? k}`}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-border py-2 sm:grid-cols-[110px_minmax(0,1fr)_auto_90px]"
+                >
+                  <span className="col-span-2 text-xs text-muted sm:col-span-1 sm:text-sm">
+                    {when(i)}
+                  </span>
+                  <span className="truncate">{i.label || "Untitled"}</span>
+                  <span className="flex items-center justify-end gap-2 sm:contents">
+                    <span className={`w-fit rounded-lg px-2.5 py-1 text-xs ${tag.cls}`}>
+                      {tag.text}
+                    </span>
+                    <span className="text-right">{moneyExact(i.amount)}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-muted">Add amounts to your bills to see them here.</p>
+        )}
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          Bills with a due date show on the day. Weekly, fortnightly and monthly bills without one
+          are spread evenly across your pays. Quarterly and yearly bills are set aside a little each
+          pay, so a big bill doesn&apos;t land on one pay.
+        </p>
+      </section>
+    </>
+  );
+}
+
+function LegendRow({
+  color,
+  label,
+  cents,
+  outline,
+}: {
+  color: string;
+  label: string;
+  cents: Cents;
+  outline?: boolean;
+}) {
+  return (
+    <li className="flex items-center gap-2">
+      <span
+        className={`size-2.5 rounded-full ${outline ? "border border-muted" : ""}`}
+        style={{ background: color }}
+      />
+      <span className="flex-1">{label}</span>
+      <span>{moneyExact(cents)}</span>
+    </li>
   );
 }
