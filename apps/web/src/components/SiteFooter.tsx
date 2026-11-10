@@ -16,8 +16,8 @@ export function SiteFooter() {
           A <span className="text-tertiary">nicoll.dev</span> project
         </span>
         <p className="w-full">
-          General information only, not financial advice. For advice about your situation, talk to
-          a licensed financial adviser.
+          General information only, not financial advice. For advice about your situation, talk to a
+          licensed financial adviser.
         </p>
       </div>
     </footer>
