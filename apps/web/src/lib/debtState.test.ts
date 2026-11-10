@@ -7,6 +7,7 @@ import {
   nextId,
   syncOrder,
   toDebt,
+  toTransfer,
 } from "./debtState";
 
 const FULL: DebtPlanState = {
@@ -20,6 +21,22 @@ const FULL: DebtPlanState = {
 describe("debt URL state", () => {
   it("round-trips every field", () => {
     expect(decodeDebtState(encodeDebtState(FULL))).toEqual(FULL);
+  });
+
+  it("round-trips a balance transfer and drops unknown debts from it", () => {
+    const withBt: DebtPlanState = {
+      ...FULL,
+      transfer: { from: ["d1", "d3"], promoPct: 0, months: 18, feePct: 1.5, revertPct: 21.49 },
+    };
+    expect(decodeDebtState(encodeDebtState(withBt))).toEqual(withBt);
+    const stale = { ...withBt, transfer: { ...withBt.transfer, from: ["d1", "d7"] } };
+    expect(decodeDebtState(encodeDebtState(stale)).transfer.from).toEqual(["d1"]);
+  });
+
+  it("turns the transfer form into the engine's input, or null when off", () => {
+    expect(toTransfer(FULL)).toBeNull();
+    const t = toTransfer({ ...FULL, transfer: { ...FULL.transfer, from: ["d1"] } });
+    expect(t).toMatchObject({ from: ["d1"], promoRate: 0, promoMonths: 24, feePercent: 0.02 });
   });
 
   it("falls back for junk, a wrong version or no debts", () => {
