@@ -1,4 +1,5 @@
 import { IdeasIcon } from "@/components/Icons";
+import { NextSteps } from "@/components/NextSteps";
 import type { ToolKey } from "@/lib/saved";
 
 const ext = "text-accent underline-offset-2 hover:underline";
@@ -279,6 +280,7 @@ export function GoodToKnow({
         General information only, not financial advice. It doesn&apos;t take your circumstances into
         account.
       </p>
+      <NextSteps tool={tool} />
     </section>
   );
 }
