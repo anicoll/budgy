@@ -132,6 +132,46 @@ export interface OtherCosts {
   other: Cents;
 }
 
+/** Rough costs of moving in, in cents. Zero what doesn't apply. */
+export interface MovingInCosts {
+  removalist: Cents;
+  /** Power, gas and internet connections. */
+  connections: Cents;
+  /** A small buffer for cleaning, new locks and small things that turn up. */
+  buffer: Cents;
+}
+
+export interface RatesInput {
+  /** Council rates for the year. */
+  council?: Cents;
+  /** Water charges for the year that are billed in advance, such as the service charge. */
+  water?: Cents;
+  /** Days from settlement to the end of the period the seller has already paid. */
+  daysLeft: number;
+}
+
+export interface RatesAdjustment {
+  council: Cents;
+  water: Cents;
+  total: Cents;
+  daysLeft: number;
+}
+
+/**
+ * Settlement adjustment for rates the seller has paid ahead. The buyer
+ * reimburses the seller for the days from settlement to the end of the period
+ * already paid: annual amount x days left / 365. An estimate only: the rules
+ * differ by state, and it assumes the seller has paid the whole period.
+ */
+export function ratesAdjustment(input: RatesInput): RatesAdjustment {
+  const days = Number.isFinite(input.daysLeft) ? Math.min(366, Math.max(0, input.daysLeft)) : 0;
+  const share = (annual: number | undefined) =>
+    Math.round((Math.max(0, annual ?? 0) * days) / 365) as Cents;
+  const council = share(input.council);
+  const water = share(input.water);
+  return { council, water, total: (council + water) as Cents, daysLeft: days };
+}
+
 export interface BuyingCostsInput extends DutyInput {
   deposit: Cents;
   /** Use the Home Guarantee Scheme, so no LMI (first home buyers under the price cap). */
@@ -139,6 +179,10 @@ export interface BuyingCostsInput extends DutyInput {
   /** Add the LMI premium to the loan instead of paying it upfront. */
   lmiOnLoan?: boolean;
   other: OtherCosts;
+  /** Optional moving in costs, counted in the total when given. */
+  movingIn?: MovingInCosts;
+  /** Optional council and water rates owed to the seller at settlement. */
+  rates?: RatesInput;
 }
 
 export interface BuyingCostsResult {
@@ -150,6 +194,10 @@ export interface BuyingCostsResult {
   lmiUpfront: Cents;
   fees: GovernmentFees;
   other: OtherCosts;
+  /** Moving in costs, 0 when not included. */
+  movingIn: Cents;
+  /** Rates reimbursed to the seller, zero when not included. */
+  rates: RatesAdjustment;
   /** Everything except the deposit. */
   costs: Cents;
   /** Deposit + costs: the cash you need by settlement. */
@@ -176,7 +224,14 @@ export function buyingCosts(input: BuyingCostsInput): BuyingCostsResult {
   const lmiUpfront = input.lmiOnLoan ? (0 as Cents) : lmi.premium;
   const fees = governmentFees(input.state, input.price, loan > 0);
   const o = input.other;
+  const mi = input.movingIn;
+  const movingIn = mi
+    ? ((Math.max(0, mi.removalist) + Math.max(0, mi.connections) + Math.max(0, mi.buffer)) as Cents)
+    : (0 as Cents);
+  const rates = ratesAdjustment(input.rates ?? { daysLeft: 0 });
   const costs = (duty.total +
+    movingIn +
+    rates.total +
     lmiUpfront +
     fees.transfer +
     fees.mortgage +
@@ -192,6 +247,8 @@ export function buyingCosts(input: BuyingCostsInput): BuyingCostsResult {
     lmiUpfront,
     fees,
     other: o,
+    movingIn,
+    rates,
     costs,
     cashNeeded: (deposit + costs) as Cents,
     homeGuaranteeEligible,

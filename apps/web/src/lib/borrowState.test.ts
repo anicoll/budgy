@@ -21,6 +21,16 @@ describe("borrow state", () => {
     expect(decodeBorrow(encodeBorrow(f))).toEqual(f);
   });
 
+  it("round-trips a comfortable repayment and old links still decode", () => {
+    const f: BorrowForm = { ...defaultBorrow(), comfort: 1_400, comfortFreq: "fortnightly" };
+    expect(decodeBorrow(encodeBorrow(f))).toEqual(f);
+    const old = b64urlEncode(JSON.stringify({ p: [[90_000, null, null, null, null, 0]], r: 6 }));
+    const g = decodeBorrow(`v=1&s=${old}`);
+    expect(g.comfort).toBeUndefined();
+    expect(g.comfortFreq).toBe("monthly");
+    expect(decodeBorrow(encodeBorrow(defaultBorrow()))).toEqual(defaultBorrow());
+  });
+
   it("falls back on broken or hostile links", () => {
     const fb = defaultBorrow();
     expect(decodeBorrow("", fb)).toEqual(fb);
