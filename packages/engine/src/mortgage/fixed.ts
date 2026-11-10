@@ -45,6 +45,11 @@ export interface FixedVsVariableInput {
   fixedShare: number;
   /** Added to the variable path once the fixed period ends. Default 0. */
   revertMargin?: number;
+  /**
+   * A one-off cost of fixing, like a rate lock fee, paid up front. Counted
+   * against the plan whenever any of the loan is fixed. Default 0.
+   */
+  fixingFee?: Cents;
 }
 
 export interface FixedVsVariablePoint {
@@ -72,10 +77,12 @@ export interface FixedVsVariableResult {
   /** Interest over the fixed period. */
   variableInterestFixedPeriod: Cents;
   planInterestFixedPeriod: Cents;
-  /** Positive = the plan saves interest over the fixed period. */
+  /** Positive = the plan saves interest over the fixed period, after any fixing fee. */
   aheadFixedPeriod: Cents;
-  /** Positive = the plan saves interest over the whole loan. */
+  /** Positive = the plan saves interest over the whole loan, after any fixing fee. */
   aheadLifetime: Cents;
+  /** The fixing fee counted, zero when nothing is fixed. */
+  fixingFee: Cents;
   planTotalInterest: Cents;
   planPayoffDate: string;
   /** Combined balance of the plan on each monthly interest date. */
@@ -83,6 +90,9 @@ export interface FixedVsVariableResult {
   timeline: FixedVsVariablePoint[];
   warnings: string[];
 }
+
+/** A common yearly limit on extra repayments to a fixed loan. Lenders vary. */
+export const FIXED_EXTRA_CAP_TYPICAL = 1_000_000 as Cents;
 
 export function validateFixedVsVariable(input: FixedVsVariableInput): string[] {
   const errors = validateLoan(input.loan);
@@ -100,6 +110,9 @@ export function validateFixedVsVariable(input: FixedVsVariableInput): string[] {
     errors.push("fixed share must be between 0 and 100%");
   const m = input.revertMargin ?? 0;
   if (!(m >= -0.05 && m <= 0.05)) errors.push("revert margin must be between -5% and 5%");
+  const fee = input.fixingFee ?? 0;
+  if (!(Number.isInteger(fee) && fee >= 0 && fee <= 2_000_000))
+    errors.push("fixing fee must be between $0 and $20,000");
   return errors;
 }
 
@@ -216,6 +229,9 @@ export function compareFixedVsVariable(input: FixedVsVariableInput): FixedVsVari
   const planTotalInterest = parts.reduce((s, p) => s + p.totalInterest, 0) as Cents;
   const planPayoffDate = parts.map((p) => p.payoffDate).reduce((a, b) => (b > a ? b : a));
 
+  // A fee only applies when something is fixed.
+  const fee = fixedBalance > 0 ? (input.fixingFee ?? 0) : 0;
+
   const lastPayoff = [variable.payoffDate, planPayoffDate].sort().at(-1) as string;
   const timeline: FixedVsVariablePoint[] = [];
   for (let m = 0; ; m++) {
@@ -225,7 +241,7 @@ export function compareFixedVsVariable(input: FixedVsVariableInput): FixedVsVari
       date,
       month: m,
       variableRate: rateOn(loan, date),
-      ahead: Math.round(variableTrack.interest(day) - planInterestBy(day)) as Cents,
+      ahead: Math.round(variableTrack.interest(day) - planInterestBy(day) - fee) as Cents,
     });
     if (date >= lastPayoff) break;
   }
@@ -235,10 +251,15 @@ export function compareFixedVsVariable(input: FixedVsVariableInput): FixedVsVari
     warnings.push(
       "Most fixed loans don't have an offset, so your offset isn't counted when the whole loan is fixed.",
     );
-  if (allFixed && (loan.extraPerPeriod ?? 0) > 0)
+  if (allFixed && (loan.extraPerPeriod ?? 0) > 0) {
+    const perYear = { weekly: 52, fortnightly: 26, monthly: 12 }[loan.frequency];
+    const extraYear = (loan.extraPerPeriod ?? 0) * perYear;
     warnings.push(
-      "Most fixed loans cap extra repayments, often at $10,000 a year. Check your lender's limit.",
+      extraYear > FIXED_EXTRA_CAP_TYPICAL
+        ? `Your extra repayments add up to $${Math.round(extraYear / 100).toLocaleString("en-AU")} a year. Most fixed loans cap extras, often at $10,000 a year, and charge break costs over that. A split keeps the extra on the variable part.`
+        : "Most fixed loans cap extra repayments, often at $10,000 a year. Check your lender's limit.",
     );
+  }
   if (floatingInput && (loan.offsetBalance ?? 0) > floatingBalance)
     warnings.push(
       "Your offset is bigger than the variable part, so some of it earns nothing. A bigger variable part would use it all.",
@@ -258,8 +279,9 @@ export function compareFixedVsVariable(input: FixedVsVariableInput): FixedVsVari
     planRepayment: parts.reduce((s, p) => s + p.repayment, 0) as Cents,
     variableInterestFixedPeriod,
     planInterestFixedPeriod,
-    aheadFixedPeriod: (variableInterestFixedPeriod - planInterestFixedPeriod) as Cents,
-    aheadLifetime: (variable.totalInterest - planTotalInterest) as Cents,
+    aheadFixedPeriod: (variableInterestFixedPeriod - planInterestFixedPeriod - fee) as Cents,
+    aheadLifetime: (variable.totalInterest - planTotalInterest - fee) as Cents,
+    fixingFee: fee as Cents,
     planTotalInterest,
     planPayoffDate,
     planBalances,

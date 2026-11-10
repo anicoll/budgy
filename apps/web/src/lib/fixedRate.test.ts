@@ -24,6 +24,7 @@ const FULL: FixedForm = {
   fixedYears: 2,
   fixedSharePct: 75,
   revertMarginPct: -0.25,
+  lockFee: 750,
   breakAfterYears: 0.5,
   breakDropPct: 0.75,
 };

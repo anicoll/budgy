@@ -276,6 +276,13 @@ export function FixedVariableCalculator() {
                 value={form.revertMarginPct}
                 onChange={(v) => v !== undefined && set({ revertMarginPct: v })}
               />
+              <MoneyField
+                className="col-span-2"
+                label="Rate lock or fixing fee"
+                hint="Some lenders charge to lock in the rate before settlement, often $500 to $1,000. Counted against fixing."
+                value={form.lockFee}
+                onChange={(v) => set({ lockFee: v ?? 0 })}
+              />
             </div>
           </div>
         </section>
@@ -523,7 +530,9 @@ function Results({
               costs you <strong className="num text-warn">{money(-a)}</strong> more
             </>
           )}{" "}
-          in interest over the fixed period.
+          {r.fixingFee > 0
+            ? `over the fixed period, counting the ${money(r.fixingFee)} fee.`
+            : "in interest over the fixed period."}
         </p>
         {breakEven !== null && (
           <p className="text-base text-muted">
@@ -567,7 +576,7 @@ function Results({
         <Stat
           label="Over the fix"
           value={signed(a)}
-          note={a >= 0 ? "saved by fixing" : "extra by fixing"}
+          note={`${a >= 0 ? "saved by fixing" : "extra by fixing"}${r.fixingFee > 0 ? `, after the ${money(r.fixingFee)} fee` : ""}`}
         />
         <Stat
           label="Over the whole loan"
