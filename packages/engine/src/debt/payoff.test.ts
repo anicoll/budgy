@@ -9,6 +9,7 @@ import {
   simulatePayoff,
   solveExtraPerMonth,
   validateDebts,
+  withBalanceTransfer,
 } from "./payoff";
 
 const c = (dollars: number) => Math.round(dollars * 100) as Cents;
@@ -188,5 +189,80 @@ describe("solveExtraPerMonth", () => {
     expect(solveExtraPerMonth(base(), "2099-01-01")).toBe(0);
     expect(solveExtraPerMonth(base(), "2026-11-04")).toBeNull();
     expect(solveExtraPerMonth(base({ strategy: "minimums" }), "2030-01-01")).toBeNull();
+  });
+});
+
+describe("promo rates and balance transfers", () => {
+  const promoCard: Debt = {
+    ...card,
+    id: "bt",
+    name: "Transfer card",
+    annualRate: 0.2199,
+    promo: { annualRate: 0, months: 12 },
+  };
+
+  it("charges no interest during a 0% promo, then the ongoing rate", () => {
+    const r = simulatePayoff({
+      debts: [{ ...promoCard, minimum: fixed(100) }],
+      extraPerMonth: 0 as Cents,
+      strategy: "avalanche",
+      startDate: "2026-11-04",
+    });
+    for (const m of r.timeline.slice(1, 13)) expect(m.interest).toBe(0);
+    expect(r.timeline[13].interest).toBeGreaterThan(0);
+    const out = r.debts[0];
+    expect(out.owingWhenPromoEnds).toBe(c(4_000 - 1_200));
+    expect(out.promoEndDate).toBe("2027-11-04");
+    expect(r.warnings.some((w) => w.includes("still owing when the promo rate ends"))).toBe(true);
+  });
+
+  it("reports nothing owing when the promo debt is cleared in time", () => {
+    const r = simulatePayoff({
+      debts: [{ ...promoCard, minimum: fixed(400) }],
+      extraPerMonth: 0 as Cents,
+      strategy: "avalanche",
+      startDate: "2026-11-04",
+    });
+    expect(r.debts[0].owingWhenPromoEnds).toBe(0);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("avalanche leaves a 0% debt until its promo ends", () => {
+    const r = simulatePayoff(base({ debts: [promoCard, personal], extraPerMonth: c(200) }));
+    // The personal loan (12.9%) outranks the card while it's at 0%.
+    expect(r.priority).toEqual(["personal", "bt"]);
+    const personalOut = r.debts.find((d) => d.id === "personal");
+    expect(personalOut?.months).toBeLessThanOrEqual(6);
+  });
+
+  it("leaves results unchanged for debts without a promo", () => {
+    const a = simulatePayoff(base());
+    const b = simulatePayoff(base({ debts: [card, car, personal].map((d) => ({ ...d })) }));
+    expect(b).toEqual(a);
+    expect(a.debts.every((d) => d.owingWhenPromoEnds === undefined)).toBe(true);
+  });
+
+  it("validates the promo", () => {
+    expect(validateDebts([{ ...promoCard, promo: { annualRate: 0, months: 0 } }])).toContain(
+      "Transfer card: promo must last 1 to 120 months",
+    );
+  });
+
+  it("moves debts onto one transfer card with the fee added", () => {
+    const moved = withBalanceTransfer(base({ order: ["card", "car", "personal"] }), {
+      from: ["card", "personal"],
+      name: "New card",
+      promoRate: 0,
+      promoMonths: 24,
+      revertRate: 0.2199,
+      feePercent: 0.02,
+      minimum: { type: "percent", percent: 0.02, floor: c(25) },
+    });
+    expect(moved.debts.map((d) => d.id)).toEqual(["bt-card", "car"]);
+    expect(moved.debts[0].balance).toBe(c(5_500 * 1.02));
+    expect(moved.order).toEqual(["bt-card", "car"]);
+    const r = simulatePayoff(moved);
+    const before = simulatePayoff(base());
+    expect(r.totalInterest).toBeLessThan(before.totalInterest);
   });
 });
