@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  benefitAfterMonths,
   type Cents,
+  compareOffers,
   compareRefinance,
   estimateLmi,
   type Frequency,
@@ -22,6 +24,7 @@ import {
   encodeRefinance,
   type RefinanceForm,
   toRefinanceInput,
+  toRefinanceInputB,
 } from "@/lib/refinance";
 import { withLoanFields } from "@/lib/saved";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
@@ -60,6 +63,16 @@ export function RefinanceCalculator() {
       return null;
     }
   }, [input, errors]);
+
+  const inputB = useMemo(() => toRefinanceInputB(form), [form]);
+  const resultB = useMemo(() => {
+    if (!inputB || errors.length || validateRefinance(inputB).length) return null;
+    try {
+      return compareRefinance(inputB);
+    } catch {
+      return null;
+    }
+  }, [inputB, errors]);
 
   const set = (patch: Partial<RefinanceForm>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -155,7 +168,9 @@ export function RefinanceCalculator() {
           </div>
 
           <div className={card} style={{ borderLeft: "4px solid var(--series-a)" }}>
-            <h2 className="mb-3 font-semibold">The new loan</h2>
+            <h2 className="mb-3 font-semibold">
+              {form.offerB ? "Offer A: the new loan" : "The new loan"}
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               <NumberField
                 label="Interest rate"
@@ -241,6 +256,79 @@ export function RefinanceCalculator() {
             </div>
           </div>
 
+          {form.offerB ? (
+            <div className={card} style={{ borderLeft: "4px solid var(--series-b)" }}>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="font-semibold">Offer B</h2>
+                <button
+                  type="button"
+                  onClick={() => set({ offerB: undefined })}
+                  className="text-sm text-muted hover:text-warn"
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <NumberField
+                  label="Interest rate"
+                  suffix="%"
+                  min={0}
+                  max={20}
+                  step={0.01}
+                  value={form.offerB.ratePct}
+                  onChange={(v) =>
+                    v !== undefined &&
+                    form.offerB &&
+                    set({ offerB: { ...form.offerB, ratePct: v } })
+                  }
+                />
+                <MoneyField
+                  label="Annual fee"
+                  value={form.offerB.annualFee}
+                  onChange={(v) =>
+                    form.offerB && set({ offerB: { ...form.offerB, annualFee: v ?? 0 } })
+                  }
+                />
+                <MoneyField
+                  label="Setting up this loan"
+                  hint="The cost of leaving your lender is shared with Offer A."
+                  value={form.offerB.setupCosts}
+                  onChange={(v) =>
+                    form.offerB && set({ offerB: { ...form.offerB, setupCosts: v ?? 0 } })
+                  }
+                />
+                <MoneyField
+                  label="Cashback"
+                  value={form.offerB.cashback}
+                  onChange={(v) =>
+                    form.offerB && set({ offerB: { ...form.offerB, cashback: v ?? 0 } })
+                  }
+                />
+                <p className="col-span-2 text-xs text-muted">
+                  Offer B uses the same loan term and repayment choice as Offer A, with no intro
+                  rate.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() =>
+                set({
+                  offerB: {
+                    ratePct: form.newRatePct,
+                    annualFee: 0,
+                    setupCosts: form.setupCosts,
+                    cashback: 0,
+                  },
+                })
+              }
+              className="w-full rounded-xl border border-dashed border-border p-4 text-sm font-medium text-accent hover:border-accent"
+            >
+              Compare a second offer
+            </button>
+          )}
+
           <div className={card}>
             <h2 className="mb-3 font-semibold">Cost to switch</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -315,6 +403,7 @@ export function RefinanceCalculator() {
               hasIntro={form.introRatePct !== undefined}
             />
           )}
+          {result && resultB && <OfferCompare a={result} b={resultB} frequency={form.frequency} />}
           <GoodToKnow tool="refinance" />
           <Method />
         </section>
@@ -543,6 +632,144 @@ function Results({
 }
 
 const pct = (rate: number) => `${(rate * 100).toFixed(2)}%`;
+
+/** Two offers for the same loan, side by side, with the one that leaves you further ahead marked. */
+function OfferCompare({
+  a,
+  b,
+  frequency,
+}: {
+  a: RefinanceResult;
+  b: RefinanceResult;
+  frequency: Frequency;
+}) {
+  const [years, setYears] = useState(5);
+  const c = compareOffers(a, b, years);
+  const lifetime = compareOffers(a, b, 100);
+  const cols = [
+    { key: "a" as const, name: "Offer A", r: a, color: "var(--series-a)" },
+    { key: "b" as const, name: "Offer B", r: b, color: "var(--series-b)" },
+  ];
+  const win = (k: "a" | "b") => c.winner === k;
+  const cell = (k: "a" | "b") => (win(k) ? "font-semibold text-good" : "");
+  return (
+    <div className={`${card} overflow-x-auto`}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-semibold">Offer A or Offer B</h2>
+        <div className="flex gap-2">
+          {[1, 5, 10].map((y) => (
+            <button
+              key={y}
+              type="button"
+              className={pill(years === y)}
+              aria-pressed={years === y}
+              onClick={() => setYears(y)}
+            >
+              {y} {y === 1 ? "year" : "years"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="mb-3 text-base">
+        {c.winner === "tie" ? (
+          <>
+            After {years} {years === 1 ? "year" : "years"} the two offers are <strong>a tie</strong>
+            .
+          </>
+        ) : (
+          <>
+            After {years} {years === 1 ? "year" : "years"},{" "}
+            <strong>Offer {c.winner.toUpperCase()}</strong> leaves you{" "}
+            <strong className="num text-good">{money(c.difference)}</strong> further ahead.
+          </>
+        )}
+        {lifetime.winner !== c.winner && (
+          <span className="text-muted">
+            {" "}
+            Over the whole loan the picture is{" "}
+            {lifetime.winner === "tie"
+              ? "a tie"
+              : `different: Offer ${lifetime.winner.toUpperCase()} is ahead`}
+            .
+          </span>
+        )}
+      </p>
+      <table className="num w-full text-sm">
+        <thead>
+          <tr className="text-left text-muted">
+            <th className="py-1.5 pr-3 font-medium" />
+            {cols.map((col) => (
+              <th key={col.key} className="py-1.5 pr-2 text-right font-medium">
+                <span style={{ color: col.color }}>{col.name}</span>
+                {win(col.key) && <span className="ml-1 text-good">Better</span>}
+                {c.winner === "tie" && <span className="ml-1">Tie</span>}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td]:pr-3 [&_td:not(:first-child)]:text-right">
+          <tr>
+            <td>Interest rate</td>
+            {cols.map((col) => (
+              <td key={col.key}>{pct(col.r.proposedInput.annualRate)}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Upfront cost, after cashback</td>
+            {cols.map((col) => (
+              <td key={col.key}>{signed(col.r.netUpfrontCost)}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Repayment {perPeriod[frequency]}</td>
+            {cols.map((col) => (
+              <td key={col.key}>{moneyExact(col.r.proposed.repayment)}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Break-even</td>
+            {cols.map((col) => (
+              <td key={col.key}>
+                {col.r.breakEvenMonths === null
+                  ? "Never"
+                  : col.r.breakEvenMonths === 0
+                    ? "Day one"
+                    : `${col.r.breakEvenMonths} months`}
+              </td>
+            ))}
+          </tr>
+          <tr>
+            <td>
+              Ahead after {years} {years === 1 ? "year" : "years"}
+            </td>
+            {cols.map((col) => (
+              <td key={col.key} className={cell(col.key)}>
+                {signed(benefitAfterMonths(col.r, years * 12))}
+              </td>
+            ))}
+          </tr>
+          <tr>
+            <td>Interest saved over the loan</td>
+            {cols.map((col) => (
+              <td key={col.key}>{signed(col.r.interestSaved)}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Ahead over the whole loan</td>
+            {cols.map((col) => (
+              <td key={col.key}>{signed(col.r.lifetimeBenefit)}</td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+      <p className="mt-2 text-xs text-muted">
+        Compared on how far ahead each offer leaves you after the years you pick, counting interest
+        and fees saved, switching costs and cashback. &ldquo;Ahead&rdquo; is compared with staying
+        where you are.
+      </p>
+    </div>
+  );
+}
 
 function Method() {
   return (

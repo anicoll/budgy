@@ -18,6 +18,7 @@ export {
   type BalancePoint,
   type FortnightlyMethod,
   type Frequency,
+  interestOnlyRepayment,
   type LoanEvent,
   type LoanInput,
   type LumpSum,

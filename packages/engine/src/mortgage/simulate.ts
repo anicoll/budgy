@@ -15,7 +15,11 @@ import type { Cents } from "../money/cents";
  * - a rate change recalculates the minimum over the remaining term. A repayment
  *   above the new minimum is kept; one below it is raised to the minimum;
  * - the offset can grow by a monthly deposit; only the part up to the balance counts;
- * - lump sums (one-off or yearly) reduce the balance on their date.
+ * - lump sums (one-off or yearly) reduce the balance on their date;
+ * - an optional interest-only period at the start: the required repayment covers
+ *   interest only (on the balance, ignoring the offset), then resets to the
+ *   principal-and-interest minimum over the rest of the term. Extras, lump sums
+ *   and the offset still apply during it.
  *
  * Everything is JSON in, JSON out, so the same shapes can live in a URL.
  */
@@ -54,13 +58,20 @@ export interface LoanInput {
    * false: the repayment only ever rises to meet a higher minimum.
    */
   followMinimum?: boolean;
+  /**
+   * Interest-only period from the start, in months (0 or absent = none). The
+   * term stays the same, so principal-and-interest repayments after it are
+   * worked out over `termMonths - interestOnlyMonths`.
+   */
+  interestOnlyMonths?: number;
 }
 
 export type LoanEvent =
   | { date: string; type: "rate-change"; annualRate: number; minimumRepayment: Cents }
   | { date: string; type: "repayment-raised"; from: Cents; to: Cents }
   | { date: string; type: "repayment-lowered"; from: Cents; to: Cents }
-  | { date: string; type: "lump-sum"; amount: Cents };
+  | { date: string; type: "lump-sum"; amount: Cents }
+  | { date: string; type: "interest-only-ends"; from: Cents; to: Cents };
 
 export interface YearRow {
   year: number; // 1 = the first 12 months
@@ -82,6 +93,11 @@ export interface SimulationResult {
   minimumRepayment: Cents;
   /** What is actually paid per period at the start, extras included. */
   repayment: Cents;
+  /**
+   * Set when there is an interest-only period: the required repayment per
+   * period (before extras) once it ends, and the date it starts.
+   */
+  afterInterestOnly?: { date: string; repayment: Cents };
   payoffDate: string;
   repaymentCount: number;
   totalInterest: Cents;
@@ -126,6 +142,21 @@ export function minimumRepayment(
   return pmt(balance, annualRate / ppy, Math.round((monthsLeft * ppy) / 12));
 }
 
+/** Interest-only repayment per period on a balance (no offset), rounded up to the cent. */
+export function interestOnlyRepayment(
+  balance: number,
+  annualRate: number,
+  frequency: Frequency,
+  fortnightlyMethod: FortnightlyMethod = "half-monthly",
+): Cents {
+  const monthly = Math.ceil((balance * annualRate) / 12);
+  if (frequency === "monthly") return monthly as Cents;
+  if (frequency === "fortnightly" && fortnightlyMethod === "half-monthly") {
+    return Math.ceil(monthly / 2) as Cents;
+  }
+  return Math.ceil((balance * annualRate) / PERIODS_PER_YEAR[frequency]) as Cents;
+}
+
 export function validateLoan(input: LoanInput): string[] {
   const errors: string[] = [];
   const isCents = (n: unknown) => typeof n === "number" && Number.isInteger(n) && n >= 0;
@@ -145,6 +176,11 @@ export function validateLoan(input: LoanInput): string[] {
   ] as const) {
     if (input[k] !== undefined && !isCents(input[k]))
       errors.push(`${k} must be whole cents, zero or more`);
+  }
+  if (input.interestOnlyMonths !== undefined) {
+    const io = input.interestOnlyMonths;
+    if (!(Number.isInteger(io) && io >= 0 && io < input.termMonths))
+      errors.push("interest-only months must be a whole number shorter than the term");
   }
   for (const l of input.lumpSums ?? []) {
     if (!isIsoDate(l.date) || !isCents(l.amount))
@@ -203,10 +239,28 @@ export function simulateLoan(input: LoanInput): SimulationResult {
   let offset = input.offsetBalance ?? 0;
   let accrued = 0; // interest accrued since last charge, fractional cents
 
-  const minimum0 = minimumRepayment(balance, rate, input.termMonths, frequency, fortnightlyMethod);
-  let base = input.repayment ?? minimum0;
+  const ioMonths = input.interestOnlyMonths ?? 0;
+  const ioEndDate = addMonths(startDate, ioMonths);
+  const ioEndDay = toDay(ioEndDate);
+  let inIo = ioMonths > 0;
+  // Months left in the term from a day, counting a part month as a whole one.
+  const monthsLeftFrom = (iso: string) => {
+    const whole = monthsBetween(iso, endDate);
+    return Math.max(1, addMonths(iso, whole) < endDate ? whole + 1 : whole);
+  };
+  // Principal-and-interest minimum at the start: over the whole term, or over
+  // what is left after the interest-only period.
+  const minimum0 = minimumRepayment(
+    balance,
+    rate,
+    input.termMonths - ioMonths,
+    frequency,
+    fortnightlyMethod,
+  );
+  const io0 = interestOnlyRepayment(balance, rate, frequency, fortnightlyMethod);
+  let base = inIo ? io0 : (input.repayment ?? minimum0);
   const warnings: string[] = [];
-  if (input.repayment !== undefined && input.repayment < minimum0) {
+  if (!inIo && input.repayment !== undefined && input.repayment < minimum0) {
     warnings.push("The repayment entered is below the lender's minimum.");
   }
 
@@ -245,22 +299,55 @@ export function simulateLoan(input: LoanInput): SimulationResult {
     return p;
   };
 
+  let afterInterestOnly: SimulationResult["afterInterestOnly"];
   for (let day = startDay + 1; day <= lastDay; day++) {
+    // 0. Interest-only period ends: back to principal and interest.
+    if (inIo && day >= ioEndDay) {
+      inIo = false;
+      const min = minimumRepayment(
+        balance,
+        rate,
+        monthsLeftFrom(toIso(day)),
+        frequency,
+        fortnightlyMethod,
+      );
+      const to = Math.max(input.repayment ?? 0, min) as Cents;
+      events.push({ date: toIso(day), type: "interest-only-ends", from: base as Cents, to });
+      afterInterestOnly = { date: toIso(day), repayment: to };
+      base = to;
+    }
+
     // 1. Rate change from today.
     const newRate = rateByDay.get(day);
     if (newRate !== undefined) {
       rate = newRate;
-      // Months left in the term, counting a part month as a whole one.
-      const whole = monthsBetween(toIso(day), endDate);
-      const monthsLeft = Math.max(1, addMonths(toIso(day), whole) < endDate ? whole + 1 : whole);
-      const min = minimumRepayment(balance, rate, monthsLeft, frequency, fortnightlyMethod);
+      const monthsLeft = monthsLeftFrom(toIso(day));
+      const min = minimumRepayment(
+        balance,
+        rate,
+        inIo ? Math.max(1, monthsLeft - monthsBetween(toIso(day), ioEndDate)) : monthsLeft,
+        frequency,
+        fortnightlyMethod,
+      );
       events.push({
         date: toIso(day),
         type: "rate-change",
         annualRate: rate,
         minimumRepayment: min,
       });
-      if (base < min) {
+      if (inIo) {
+        // Still interest only: the repayment follows the new rate.
+        const to = interestOnlyRepayment(balance, rate, frequency, fortnightlyMethod);
+        if (to !== base) {
+          events.push({
+            date: toIso(day),
+            type: to > base ? "repayment-raised" : "repayment-lowered",
+            from: base as Cents,
+            to,
+          });
+          base = to;
+        }
+      } else if (base < min) {
         events.push({ date: toIso(day), type: "repayment-raised", from: base as Cents, to: min });
         base = min;
       } else if (input.followMinimum && input.repayment === undefined && base > min) {
@@ -353,7 +440,8 @@ export function simulateLoan(input: LoanInput): SimulationResult {
 
   return {
     minimumRepayment: minimum0,
-    repayment: ((input.repayment ?? minimum0) + extraPerPeriod) as Cents,
+    repayment: ((ioMonths > 0 ? io0 : (input.repayment ?? minimum0)) + extraPerPeriod) as Cents,
+    ...(afterInterestOnly ? { afterInterestOnly } : {}),
     payoffDate: toIso(payoffDay),
     repaymentCount,
     totalInterest: totalInterest as Cents,

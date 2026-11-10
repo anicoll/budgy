@@ -21,7 +21,7 @@ const FULL: CalculatorState = {
     startDate: "2026-03-31",
   },
   scenarios: [
-    { name: "Extra $200", extra: 200 },
+    { name: "Extra $200", extra: 200, interestOnlyYears: 5 },
     {
       name: "Bonus each July",
       offset: 40_000,
@@ -39,6 +39,19 @@ const FULL: CalculatorState = {
 describe("URL state", () => {
   it("round-trips every field exactly", () => {
     expect(decodeState(encodeState(FULL))).toEqual(FULL);
+  });
+
+  it("round-trips an interest-only period, and old links without one still decode", () => {
+    const s = { ...FULL, scenarios: [{ name: "IO", interestOnlyYears: 3 }] };
+    expect(decodeState(encodeState(s)).scenarios[0].interestOnlyYears).toBe(3);
+    const old = { ...FULL, scenarios: [{ name: "Plain", extra: 50 }] };
+    expect(decodeState(encodeState(old)).scenarios[0].interestOnlyYears).toBeUndefined();
+  });
+
+  it("turns interest-only years into months, kept shorter than the term", () => {
+    expect(toChanges({ name: "x", interestOnlyYears: 5 }).interestOnlyMonths).toBe(60);
+    expect(toChanges({ name: "x", interestOnlyYears: 5 }, 3).interestOnlyMonths).toBe(35);
+    expect(toChanges({ name: "x", interestOnlyYears: 0 }).interestOnlyMonths).toBeUndefined();
   });
 
   it("round-trips non-ASCII scenario names", () => {

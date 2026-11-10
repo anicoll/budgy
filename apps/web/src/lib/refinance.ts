@@ -13,6 +13,14 @@ import { today } from "@/lib/state";
  * years. Kept apart from the engine's cents-based input so the form and the
  * URL stay human-sized.
  */
+/** A second offer to compare with the first. Shares the loan, term and exit costs. */
+export interface OfferB {
+  ratePct: number;
+  annualFee: number; // dollars a year
+  setupCosts: number; // application, valuation, settlement, government fees
+  cashback: number;
+}
+
 export interface RefinanceForm {
   // The loan now
   balance: number;
@@ -37,6 +45,7 @@ export interface RefinanceForm {
   addCostsToLoan: boolean;
   repaymentChoice: RefinanceRepayment;
   startDate: string; // the switch date
+  offerB?: OfferB; // optional second offer
 }
 
 export function defaultRefinance(start = today()): RefinanceForm {
@@ -95,6 +104,23 @@ export function toRefinanceInput(f: RefinanceForm): RefinanceInput {
   };
 }
 
+/** The engine input for Offer B, or undefined when there isn't one. */
+export function toRefinanceInputB(f: RefinanceForm): RefinanceInput | undefined {
+  const b = f.offerB;
+  if (!b) return undefined;
+  const a = toRefinanceInput(f);
+  return {
+    ...a,
+    proposed: {
+      annualRate: b.ratePct / 100,
+      termMonths: a.proposed.termMonths,
+    },
+    switchingCosts: toCents(f.exitCosts + b.setupCosts),
+    cashback: toCents(b.cashback),
+    proposedAnnualFee: toCents(b.annualFee),
+  };
+}
+
 // ── URL state ───────────────────────────────────────────────────────────────
 // Short keys keep shared links readable. Versioned so old links keep working.
 
@@ -132,6 +158,12 @@ export function encodeRefinance(f: RefinanceForm): string {
   if (f.addCostsToLoan) q.set("cap", "1");
   q.set("k", f.repaymentChoice === "keep" ? "keep" : "min");
   q.set("d", f.startDate);
+  if (f.offerB) {
+    q.set("br", String(f.offerB.ratePct));
+    q.set("bf", String(f.offerB.annualFee));
+    q.set("bs", String(f.offerB.setupCosts));
+    q.set("bc", String(f.offerB.cashback));
+  }
   return q.toString();
 }
 
@@ -159,5 +191,20 @@ export function decodeRefinance(query: string, fallback = defaultRefinance()): R
   f.repaymentChoice = q.get("k") === "min" ? "minimum" : "keep";
   const d = q.get("d");
   if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) f.startDate = d;
+  // Offer B is optional: older links have none.
+  const nonNeg = (k: string, fb: number) => {
+    const raw = q.get(k);
+    const n = raw === null || raw === "" ? Number.NaN : Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : fb;
+  };
+  const br = q.get("br");
+  if (br !== null && br !== "" && Number.isFinite(Number(br)) && Number(br) >= 0) {
+    f.offerB = {
+      ratePct: Number(br),
+      annualFee: nonNeg("bf", 0),
+      setupCosts: nonNeg("bs", f.setupCosts),
+      cashback: nonNeg("bc", 0),
+    };
+  }
   return f;
 }

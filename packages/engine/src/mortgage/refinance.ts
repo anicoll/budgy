@@ -221,3 +221,42 @@ export function compareRefinance(input: RefinanceInput): RefinanceResult {
     warnings,
   };
 }
+
+/** How far ahead switching has left you after a number of months, from the timeline. */
+export function benefitAfterMonths(r: RefinanceResult, months: number): Cents {
+  const i = Math.max(0, Math.min(Math.floor(months), r.timeline.length - 1));
+  return r.timeline[i].benefit;
+}
+
+export interface OfferComparison {
+  years: number;
+  /** Benefit after `years`, as in the timeline (switching costs and cashback included). */
+  benefitA: Cents;
+  benefitB: Cents;
+  winner: "a" | "b" | "tie";
+  /** How much better the winner is after `years`. Zero for a tie. */
+  difference: Cents;
+}
+
+/**
+ * Compare two offers for the same loan by how far ahead each leaves you after
+ * `years`. Offers within `tieWithin` (default $1) of each other are a tie.
+ */
+export function compareOffers(
+  a: RefinanceResult,
+  b: RefinanceResult,
+  years = 5,
+  tieWithin: Cents = 100 as Cents,
+): OfferComparison {
+  const benefitA = benefitAfterMonths(a, years * 12);
+  const benefitB = benefitAfterMonths(b, years * 12);
+  const gap = benefitA - benefitB;
+  const tie = Math.abs(gap) <= tieWithin;
+  return {
+    years,
+    benefitA,
+    benefitB,
+    winner: tie ? "tie" : gap > 0 ? "a" : "b",
+    difference: (tie ? 0 : Math.abs(gap)) as Cents,
+  };
+}
