@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/Logo";
+import { PrintStamp } from "@/components/PrintStamp";
 
 /** The footer under every page: the mark, the tagline and whose project it is. */
 export function SiteFooter() {
@@ -19,6 +20,7 @@ export function SiteFooter() {
           General information only, not financial advice. For advice about your situation, talk to a
           licensed financial adviser.
         </p>
+        <PrintStamp />
       </div>
     </footer>
   );

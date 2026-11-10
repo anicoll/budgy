@@ -226,7 +226,7 @@ export function MortgageCalculator() {
           ))}
 
           {state.scenarios.length < MAX_SCENARIOS && (
-            <div className={`${card} border-dashed`}>
+            <div className={`${card} border-dashed print:hidden`}>
               <h2 className="mb-2 text-sm font-medium">Add a scenario</h2>
               <div className="flex flex-wrap gap-2">
                 {presets(base.startDate).map((p) => (

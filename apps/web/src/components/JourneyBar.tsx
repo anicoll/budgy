@@ -36,7 +36,10 @@ export function JourneyBar({ current }: { current: ToolKey }) {
   const prev = steps[index - 1];
   const next = steps[index + 1];
   return (
-    <nav aria-label="Your plan" className="bg-primary-container text-on-primary-container">
+    <nav
+      aria-label="Your plan"
+      className="bg-primary-container text-on-primary-container print:hidden"
+    >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
         <Link href="/" className="text-sm font-semibold hover:underline">
           Your plan · step {index + 1} of {steps.length}

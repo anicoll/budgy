@@ -12,7 +12,7 @@ export function SavedBar({ saved }: { saved: SavedControls }) {
   const [confirming, setConfirming] = useState(false);
   return (
     <p
-      className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted"
+      className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted print:hidden"
       aria-live="polite"
     >
       {mode === "saved" && !confirming && (
@@ -64,6 +64,9 @@ export function SavedBar({ saved }: { saved: SavedControls }) {
           </button>
         </>
       )}
+      <button type="button" className={btn} onClick={() => window.print()}>
+        Print or save as PDF
+      </button>
     </p>
   );
 }

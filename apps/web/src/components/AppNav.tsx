@@ -73,7 +73,7 @@ function SideMenu({ active }: { active: HomeView | null }) {
     }`;
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto bg-surface-container px-3 py-4 lg:flex">
+    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto bg-surface-container px-3 py-4 lg:flex print:hidden">
       <div className="mb-3 px-3">
         <Brand />
       </div>
@@ -152,7 +152,7 @@ export function TopBar() {
   return (
     <header
       ref={ref}
-      className="sticky top-0 z-40 border-b border-border bg-bg/95 backdrop-blur lg:hidden"
+      className="sticky top-0 z-40 border-b border-border bg-bg/95 backdrop-blur lg:hidden print:hidden"
     >
       <div className="flex items-center px-4 py-1.5">
         <Brand size={28} />
@@ -185,7 +185,7 @@ function TabBar({ active }: { active: HomeView | null }) {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 grid h-[var(--bottom-nav-h)] grid-cols-4 border-t border-border bg-surface-container pt-2 pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid h-[var(--bottom-nav-h)] grid-cols-4 border-t border-border bg-surface-container pt-2 pb-[env(safe-area-inset-bottom)] lg:hidden print:hidden"
     >
       {TABS.map(({ view, label, Icon }) => {
         const on = view === active;

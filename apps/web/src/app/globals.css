@@ -61,3 +61,50 @@ html {
     --bottom-nav-h: calc(4.5rem + env(safe-area-inset-bottom));
   }
 }
+
+/* Paper: light colours whatever the screen uses, no menus or pinned bars,
+   and cards kept whole across pages. */
+@media print {
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-container: #eceeef;
+    --surface-container-high: #e1e3e4;
+    --text: #191c1d;
+    --muted: #3f484b;
+    --border: #bfc8cb;
+    --outline: #6f797b;
+    --accent: #276673;
+    --on-accent: #ffffff;
+    --primary-container: #b0ecfb;
+    --on-primary-container: #004e5a;
+    --tertiary: #8d4d2c;
+    --tertiary-container: #ffdbcc;
+    --on-tertiary-container: #703717;
+    --good: #28794a;
+    --warn: #ad4f24;
+    --series-base: #6f797b;
+    --series-a: #276673;
+    --series-b: #bd5b2f;
+    --series-c: #558162;
+    --grid: #e6e8e9;
+    --bottom-nav-h: 0px;
+    --header-h: 0px;
+    color-scheme: light;
+  }
+  html,
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .sticky {
+    position: static;
+  }
+  .rounded-xl,
+  .rounded-2xl,
+  table,
+  figure,
+  svg {
+    break-inside: avoid;
+  }
+}
