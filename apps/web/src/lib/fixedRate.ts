@@ -35,6 +35,7 @@ export interface FixedForm {
   fixedYears: number;
   fixedSharePct: number; // 0 to 100
   revertMarginPct: number;
+  lockFee: number; // dollars, a one-off cost of fixing
   breakAfterYears: number;
   breakDropPct: number; // how far fixed rates have fallen when you break
   startDate: string;
@@ -55,6 +56,7 @@ export function defaultFixed(start = today()): FixedForm {
     fixedYears: 3,
     fixedSharePct: 50,
     revertMarginPct: 0,
+    lockFee: 0,
     breakAfterYears: 1,
     breakDropPct: 1,
     startDate: start,
@@ -106,6 +108,7 @@ export function toFixedInput(
     fixedMonths: Math.round(f.fixedYears * 12),
     fixedShare: (overrides.fixedSharePct ?? f.fixedSharePct) / 100,
     revertMargin: f.revertMarginPct / 100,
+    fixingFee: toCents(Math.min(f.lockFee, 20_000)),
   };
 }
 
@@ -126,6 +129,7 @@ const NUM_KEYS = {
   fy: "fixedYears",
   fs: "fixedSharePct",
   rm: "revertMarginPct",
+  lf: "lockFee",
   ba: "breakAfterYears",
   bd: "breakDropPct",
 } as const satisfies Record<string, keyof FixedForm>;

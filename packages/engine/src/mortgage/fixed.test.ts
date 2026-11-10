@@ -108,9 +108,43 @@ describe("compareFixedVsVariable", () => {
     expect(r.variable.totalInterest).toBe(simulateLoan(loan).totalInterest);
   });
 
+  it("says when fully fixed extras go over the usual yearly cap", () => {
+    const over = compareFixedVsVariable({
+      ...BASE,
+      fixedShare: 1,
+      loan: { ...LOAN, extraPerPeriod: cents(100_000) },
+    });
+    expect(over.warnings.join(" ")).toMatch(/add up to \$12,000 a year/);
+    const under = compareFixedVsVariable({
+      ...BASE,
+      fixedShare: 1,
+      loan: { ...LOAN, extraPerPeriod: cents(50_000) },
+    });
+    expect(under.warnings.join(" ")).toMatch(/Check your lender's limit/);
+  });
+
+  it("counts a fixing fee against the plan, from day one", () => {
+    const plain = compareFixedVsVariable(BASE);
+    const r = compareFixedVsVariable({ ...BASE, fixingFee: cents(75_000) });
+    expect(r.fixingFee).toBe(75_000);
+    expect(r.aheadFixedPeriod).toBe(plain.aheadFixedPeriod - 75_000);
+    expect(r.aheadLifetime).toBe(plain.aheadLifetime - 75_000);
+    expect(r.timeline[0].ahead).toBe(-75_000);
+    expect(breakEvenVariableRate({ ...BASE, fixingFee: cents(75_000) })).toBeGreaterThan(
+      breakEvenVariableRate(BASE) as number,
+    );
+  });
+
+  it("charges no fixing fee when nothing is fixed", () => {
+    const r = compareFixedVsVariable({ ...BASE, fixedShare: 0, fixingFee: cents(75_000) });
+    expect(r.fixingFee).toBe(0);
+    expect(r.aheadLifetime).toBe(0);
+  });
+
   it("rejects bad input", () => {
     expect(() => compareFixedVsVariable({ ...BASE, fixedShare: 1.5 })).toThrow(RangeError);
     expect(() => compareFixedVsVariable({ ...BASE, fixedMonths: 0 })).toThrow(RangeError);
+    expect(() => compareFixedVsVariable({ ...BASE, fixingFee: cents(-1) })).toThrow(RangeError);
   });
 });
 
