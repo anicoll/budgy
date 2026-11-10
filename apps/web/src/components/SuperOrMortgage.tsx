@@ -810,6 +810,15 @@ function Method() {
           smaller loan, plus extra super, in today&apos;s dollars. Tax is worked out on this
           year&apos;s pay for every year, which leans slightly toward the mortgage.
         </p>
+        <p>
+          &quot;What you can reach&quot; is the part of that figure you could get at in that year,
+          in today&apos;s dollars. It counts how much lower the loan is than it would have been
+          without the extra repayments, which you could get back through redraw, an offset or
+          selling. Super counts as zero until its owner can get at it (65, or when they retire after
+          60), then it counts in full. It can fall once the loan is paid off. The loan you&apos;d
+          otherwise have kept is itself shrinking by then, so there&apos;s less of a head start to
+          count, and the repayments freed up go into super that&apos;s still locked away.
+        </p>
       </div>
     </details>
   );

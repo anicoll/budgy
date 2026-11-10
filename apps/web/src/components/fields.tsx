@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { clampWithHint } from "@/lib/clampHint";
 import { parseMoney } from "@/lib/state";
 import { DatePicker, filledField, Select } from "./ui";
 
@@ -42,30 +43,45 @@ export function MoneyField({
   onChange,
   optional,
   placeholder,
+  min,
+  max,
   ...field
 }: FieldProps & {
   value: number | undefined;
   onChange: (v: number | undefined) => void;
   optional?: boolean;
   placeholder?: string;
+  /** Optional limits in dollars. A typed amount outside them is moved in, with a note. */
+  min?: number;
+  max?: number;
 }) {
   const id = useId();
   const [text, setText] = useState(fmt(value));
   const [bad, setBad] = useState(false);
+  const [capped, setCapped] = useState<string | null>(null);
   useEffect(() => setText(fmt(value)), [value]);
 
   const commit = () => {
     if (text.trim() === "" && optional) {
       setBad(false);
+      setCapped(null);
       onChange(undefined);
       return;
     }
-    const n = parseMoney(text);
-    if (n === null) {
+    const parsed = parseMoney(text);
+    if (parsed === null) {
       setBad(true);
       return;
     }
     setBad(false);
+    const { value: n, hint } = clampWithHint(
+      parsed,
+      min ?? Number.NEGATIVE_INFINITY,
+      max ?? Number.POSITIVE_INFINITY,
+      undefined,
+      (x) => `$${fmt(x)}`,
+    );
+    setCapped(hint);
     onChange(n);
     setText(fmt(n));
   };
@@ -90,6 +106,11 @@ export function MoneyField({
         />
       </div>
       {bad && <p className="mt-1 text-xs text-warn">Enter an amount, like 600k or 600,000.</p>}
+      {!bad && capped && (
+        <p className="mt-1 text-xs text-warn" role="status">
+          {capped}
+        </p>
+      )}
     </Field>
   );
 }
@@ -116,17 +137,22 @@ export function NumberField({
 }) {
   const id = useId();
   const [text, setText] = useState(value === undefined ? "" : String(value));
+  const [capped, setCapped] = useState<string | null>(null);
   useEffect(() => setText(value === undefined ? "" : String(value)), [value]);
   const commit = () => {
     if (text.trim() === "") {
-      if (optional) return onChange(undefined);
+      if (optional) {
+        setCapped(null);
+        return onChange(undefined);
+      }
       // A required field left blank keeps its last value, rather than
       // Number("") turning it into 0 and then the minimum.
       return setText(value === undefined ? "" : String(value));
     }
     const n = Number(text);
     if (!Number.isFinite(n)) return setText(value === undefined ? "" : String(value));
-    const clamped = Math.min(max, Math.max(min, n));
+    const { value: clamped, hint } = clampWithHint(n, min, max, suffix);
+    setCapped(hint);
     onChange(clamped);
     setText(String(clamped));
   };
@@ -153,6 +179,11 @@ export function NumberField({
           </span>
         )}
       </div>
+      {capped && (
+        <p className="mt-1 text-xs text-warn" role="status">
+          {capped}
+        </p>
+      )}
     </Field>
   );
 }

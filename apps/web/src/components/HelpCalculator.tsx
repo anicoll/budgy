@@ -456,7 +456,7 @@ function longDate(iso: string): string {
 function Method() {
   return (
     <details className={`${card} text-sm`}>
-      <summary className="min-h-7 cursor-pointer font-medium">How this works</summary>
+      <summary className="min-h-7 cursor-pointer font-medium">How this is calculated</summary>
       <div className="mt-3 space-y-2 text-muted">
         <p>
           HELP debts don&apos;t charge interest. Each 1 June the ATO adds indexation, the lower of

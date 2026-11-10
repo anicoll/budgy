@@ -527,7 +527,7 @@ function Results({
       )}
 
       <details className="text-sm leading-relaxed text-muted">
-        <summary className="cursor-pointer font-medium text-accent">How we work it out</summary>
+        <summary className="cursor-pointer font-medium text-accent">How this is calculated</summary>
         <div className="mt-2 space-y-2">
           <p>
             We work out each person&apos;s take-home pay with this year&apos;s tax rates, then take
