@@ -1,6 +1,7 @@
 import { calculateNovatedLease } from "@budgy/engine";
 import { describe, expect, it } from "vitest";
 import {
+  altCar,
   decodeLeaseState,
   defaultLeaseState,
   encodeLeaseState,
@@ -8,6 +9,7 @@ import {
   leaseStateFromPay,
   switchQuoteAmounts,
   toLeaseInput,
+  withAltCar,
 } from "./leaseState";
 import { defaultPayState, encodePayState } from "./payState";
 import { b64urlEncode } from "./state";
@@ -119,5 +121,28 @@ describe("toLeaseInput", () => {
     expect(input.running.maintenance).toBe(1_080_000); // a month, as on a quote
     expect(input.otherCharges).toBe(341_28);
     expect(() => calculateNovatedLease(input)).not.toThrow();
+  });
+
+  it("round-trips a second car, and old links decode without one", () => {
+    const alt = { car: "ice" as const, price: 46_000, energy: 2_700, servicing: 650 };
+    expect(decodeLeaseState(encodeLeaseState({ ...FULL, alt })).alt).toEqual(alt);
+    expect(decodeLeaseState(encodeLeaseState(FULL)).alt).toBeUndefined();
+    const junk = new URLSearchParams(encodeLeaseState(FULL));
+    const o = JSON.parse(atob((junk.get("n") ?? "").replace(/-/g, "+").replace(/_/g, "/")));
+    o.e = [99, 1, 1, 1];
+    junk.set(
+      "n",
+      btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+    );
+    expect(decodeLeaseState(junk.toString()).alt).toBeUndefined();
+  });
+
+  it("offers an example second car opposite the first, and swaps it into the form", () => {
+    const ev = { ...FULL, car: "ev" as const, alt: undefined };
+    expect(altCar(ev).car).toBe("ice");
+    expect(altCar({ ...ev, car: "ice" }).car).toBe("ev");
+    const typed = { car: "phev" as const, price: 50_000, energy: 1, servicing: 2 };
+    expect(withAltCar({ ...FULL, alt: typed })).toMatchObject(typed);
+    expect(withAltCar({ ...FULL, alt: typed }).alt).toBeUndefined();
   });
 });

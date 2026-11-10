@@ -16,6 +16,7 @@ import {
 import { useMemo, useState } from "react";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { LeaseCompare } from "@/components/LeaseCompare";
 import { SavedBar } from "@/components/SavedBar";
 import { money, moneyExact } from "@/lib/format";
 import { LEASE_PEOPLE } from "@/lib/household";
@@ -179,6 +180,7 @@ export function LeaseCalculator() {
                 <Warnings result={result} />
               </div>
               <Ownership result={result} loanPct={state.loanPct} />
+              <LeaseCompare state={state} set={set} result={result} />
               <LeaveJob input={input} result={result} />
               {terms && <Terms rows={terms} current={state.termYears} />}
               <QuoteCheck state={state} set={set} result={result} />

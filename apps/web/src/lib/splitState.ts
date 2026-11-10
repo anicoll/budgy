@@ -30,9 +30,18 @@ export interface SplitLoan {
   propertyValue?: number;
 }
 
+/** Buy-out inputs. A blank number follows what the tool already knows. */
+export interface BuyOutState {
+  keeperId: string;
+  value?: number; // blank: the property value
+  owing?: number; // blank: the loan balance
+  sharePct?: number; // blank: the leaver's share of what each has put in today
+}
+
 export interface SplitState {
   loan: SplitLoan;
   borrowers: Borrower[];
+  buyout?: BuyOutState;
 }
 
 export function newBorrower(id: string, name: string, sharePct: number): Borrower {
@@ -151,6 +160,14 @@ export function encodeSplitState(s: SplitState): string {
       u: b.lumpSum ? [b.lumpSum.amount, b.lumpSum.date, b.lumpSum.yearly ? 1 : 0] : undefined,
       f: b.frequency ? FREQ[b.frequency] : undefined,
     })),
+    o: s.buyout
+      ? [
+          s.buyout.keeperId,
+          s.buyout.value ?? null,
+          s.buyout.owing ?? null,
+          s.buyout.sharePct ?? null,
+        ]
+      : undefined,
   };
   return new URLSearchParams({
     v: String(SPLIT_URL_VERSION),
@@ -203,8 +220,26 @@ export function decodeSplitState(query: string, fallback = defaultSplitState()):
         };
       });
     if (borrowers.length < 2) return fallback;
-    return { loan, borrowers };
+    const o = Array.isArray(c.o) ? c.o : null;
+    const buyout: BuyOutState | undefined =
+      o && borrowers.some((b) => b.id === o[0])
+        ? {
+            keeperId: o[0],
+            value: optNum(o[1]),
+            owing: optNum(o[2]),
+            sharePct: typeof o[3] === "number" && o[3] >= 0 && o[3] <= 100 ? o[3] : undefined,
+          }
+        : undefined;
+    return buyout ? { loan, borrowers, buyout } : { loan, borrowers };
   } catch {
     return fallback;
   }
+}
+
+// ── Buy-out ─────────────────────────────────────────────────────────────────
+
+/** The leaving person's share of what each has put in today, as a percent to one decimal. */
+export function leaverSharePrefill(shares: number[] | undefined, leaverIndex: number) {
+  const share = shares?.[leaverIndex];
+  return share === undefined ? undefined : Math.round(share * 1000) / 10;
 }

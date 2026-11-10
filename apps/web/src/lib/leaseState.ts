@@ -10,6 +10,14 @@ import { b64urlDecode, b64urlEncode, today } from "./state";
 
 export type LeasePer = "weekly" | "fortnightly" | "monthly";
 
+/** A second car to put beside the first: its price and running costs, in the units of the form. */
+export interface AltCar {
+  car: CarKind;
+  price: number;
+  energy: number; // fuel or charging
+  servicing: number;
+}
+
 /** The novated lease calculator's inputs as typed, in dollars and percent. */
 export interface LeaseState {
   salary: number; // a year, before tax, without super
@@ -37,6 +45,8 @@ export interface LeaseState {
   loanPct?: number; // blank = no loan comparison
   savingsPct: number;
   show: LeasePer;
+  /** The second car in the side-by-side. Blank: rough examples that follow the car above. */
+  alt?: AltCar;
   /** Quote check. */
   quoteFinanced?: number;
   quoteResidual?: number;
@@ -120,7 +130,33 @@ export function switchQuoteAmounts(s: LeaseState, quoteAmounts: boolean): LeaseS
     rego: plain(s.rego),
     insurance: gst(s.insurance),
     servicing: gst(s.servicing),
+    alt: s.alt && { ...s.alt, energy: gst(s.alt.energy), servicing: gst(s.alt.servicing) },
   };
+}
+
+const ROUGH = {
+  ev: { energy: 680, servicing: 300 },
+  phev: { energy: 1_600, servicing: 450 },
+  ice: { energy: 2_700, servicing: 650 },
+} as const;
+
+/** Rough example running costs a year for a kind of car, in the form's units. */
+export function roughRunning(car: CarKind, quoteAmounts: boolean) {
+  const f = (v: number) => (quoteAmounts ? Math.round(v / 1.1 / 12) : v);
+  return { energy: f(ROUGH[car].energy), servicing: f(ROUGH[car].servicing) };
+}
+
+/** The second car as shown: what the person typed, or an example opposite the first car. */
+export function altCar(s: LeaseState): AltCar {
+  if (s.alt) return s.alt;
+  const car: CarKind = s.car === "ice" ? "ev" : "ice";
+  const price = Math.round((s.price * (car === "ice" ? 0.88 : 1.14)) / 500) * 500;
+  return { car, price, ...roughRunning(car, s.quoteAmounts) };
+}
+
+/** The same lease form with the second car's type, price and running costs swapped in. */
+export function withAltCar(s: LeaseState): LeaseState {
+  return { ...s, ...altCar(s), alt: undefined };
 }
 
 export function toLeaseInput(s: LeaseState, termYears = s.termYears): NovatedLeaseInput {
@@ -184,6 +220,7 @@ export function encodeLeaseState(s: LeaseState): string {
       s.inAdvance ? 1 : 0,
       s.quoteAmounts ? 1 : 0,
     ],
+    e: s.alt ? [CARS.indexOf(s.alt.car), s.alt.price, s.alt.energy, s.alt.servicing] : undefined,
   };
   return new URLSearchParams({
     v: String(LEASE_URL_VERSION),
@@ -199,7 +236,18 @@ export function decodeLeaseState(query: string, fallback = defaultLeaseState()):
     const o = JSON.parse(b64urlDecode(raw));
     const arr = (v: unknown) => (Array.isArray(v) ? v : []);
     const [p, c, l, r, x, q, k] = [o.p, o.c, o.l, o.r, o.x, o.q, o.k].map(arr);
+    const e = Array.isArray(o.e) ? o.e : null;
+    const alt: AltCar | undefined =
+      e && CARS[num(e[0], -1)]
+        ? {
+            car: CARS[e[0]],
+            price: clamp(num(e[1], 0), 1, 1_000_000),
+            energy: money(e[2], 0),
+            servicing: money(e[3], 0),
+          }
+        : undefined;
     return {
+      alt,
       salary: money(p[0], fallback.salary),
       year: LEASE_YEARS.includes(p[1]) ? p[1] : fallback.year,
       studyLoan: p[2] === 1,
