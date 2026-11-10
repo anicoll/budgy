@@ -11,6 +11,7 @@ import {
 import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { MoneyField, NumberField } from "@/components/fields";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { money } from "@/lib/format";
 import { decodeHelp, defaultHelp, encodeHelp, type HelpForm, toHelpInput } from "@/lib/helpState";
@@ -173,7 +174,12 @@ export function HelpCalculator() {
           </details>
         </section>
 
-        <section className="min-w-0 space-y-4" aria-label="Results" aria-live="polite">
+        <section
+          id="results"
+          className="min-w-0 scroll-mt-4 space-y-4"
+          aria-label="Results"
+          aria-live="polite"
+        >
           {!result ? (
             <div className={`${card} text-warn`}>
               {errors.length
@@ -186,6 +192,24 @@ export function HelpCalculator() {
           <Method />
         </section>
       </div>
+
+      {result && result.payNow.paidNow > 0 && (
+        <ResultsBar>
+          {Math.abs(result.advantage) < Math.max(100_00, result.payNow.paidNow * 0.01) ? (
+            <>
+              About even, <strong>{money(Math.abs(result.advantage))}</strong> apart
+            </>
+          ) : result.advantage > 0 ? (
+            <>
+              Paying HELP: <strong>{money(result.advantage)}</strong> better off
+            </>
+          ) : (
+            <>
+              Keeping the money: <strong>{money(-result.advantage)}</strong> better off
+            </>
+          )}
+        </ResultsBar>
+      )}
     </main>
   );
 }
