@@ -21,6 +21,15 @@ export interface BuyingForm {
   inspections: number;
   loanFees: number;
   other: number;
+  /** Include the rough moving in costs below in the total. */
+  movingIn: boolean;
+  removalist: number;
+  connections: number;
+  buffer: number;
+  /** Annual council and water rates, and days left in the period the seller has paid. 0 means none. */
+  councilRates: number;
+  waterRates: number;
+  ratesDays: number;
   view: "costs" | "compare";
 }
 
@@ -38,6 +47,13 @@ export function defaultBuying(): BuyingForm {
     inspections: 600,
     loanFees: 0,
     other: 0,
+    movingIn: false,
+    removalist: 1_500,
+    connections: 300,
+    buffer: 200,
+    councilRates: 0,
+    waterRates: 0,
+    ratesDays: 60,
     view: "costs",
   };
 }
@@ -60,6 +76,21 @@ export function toBuyingInput(f: BuyingForm): BuyingCostsInput {
       loanFees: toCents(f.loanFees),
       other: toCents(f.other),
     },
+    movingIn: f.movingIn
+      ? {
+          removalist: toCents(f.removalist),
+          connections: toCents(f.connections),
+          buffer: toCents(f.buffer),
+        }
+      : undefined,
+    rates:
+      f.councilRates > 0 || f.waterRates > 0
+        ? {
+            council: toCents(f.councilRates),
+            water: toCents(f.waterRates),
+            daysLeft: f.ratesDays,
+          }
+        : undefined,
   };
 }
 
@@ -74,6 +105,12 @@ const NUM_KEYS = {
   i: "inspections",
   lf: "loanFees",
   o: "other",
+  mr: "removalist",
+  mc: "connections",
+  mb: "buffer",
+  rc: "councilRates",
+  rw: "waterRates",
+  rd: "ratesDays",
 } as const satisfies Record<string, keyof BuyingForm>;
 
 const BUYERS: BuyerType[] = ["firstHome", "ownerOccupier", "investor"];
@@ -82,6 +119,7 @@ const PROPERTIES: PropertyKind[] = ["existing", "new", "land"];
 export function encodeBuying(f: BuyingForm): string {
   const q = new URLSearchParams({ v: String(BUYING_URL_VERSION), s: f.state });
   for (const [k, field] of Object.entries(NUM_KEYS)) q.set(k, String(f[field]));
+  if (f.movingIn) q.set("mv", "1");
   q.set("b", f.buyer);
   q.set("k", f.property);
   if (f.foreign) q.set("fx", "1");
@@ -110,6 +148,7 @@ export function decodeBuying(query: string, fallback = defaultBuying()): BuyingF
   f.foreign = q.get("fx") === "1";
   f.homeGuarantee = q.get("hg") === "1";
   f.lmiOnLoan = q.get("ml") === "1";
+  f.movingIn = q.get("mv") === "1";
   f.view = q.get("view") === "compare" ? "compare" : "costs";
   return f;
 }

@@ -1,4 +1,4 @@
-import type { BorrowingInput, Cents } from "@budgy/engine";
+import type { BorrowingInput, Cents, RepaymentFrequency } from "@budgy/engine";
 import { financialYear } from "@budgy/engine";
 import { b64urlDecode, b64urlEncode, today } from "./state";
 
@@ -30,7 +30,17 @@ export interface BorrowForm {
   ratePct: number;
   termYears: number;
   deposit?: number;
+  /** A repayment the person is comfortable with, per `comfortFreq`. Optional. */
+  comfort?: number;
+  comfortFreq: RepaymentFrequency;
 }
+
+export const COMFORT_FREQS: RepaymentFrequency[] = ["monthly", "fortnightly", "weekly"];
+const FREQ_CODE: Record<RepaymentFrequency, string> = {
+  monthly: "m",
+  fortnightly: "f",
+  weekly: "w",
+};
 
 export const MAX_HOME_LOANS = 4;
 
@@ -49,6 +59,7 @@ export function defaultBorrow(): BorrowForm {
     ratePct: 6,
     termYears: 30,
     deposit: 120_000,
+    comfortFreq: "monthly",
   };
 }
 
@@ -100,6 +111,8 @@ export function encodeBorrow(f: BorrowForm): string {
     r: f.ratePct,
     t: f.termYears,
     dp: f.deposit,
+    cf: f.comfort,
+    cq: f.comfort === undefined ? undefined : FREQ_CODE[f.comfortFreq],
   };
   return new URLSearchParams({
     v: String(BORROW_URL_VERSION),
@@ -148,6 +161,8 @@ export function decodeBorrow(query: string, fallback = defaultBorrow()): BorrowF
       ratePct: within(c.r, 0, 29, fallback.ratePct),
       termYears: within(c.t, 1, 40, fallback.termYears),
       deposit: optMoney(c.dp),
+      comfort: optMoney(c.cf),
+      comfortFreq: COMFORT_FREQS.find((q) => FREQ_CODE[q] === c.cq) ?? "monthly",
     };
   } catch {
     return fallback;

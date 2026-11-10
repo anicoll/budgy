@@ -5,16 +5,20 @@ import {
   type BorrowingResult,
   borrowingLevers,
   borrowingRange,
+  type Cents,
+  loanForRepayment,
+  type RepaymentFrequency,
   validateBorrowing,
 } from "@budgy/engine";
 import { useMemo } from "react";
-import { MoneyField, NumberField } from "@/components/fields";
+import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import {
   type BorrowForm,
   type BorrowPerson,
+  COMFORT_FREQS,
   decodeBorrow,
   defaultBorrow,
   encodeBorrow,
@@ -22,7 +26,7 @@ import {
   toBorrowInput,
 } from "@/lib/borrowState";
 import { buyingLinkFor } from "@/lib/buyingState";
-import { money } from "@/lib/format";
+import { money, perPeriod } from "@/lib/format";
 import { BORROW_PEOPLE } from "@/lib/household";
 import { readSaved } from "@/lib/saved";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
@@ -318,6 +322,33 @@ export function BorrowingCalculator() {
               />
             </div>
           </div>
+
+          <div className={card}>
+            <h2 className="mb-1 font-semibold">A repayment you&apos;d be comfortable with</h2>
+            <p className="mb-3 text-xs text-muted">
+              Optional. See the loan that repayment supports, next to what a bank might lend.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <MoneyField
+                label="Repayment"
+                optional
+                placeholder="0"
+                value={form.comfort}
+                onChange={(comfort) => set({ comfort })}
+              />
+              <SelectField<RepaymentFrequency>
+                label="How often"
+                value={form.comfortFreq}
+                options={COMFORT_FREQS.map((value) => ({
+                  value,
+                  label: { monthly: "Monthly", fortnightly: "Fortnightly", weekly: "Weekly" }[
+                    value
+                  ],
+                }))}
+                onChange={(comfortFreq) => set({ comfortFreq })}
+              />
+            </div>
+          </div>
         </section>
 
         <section
@@ -454,6 +485,8 @@ function Results({
         )}
       </div>
 
+      {form.comfort !== undefined && form.comfort > 0 && <Comfortable form={form} range={range} />}
+
       <div className={card}>
         <h2 className="font-semibold">How the bank gets there, each month</h2>
         <table className="num mt-3 w-full border-collapse">
@@ -553,6 +586,51 @@ function Results({
         check.
       </p>
     </>
+  );
+}
+
+/** The loan a comfortable repayment supports, set beside the lender's ceiling. */
+function Comfortable({
+  form,
+  range,
+}: {
+  form: BorrowForm;
+  range: { low: BorrowingResult; typical: BorrowingResult; high: BorrowingResult };
+}) {
+  const repayment = Math.round((form.comfort ?? 0) * 100) as Cents;
+  const rate = form.ratePct / 100;
+  const buffer = range.typical.assessmentRate;
+  const atRate = loanForRepayment(repayment, rate, form.termYears, form.comfortFreq);
+  const atTest = loanForRepayment(repayment, buffer, form.termYears, form.comfortFreq);
+  const max = range.typical.maxLoan;
+  const per = perPeriod[form.comfortFreq];
+  const below = max > 0 && atRate < max;
+  return (
+    <div className={card}>
+      <h2 className="font-semibold">The loan your comfortable repayment supports</h2>
+      <p className="num mt-3 text-4xl font-semibold tracking-tight">{thousands(atRate)}</p>
+      <p className="mt-1 text-muted">
+        Repaying {money(repayment)} {per} for {form.termYears} years at {pct(rate)}.
+      </p>
+      <dl className="num mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-3">
+        <Stat label="Your comfortable loan" value={thousands(atRate)} />
+        <Stat label={`Same repayment at ${pct(buffer)}`} value={thousands(atTest)} />
+        <Stat
+          label="Lender range"
+          value={`${thousands(range.low.maxLoan)} to ${thousands(range.high.maxLoan)}`}
+        />
+      </dl>
+      <p className="mt-4 text-sm leading-relaxed text-muted">
+        {below
+          ? `That's ${thousands(max - atRate)} less than the ${thousands(max)} a typical lender might offer. `
+          : max > 0
+            ? "That's at or above what a typical lender might offer, so the bank's limit would apply. "
+            : ""}
+        The lender&apos;s figure is a ceiling, not a target. It shows what a bank will lend, not
+        what suits your budget, and it tests your repayments at {pct(buffer)}. Your repayments would
+        also change if rates move.
+      </p>
+    </div>
   );
 }
 

@@ -22,6 +22,13 @@ const FULL: BuyingForm = {
   inspections: 0,
   loanFees: 395,
   other: 1_200,
+  movingIn: true,
+  removalist: 2_000,
+  connections: 0,
+  buffer: 250,
+  councilRates: 2_100,
+  waterRates: 900,
+  ratesDays: 45,
   view: "compare",
 };
 
@@ -74,5 +81,29 @@ describe("link from the borrowing tool", () => {
   it("starts from the defaults and caps the deposit at the price", () => {
     const f = decodeBuying(buyingLinkFor(500_000, 600_000).split("?")[1]);
     expect(f).toMatchObject({ ...defaultBuying(), price: 500_000, deposit: 500_000 });
+  });
+});
+
+describe("moving in and rates in the URL", () => {
+  it("decodes an older link with the new fields off", () => {
+    const old = "v=1&s=NSW&p=850000&d=85000&cv=1800&i=600&lf=0&o=0&b=firstHome&k=existing";
+    const f = decodeBuying(old);
+    expect(f).toEqual(defaultBuying());
+    expect(f.movingIn).toBe(false);
+    const r = buyingCosts(toBuyingInput(f));
+    expect(r.movingIn).toBe(0);
+    expect(r.rates.total).toBe(0);
+  });
+
+  it("only counts moving in costs and rates when asked", () => {
+    const base = { ...defaultBuying(), councilRates: 0, waterRates: 0 };
+    const plain = buyingCosts(toBuyingInput(base));
+    const withMoving = buyingCosts(toBuyingInput({ ...base, movingIn: true }));
+    expect(withMoving.costs - plain.costs).toBe(200_000);
+    const withRates = buyingCosts(
+      toBuyingInput({ ...base, councilRates: 3_650, waterRates: 0, ratesDays: 100 }),
+    );
+    expect(withRates.rates.total).toBe(100_000);
+    expect(withRates.duty).toEqual(plain.duty);
   });
 });
