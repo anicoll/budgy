@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/node_modules", "!**/.next", "!**/out"]
+    "includes": ["**", "!**/node_modules", "!**/.next", "!**/out", "!**/rbaHistory.ts"]
   },
   "formatter": {
     "enabled": true,

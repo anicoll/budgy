@@ -18,6 +18,7 @@ import {
 } from "@budgy/engine";
 import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
+import { FundFeeCompare } from "@/components/FundFeeCompare";
 import { DateField, MoneyField, NumberField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
@@ -30,6 +31,7 @@ import {
   decodeSuperState,
   defaultSuperState,
   encodeSuperState,
+  type FeeCompareRow,
   newAccount,
   newPerson,
   nextId,
@@ -266,6 +268,7 @@ export function SuperCalculator() {
               input={input}
               state={state}
               onExtra={(extraPerWeek) => setState((s) => ({ ...s, extraPerWeek }))}
+              onFees={(fees) => setState((s) => ({ ...s, fees }))}
               onCopy={copyLink}
               copied={copied}
               pension={
@@ -472,6 +475,7 @@ function Results({
   input,
   state,
   onExtra,
+  onFees,
   onCopy,
   copied,
   pension,
@@ -480,6 +484,7 @@ function Results({
   input: SuperInput;
   state: SuperState;
   onExtra: (v: number) => void;
+  onFees: (v: FeeCompareRow) => void;
   onCopy: () => void;
   copied: boolean;
   pension?: React.ReactNode;
@@ -572,6 +577,8 @@ function Results({
       </div>
 
       <Extra input={input} people={people} perWeek={state.extraPerWeek} onChange={onExtra} />
+
+      <FundFeeCompare input={input} state={state} people={people} onChange={onFees} />
 
       <div className={`${card} overflow-x-auto`}>
         <h2 className="mb-3 font-semibold">Where it comes from</h2>
