@@ -24,6 +24,11 @@ import type { Cents } from "../money/cents";
  * - custom: the order given;
  * - minimums: pay only each debt's minimum, with no extra and no rollover.
  *   This is the "what if I change nothing" baseline.
+ *
+ * Promo rates: a debt can have an intro rate (a 0% balance transfer, say) for
+ * its first few months, then its ongoing rate. While any promo runs, avalanche
+ * re-ranks each month by the rate being charged now, so a 0% card waits until
+ * it reverts. Each debt reports what's still owing the month its promo ends.
  */
 
 export type DebtStrategy = "avalanche" | "snowball" | "custom" | "minimums";
@@ -36,8 +41,15 @@ export interface Debt {
   id: string;
   name: string;
   balance: Cents;
-  annualRate: number; // e.g. 0.2099
+  annualRate: number; // e.g. 0.2099; the ongoing rate, after any promo
   minimum: MinimumRule;
+  /** An intro rate for the first `months` payments, then `annualRate`. */
+  promo?: { annualRate: number; months: number };
+}
+
+/** The rate charged in a given month (1 = the first payment). */
+export function rateInMonth(d: Debt, month: number): number {
+  return d.promo && month <= d.promo.months ? d.promo.annualRate : d.annualRate;
 }
 
 export interface PayoffInput {
@@ -57,6 +69,10 @@ export interface DebtOutcome {
   months: number | null; // months until cleared
   interest: Cents;
   paid: Cents;
+  /** With a promo: what's still owing after its last promo month (0 = cleared in time). */
+  owingWhenPromoEnds?: Cents;
+  /** With a promo: the date its last promo payment falls on. */
+  promoEndDate?: string;
 }
 
 export interface PayoffMonth {
@@ -113,19 +129,34 @@ export function validateDebts(debts: Debt[], extraPerMonth: Cents = 0 as Cents):
       errors.push(`${label}: minimum repayment must be more than $0`);
     if (m.type === "percent" && (!(m.percent > 0) || m.percent > 1 || m.floor < 0))
       errors.push(`${label}: minimum percentage must be between 0% and 100%`);
+    if (d.promo) {
+      const { annualRate, months } = d.promo;
+      if (!Number.isFinite(annualRate) || annualRate < 0 || annualRate > 1)
+        errors.push(`${label}: promo rate must be between 0% and 100%`);
+      if (!Number.isInteger(months) || months < 1 || months > 120)
+        errors.push(`${label}: promo must last 1 to 120 months`);
+    }
   }
   if (!Number.isInteger(extraPerMonth) || extraPerMonth < 0)
     errors.push("extra each month can't be negative");
   return errors;
 }
 
-/** Indexes into `debts`, highest priority first. Ties keep the input order. */
-export function priorityOrder(debts: Debt[], strategy: DebtStrategy, order: string[] = []) {
+/**
+ * Indexes into `debts`, highest priority first. Ties keep the input order.
+ * `month` picks which rate avalanche ranks by when a debt has a promo; by
+ * default it's the first month's.
+ */
+export function priorityOrder(
+  debts: Debt[],
+  strategy: DebtStrategy,
+  order: string[] = [],
+  month = 1,
+) {
   const idx = debts.map((_, i) => i);
   if (strategy === "avalanche") {
-    return idx.sort(
-      (a, b) => debts[b].annualRate - debts[a].annualRate || debts[a].balance - debts[b].balance,
-    );
+    const rate = (i: number) => rateInMonth(debts[i], month);
+    return idx.sort((a, b) => rate(b) - rate(a) || debts[a].balance - debts[b].balance);
   }
   if (strategy === "snowball") {
     return idx.sort(
@@ -151,6 +182,8 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
   const n = debts.length;
   const extra = strategy === "minimums" ? 0 : input.extraPerMonth;
   const priority = priorityOrder(debts, strategy, input.order);
+  const hasPromo = debts.some((d) => d.promo);
+  const owingAtPromoEnd = new Array<number | undefined>(n).fill(undefined);
   const startingMinimums = debts.reduce((s, d) => s + minimumDue(d.minimum, d.balance), 0);
   const monthlyBudget = (startingMinimums + extra) as Cents;
 
@@ -184,7 +217,7 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
     // 1. Interest.
     for (let i = 0; i < n; i++) {
       if (bal[i] <= 0) continue;
-      const charge = round((bal[i] * debts[i].annualRate) / 12);
+      const charge = round((bal[i] * rateInMonth(debts[i], month)) / 12);
       bal[i] += charge;
       interest[i] += charge;
       monthInterest += charge;
@@ -201,7 +234,11 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
     // 3. The rest of the budget, in priority order.
     if (strategy !== "minimums") {
       let left = monthlyBudget - monthPaid;
-      for (const i of priority) {
+      const ranked =
+        hasPromo && strategy === "avalanche"
+          ? priorityOrder(debts, strategy, input.order, month)
+          : priority;
+      for (const i of ranked) {
         if (left <= 0) break;
         const pay = Math.min(left, bal[i]);
         bal[i] -= pay;
@@ -213,6 +250,7 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
 
     for (let i = 0; i < n; i++) {
       if (bal[i] === 0 && clearedAt[i] === null) clearedAt[i] = month;
+      if (debts[i].promo?.months === month) owingAtPromoEnd[i] = bal[i];
     }
     timeline.push({
       month,
@@ -237,6 +275,18 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
       warnings.push(`${d.name}: the minimum doesn't cover the interest, so it never shrinks.`);
     }
   }
+  for (let i = 0; i < n; i++) {
+    const d = debts[i];
+    if (!d.promo) continue;
+    // Cleared before the promo ended: nothing owing then.
+    if (owingAtPromoEnd[i] === undefined) owingAtPromoEnd[i] = 0;
+    const left = owingAtPromoEnd[i] as number;
+    if (left > 0) {
+      warnings.push(
+        `${d.name}: $${Math.round(left / 100).toLocaleString("en-AU")} is still owing when the promo rate ends, then it's charged ${(d.annualRate * 100).toFixed(2)}%.`,
+      );
+    }
+  }
   if (!paidOff) warnings.push(`Not all debts are repaid within ${MAX_YEARS} years.`);
 
   const totalInterest = interest.reduce((s, x) => s + x, 0) as Cents;
@@ -259,6 +309,12 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
       months: clearedAt[i],
       interest: interest[i] as Cents,
       paid: paid[i] as Cents,
+      ...(d.promo
+        ? {
+            owingWhenPromoEnds: owingAtPromoEnd[i] as Cents,
+            promoEndDate: addMonths(startDate, d.promo.months),
+          }
+        : {}),
     })),
     timeline,
     warnings,
@@ -306,4 +362,46 @@ export function solveExtraPerMonth(input: PayoffInput, targetDate: string): Cent
     else lo = mid;
   }
   return (hi * 100) as Cents;
+}
+
+export interface BalanceTransfer {
+  /** Ids of the debts moved onto the new card. */
+  from: string[];
+  name: string;
+  promoRate: number; // e.g. 0 for 0%
+  promoMonths: number;
+  /** The rate once the promo ends: the card's purchase or cash rate. */
+  revertRate: number;
+  /** One-off fee as a share of the amount moved, e.g. 0.02 = 2%. Added to the balance. */
+  feePercent: number;
+  minimum: MinimumRule;
+}
+
+/**
+ * The same plan with some debts moved onto a balance transfer card: those
+ * debts are replaced by one new debt holding their balances plus the fee.
+ * The new card goes where the first moved debt was.
+ */
+export function withBalanceTransfer(input: PayoffInput, t: BalanceTransfer): PayoffInput {
+  const moved = input.debts.filter((d) => t.from.includes(d.id));
+  if (!moved.length) return input;
+  const amount = moved.reduce((s, d) => s + d.balance, 0);
+  const id = `bt-${moved[0].id}`;
+  const card: Debt = {
+    id,
+    name: t.name,
+    balance: (amount + round(amount * t.feePercent)) as Cents,
+    annualRate: t.revertRate,
+    minimum: t.minimum,
+    promo: { annualRate: t.promoRate, months: t.promoMonths },
+  };
+  const debts: Debt[] = [];
+  for (const d of input.debts) {
+    if (d.id === moved[0].id) debts.push(card);
+    else if (!t.from.includes(d.id)) debts.push(d);
+  }
+  const order = input.order
+    ?.map((o) => (o === moved[0].id ? id : o))
+    .filter((o) => !t.from.includes(o));
+  return { ...input, debts, ...(order ? { order } : {}) };
 }

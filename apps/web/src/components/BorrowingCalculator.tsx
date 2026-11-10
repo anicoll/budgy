@@ -10,6 +10,7 @@ import {
 import { useMemo } from "react";
 import { MoneyField, NumberField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import {
   type BorrowForm,
@@ -335,21 +336,15 @@ export function BorrowingCalculator() {
       </div>
 
       {result && (
-        <a
-          href="#results"
-          className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
-        >
-          <span className="num min-w-0">
-            {result.range.typical.maxLoan > 0 ? (
-              <>
-                Borrow about <strong>{thousands(result.range.typical.maxLoan)}</strong>
-              </>
-            ) : (
-              "Not enough left over to borrow"
-            )}
-          </span>
-          <span className="shrink-0 text-accent">See results ↓</span>
-        </a>
+        <ResultsBar>
+          {result.range.typical.maxLoan > 0 ? (
+            <>
+              Borrow about <strong>{thousands(result.range.typical.maxLoan)}</strong>
+            </>
+          ) : (
+            "Not enough left over to borrow"
+          )}
+        </ResultsBar>
       )}
     </main>
   );

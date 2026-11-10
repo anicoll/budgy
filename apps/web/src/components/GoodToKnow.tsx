@@ -22,9 +22,9 @@ const MONEYSMART = (
 export const TIPS: Partial<Record<ToolKey, React.ReactNode[]>> = {
   debt: [
     <>
-      This planner works on the numbers you enter. It doesn&apos;t model balance transfers, 0% promo
-      periods, annual fees or a debt consolidation loan. If you&apos;re weighing one of those, check
-      the transfer fee, the rate it reverts to and when the promo ends.
+      This planner works on the numbers you enter. It doesn&apos;t model annual fees, interest-free
+      days on purchases or a debt consolidation loan. A balance transfer card often charges a higher
+      rate on new purchases, so many people avoid using it for spending.
     </>,
     <>
       Avalanche usually costs the least interest. Snowball gives you quicker wins. The plan that

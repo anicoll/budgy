@@ -13,9 +13,11 @@ import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { duration, money, monthYear } from "@/lib/format";
 import { SOM_PEOPLE } from "@/lib/household";
+import { isYou, objectName, possessive, verb } from "@/lib/names";
 import {
   applySomLoan,
   decodeSomState,
@@ -314,16 +316,10 @@ export function SuperOrMortgage() {
       </div>
 
       {result && result.best.gain > 0 && (
-        <a
-          href="#results"
-          className="fixed inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
-        >
-          <span className="num min-w-0">
-            {short(result.best, nameOf)},{" "}
-            <strong>+{roughly(result.best.gain - rival(result).gain)}</strong>
-          </span>
-          <span className="shrink-0 text-accent">See results ↓</span>
-        </a>
+        <ResultsBar>
+          {short(result.best, nameOf)},{" "}
+          <strong>+{roughly(result.best.gain - rival(result).gain)}</strong>
+        </ResultsBar>
       )}
     </main>
   );
@@ -417,7 +413,7 @@ function PersonCard({
 }
 
 const short = (o: SomOption, nameOf: (id: string) => string) =>
-  o.kind === "mortgage" ? "Extra repayments" : `${nameOf(o.personId)}'s super`;
+  o.kind === "mortgage" ? "Extra repayments" : `${possessive(nameOf(o.personId), true)} super`;
 
 /** The option the best one is measured against: the mortgage, or the best super option. */
 function rival(r: SuperOrMortgageResult): SomOption {
@@ -461,7 +457,8 @@ function Results({
   const lineColor = (o: SomOption) =>
     o.kind === "mortgage" ? MORTGAGE_COLOR : colorOf(o.personId);
   const series: Series[] = [r.mortgage, ...supers].map((o) => ({
-    name: o.kind === "mortgage" ? "Extra repayments" : `Into ${nameOf(o.personId)}'s super`,
+    name:
+      o.kind === "mortgage" ? "Extra repayments" : `Into ${possessive(nameOf(o.personId))} super`,
     color: lineColor(o),
     points: o.rows.map((row) => ({ date: row.date, balance: row[view] })),
     payoffDate: r.endDate,
@@ -486,7 +483,7 @@ function Results({
             <>
               Salary sacrificing into{" "}
               <strong style={{ color: colorOf(r.best.personId) }}>
-                {nameOf(r.best.personId)}&apos;s super
+                {possessive(nameOf(r.best.personId))} super
               </strong>{" "}
               comes out <strong className="num text-good">{roughly(gap)} ahead</strong> of extra
               mortgage repayments.
@@ -495,7 +492,7 @@ function Results({
             <>
               <strong style={{ color: MORTGAGE_COLOR }}>Extra mortgage repayments</strong> come out{" "}
               <strong className="num text-good">{roughly(gap)} ahead</strong> of putting it into{" "}
-              {nameOf(rival(r).personId)}&apos;s super.
+              {possessive(nameOf(rival(r).personId))} super.
             </>
           )}
         </p>
@@ -508,7 +505,7 @@ function Results({
               <>
                 {" "}
                 Your loan costs {pct(state.loan.ratePct / 100)}, but sacrificing saves{" "}
-                {nameOf(bestSuper.personId)} about{" "}
+                {objectName(nameOf(bestSuper.personId))} about{" "}
                 {Math.round((sac.taxSaved / sac.sacrifice) * 100)}c in tax on every dollar and super
                 takes {Math.round((sac.contributionsTax / sac.sacrifice) * 100)}c.
               </>
@@ -536,7 +533,9 @@ function Results({
               {i === 0 ? "BEST" : i === 1 ? "2ND" : i === 2 ? "3RD" : `${i + 1}TH`}
             </p>
             <p className="mt-1 font-semibold" style={{ color: lineColor(o) }}>
-              {o.kind === "mortgage" ? "Extra repayments" : `Into ${nameOf(o.personId)}'s super`}
+              {o.kind === "mortgage"
+                ? "Extra repayments"
+                : `Into ${possessive(nameOf(o.personId))} super`}
             </p>
             <p className="num mt-2 text-2xl font-semibold">{money(o.gain)}</p>
             <p className="mt-1 text-sm text-muted">
@@ -618,7 +617,7 @@ function Results({
                 <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
                   <th className="text-left">Year</th>
                   <th>Extra repayments</th>
-                  <th>{nameOf(bestSuper.personId)}&apos;s super</th>
+                  <th>{possessive(nameOf(bestSuper.personId), true)} super</th>
                   <th>Most you can reach</th>
                 </tr>
               </thead>
@@ -635,7 +634,9 @@ function Results({
                       <td>{money(row.gain)}</td>
                       <td>{money(s.gain)}</td>
                       <td className="text-good">
-                        {top.kind === "mortgage" ? "Repayments" : `${nameOf(top.personId)}'s super`}
+                        {top.kind === "mortgage"
+                          ? "Repayments"
+                          : `${possessive(nameOf(top.personId), true)} super`}
                         , {money(top.rows[i].reachable)}
                       </td>
                     </tr>
@@ -653,12 +654,16 @@ function Results({
           <div className="grid gap-6 text-sm sm:grid-cols-2">
             <div>
               <p className="mb-2 font-semibold" style={{ color: colorOf(bestSuper.personId) }}>
-                {nameOf(bestSuper.personId)} salary sacrifices
+                {nameOf(bestSuper.personId)}{" "}
+                {verb(nameOf(bestSuper.personId), "salary sacrifices", "salary sacrifice")}
               </p>
               <dl className="num grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5">
                 <dt className="text-muted">Sacrificed before tax</dt>
                 <dd>{money(sac.sacrifice)} a year</dd>
-                <dt className="text-muted">Tax {nameOf(bestSuper.personId)} no longer pays</dt>
+                <dt className="text-muted">
+                  Tax {objectName(nameOf(bestSuper.personId))} no longer{" "}
+                  {verb(nameOf(bestSuper.personId), "pays", "pay")}
+                </dt>
                 <dd>− {money(sac.taxSaved)}</dd>
                 <dt className="text-muted">Costs in take-home pay</dt>
                 <dd>{money(sac.takeHome - sac.afterTax)}</dd>
@@ -707,11 +712,11 @@ function warningText(
 ): string {
   switch (w.kind) {
     case "over-cap":
-      return `${nameOf(w.personId)} reaches the concessional cap, so ${money(w.afterTax)} a year goes in after tax instead, with no tax saving.`;
+      return `${nameOf(w.personId)} ${verb(nameOf(w.personId), "reaches", "reach")} the concessional cap, so ${money(w.afterTax)} a year goes in after tax instead, with no tax saving.`;
     case "division-293":
-      return `${nameOf(w.personId)} pays Division 293 tax, another ${money(w.extra)} a year on the sacrifice. It's included.`;
+      return `${nameOf(w.personId)} ${verb(nameOf(w.personId), "pays", "pay")} Division 293 tax, another ${money(w.extra)} a year on the sacrifice. It's included.`;
     case "locked":
-      return `${nameOf(w.personId)} can't reach their super until ${w.releaseAge}, after ${r.endDate.slice(0, 4)}.`;
+      return `${nameOf(w.personId)} can't reach ${isYou(nameOf(w.personId)) ? "your" : "their"} super until ${w.releaseAge}, after ${r.endDate.slice(0, 4)}.`;
     case "rules-carried-forward":
       return `This uses the ${w.year} super rules, the latest published.`;
     case "loan":

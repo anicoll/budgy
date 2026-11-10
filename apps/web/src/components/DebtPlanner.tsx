@@ -3,13 +3,16 @@
 import {
   compareStrategies,
   type PayoffResult,
+  simulatePayoff,
   solveExtraPerMonth,
   validateDebts,
+  withBalanceTransfer,
 } from "@budgy/engine";
 import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import {
   type DebtPlanState,
@@ -22,10 +25,13 @@ import {
   nextId,
   type PlanStrategy,
   syncOrder,
+  type TransferForm,
   toPayoffInput,
+  toTransfer,
 } from "@/lib/debtState";
 import { duration, money, moneyExact, monthYear } from "@/lib/format";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
+import { Checkbox } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const chip = "rounded-full border px-3 py-1.5 text-sm";
@@ -106,6 +112,28 @@ export function DebtPlanner() {
   };
 
   const chosen = plans ? (plans[state.strategy] ?? plans.avalanche) : null;
+
+  // The same plan with the ticked debts on a balance transfer card.
+  const transfer = useMemo(() => {
+    const t = toTransfer(state);
+    if (!t || !chosen) return null;
+    try {
+      const input = withBalanceTransfer({ ...toPayoffInput(state), strategy: state.strategy }, t);
+      const plan = simulatePayoff(input);
+      const minimumsOnly = simulatePayoff({
+        ...input,
+        extraPerMonth: 0 as typeof input.extraPerMonth,
+      });
+      const card = input.debts.find((d) => d.promo);
+      const movedBalance = state.debts
+        .filter((d) => t.from.includes(d.id))
+        .reduce((sum, d) => sum + Math.round(d.balance * 100), 0);
+      const fee = card ? Math.max(0, card.balance - movedBalance) : 0;
+      return { plan, minimumsOnly, transfer: t, fee };
+    } catch {
+      return null;
+    }
+  }, [state, chosen]);
 
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
@@ -227,6 +255,12 @@ export function DebtPlanner() {
               />
             </div>
           </div>
+
+          <TransferCard
+            debts={state.debts}
+            form={state.transfer}
+            onChange={(patch) => setState((s) => ({ ...s, transfer: { ...s.transfer, ...patch } }))}
+          />
         </section>
 
         {/* ── Results ────────────────────────────────────────────── */}
@@ -244,6 +278,15 @@ export function DebtPlanner() {
             </div>
           ) : (
             <>
+              {transfer && (
+                <TransferResults
+                  now={chosen}
+                  {...transfer}
+                  movedNames={state.debts
+                    .filter((d) => transfer.transfer.from.includes(d.id))
+                    .map((d) => d.name || "Debt")}
+                />
+              )}
               <Headline plan={chosen} baseline={plans.minimums} />
               <Compare
                 plans={[
@@ -271,22 +314,16 @@ export function DebtPlanner() {
       </div>
 
       {chosen && (
-        <a
-          href="#results"
-          className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
-        >
-          <span className="num min-w-0">
-            {chosen.paidOff ? (
-              <>
-                Debt-free <strong>{monthYear(chosen.debtFreeDate)}</strong> ·{" "}
-                {money(chosen.totalInterest)} interest
-              </>
-            ) : (
-              "Not repaid at this budget"
-            )}
-          </span>
-          <span className="shrink-0 text-accent">See results ↓</span>
-        </a>
+        <ResultsBar>
+          {chosen.paidOff ? (
+            <>
+              Debt-free <strong>{monthYear(chosen.debtFreeDate)}</strong> ·{" "}
+              {money(chosen.totalInterest)} interest
+            </>
+          ) : (
+            "Not repaid at this budget"
+          )}
+        </ResultsBar>
       )}
     </main>
   );
@@ -667,5 +704,233 @@ function Method() {
         </p>
       </div>
     </details>
+  );
+}
+
+function TransferCard({
+  debts,
+  form,
+  onChange,
+}: {
+  debts: DebtRow[];
+  form: TransferForm;
+  onChange: (patch: Partial<TransferForm>) => void;
+}) {
+  const toggle = (id: string, on: boolean) =>
+    onChange({ from: on ? [...form.from, id] : form.from.filter((x) => x !== id) });
+  return (
+    <div className={card}>
+      <h2 className="font-semibold">Try a balance transfer</h2>
+      <p className="mb-3 text-xs text-muted">
+        Move debts onto a new card with a low intro rate, and see if the fee is worth it.
+      </p>
+      <fieldset className="mb-3">
+        <legend className="mb-1 text-sm font-medium">Move these debts</legend>
+        <div className="space-y-1">
+          {debts.map((d) => (
+            <Checkbox
+              key={d.id}
+              className="flex min-h-9 items-center text-sm"
+              isSelected={form.from.includes(d.id)}
+              onChange={(on) => toggle(d.id, on)}
+            >
+              {d.name || "Debt"} ({money(Math.round(d.balance * 100))})
+            </Checkbox>
+          ))}
+        </div>
+      </fieldset>
+      {form.from.length > 0 && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Intro rate"
+              suffix="%"
+              min={0}
+              max={100}
+              step={0.01}
+              value={form.promoPct}
+              onChange={(v) => v !== undefined && onChange({ promoPct: v })}
+            />
+            <NumberField
+              label="For"
+              suffix="months"
+              min={1}
+              max={120}
+              step={1}
+              value={form.months}
+              onChange={(v) => v !== undefined && onChange({ months: Math.round(v) })}
+            />
+            <NumberField
+              label="Transfer fee"
+              suffix="%"
+              min={0}
+              max={20}
+              step={0.1}
+              value={form.feePct}
+              onChange={(v) => v !== undefined && onChange({ feePct: v })}
+            />
+            <NumberField
+              label="Then"
+              suffix="%"
+              min={0}
+              max={100}
+              step={0.01}
+              value={form.revertPct}
+              onChange={(v) => v !== undefined && onChange({ revertPct: v })}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            &ldquo;Then&rdquo; is the rate it reverts to, often the card&apos;s cash or purchase
+            rate. Check the offer&apos;s fine print. We assume a minimum of 2% or $25.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function TransferResults({
+  now,
+  plan,
+  minimumsOnly,
+  transfer,
+  fee,
+  movedNames,
+}: {
+  now: PayoffResult;
+  plan: PayoffResult;
+  minimumsOnly: PayoffResult;
+  transfer: { promoMonths: number; revertRate: number; promoRate: number };
+  fee: number;
+  movedNames: string[];
+}) {
+  const btDebt = plan.debts.find((d) => d.promoEndDate);
+  const minDebt = minimumsOnly.debts.find((d) => d.promoEndDate);
+  const costNow = now.totalInterest;
+  const costBt = plan.totalInterest + fee;
+  const saved = costNow - costBt;
+  const sooner = now.months - plan.months;
+  const promoEnd = btDebt?.promoEndDate;
+  const clearedBy = btDebt?.payoffDate;
+  const leftAtEnd = btDebt?.owingWhenPromoEnds ?? 0;
+  const monthsSpare =
+    clearedBy && btDebt?.months != null ? transfer.promoMonths - btDebt.months : 0;
+  const ratePct = (r: number) => `${(r * 100).toFixed(2).replace(/\.00$/, "")}%`;
+  const promo = ratePct(transfer.promoRate);
+  return (
+    <>
+      <div className="space-y-3 rounded-2xl bg-primary-container p-5 text-on-primary-container sm:p-6">
+        <p className="text-lg leading-relaxed sm:text-xl">
+          {!plan.paidOff ? (
+            <>With the transfer, these debts still aren&apos;t repaid at this budget.</>
+          ) : (
+            <>
+              With the transfer you&apos;re debt-free in{" "}
+              <strong>{monthYear(plan.debtFreeDate)}</strong>
+              {sooner > 0 ? (
+                <>, {months(sooner)} sooner,</>
+              ) : sooner < 0 ? (
+                <>, {months(-sooner)} later,</>
+              ) : (
+                ","
+              )}{" "}
+              and pay{" "}
+              {saved >= 0 ? (
+                <strong className="num">{money(saved)} less</strong>
+              ) : (
+                <strong className="num">{money(-saved)} more</strong>
+              )}{" "}
+              in interest and fees.
+            </>
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2 text-sm">
+          {fee > 0 && (
+            <span className="num rounded-full bg-white/60 px-3 py-1.5">
+              {money(fee)} transfer fee included
+            </span>
+          )}
+          {leftAtEnd === 0 && monthsSpare > 0 && (
+            <span className="rounded-full bg-white/60 px-3 py-1.5">
+              Card cleared {months(monthsSpare)} before the {promo} ends
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className={`${card} overflow-x-auto`}>
+        <h2 className="mb-3 font-semibold">Side by side</h2>
+        <table className="num w-full min-w-[360px] text-sm">
+          <thead>
+            <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:font-medium">
+              <th />
+              <th>As you are</th>
+              <th className="text-accent">With the transfer</th>
+            </tr>
+          </thead>
+          <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td:not(:first-child)]:text-right">
+            <tr>
+              <td>Paid each month</td>
+              <td>{moneyExact(now.monthlyBudget)}</td>
+              <td>{moneyExact(plan.monthlyBudget)}</td>
+            </tr>
+            <tr>
+              <td>Debt-free</td>
+              <td>{now.paidOff ? monthYear(now.debtFreeDate) : "Never"}</td>
+              <td>{plan.paidOff ? monthYear(plan.debtFreeDate) : "Never"}</td>
+            </tr>
+            <tr>
+              <td>Interest</td>
+              <td>{money(now.totalInterest)}</td>
+              <td>{money(plan.totalInterest)}</td>
+            </tr>
+            <tr>
+              <td>Transfer fee</td>
+              <td>–</td>
+              <td>{money(fee)}</td>
+            </tr>
+            <tr className="font-semibold">
+              <td>Interest and fees</td>
+              <td>{money(costNow)}</td>
+              <td className={saved >= 0 ? "text-good" : "text-warn"}>{money(costBt)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="mt-2 text-xs text-muted">Moving: {movedNames.join(", ")}.</p>
+      </div>
+
+      {promoEnd && (
+        <div className={card}>
+          <h2 className="mb-2 font-semibold">When the {promo} ends</h2>
+          <p className="text-sm text-muted">
+            {leftAtEnd > 0 ? (
+              <>
+                At this budget,{" "}
+                <strong className="num text-warn">{money(leftAtEnd)} is still owing</strong> when
+                the {promo} ends in {monthYear(promoEnd)}, then it&apos;s charged{" "}
+                {ratePct(transfer.revertRate)}. Paying more each month, or putting the transfer card
+                first with &ldquo;My order&rdquo;, can clear it in time.
+              </>
+            ) : (
+              <>
+                At this budget the card is clear by {clearedBy ? monthYear(clearedBy) : "then"},
+                before the {promo} ends in {monthYear(promoEnd)}.
+                {minDebt && (minDebt.owingWhenPromoEnds ?? 0) > 0 && (
+                  <>
+                    {" "}
+                    If you only paid the minimums ({moneyExact(minimumsOnly.monthlyBudget)} a
+                    month),{" "}
+                    <strong className="num text-warn">
+                      {money(minDebt.owingWhenPromoEnds ?? 0)} would still be owing
+                    </strong>{" "}
+                    then, charged {ratePct(transfer.revertRate)}.
+                  </>
+                )}
+              </>
+            )}
+          </p>
+        </div>
+      )}
+    </>
   );
 }
