@@ -29,6 +29,14 @@ import type { Cents } from "../money/cents";
  * its first few months, then its ongoing rate. While any promo runs, avalanche
  * re-ranks each month by the rate being charged now, so a 0% card waits until
  * it reverts. Each debt reports what's still owing the month its promo ends.
+ *
+ * Buy now pay later: a debt with a `schedule` is paid in fixed instalments
+ * (say every 14 days) at 0% interest. Instalment k falls in month
+ * ceil(k * everyDays / 30.4375), so four fortnightly instalments land in
+ * months 1, 1, 2 and 2. Instalments are paid on schedule whatever the strategy:
+ * they are never a target for the extra, they aren't part of the monthly
+ * budget (which is the other debts' minimums plus the extra), and when one
+ * finishes nothing rolls over to the other debts. Late fees aren't modelled.
  */
 
 export type DebtStrategy = "avalanche" | "snowball" | "custom" | "minimums";
@@ -45,6 +53,25 @@ export interface Debt {
   minimum: MinimumRule;
   /** An intro rate for the first `months` payments, then `annualRate`. */
   promo?: { annualRate: number; months: number };
+  /** Buy now pay later: fixed instalments every `everyDays` days at 0% interest. */
+  schedule?: { instalment: Cents; everyDays: number };
+}
+
+const AVG_MONTH_DAYS = 30.4375;
+
+/** Instalments falling due in each month (index 1 = first month) for a scheduled debt. */
+export function scheduledDues(d: Debt): Cents[] {
+  const dues: number[] = [0];
+  if (!d.schedule) return dues as Cents[];
+  const { instalment, everyDays } = d.schedule;
+  if (!(instalment > 0) || !(everyDays > 0)) return dues as Cents[];
+  const count = Math.ceil(d.balance / instalment);
+  for (let k = 1; k <= count; k++) {
+    const m = Math.ceil((k * everyDays) / AVG_MONTH_DAYS - 1e-9);
+    while (dues.length <= m) dues.push(0);
+    dues[m] += instalment;
+  }
+  return dues as Cents[];
 }
 
 /** The rate charged in a given month (1 = the first payment). */
@@ -124,6 +151,16 @@ export function validateDebts(debts: Debt[], extraPerMonth: Cents = 0 as Cents):
       errors.push(`${label}: balance can't be negative`);
     if (!Number.isFinite(d.annualRate) || d.annualRate < 0 || d.annualRate > 1)
       errors.push(`${label}: interest rate must be between 0% and 100%`);
+    if (d.schedule) {
+      const { instalment, everyDays } = d.schedule;
+      if (!Number.isInteger(instalment) || instalment <= 0)
+        errors.push(`${label}: instalment must be more than $0`);
+      if (!Number.isFinite(everyDays) || everyDays < 1 || everyDays > 31)
+        errors.push(`${label}: instalments must be 1 to 31 days apart`);
+      if (d.annualRate !== 0) errors.push(`${label}: buy now pay later has no interest`);
+      if (d.promo) errors.push(`${label}: buy now pay later can't have a promo rate`);
+      continue;
+    }
     const m = d.minimum;
     if (m.type === "fixed" && !(m.amount > 0))
       errors.push(`${label}: minimum repayment must be more than $0`);
@@ -153,7 +190,7 @@ export function priorityOrder(
   order: string[] = [],
   month = 1,
 ) {
-  const idx = debts.map((_, i) => i);
+  const idx = debts.map((_, i) => i).filter((i) => !debts[i].schedule);
   if (strategy === "avalanche") {
     const rate = (i: number) => rateInMonth(debts[i], month);
     return idx.sort((a, b) => rate(b) - rate(a) || debts[a].balance - debts[b].balance);
@@ -184,7 +221,11 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
   const priority = priorityOrder(debts, strategy, input.order);
   const hasPromo = debts.some((d) => d.promo);
   const owingAtPromoEnd = new Array<number | undefined>(n).fill(undefined);
-  const startingMinimums = debts.reduce((s, d) => s + minimumDue(d.minimum, d.balance), 0);
+  const startingMinimums = debts.reduce(
+    (s, d) => s + (d.schedule ? 0 : minimumDue(d.minimum, d.balance)),
+    0,
+  );
+  const dues = debts.map(scheduledDues);
   const monthlyBudget = (startingMinimums + extra) as Cents;
 
   const bal = debts.map((d) => d.balance as number);
@@ -213,6 +254,7 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
     month++;
     let monthInterest = 0;
     let monthPaid = 0;
+    let scheduledPaid = 0; // instalments sit outside the monthly budget
 
     // 1. Interest.
     for (let i = 0; i < n; i++) {
@@ -225,15 +267,18 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
 
     // 2. Minimums.
     for (let i = 0; i < n; i++) {
-      const due = minimumDue(debts[i].minimum, bal[i]);
+      const due = debts[i].schedule
+        ? Math.min(bal[i], dues[i][month] ?? 0)
+        : minimumDue(debts[i].minimum, bal[i]);
       bal[i] -= due;
       paid[i] += due;
       monthPaid += due;
+      if (debts[i].schedule) scheduledPaid += due;
     }
 
     // 3. The rest of the budget, in priority order.
     if (strategy !== "minimums") {
-      let left = monthlyBudget - monthPaid;
+      let left = monthlyBudget - (monthPaid - scheduledPaid);
       const ranked =
         hasPromo && strategy === "avalanche"
           ? priorityOrder(debts, strategy, input.order, month)
@@ -269,6 +314,7 @@ export function simulatePayoff(input: PayoffInput): PayoffResult {
     const firstInterest = round((d.balance * d.annualRate) / 12);
     if (
       strategy === "minimums" &&
+      !d.schedule &&
       d.balance > 0 &&
       minimumDue(d.minimum, d.balance + firstInterest) <= firstInterest
     ) {

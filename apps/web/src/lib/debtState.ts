@@ -1,4 +1,11 @@
-import type { BalanceTransfer, Cents, Debt, DebtStrategy, PayoffInput } from "@budgy/engine";
+import type {
+  BalanceTransfer,
+  Cents,
+  ConsolidationLoan,
+  Debt,
+  DebtStrategy,
+  PayoffInput,
+} from "@budgy/engine";
 import { b64urlDecode, b64urlEncode, today } from "./state";
 
 /** One debt as the person types it, in dollars and percent. */
@@ -11,7 +18,18 @@ export interface DebtRow {
   minAmount: number; // fixed: dollars a month
   minPct: number; // percent: e.g. 2 for 2%
   minFloor: number; // percent: dollars, the least it can be
+  /** Buy now pay later: paid in fixed instalments (minAmount) at 0%. Left out for other debts. */
+  kind?: "bnpl";
+  /** BNPL: days between instalments. */
+  everyDays?: BnplEvery;
 }
+
+export type BnplEvery = 7 | 14 | 30;
+export const BNPL_EVERY: { value: BnplEvery; label: string }[] = [
+  { value: 7, label: "Every week" },
+  { value: 14, label: "Every fortnight" },
+  { value: 30, label: "Every month" },
+];
 
 export type PlanStrategy = Exclude<DebtStrategy, "minimums">;
 
@@ -23,7 +41,23 @@ export interface DebtPlanState {
   startDate: string;
   target?: string; // optional "debt-free by" date
   transfer: TransferForm;
+  consolidate: ConsolidateForm;
 }
+
+/** A consolidation loan to try, in percent and months. Off when `from` is empty. */
+export interface ConsolidateForm {
+  from: string[]; // debt ids rolled into the loan
+  ratePct: number;
+  months: number;
+  fee: number; // dollars, one-off
+}
+
+export const defaultConsolidate = (): ConsolidateForm => ({
+  from: [],
+  ratePct: 9.99,
+  months: 60,
+  fee: 250,
+});
 
 /** A balance transfer to try, in percent and months. Off when `from` is empty. */
 export interface TransferForm {
@@ -44,7 +78,20 @@ export const defaultTransfer = (): TransferForm => ({
 
 export const MAX_ROWS = 12;
 
-export function newDebt(id: string, kind: "card" | "loan" = "loan"): DebtRow {
+export function newDebt(id: string, kind: "card" | "loan" | "bnpl" = "loan"): DebtRow {
+  if (kind === "bnpl")
+    return {
+      id,
+      name: "Buy now pay later",
+      balance: 400,
+      ratePct: 0,
+      minType: "fixed",
+      minAmount: 100,
+      minPct: 2,
+      minFloor: 25,
+      kind: "bnpl",
+      everyDays: 14,
+    };
   return kind === "card"
     ? {
         id,
@@ -85,12 +132,24 @@ export function defaultDebtState(start = today()): DebtPlanState {
     order: ["d1", "d2", "d3"],
     startDate: start,
     transfer: defaultTransfer(),
+    consolidate: defaultConsolidate(),
   };
 }
 
 const toCents = (dollars: number) => Math.round(dollars * 100) as Cents;
 
 export function toDebt(r: DebtRow): Debt {
+  if (r.kind === "bnpl") {
+    const instalment = toCents(r.minAmount);
+    return {
+      id: r.id,
+      name: r.name || "Debt",
+      balance: toCents(r.balance),
+      annualRate: 0,
+      minimum: { type: "fixed", amount: instalment },
+      schedule: { instalment, everyDays: r.everyDays ?? 14 },
+    };
+  }
   return {
     id: r.id,
     name: r.name || "Debt",
@@ -129,6 +188,20 @@ export function toTransfer(s: DebtPlanState): BalanceTransfer | null {
   };
 }
 
+/** The consolidation loan as the engine takes it, or null when no debt is ticked. */
+export function toConsolidation(s: DebtPlanState): ConsolidationLoan | null {
+  const f = s.consolidate;
+  const from = f.from.filter((id) => s.debts.some((d) => d.id === id && d.kind !== "bnpl"));
+  if (!from.length) return null;
+  return {
+    from,
+    name: "Consolidation loan",
+    annualRate: f.ratePct / 100,
+    termMonths: Math.round(f.months),
+    upfrontFee: toCents(f.fee),
+  };
+}
+
 /** Keep the custom order in step with the debt list: drop removed ids, append new ones. */
 export function syncOrder(order: string[], debts: DebtRow[]): string[] {
   const ids = debts.map((d) => d.id);
@@ -155,6 +228,7 @@ export function encodeDebtState(s: DebtPlanState): string {
       r.minAmount,
       r.minPct,
       r.minFloor,
+      ...(r.kind === "bnpl" ? [1, r.everyDays ?? 14] : []),
     ]),
     x: s.extra,
     k: STRATS.indexOf(s.strategy),
@@ -171,6 +245,9 @@ export function encodeDebtState(s: DebtPlanState): string {
             s.transfer.revertPct,
           ],
         }
+      : {}),
+    ...(s.consolidate.from.length
+      ? { c: [s.consolidate.from, s.consolidate.ratePct, s.consolidate.months, s.consolidate.fee] }
       : {}),
   };
   return new URLSearchParams({
@@ -193,6 +270,7 @@ export function decodeDebtState(query: string, fallback = defaultDebtState()): D
         let id = typeof r[0] === "string" && /^d\d{1,4}$/.test(r[0]) ? r[0] : `d${i + 1}`;
         if (seen.has(id)) id = `d${900 + i}`;
         seen.add(id);
+        const bnpl = r[8] === 1;
         return {
           id,
           name: typeof r[1] === "string" ? r[1].slice(0, 40) : `Debt ${i + 1}`,
@@ -202,6 +280,14 @@ export function decodeDebtState(query: string, fallback = defaultDebtState()): D
           minAmount: Math.max(0, num(r[5], 0)),
           minPct: Math.min(100, Math.max(0, num(r[6], 2))),
           minFloor: Math.max(0, num(r[7], 0)),
+          ...(bnpl
+            ? {
+                kind: "bnpl" as const,
+                everyDays: ([7, 14, 30] as const).find((x) => x === r[9]) ?? 14,
+                minType: "fixed" as const,
+                ratePct: 0,
+              }
+            : {}),
         };
       });
     if (!debts.length) return fallback;
@@ -216,6 +302,7 @@ export function decodeDebtState(query: string, fallback = defaultDebtState()): D
       startDate: isDate(c.t) ? c.t : fallback.startDate,
       target: isDate(c.g) ? c.g : undefined,
       transfer: decodeTransfer(c.b, debts),
+      consolidate: decodeConsolidate(c.c, debts),
     };
   } catch {
     return fallback;
@@ -232,5 +319,17 @@ function decodeTransfer(b: unknown, debts: DebtRow[]): TransferForm {
     months: Math.min(120, Math.max(1, Math.round(num(b[2], d.months)))),
     feePct: Math.min(20, Math.max(0, num(b[3], d.feePct))),
     revertPct: Math.min(100, Math.max(0, num(b[4], d.revertPct))),
+  };
+}
+
+function decodeConsolidate(c: unknown, debts: DebtRow[]): ConsolidateForm {
+  const d = defaultConsolidate();
+  if (!Array.isArray(c)) return d;
+  const ids = debts.filter((r) => r.kind !== "bnpl").map((r) => r.id);
+  return {
+    from: Array.isArray(c[0]) ? c[0].filter((x: unknown) => ids.includes(x as string)) : [],
+    ratePct: Math.min(100, Math.max(0, num(c[1], d.ratePct))),
+    months: Math.min(120, Math.max(1, Math.round(num(c[2], d.months)))),
+    fee: Math.min(100_000, Math.max(0, num(c[3], d.fee))),
   };
 }

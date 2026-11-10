@@ -266,3 +266,60 @@ describe("promo rates and balance transfers", () => {
     expect(r.totalInterest).toBeLessThan(before.totalInterest);
   });
 });
+
+describe("buy now pay later", () => {
+  const bnpl: Debt = {
+    id: "bnpl",
+    name: "Afterpay",
+    balance: c(400),
+    annualRate: 0,
+    minimum: fixed(100),
+    schedule: { instalment: c(100), everyDays: 14 },
+  };
+
+  it("lands four fortnightly instalments in months 1, 1, 2, 2 with no interest", () => {
+    const r = simulatePayoff({
+      debts: [bnpl],
+      extraPerMonth: c(0),
+      strategy: "avalanche",
+      startDate: "2026-11-04",
+    });
+    expect(r.months).toBe(2);
+    expect(r.timeline.map((m) => m.paid)).toEqual([0, c(200), c(200)]);
+    expect(r.totalInterest).toBe(0);
+    expect(r.totalPaid).toBe(c(400));
+  });
+
+  it("is paid on schedule and never receives extra, whatever the strategy", () => {
+    for (const strategy of ["avalanche", "snowball", "custom"] as const) {
+      const r = simulatePayoff(
+        base({ debts: [bnpl, car], strategy, order: ["bnpl", "car"], extraPerMonth: c(1_000) }),
+      );
+      expect(r.debts[0].months).toBe(2);
+      expect(r.priority).toEqual(["car"]);
+    }
+  });
+
+  it("sits outside the monthly budget and doesn't roll over when it finishes", () => {
+    const r = simulatePayoff(base({ debts: [bnpl, car], extraPerMonth: c(100) }));
+    expect(r.monthlyBudget).toBe(c(550));
+    expect(r.timeline[1].paid).toBe(c(750));
+    expect(r.timeline[3].paid).toBe(c(550));
+  });
+
+  it("takes a smaller last instalment and rejects bad schedules", () => {
+    const odd = { ...bnpl, balance: c(250) };
+    const r = simulatePayoff({
+      debts: [odd],
+      extraPerMonth: c(0),
+      strategy: "snowball",
+      startDate: "2026-11-04",
+    });
+    expect(r.totalPaid).toBe(c(250));
+    expect(r.paidOff).toBe(true);
+    expect(validateDebts([{ ...bnpl, schedule: { instalment: c(0), everyDays: 14 } }])).not.toEqual(
+      [],
+    );
+    expect(validateDebts([{ ...bnpl, annualRate: 0.1 }])).not.toEqual([]);
+  });
+});

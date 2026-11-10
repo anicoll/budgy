@@ -1,6 +1,7 @@
 export * from "./borrowing/power";
 export * from "./budget/plan";
 export * from "./dates";
+export * from "./debt/consolidate";
 export * from "./debt/payoff";
 export * from "./help/early";
 export * from "./lease/novated";
