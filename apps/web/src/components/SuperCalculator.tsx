@@ -17,6 +17,7 @@ import {
 import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { money, monthYear } from "@/lib/format";
@@ -236,6 +237,7 @@ export function SuperCalculator() {
               copied={copied}
             />
           )}
+          <GoodToKnow tool="super" />
           <Method />
         </section>
       </div>

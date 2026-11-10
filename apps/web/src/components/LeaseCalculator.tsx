@@ -13,6 +13,7 @@ import {
 } from "@budgy/engine";
 import { useMemo, useState } from "react";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { SavedBar } from "@/components/SavedBar";
 import { money, moneyExact } from "@/lib/format";
 import { LEASE_PEOPLE } from "@/lib/household";
@@ -181,6 +182,7 @@ export function LeaseCalculator() {
               <Sources result={result} year={state.year} />
             </>
           )}
+          <GoodToKnow tool="lease" />
         </section>
       </div>
     </main>

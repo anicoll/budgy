@@ -34,6 +34,7 @@ export * from "./mortgage/types";
 export * from "./property/costs";
 export * from "./property/duty";
 export * from "./property/rules";
+export * from "./super/agePension";
 export * from "./super/project";
 export * from "./super/rules";
 export * from "./super/sacrifice";

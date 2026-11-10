@@ -16,6 +16,7 @@ import {
   validateBudget,
 } from "@budgy/engine";
 import { useEffect, useMemo, useState } from "react";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { SavedBar } from "@/components/SavedBar";
 import {
   adoptPay,
@@ -428,6 +429,7 @@ export function BudgetPlanner() {
               onView={(v) => set({ view: v })}
             />
           )}
+          <GoodToKnow tool="budget" />
         </div>
       </div>
     </main>

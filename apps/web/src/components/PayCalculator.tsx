@@ -11,6 +11,7 @@ import {
 } from "@budgy/engine";
 import { useEffect, useMemo, useState } from "react";
 import { MoneyField, NumberField, SelectField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { SavedBar } from "@/components/SavedBar";
 import { budgetLinkFromPay } from "@/lib/budgetState";
 import { money, moneyExact } from "@/lib/format";
@@ -289,6 +290,7 @@ export function PayCalculator() {
             </a>
           )}
 
+          <GoodToKnow tool="pay" />
           {result && <Footer result={result} copied={copied} onCopy={copyLink} />}
         </section>
       </div>

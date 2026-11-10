@@ -13,6 +13,7 @@ import {
 } from "@budgy/engine";
 import { useMemo } from "react";
 import { MoneyField, SelectField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { SavedBar } from "@/components/SavedBar";
 import {
   type BuyingForm,
@@ -463,6 +464,7 @@ export function BuyingCostsCalculator() {
             >
               Compare stamp duty in every state →
             </button>
+            <GoodToKnow tool="buying" />
           </section>
         )}
       </div>

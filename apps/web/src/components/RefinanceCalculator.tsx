@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { BenefitChart } from "@/components/BenefitChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
@@ -297,6 +298,7 @@ export function RefinanceCalculator() {
               hasIntro={form.introRatePct !== undefined}
             />
           )}
+          <GoodToKnow tool="refinance" />
           <Method />
         </section>
       </div>

@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
@@ -273,6 +274,7 @@ export function MortgageCalculator() {
               copied={copied}
             />
           )}
+          <GoodToKnow tool="mortgage" />
           <Method />
         </section>
       </div>

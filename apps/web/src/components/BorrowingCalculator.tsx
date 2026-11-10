@@ -9,6 +9,7 @@ import {
 } from "@budgy/engine";
 import { useMemo } from "react";
 import { MoneyField, NumberField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import {
@@ -330,6 +331,7 @@ export function BorrowingCalculator() {
             </div>
           )}
           {result && <Results form={form} year={input.year} {...result} />}
+          <GoodToKnow tool="borrow" />
         </section>
       </div>
 
