@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CARRY_FORWARD_BALANCE_LIMIT,
   type Cents,
   checkSacrifice,
   MAX_SACRIFICE_FUNDS,
@@ -897,6 +898,16 @@ function CapMeter({ person, year, you }: { person: PersonSacrifice; year: string
           Includes {money(person.carryForward)} of unused cap carried forward.
         </p>
       )}
+      {person.carryForward === 0 &&
+        person.totalBalance < CARRY_FORWARD_BALANCE_LIMIT &&
+        left < 1_000_00 && (
+          <p className="mt-3 rounded-lg bg-primary-container/60 px-3 py-2 text-sm text-on-primary-container">
+            {left < 0 ? "Over the cap?" : left < 50_00 ? "Cap full?" : "Nearly full?"} If{" "}
+            {you ? "your" : `${person.name}'s`} total super balance was under $500,000 last 30 June,
+            unused cap from the past five years can carry forward. myGov shows how much you have.
+            Add it under &ldquo;More options&rdquo; as unused cap from earlier years.
+          </p>
+        )}
     </div>
   );
 }
@@ -954,13 +965,19 @@ function Ideas({
                   ` Above that line each dollar saves ${cpd(s.rateAbove ?? 0)} in income tax; below it, less.`}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => onUse(p.id, s.extra)}
-              className="min-h-11 rounded-full border border-outline px-5 text-sm font-medium text-accent hover:bg-accent hover:text-on-accent"
-            >
-              Use this
-            </button>
+            {p.effect.extra === s.extra ? (
+              <span className="min-h-11 content-center px-5 text-sm font-medium text-good">
+                In use ✓
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onUse(p.id, s.extra)}
+                className="min-h-11 rounded-full border border-outline px-5 text-sm font-medium text-accent hover:bg-accent hover:text-on-accent"
+              >
+                Use this
+              </button>
+            )}
           </div>
         );
       })}
