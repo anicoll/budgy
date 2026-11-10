@@ -11,6 +11,7 @@ import {
 } from "@budgy/engine";
 import { useMemo } from "react";
 import { MoneyField, NumberField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { SavedBar } from "@/components/SavedBar";
 import { money, monthYear } from "@/lib/format";
 import {
@@ -153,6 +154,7 @@ export function RateCheckCalculator() {
           ) : (
             <Results r={result} form={form} />
           )}
+          <GoodToKnow tool="rates" />
         </section>
       </div>
 

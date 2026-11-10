@@ -9,6 +9,7 @@ import {
 import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { SavedBar } from "@/components/SavedBar";
 import {
   type DebtPlanState,
@@ -264,6 +265,7 @@ export function DebtPlanner() {
               <MonthByMonth plan={chosen} names={state.debts.map((d) => d.name || "Debt")} />
             </>
           )}
+          <GoodToKnow tool="debt" />
           <Method />
         </section>
       </div>
