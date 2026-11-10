@@ -4,6 +4,7 @@ import {
   decodeSplitState,
   defaultSplitState,
   encodeSplitState,
+  leaverSharePrefill,
   nextBorrowerId,
   type SplitState,
   splitFromBaseLoan,
@@ -89,5 +90,31 @@ describe("split helpers", () => {
   it("the example runs", () => {
     const r = splitLoan(toCoBorrowInput(defaultSplitState("2026-11-04")));
     expect(r.parties[0].interestSaved).toBeGreaterThan(0);
+  });
+
+  it("round-trips buy-out inputs, blank or filled", () => {
+    const filled = {
+      ...FULL,
+      buyout: { keeperId: "p2", value: 820_000, owing: 480_000, sharePct: 45 },
+    };
+    expect(decodeSplitState(encodeSplitState(filled))).toEqual(filled);
+    const blank = { ...FULL, buyout: { keeperId: "p1" } };
+    expect(decodeSplitState(encodeSplitState(blank)).buyout).toEqual({
+      keeperId: "p1",
+      value: undefined,
+      owing: undefined,
+      sharePct: undefined,
+    });
+  });
+
+  it("decodes old links with no buy-out, and ignores a keeper who isn't a borrower", () => {
+    expect(decodeSplitState(encodeSplitState(FULL)).buyout).toBeUndefined();
+    const bad = { ...FULL, buyout: { keeperId: "p99" } };
+    expect(decodeSplitState(encodeSplitState(bad)).buyout).toBeUndefined();
+  });
+
+  it("prefills the leaver's share from the ownership split", () => {
+    expect(leaverSharePrefill([0.5476, 0.4524], 1)).toBe(45.2);
+    expect(leaverSharePrefill(undefined, 0)).toBeUndefined();
   });
 });

@@ -18,6 +18,7 @@ import { DateField, MoneyField, NumberField, SelectField } from "@/components/fi
 import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
+import { SplitBuyOut } from "@/components/SplitBuyOut";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import { SPLIT_PEOPLE } from "@/lib/household";
 import { objectName, verb } from "@/lib/names";
@@ -252,6 +253,7 @@ export function SplitCalculator() {
               copied={copied}
             />
           )}
+          {result && <SplitBuyOut state={state} setState={setState} result={result} />}
           <GoodToKnow tool="split" />
           <Method />
         </section>
