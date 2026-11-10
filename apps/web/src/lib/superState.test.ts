@@ -65,6 +65,34 @@ describe("super URL state", () => {
     expect(decodeSuperState(encodeSuperState({ ...FULL, people: [] }), fb)).toEqual(fb);
   });
 
+  it("round-trips the compare-fees section, and old links have none", () => {
+    expect(decodeSuperState(encodeSuperState(FULL)).fees).toBeUndefined();
+    const fees = { a: { fixed: 78, pct: 1.1 }, b: { fixed: 52, pct: 0.65 } };
+    expect(decodeSuperState(encodeSuperState({ ...FULL, fees })).fees).toEqual(fees);
+    expect(decodeSuperState(encodeSuperState({ ...FULL, fees }))).toEqual({ ...FULL, fees });
+  });
+
+  it("ignores a damaged compare-fees key and clamps wild values", () => {
+    const raw = JSON.parse(
+      Buffer.from(
+        new URLSearchParams(encodeSuperState(FULL)).get("s") ?? "",
+        "base64url",
+      ).toString(),
+    );
+    const enc = (c: unknown) =>
+      new URLSearchParams({
+        v: "1",
+        s: Buffer.from(JSON.stringify({ ...raw, c })).toString("base64url"),
+      }).toString();
+    expect(decodeSuperState(enc([1, 2])).fees).toBeUndefined();
+    expect(decodeSuperState(enc("x")).fees).toBeUndefined();
+    expect(decodeSuperState(enc([1, null, 2, 3])).fees).toBeUndefined();
+    expect(decodeSuperState(enc([-5, 99, 10, 0.5])).fees).toEqual({
+      a: { fixed: 0, pct: 5 },
+      b: { fixed: 10, pct: 0.5 },
+    });
+  });
+
   it("repairs duplicate ids and gives a person with no funds one", () => {
     const dup = { ...FULL, people: [FULL.people[1], { ...FULL.people[1], accounts: [] }] };
     const out = decodeSuperState(encodeSuperState(dup));

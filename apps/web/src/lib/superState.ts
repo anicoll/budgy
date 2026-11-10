@@ -32,6 +32,14 @@ export interface SuperState {
   startDate: string;
   extraPerWeek: number; // for the "what an extra does" card
   pension: PensionRow;
+  /** The "compare fees" section, once the person has typed in it. */
+  fees?: FeeCompareRow;
+}
+
+/** Fees for the two funds being compared: dollars a year and percent of balance. */
+export interface FeeCompareRow {
+  a: { fixed: number; pct: number };
+  b: { fixed: number; pct: number };
 }
 
 /** What the Age Pension estimate needs beyond super, in dollars. */
@@ -167,9 +175,12 @@ export function encodeSuperState(s: SuperState): string {
       s.pension.otherIncome,
     ],
   };
+  const body = s.fees
+    ? { ...compact, c: [s.fees.a.fixed, s.fees.a.pct, s.fees.b.fixed, s.fees.b.pct] }
+    : compact;
   return new URLSearchParams({
     v: String(SUPER_URL_VERSION),
-    s: b64urlEncode(JSON.stringify(compact)),
+    s: b64urlEncode(JSON.stringify(body)),
   }).toString();
 }
 
@@ -182,6 +193,16 @@ function decodePension(v: unknown): PensionRow {
     otherAssets: Math.max(0, num(v[2], d.otherAssets)),
     otherIncome: Math.max(0, num(v[3], d.otherIncome)),
   };
+}
+
+function decodeFees(v: unknown): FeeCompareRow | undefined {
+  if (!Array.isArray(v) || v.length < 4 || !v.slice(0, 4).every((n) => Number.isFinite(n)))
+    return undefined;
+  const fee = (fixed: number, pct: number) => ({
+    fixed: clamp(fixed, 0, 100_000),
+    pct: clamp(pct, 0, 5),
+  });
+  return { a: fee(v[0], v[1]), b: fee(v[2], v[3]) };
 }
 
 export function decodeSuperState(query: string, fallback = defaultSuperState()): SuperState {
@@ -237,6 +258,7 @@ export function decodeSuperState(query: string, fallback = defaultSuperState()):
       extraPerWeek: Math.max(0, num(g[3], fallback.extraPerWeek)),
       startDate: isDate(c.t) ? c.t : fallback.startDate,
       pension: decodePension(c.a),
+      fees: decodeFees(c.c),
     };
   } catch {
     return fallback;

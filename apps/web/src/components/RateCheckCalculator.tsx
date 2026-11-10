@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  averageRateHistory,
   type BenchmarkGap,
   checkRate,
+  gapChange,
   type LoanPurpose,
   type RateCheckResult,
   type RateType,
@@ -12,6 +14,7 @@ import {
 import { useMemo, useState } from "react";
 import { MoneyField, NumberField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { RateHistoryChart } from "@/components/RateHistoryChart";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { money, monthYear } from "@/lib/format";
@@ -279,6 +282,8 @@ function Results({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
         </div>
       </div>
 
+      <HistoryCard r={r} form={form} />
+
       {r.verdict !== "below" && (
         <div className={`${card} flex flex-wrap items-center justify-between gap-4`}>
           <div className="min-w-0 flex-[1_1_320px]">
@@ -316,6 +321,74 @@ function Results({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
         estimates on today&apos;s balance with no rate changes.
       </p>
     </>
+  );
+}
+
+const RANGES = [
+  { years: 1, label: "1 year" },
+  { years: 3, label: "3 years" },
+  { years: 5, label: "5 years" },
+] as const;
+
+const relative = (gap: number) =>
+  Math.abs(gap) < 0.00005 ? "level with" : `${pct(Math.abs(gap))} ${gap > 0 ? "above" : "below"}`;
+
+/** Your rate as a flat line against the monthly RBA averages for a loan like yours. */
+function HistoryCard({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
+  const [years, setYears] = useState<1 | 3 | 5>(3);
+  const yours = form.ratePct / 100;
+  const full = useMemo(
+    () => averageRateHistory(form.purpose, r.series, 60),
+    [form.purpose, r.series],
+  );
+  const points = useMemo(
+    () => averageRateHistory(form.purpose, r.series, years * 12),
+    [form.purpose, r.series, years],
+  );
+  if (full.length < 2) return null;
+  const change = gapChange(points, yours, "new");
+  const span = `${points.length - 1} months`;
+  const period =
+    points.length - 1 >= years * 12 ? `${years === 1 ? "year" : `${years} years`}` : span;
+
+  return (
+    <div className={card}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-semibold">Your rate against the averages</h3>
+        <fieldset className="flex overflow-hidden rounded-full border border-outline">
+          <legend className="sr-only">Time range</legend>
+          {RANGES.filter((x) => full.length > x.years * 12 || x.years === 1).map((x) => (
+            <button
+              key={x.years}
+              type="button"
+              aria-pressed={years === x.years}
+              className={`min-h-10 px-3.5 text-sm ${years === x.years ? "bg-primary-container font-medium text-on-primary-container" : "hover:bg-surface-container"}`}
+              onClick={() => setYears(x.years)}
+            >
+              {x.label}
+            </button>
+          ))}
+        </fieldset>
+      </div>
+      <RateHistoryChart points={points} yours={yours} label={`${describeLoan(form)} averages`} />
+      {change && (
+        <div className="mt-4 rounded-lg bg-primary-container p-4 text-on-primary-container">
+          <p className="font-medium">
+            {change.direction === "same"
+              ? `Against the average new loan, your rate has stayed about ${relative(change.to)} over the last ${period}.`
+              : `Against the average new loan, your rate has gone from ${relative(change.from)} to ${relative(change.to)} over the last ${period}.`}
+          </p>
+          <p className="mt-1 text-sm">
+            This holds your rate flat, as if it hasn&apos;t changed.
+            {change.direction === "widened" &&
+              " Lenders often don't pass cuts on to existing loans in full."}
+          </p>
+        </div>
+      )}
+      <p className="mt-3 text-xs text-muted">
+        {describeLoan(form)} averages, monthly, from the RBA.
+      </p>
+    </div>
   );
 }
 
