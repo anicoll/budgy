@@ -11,7 +11,7 @@ import {
 import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { MoneyField, NumberField } from "@/components/fields";
-import { NextSteps } from "@/components/NextSteps";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { money } from "@/lib/format";
@@ -332,46 +332,39 @@ function Results({
         />
       </div>
 
-      <div className={card}>
-        <h3 className="mb-2 font-semibold">Good to know</h3>
-        <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed">
-          {r.warnings.some((w) => w.kind === "never-repaid") && (
-            <li className="text-warn">
+      <GoodToKnow
+        tool="help"
+        extra={[
+          r.warnings.some((w) => w.kind === "never-repaid") && (
+            <span className="text-warn">
               At this income your debt may never be repaid in full. HELP is cancelled on death, so
               paying it early may not be worth it at all.
-            </li>
-          )}
-          {r.warnings.some((w) => w.kind === "below-threshold") && (
-            <li>
-              Your income is below the repayment threshold, so nothing is taken from your pay.
-            </li>
-          )}
-          {r.warnings.map(
+            </span>
+          ),
+          r.warnings.some((w) => w.kind === "below-threshold") && (
+            <>Your income is below the repayment threshold, so nothing is taken from your pay.</>
+          ),
+          ...r.warnings.map(
             (w) =>
               w.kind === "lump-sum-capped" && (
-                <li key="cap">Only the {money(w.balance)} you owe can go on the loan.</li>
+                <>Only the {money(w.balance)} you owe can go on the loan.</>
               ),
-          )}
-          <li>
+          ),
+          <>
             Paying early doesn&apos;t lower your compulsory repayments. They&apos;re set by income
             until the debt is gone
             {r.compulsoryThisYear > 0
               ? `, then the ${money(r.compulsoryThisYear)} a year stays in your pay.`
               : "."}
-          </li>
-          {nextJune && (
-            <li>
+          </>,
+          nextJune && (
+            <>
               If you do pay, get it to the ATO before {longDate(nextJune)} to skip that year&apos;s
               indexation. BPAY can take a few days.
-            </li>
-          )}
-          <li>
-            Lenders count HELP repayments when working out how much you can borrow, so clearing it
-            can lift your borrowing power.
-          </li>
-        </ul>
-        <NextSteps tool="help" />
-      </div>
+            </>
+          ),
+        ].filter(Boolean)}
+      />
 
       <details className={card}>
         <summary className="min-h-7 cursor-pointer font-medium">Year by year</summary>
