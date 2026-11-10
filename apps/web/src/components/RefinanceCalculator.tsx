@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import { BenefitChart } from "@/components/BenefitChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import {
@@ -359,28 +360,21 @@ function verdict(r: RefinanceResult) {
 function MobileSummary({ r }: { r: RefinanceResult }) {
   const m = r.breakEvenMonths;
   return (
-    <a
-      href="#results"
-      className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
-    >
-      <span className="num min-w-0">
-        {m === null ? (
-          <strong className="text-warn">Doesn&apos;t pay off</strong>
-        ) : (
-          <>
-            Breaks even{" "}
-            <strong>{m === 0 ? "day one" : monthYear(r.breakEvenDate as string)}</strong>
-            {r.lifetimeBenefit > 0 && (
-              <>
-                {" "}
-                · <strong className="text-good">{money(r.lifetimeBenefit)}</strong> ahead
-              </>
-            )}
-          </>
-        )}
-      </span>
-      <span className="shrink-0 text-accent">See results ↓</span>
-    </a>
+    <ResultsBar>
+      {m === null ? (
+        <strong className="text-warn">Doesn&apos;t pay off</strong>
+      ) : (
+        <>
+          Breaks even <strong>{m === 0 ? "day one" : monthYear(r.breakEvenDate as string)}</strong>
+          {r.lifetimeBenefit > 0 && (
+            <>
+              {" "}
+              · <strong className="text-good">{money(r.lifetimeBenefit)}</strong> ahead
+            </>
+          )}
+        </>
+      )}
+    </ResultsBar>
   );
 }
 

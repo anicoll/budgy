@@ -15,6 +15,7 @@ import { BenefitChart } from "@/components/BenefitChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
 import { RateChart } from "@/components/RateChart";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import {
   decodeFixed,
@@ -374,19 +375,13 @@ function CustomPath({
 function MobileSummary({ r, form }: { r: FixedVsVariableResult; form: FixedForm }) {
   const a = r.aheadFixedPeriod;
   return (
-    <a
-      href="#results"
-      className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
-    >
-      <span className="num min-w-0">
-        Over the fix:{" "}
-        <strong className={a >= 0 ? "text-good" : "text-warn"}>
-          {a >= 0 ? `${money(a)} saved` : `${money(-a)} extra`}
-        </strong>{" "}
-        <span className="text-muted">({pathLabel(form.path).toLowerCase()})</span>
-      </span>
-      <span className="shrink-0 text-accent">See results ↓</span>
-    </a>
+    <ResultsBar>
+      Over the fix:{" "}
+      <strong className={a >= 0 ? "text-good" : "text-warn"}>
+        {a >= 0 ? `${money(a)} saved` : `${money(-a)} extra`}
+      </strong>{" "}
+      <span className="text-muted">({pathLabel(form.path).toLowerCase()})</span>
+    </ResultsBar>
   );
 }
 

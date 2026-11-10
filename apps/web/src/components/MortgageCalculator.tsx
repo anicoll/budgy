@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import { OWN_LINK_PARAM, withLoanFields } from "@/lib/saved";
@@ -290,21 +291,15 @@ function MobileSummary({ base, runs }: { base: SimulationResult; runs: ScenarioR
     undefined,
   );
   return (
-    <a
-      href="#results"
-      className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
-    >
-      <span className="num min-w-0">
-        Debt-free <strong>{monthYear((best?.result ?? base).payoffDate)}</strong>
-        {best && best.vsBase.interestSaved > 0 && (
-          <>
-            {" "}
-            · save <strong className="text-good">{money(best.vsBase.interestSaved)}</strong>
-          </>
-        )}
-      </span>
-      <span className="shrink-0 text-accent">See results ↓</span>
-    </a>
+    <ResultsBar>
+      Debt-free <strong>{monthYear((best?.result ?? base).payoffDate)}</strong>
+      {best && best.vsBase.interestSaved > 0 && (
+        <>
+          {" "}
+          · save <strong className="text-good">{money(best.vsBase.interestSaved)}</strong>
+        </>
+      )}
+    </ResultsBar>
   );
 }
 

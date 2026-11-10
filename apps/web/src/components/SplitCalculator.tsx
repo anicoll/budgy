@@ -16,6 +16,7 @@ import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import { SPLIT_PEOPLE } from "@/lib/household";
@@ -257,16 +258,10 @@ export function SplitCalculator() {
       </div>
 
       {result && (
-        <a
-          href="#results"
-          className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-10 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 text-sm backdrop-blur lg:hidden"
-        >
-          <span className="num min-w-0">
-            Together <strong>{moneyExact(result.monthlyRepayment)}</strong> a month · free{" "}
-            <strong>{monthYear(result.debtFreeDate)}</strong>
-          </span>
-          <span className="shrink-0 text-accent">See results ↓</span>
-        </a>
+        <ResultsBar>
+          Together <strong>{moneyExact(result.monthlyRepayment)}</strong> a month · free{" "}
+          <strong>{monthYear(result.debtFreeDate)}</strong>
+        </ResultsBar>
       )}
     </main>
   );
