@@ -2,6 +2,7 @@ import { buyingCosts } from "@budgy/engine";
 import { describe, expect, it } from "vitest";
 import {
   type BuyingForm,
+  buyingLinkFor,
   decodeBuying,
   defaultBuying,
   encodeBuying,
@@ -48,5 +49,30 @@ describe("buying costs URL state", () => {
     expect(r.loan).toBe(0);
     expect(r.lmi.premium).toBe(0);
     expect(r.fees.mortgage).toBe(0);
+  });
+});
+
+describe("link from the borrowing tool", () => {
+  it("fills in the price and deposit and keeps the rest", () => {
+    const saved = encodeBuying({
+      ...defaultBuying(),
+      state: "QLD",
+      buyer: "investor",
+      view: "compare",
+    });
+    const q = buyingLinkFor(712_345, 90_000, saved).split("?")[1];
+    const f = decodeBuying(q);
+    expect(f).toMatchObject({
+      price: 712_000,
+      deposit: 90_000,
+      state: "QLD",
+      buyer: "investor",
+      view: "costs",
+    });
+  });
+
+  it("starts from the defaults and caps the deposit at the price", () => {
+    const f = decodeBuying(buyingLinkFor(500_000, 600_000).split("?")[1]);
+    expect(f).toMatchObject({ ...defaultBuying(), price: 500_000, deposit: 500_000 });
   });
 });

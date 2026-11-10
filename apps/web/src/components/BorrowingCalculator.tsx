@@ -21,8 +21,10 @@ import {
   MAX_HOME_LOANS,
   toBorrowInput,
 } from "@/lib/borrowState";
+import { buyingLinkFor } from "@/lib/buyingState";
 import { money } from "@/lib/format";
 import { BORROW_PEOPLE } from "@/lib/household";
+import { readSaved } from "@/lib/saved";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
 import { Checkbox } from "./ui";
 
@@ -390,7 +392,8 @@ function Results({
             <p className="mt-3 text-muted">
               That&apos;s a home up to about{" "}
               <strong className="num text-text">{thousands(r.price)}</strong> with your{" "}
-              {money(form.deposit ? form.deposit * 100 : 0)} deposit, before stamp duty and fees.
+              {money(form.deposit ? form.deposit * 100 : 0)} deposit, before stamp duty and fees.{" "}
+              <BuyingLink price={r.price / 100} deposit={form.deposit ?? 0} />
             </p>
           )
         )}
@@ -583,5 +586,21 @@ function Row({
       </td>
       <td className="py-2.5 text-right">{value}</td>
     </tr>
+  );
+}
+
+/** On to the buying costs tool with this price and deposit, keeping its other saved inputs. */
+function BuyingLink({ price, deposit }: { price: number; deposit: number }) {
+  return (
+    <a
+      href={buyingLinkFor(price, deposit)}
+      onClick={(e) => {
+        e.preventDefault();
+        window.location.href = buyingLinkFor(price, deposit, readSaved().tools.buying);
+      }}
+      className="font-medium text-accent underline-offset-2 hover:underline"
+    >
+      Add up the buying costs →
+    </a>
   );
 }

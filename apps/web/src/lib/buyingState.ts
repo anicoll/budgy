@@ -113,3 +113,13 @@ export function decodeBuying(query: string, fallback = defaultBuying()): BuyingF
   f.view = q.get("view") === "compare" ? "compare" : "costs";
   return f;
 }
+
+/**
+ * A link to the buying costs tool for a home at `price` with `deposit`, both
+ * in dollars. Keeps the rest of the buyer's saved buying form, if there is one.
+ */
+export function buyingLinkFor(price: number, deposit: number, saved?: string | null): string {
+  const base = saved ? decodeBuying(saved) : defaultBuying();
+  const p = Math.max(0, Math.floor(price / 1_000) * 1_000);
+  return `../buying-costs/?${encodeBuying({ ...base, price: p, deposit: Math.min(Math.max(0, deposit), p), view: "costs" })}`;
+}
