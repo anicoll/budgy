@@ -23,6 +23,7 @@ export interface RefinanceForm {
   repayment?: number; // dollars per period; blank = the minimum
   currentFee: number; // dollars a year
   offset: number;
+  homeValue?: number; // for the LVR; blank = not asked
   // The new loan
   newRatePct: number;
   newTermYears?: number; // blank = same as years left
@@ -117,6 +118,7 @@ const NUM_KEYS = {
   x: "exitCosts",
   s: "setupCosts",
   cb: "cashback",
+  hv: "homeValue",
 } as const satisfies Record<string, keyof RefinanceForm>;
 
 export function encodeRefinance(f: RefinanceForm): string {
@@ -143,6 +145,7 @@ export function decodeRefinance(query: string, fallback = defaultRefinance()): R
     "newTermYears",
     "introRatePct",
     "introYears",
+    "homeValue",
   ]);
   for (const [k, field] of Object.entries(NUM_KEYS)) {
     const raw = q.get(k);
