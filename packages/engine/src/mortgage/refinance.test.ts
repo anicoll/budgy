@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { addMonths } from "../dates";
 import { cents } from "../money/cents";
-import { compareRefinance, proposedLoanInput, type RefinanceInput } from "./refinance";
+import {
+  benefitAfterMonths,
+  compareOffers,
+  compareRefinance,
+  proposedLoanInput,
+  type RefinanceInput,
+} from "./refinance";
 import { minimumRepayment, simulateLoan } from "./simulate";
 
 const CURRENT = {
@@ -141,5 +147,42 @@ describe("compareRefinance", () => {
     expect(() =>
       compareRefinance({ ...BASE, proposed: { annualRate: 0.5 }, cashback: -1 as never }),
     ).toThrow(/new rate.*cashback/);
+  });
+});
+
+describe("compareOffers", () => {
+  const a = compareRefinance(BASE);
+  const worse = compareRefinance({ ...BASE, proposed: { annualRate: 0.0625 } });
+  const better = compareRefinance({ ...BASE, proposed: { annualRate: 0.0575 } });
+
+  it("picks the offer that leaves you further ahead", () => {
+    const c = compareOffers(a, better, 5);
+    expect(c.winner).toBe("b");
+    expect(c.difference).toBe(c.benefitB - c.benefitA);
+    expect(c.difference).toBeGreaterThan(0);
+    expect(compareOffers(a, worse, 5).winner).toBe("a");
+    expect(compareOffers(worse, a, 5).winner).toBe("b");
+  });
+
+  it("calls identical offers a tie", () => {
+    const c = compareOffers(a, compareRefinance(BASE));
+    expect(c).toMatchObject({ winner: "tie", difference: 0 });
+  });
+
+  it("counts cashback and switching costs", () => {
+    const cheaperRate = compareRefinance({ ...BASE, proposed: { annualRate: 0.0589 } });
+    const cashback = compareRefinance({ ...BASE, cashback: cents(400_000) });
+    expect(compareOffers(cheaperRate, cashback, 1).winner).toBe("b");
+    expect(compareOffers(cheaperRate, cashback, 30).winner).toBe("a");
+  });
+
+  it("treats a gap within the tolerance as a tie", () => {
+    const near = compareRefinance({ ...BASE, cashback: cents(50) });
+    expect(compareOffers(a, near, 5).winner).toBe("tie");
+    expect(compareOffers(a, near, 5, cents(10)).winner).toBe("b");
+  });
+
+  it("reads years past the end of the loan from the last point", () => {
+    expect(benefitAfterMonths(a, 10_000)).toBe(a.lifetimeBenefit);
   });
 });

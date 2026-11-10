@@ -12,7 +12,7 @@ import {
   STATE_NAMES,
 } from "@budgy/engine";
 import { useMemo } from "react";
-import { MoneyField, SelectField } from "@/components/fields";
+import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
@@ -223,6 +223,86 @@ export function BuyingCostsCalculator() {
               />
             </div>
           </details>
+          <details className="border-t border-border pt-4" open={form.movingIn}>
+            <summary className="cursor-pointer text-sm font-medium">
+              Moving in costs (optional)
+            </summary>
+            <div className="mt-3 space-y-3">
+              <Checkbox
+                className="flex items-start gap-2.5 text-sm"
+                isSelected={form.movingIn}
+                onChange={(v) => set({ movingIn: v })}
+              >
+                <span>
+                  Include moving in costs in the total
+                  <span className="mt-0.5 block text-xs text-muted">
+                    The amounts are rough examples. Change them or set them to $0.
+                  </span>
+                </span>
+              </Checkbox>
+              {form.movingIn && (
+                <div className="grid grid-cols-2 gap-3">
+                  <MoneyField
+                    label="Removalist"
+                    value={form.removalist}
+                    onChange={(v) => set({ removalist: v ?? 0 })}
+                  />
+                  <MoneyField
+                    label="Connections"
+                    hint="Power, gas, internet."
+                    value={form.connections}
+                    onChange={(v) => set({ connections: v ?? 0 })}
+                  />
+                  <MoneyField
+                    className="col-span-2"
+                    label="Buffer"
+                    hint="Cleaning, new locks, small things that come up."
+                    value={form.buffer}
+                    onChange={(v) => set({ buffer: v ?? 0 })}
+                  />
+                </div>
+              )}
+            </div>
+          </details>
+          <details
+            className="border-t border-border pt-4"
+            open={form.councilRates > 0 || form.waterRates > 0}
+          >
+            <summary className="cursor-pointer text-sm font-medium">
+              Council and water rates at settlement (optional)
+            </summary>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <MoneyField
+                label="Council rates, a year"
+                optional
+                placeholder="0"
+                value={form.councilRates || undefined}
+                onChange={(v) => set({ councilRates: v ?? 0 })}
+              />
+              <MoneyField
+                label="Water rates, a year"
+                hint="The fixed service charge."
+                optional
+                placeholder="0"
+                value={form.waterRates || undefined}
+                onChange={(v) => set({ waterRates: v ?? 0 })}
+              />
+              <NumberField
+                className="col-span-2"
+                label="Days left in the rates period"
+                suffix="days"
+                min={0}
+                max={366}
+                step={1}
+                value={form.ratesDays}
+                onChange={(v) => set({ ratesDays: Math.round(v ?? 0) })}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              If the seller has paid ahead, you reimburse them for the days from settlement to the
+              end of the period. Your conveyancer works out the exact amount.
+            </p>
+          </details>
         </section>
 
         {form.view === "compare" ? (
@@ -362,6 +442,20 @@ export function BuyingCostsCalculator() {
               )}
               {r.other.loanFees > 0 && <Row label="Loan fees" value={money(r.other.loanFees)} />}
               {r.other.other > 0 && <Row label="Other costs" value={money(r.other.other)} />}
+              {form.movingIn && (
+                <Row
+                  label="Moving in (rough estimate)"
+                  hint="Removalist, connections and a small buffer"
+                  value={money(r.movingIn)}
+                />
+              )}
+              {r.rates.total > 0 && (
+                <Row
+                  label="Rates owed to the seller (estimate)"
+                  hint={`${r.rates.daysLeft} days of council${r.rates.water > 0 ? " and water" : ""} rates the seller has paid ahead. Varies by state and by what the seller has paid.`}
+                  value={money(r.rates.total)}
+                />
+              )}
               <div className="flex justify-between bg-bg/50 px-5 py-4 font-semibold sm:px-6">
                 <span>Total</span>
                 <span className="num">{money(r.cashNeeded)}</span>
@@ -411,9 +505,7 @@ export function BuyingCostsCalculator() {
             )}
 
             <details className={`${card} p-5 sm:p-6`} open>
-              <summary className="cursor-pointer font-semibold">
-                How we worked out your stamp duty
-              </summary>
+              <summary className="cursor-pointer font-semibold">How this is calculated</summary>
               <div className="mt-4 space-y-2.5 text-sm">
                 {duty.steps.map((s, i) => {
                   const last = i === duty.steps.length - 1 && duty.steps.length > 1;

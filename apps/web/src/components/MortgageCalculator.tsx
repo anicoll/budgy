@@ -1,10 +1,15 @@
 "use client";
 
 import {
+  type Cents,
   type Frequency,
+  type LoanInput,
   runScenarios,
   type ScenarioRun,
   type SimulationResult,
+  simulateLoan,
+  toDay,
+  toIso,
   validateLoan,
 } from "@budgy/engine";
 import { useMemo, useState } from "react";
@@ -21,6 +26,7 @@ import {
   decodeState,
   defaultState,
   encodeState,
+  MAX_INTEREST_ONLY_YEARS,
   MAX_SCENARIOS,
   type Scenario,
   toChanges,
@@ -84,12 +90,12 @@ export function MortgageCalculator() {
     try {
       return runScenarios(
         input,
-        state.scenarios.map((s) => toChanges(s)),
+        state.scenarios.map((s) => toChanges(s, base.termYears)),
       );
     } catch {
       return null;
     }
-  }, [input, errors, state.scenarios]);
+  }, [input, errors, state.scenarios, base.termYears]);
 
   const setBase = (patch: Partial<CalculatorState["base"]>) =>
     setState((s) => ({ ...s, base: { ...s.base, ...patch } }));
@@ -219,6 +225,7 @@ export function MortgageCalculator() {
               scenario={sc}
               baseRatePct={base.ratePct}
               baseOffset={base.offset}
+              termYears={base.termYears}
               startDate={base.startDate}
               onChange={(patch) => setScenario(i, patch)}
               onRemove={() => removeScenario(i)}
@@ -274,6 +281,7 @@ export function MortgageCalculator() {
               copied={copied}
             />
           )}
+          {results && <OffsetVsRedraw input={input} />}
           <GoodToKnow tool="mortgage" />
           <Method />
         </section>
@@ -308,6 +316,7 @@ function ScenarioCard({
   scenario: sc,
   baseRatePct,
   baseOffset,
+  termYears,
   startDate,
   onChange,
   onRemove,
@@ -316,6 +325,7 @@ function ScenarioCard({
   scenario: Scenario;
   baseRatePct: number;
   baseOffset: number;
+  termYears: number;
   startDate: string;
   onChange: (patch: Partial<Scenario>) => void;
   onRemove: () => void;
@@ -439,6 +449,19 @@ function ScenarioCard({
             }
           />
         )}
+        <NumberField
+          className="col-span-2"
+          label="Interest only for"
+          suffix="yrs"
+          optional
+          placeholder="0"
+          hint="Repayments cover interest only, then jump to principal and interest over the rest of the term."
+          min={0}
+          max={Math.max(0, Math.min(MAX_INTEREST_ONLY_YEARS, termYears - 1))}
+          step={1}
+          value={sc.interestOnlyYears}
+          onChange={(v) => onChange({ interestOnlyYears: v ? v : undefined })}
+        />
         <SelectField
           className="col-span-2"
           label="Repayments"
@@ -589,6 +612,18 @@ function Results({
                 <td key={i}>{moneyExact(c.result.repayment)}</td>
               ))}
             </tr>
+            {cols.some((c) => c.result.afterInterestOnly) && (
+              <tr>
+                <td>Repayment after interest only*</td>
+                {cols.map((c, i) => (
+                  <td key={i}>
+                    {c.result.afterInterestOnly
+                      ? `${moneyExact(c.result.afterInterestOnly.repayment)} from ${monthYear(c.result.afterInterestOnly.date)}`
+                      : "–"}
+                  </td>
+                ))}
+              </tr>
+            )}
             <tr>
               <td>Debt-free</td>
               {cols.map((c, i) => (
@@ -629,7 +664,8 @@ function Results({
         </table>
         <p className="mt-2 text-xs text-muted">
           *At the start, including any extra. A scenario with a different repayment frequency shows
-          its own per-repayment amount.
+          its own per-repayment amount. After an interest-only period the repayment is worked out on
+          the balance at the time, over the years left, before any extra.
         </p>
       </div>
 
@@ -707,5 +743,109 @@ function Method() {
         </p>
       </div>
     </details>
+  );
+}
+
+/**
+ * The same spare money two ways: sitting in the offset, or paid into the loan
+ * (where it can be redrawn). The simulation charges interest daily on the
+ * balance less the offset, so both save about the same interest. What differs
+ * is access and a few lender rules, which the list below sets out.
+ */
+function OffsetVsRedraw({ input }: { input: LoanInput }) {
+  const [amount, setAmount] = useState<number | undefined>(20_000);
+  const spare = Math.round((amount ?? 0) * 100) as Cents;
+  const runs = useMemo(() => {
+    if (spare <= 0 || spare >= input.balance) return null;
+    try {
+      const base = simulateLoan(input);
+      const offset = simulateLoan({
+        ...input,
+        offsetBalance: ((input.offsetBalance ?? 0) + spare) as Cents,
+      });
+      // Paid into the loan on the first day, then repayments carry on as before.
+      const redraw = simulateLoan({
+        ...input,
+        lumpSums: [
+          ...(input.lumpSums ?? []),
+          { date: toIso(toDay(input.startDate) + 1), amount: spare },
+        ],
+      });
+      return { base, offset, redraw };
+    } catch {
+      return null;
+    }
+  }, [input, spare]);
+
+  return (
+    <div className={card}>
+      <h2 className="font-semibold">Offset or extra repayment?</h2>
+      <p className="mt-1 text-sm text-muted">
+        The same spare money, kept in your offset account or paid into the loan (where it can be
+        redrawn). Uses your loan today, and your current repayment stays the same.
+      </p>
+      <div className="mt-3 max-w-xs">
+        <MoneyField label="Spare money" value={amount} onChange={setAmount} optional />
+      </div>
+      {runs ? (
+        <div className="mt-3 overflow-x-auto">
+          <table className="num w-full min-w-[420px] text-sm">
+            <thead>
+              <tr className="text-left text-muted">
+                <th className="py-1.5 pr-3 font-medium" />
+                <th className="py-1.5 pr-3 text-right font-medium">In offset</th>
+                <th className="py-1.5 pr-3 text-right font-medium">Extra repayment</th>
+              </tr>
+            </thead>
+            <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td]:pr-3 [&_td:not(:first-child)]:text-right">
+              <tr>
+                <td>Total interest</td>
+                <td>{money(runs.offset.totalInterest)}</td>
+                <td>{money(runs.redraw.totalInterest)}</td>
+              </tr>
+              <tr>
+                <td>Interest saved</td>
+                <td>{money(runs.base.totalInterest - runs.offset.totalInterest)}</td>
+                <td>{money(runs.base.totalInterest - runs.redraw.totalInterest)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="mt-2 text-sm">
+            {Math.abs(runs.offset.totalInterest - runs.redraw.totalInterest) <
+            Math.max(100_00, runs.base.totalInterest * 0.002) ? (
+              <>The interest saved is about the same either way.</>
+            ) : (
+              <>The two differ by more than rounding, so check the inputs.</>
+            )}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-muted">Enter an amount below your loan balance.</p>
+      )}
+      <p className="mt-3 text-sm font-medium">Where they differ</p>
+      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-muted">
+        <li>
+          <strong className="text-text">Access.</strong> Offset money stays in an account you can
+          spend from any time. Money paid into the loan has to be redrawn, and lenders set their own
+          rules for how and when. Offset money also stays out of the loan balance, so the loan
+          itself only falls when you use that money to repay it.
+        </li>
+        <li>
+          <strong className="text-text">Tax.</strong> On a home you live in, the interest you avoid
+          isn&apos;t income, so neither option is taxed. On an investment loan, redrawing money for
+          personal use can mix private and investment purposes, which can affect the interest you
+          can claim. An offset leaves the loan balance alone.
+        </li>
+        <li>
+          <strong className="text-text">Your repayment.</strong> Some lenders lower the minimum
+          repayment after extra repayments, others keep it the same. An offset doesn&apos;t change
+          it. This comparison keeps your repayment the same.
+        </li>
+        <li>
+          <strong className="text-text">Your loan.</strong> Not every loan has an offset, and fixed
+          loans often limit offsets and extra repayments. Check your loan&apos;s terms.
+        </li>
+      </ul>
+    </div>
   );
 }

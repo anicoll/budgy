@@ -554,8 +554,8 @@ function MoreOptions({ state, set }: { state: PayState; set: (patch: Partial<Pay
             onChange={(v) => set({ fringe: v ?? 0 })}
           />
           <MoneyField
-            label="Tax deductions"
-            hint="A year, such as work expenses. Comes back at tax time"
+            label="Work deductions"
+            hint="Work-related expenses you'll claim at tax time, like tools, uniforms or courses. A yearly total. They don't change your pay slips."
             value={state.deductions}
             onChange={(v) => set({ deductions: v ?? 0 })}
           />
@@ -1146,33 +1146,40 @@ function Footer({
   const notes = [...result.notes];
   if (result.carriedForward) notes.unshift(`Using ${result.year} rates, the latest published.`);
   return (
-    <div className="space-y-2 text-sm text-muted">
-      <p>
-        Take-home is worked out as the ATO assesses it at tax time: income tax, the low income tax
-        offset, Medicare levy and surcharge, and study loan repayments. It doesn&apos;t cover the
-        seniors offset, other income or capital gains.
-      </p>
-      {notes.map((n) => (
-        <p key={n}>{n}</p>
-      ))}
-      <p className="flex flex-wrap gap-x-3 gap-y-1">
-        <span>Sources:</span>
-        {[...result.rules.sources, ...result.superRules.sources.slice(0, 1)].map((s) => (
-          <a
-            key={s}
-            href={s}
-            className="text-accent hover:underline"
-            rel="noreferrer"
-            target="_blank"
-          >
-            {sourceName(s)}
-          </a>
+    <details className={`${card} text-sm`}>
+      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
+      <div className="mt-3 space-y-2 text-muted">
+        <p>
+          Take-home is worked out as the ATO assesses it at tax time: income tax, the low income tax
+          offset, Medicare levy and surcharge, and study loan repayments. It doesn&apos;t cover the
+          seniors offset, other income or capital gains.
+        </p>
+        {notes.map((n) => (
+          <p key={n}>{n}</p>
         ))}
-        <button type="button" onClick={onCopy} className="font-medium text-accent hover:underline">
-          {copied ? "Link copied" : "Copy link"}
-        </button>
-      </p>
-    </div>
+        <p className="flex flex-wrap gap-x-3 gap-y-1">
+          <span>Sources:</span>
+          {[...result.rules.sources, ...result.superRules.sources.slice(0, 1)].map((s) => (
+            <a
+              key={s}
+              href={s}
+              className="text-accent hover:underline"
+              rel="noreferrer"
+              target="_blank"
+            >
+              {sourceName(s)}
+            </a>
+          ))}
+          <button
+            type="button"
+            onClick={onCopy}
+            className="font-medium text-accent hover:underline"
+          >
+            {copied ? "Link copied" : "Copy link"}
+          </button>
+        </p>
+      </div>
+    </details>
   );
 }
 

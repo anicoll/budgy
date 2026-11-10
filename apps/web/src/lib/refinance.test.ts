@@ -6,6 +6,7 @@ import {
   encodeRefinance,
   type RefinanceForm,
   toRefinanceInput,
+  toRefinanceInputB,
 } from "./refinance";
 
 const FULL: RefinanceForm = {
@@ -48,6 +49,43 @@ describe("refinance URL state", () => {
     expect(f.ratePct).toBe(fb.ratePct);
     expect(f.frequency).toBe(fb.frequency);
     expect(f.startDate).toBe(fb.startDate);
+  });
+});
+
+describe("Offer B", () => {
+  const withB: RefinanceForm = {
+    ...FULL,
+    offerB: { ratePct: 5.59, annualFee: 250, setupCosts: 300, cashback: 3_000 },
+  };
+
+  it("round-trips through the URL", () => {
+    expect(decodeRefinance(encodeRefinance(withB))).toEqual(withB);
+  });
+
+  it("is absent from links made without it, and old links still decode", () => {
+    expect(encodeRefinance(FULL)).not.toContain("br=");
+    expect(decodeRefinance(encodeRefinance(FULL)).offerB).toBeUndefined();
+    const old = "v=1&b=500000&r=6.5&t=25&nr=5.8&f=m&k=keep&d=2026-11-04";
+    const f = decodeRefinance(old);
+    expect(f.balance).toBe(500_000);
+    expect(f.offerB).toBeUndefined();
+  });
+
+  it("falls back for missing or junk Offer B fields", () => {
+    const f = decodeRefinance("v=1&br=5.5&bc=abc");
+    expect(f.offerB).toMatchObject({ ratePct: 5.5, cashback: 0, annualFee: 0 });
+    expect(decodeRefinance("v=1&br=abc").offerB).toBeUndefined();
+  });
+
+  it("builds its own engine input from the shared loan", () => {
+    expect(toRefinanceInputB(FULL)).toBeUndefined();
+    const i = toRefinanceInputB(withB);
+    const a = toRefinanceInput(withB);
+    expect(i?.current).toEqual(a.current);
+    expect(i?.proposed).toEqual({ annualRate: 0.0559, termMonths: 360 });
+    expect(i?.switchingCosts).toBe(65_000); // exit $350 + B setup $300
+    expect(i?.cashback).toBe(300_000);
+    expect(i?.proposedAnnualFee).toBe(25_000);
   });
 });
 

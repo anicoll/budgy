@@ -911,10 +911,13 @@ function Results({
         </section>
       )}
 
-      <p className="text-xs leading-relaxed text-muted">
-        Take-home pay is worked out as the ATO assesses it, the same as the pay calculator. Weekly
-        amounts are 52 a year and fortnightly 26, so a month is a twelfth of a year.
-      </p>
+      <details className={`${card} text-sm`}>
+        <summary className="cursor-pointer font-semibold">How this is calculated</summary>
+        <p className="mt-3 text-muted">
+          Take-home pay is worked out as the ATO assesses it, the same as the pay calculator. Weekly
+          amounts are 52 a year and fortnightly 26, so a month is a twelfth of a year.
+        </p>
+      </details>
     </>
   );
 }

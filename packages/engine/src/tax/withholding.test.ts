@@ -75,6 +75,33 @@ describe("pay slips in calculatePay", () => {
     expect(r.withholding?.fortnightly.atTaxTime).toBe(c(48 + 640));
   });
 
+  it("work deductions leave the pay slip alone and only move the tax-time result", () => {
+    const base = calculatePay({ year: "2026-27", salary: c(100_000) });
+    const claimed = calculatePay({ year: "2026-27", salary: c(100_000), deductions: c(2_000) });
+    for (const f of ["weekly", "fortnightly", "monthly"] as const) {
+      expect(claimed.withholding?.[f].tax).toBe(base.withholding?.[f].tax);
+      expect(claimed.withholding?.[f].net).toBe(base.withholding?.[f].net);
+      expect(claimed.withholding?.[f].yearWithheld).toBe(base.withholding?.[f].yearWithheld);
+    }
+    expect(claimed.totalTax).toBeLessThan(base.totalTax);
+    expect(claimed.withholding?.fortnightly.atTaxTime).toBe(
+      (base.withholding?.fortnightly.atTaxTime ?? 0) + (base.totalTax - claimed.totalTax),
+    );
+  });
+
+  it("clamps work deductions between $0 and income", () => {
+    const base = calculatePay({ year: "2026-27", salary: c(50_000) });
+    expect(() =>
+      calculatePay({ year: "2026-27", salary: c(50_000), deductions: -c(3_000) as never }),
+    ).toThrow(RangeError);
+    expect(base.deductions).toBe(0);
+    const huge = calculatePay({ year: "2026-27", salary: c(50_000), deductions: c(80_000) });
+    expect(huge.deductions).toBe(c(50_000));
+    expect(huge.taxableIncome).toBe(0);
+    expect(huge.warnings.map((w) => w.kind)).toContain("deductions-too-big");
+    expect(huge.withholding?.fortnightly.tax).toBe(base.withholding?.fortnightly.tax);
+  });
+
   it("has no tables for years the ATO hasn't published", () => {
     expect(calculatePay({ year: "2027-28", salary: c(100_000) }).withholding).toBeNull();
     expect(calculatePay({ year: "2025-26", salary: c(100_000) }).withholding).toBeNull();

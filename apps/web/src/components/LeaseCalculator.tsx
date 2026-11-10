@@ -8,6 +8,8 @@ import {
   compareLeaseTerms,
   impliedLeaseRate,
   leaseRental,
+  leaveScenario,
+  type NovatedLeaseInput,
   type NovatedLeaseResult,
   validateLease,
 } from "@budgy/engine";
@@ -179,6 +181,7 @@ export function LeaseCalculator() {
               </div>
               <Ownership result={result} loanPct={state.loanPct} />
               <LeaseCompare state={state} set={set} result={result} />
+              <LeaveJob input={input} result={result} />
               {terms && <Terms rows={terms} current={state.termYears} />}
               <QuoteCheck state={state} set={set} result={result} />
               <Sources result={result} year={state.year} />
@@ -767,15 +770,18 @@ function QuoteCheck({
 
 function Sources({ result, year }: { result: NovatedLeaseResult; year: string }) {
   return (
-    <p className="text-sm text-muted">
-      Uses the ATO&apos;s {year} tax rates, Medicare levy and HELP thresholds, the{" "}
-      {result.carRules.year} <a href={result.carRules.sources[1]}>car limit</a> for the GST your
-      employer claims back ({moneyExact(result.gstCredit)} here), the{" "}
-      <a href={result.carRules.sources[0]}>luxury car tax thresholds</a>, and the FBT statutory
-      formula (20% of the car&apos;s price) with the employee contribution method, which almost
-      every provider uses. Later years use this year&apos;s tax rates. Not financial advice: check a
-      real quote before you sign.
-    </p>
+    <details className={`${card} text-sm`}>
+      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
+      <p className="mt-3 text-muted">
+        Uses the ATO&apos;s {year} tax rates, Medicare levy and HELP thresholds, the{" "}
+        {result.carRules.year} <a href={result.carRules.sources[1]}>car limit</a> for the GST your
+        employer claims back ({moneyExact(result.gstCredit)} here), the{" "}
+        <a href={result.carRules.sources[0]}>luxury car tax thresholds</a>, and the FBT statutory
+        formula (20% of the car&apos;s price) with the employee contribution method, which almost
+        every provider uses. Later years use this year&apos;s tax rates. Not financial advice: check
+        a real quote before you sign.
+      </p>
+    </details>
   );
 }
 
@@ -861,5 +867,100 @@ function Segmented<T extends string>({
         </button>
       ))}
     </fieldset>
+  );
+}
+
+function LeaveJob({ input, result }: { input: NovatedLeaseInput; result: NovatedLeaseResult }) {
+  const [typed, setTyped] = useState<number | undefined>(undefined);
+  const [per, setPer] = useState<LeasePer>("fortnightly");
+  const monthsLeft = Math.min(result.months, Math.max(1, typed ?? Math.ceil(result.months / 2)));
+  const s = useMemo(
+    () => safe(() => leaveScenario(input, result, monthsLeft)),
+    [input, result, monthsLeft],
+  );
+  const show = SHOW.find((o) => o.value === per) ?? SHOW[1];
+  return (
+    <details className={`${card} group`}>
+      <summary className="cursor-pointer font-semibold">If you leave your job</summary>
+      <div className="mt-3 space-y-3 text-sm">
+        <p className="text-muted">
+          A novated lease is a three-way deal between you, your employer and the lease provider.
+          When you leave, it usually either moves to you personally or to a new employer who agrees
+          to take it on. Not every employer will. If it becomes a personal lease, the payments come
+          out of your after-tax pay.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField
+            label="Months left on the lease"
+            suffix="months"
+            min={1}
+            max={result.months}
+            step={1}
+            value={monthsLeft}
+            onChange={(v) => setTyped(v === undefined ? undefined : Math.round(v))}
+          />
+          <SelectField
+            label="Show per"
+            value={per}
+            options={SHOW.map(({ value, label }) => ({ value, label }))}
+            onChange={(v) => setPer(v)}
+          />
+        </div>
+        {s && (
+          <>
+            <table className="num w-full text-sm">
+              <thead>
+                <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:font-medium">
+                  <th />
+                  <th>Packaged now</th>
+                  <th className="text-accent">Personal lease</th>
+                </tr>
+              </thead>
+              <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td:not(:first-child)]:text-right">
+                <tr>
+                  <td>Cost {show.per}</td>
+                  <td>{moneyExact(s.current[per])}</td>
+                  <td>{moneyExact(s.personal[per])}</td>
+                </tr>
+                <tr>
+                  <td>Cost a year</td>
+                  <td>{money(s.current.yearly)}</td>
+                  <td>{money(s.personal.yearly)}</td>
+                </tr>
+                <tr className="font-semibold">
+                  <td>Over {monthsLeft} months</td>
+                  <td>{money(s.currentTotal)}</td>
+                  <td>{money(s.personalTotal)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              {s.extra >= 0 ? (
+                <>
+                  As a personal lease it would cost about <strong>{money(s.extra)} more</strong>{" "}
+                  over the {monthsLeft} months left, because you lose the pre-tax saving and the GST
+                  credit.
+                </>
+              ) : (
+                <>
+                  As a personal lease it would cost about <strong>{money(-s.extra)} less</strong>{" "}
+                  over the {monthsLeft} months left.
+                </>
+              )}
+            </p>
+            <p className="text-muted">
+              The residual is still due at the end, whoever holds the lease:{" "}
+              <strong className="num text-text">{moneyExact(s.residualWithGst)}</strong> with GST,
+              to keep the car or hand it back and settle the difference.
+            </p>
+          </>
+        )}
+        <p className="text-xs text-muted">
+          Estimate only. We add GST back to the packaged amounts (except registration) because your
+          employer no longer claims it. Early exit fees, a different rate from a personal lender and
+          any new employer&apos;s terms can change this. Ask your provider what they&apos;d offer.
+        </p>
+      </div>
+    </details>
   );
 }

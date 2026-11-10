@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  type ConsolidationResult,
+  compareConsolidation,
   compareStrategies,
   type PayoffResult,
   simulatePayoff,
@@ -15,6 +17,9 @@ import { GoodToKnow } from "@/components/GoodToKnow";
 import { ResultsBar } from "@/components/ResultsBar";
 import { SavedBar } from "@/components/SavedBar";
 import {
+  BNPL_EVERY,
+  type BnplEvery,
+  type ConsolidateForm,
   type DebtPlanState,
   type DebtRow,
   decodeDebtState,
@@ -26,6 +31,7 @@ import {
   type PlanStrategy,
   syncOrder,
   type TransferForm,
+  toConsolidation,
   toPayoffInput,
   toTransfer,
 } from "@/lib/debtState";
@@ -81,7 +87,7 @@ export function DebtPlanner() {
 
   const setDebt = (id: string, patch: Partial<DebtRow>) =>
     setState((s) => ({ ...s, debts: s.debts.map((d) => (d.id === id ? { ...d, ...patch } : d)) }));
-  const addDebt = (kind: "card" | "loan") =>
+  const addDebt = (kind: "card" | "loan" | "bnpl") =>
     setState((s) => {
       const debts = [...s.debts, newDebt(nextId(s.debts), kind)];
       return { ...s, debts, order: syncOrder(s.order, debts) };
@@ -111,6 +117,12 @@ export function DebtPlanner() {
     }
   };
 
+  // Buy now pay later is paid on its own schedule, so it isn't in the order.
+  const orderIds = state.order.filter((id) =>
+    state.debts.some((d) => d.id === id && d.kind !== "bnpl"),
+  );
+  const hasBnpl = state.debts.some((d) => d.kind === "bnpl");
+
   const chosen = plans ? (plans[state.strategy] ?? plans.avalanche) : null;
 
   // The same plan with the ticked debts on a balance transfer card.
@@ -130,6 +142,17 @@ export function DebtPlanner() {
         .reduce((sum, d) => sum + Math.round(d.balance * 100), 0);
       const fee = card ? Math.max(0, card.balance - movedBalance) : 0;
       return { plan, minimumsOnly, transfer: t, fee };
+    } catch {
+      return null;
+    }
+  }, [state, chosen]);
+
+  // The same plan with the ticked debts rolled into a personal loan.
+  const consolidation = useMemo(() => {
+    const loan = toConsolidation(state);
+    if (!loan || !chosen) return null;
+    try {
+      return compareConsolidation({ ...toPayoffInput(state), strategy: state.strategy }, loan);
     } catch {
       return null;
     }
@@ -173,6 +196,13 @@ export function DebtPlanner() {
               >
                 + Loan
               </button>
+              <button
+                type="button"
+                onClick={() => addDebt("bnpl")}
+                className={`${chip} border-dashed border-border hover:border-accent hover:text-accent`}
+              >
+                + Buy now pay later
+              </button>
             </div>
           )}
 
@@ -213,7 +243,7 @@ export function DebtPlanner() {
               </fieldset>
               {state.strategy === "custom" && (
                 <ol className="col-span-2 space-y-1.5">
-                  {state.order.map((id, i) => {
+                  {orderIds.map((id, i) => {
                     const d = state.debts.find((x) => x.id === id);
                     if (!d) return null;
                     return (
@@ -235,7 +265,7 @@ export function DebtPlanner() {
                         <button
                           type="button"
                           aria-label={`Move ${d.name} down`}
-                          disabled={i === state.order.length - 1}
+                          disabled={i === orderIds.length - 1}
                           onClick={() => move(id, 1)}
                           className="px-1.5 text-muted hover:text-accent disabled:opacity-30"
                         >
@@ -245,6 +275,13 @@ export function DebtPlanner() {
                     );
                   })}
                 </ol>
+              )}
+              {hasBnpl && (
+                <p className="col-span-2 text-xs text-muted">
+                  Buy now pay later is paid on its own schedule, whichever order you pick. It
+                  isn&apos;t part of your monthly amount and doesn&apos;t get any extra. When it
+                  finishes, nothing moves to your other debts.
+                </p>
               )}
               <DateField
                 className="col-span-2"
@@ -257,9 +294,16 @@ export function DebtPlanner() {
           </div>
 
           <TransferCard
-            debts={state.debts}
+            debts={state.debts.filter((d) => d.kind !== "bnpl")}
             form={state.transfer}
             onChange={(patch) => setState((s) => ({ ...s, transfer: { ...s.transfer, ...patch } }))}
+          />
+          <ConsolidateCard
+            debts={state.debts.filter((d) => d.kind !== "bnpl")}
+            form={state.consolidate}
+            onChange={(patch) =>
+              setState((s) => ({ ...s, consolidate: { ...s.consolidate, ...patch } }))
+            }
           />
         </section>
 
@@ -285,6 +329,15 @@ export function DebtPlanner() {
                   movedNames={state.debts
                     .filter((d) => transfer.transfer.from.includes(d.id))
                     .map((d) => d.name || "Debt")}
+                />
+              )}
+              {consolidation && (
+                <ConsolidationResults
+                  r={consolidation}
+                  names={state.debts
+                    .filter((d) => toConsolidation(state)?.from.includes(d.id))
+                    .map((d) => d.name || "Debt")}
+                  months={Math.round(state.consolidate.months)}
                 />
               )}
               <Headline plan={chosen} baseline={plans.minimums} />
@@ -338,6 +391,7 @@ function DebtCard({
   onChange: (patch: Partial<DebtRow>) => void;
   onRemove?: () => void;
 }) {
+  const bnpl = d.kind === "bnpl";
   return (
     <div className={card}>
       <div className="mb-3 flex items-center gap-2">
@@ -354,58 +408,85 @@ function DebtCard({
           </button>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <MoneyField
-          label="Balance"
-          value={d.balance}
-          onChange={(v) => v !== undefined && onChange({ balance: v })}
-        />
-        <NumberField
-          label="Interest rate"
-          suffix="%"
-          min={0}
-          max={100}
-          step={0.01}
-          value={d.ratePct}
-          onChange={(v) => v !== undefined && onChange({ ratePct: v })}
-        />
-        <SelectField
-          className="col-span-2"
-          label="Minimum repayment"
-          value={d.minType}
-          options={[
-            { value: "fixed", label: "A set amount each month" },
-            { value: "percent", label: "A % of the balance (credit cards)" },
-          ]}
-          onChange={(minType) => onChange({ minType })}
-        />
-        {d.minType === "fixed" ? (
+      {bnpl ? (
+        <div className="grid grid-cols-2 gap-3">
           <MoneyField
-            className="col-span-2"
-            label="Each month"
+            label="Still to pay"
+            value={d.balance}
+            onChange={(v) => v !== undefined && onChange({ balance: v })}
+          />
+          <MoneyField
+            label="Each instalment"
             value={d.minAmount}
             onChange={(v) => v !== undefined && onChange({ minAmount: v })}
           />
-        ) : (
-          <>
-            <NumberField
-              label="Percent of balance"
-              suffix="%"
-              min={0.1}
-              max={100}
-              step={0.1}
-              value={d.minPct}
-              onChange={(v) => v !== undefined && onChange({ minPct: v })}
-            />
+          <SelectField
+            className="col-span-2"
+            label="How often"
+            value={String(d.everyDays ?? 14)}
+            options={BNPL_EVERY.map((o) => ({ value: String(o.value), label: o.label }))}
+            onChange={(v) => onChange({ everyDays: Number(v) as BnplEvery })}
+          />
+          <p className="col-span-2 text-xs text-muted">
+            Usually 0% interest, paid in fixed instalments. It&apos;s paid on this schedule whatever
+            you choose below, and isn&apos;t a target for extra repayments. Missed instalments can
+            bring late fees, which aren&apos;t included here.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <MoneyField
+            label="Balance"
+            value={d.balance}
+            onChange={(v) => v !== undefined && onChange({ balance: v })}
+          />
+          <NumberField
+            label="Interest rate"
+            suffix="%"
+            min={0}
+            max={100}
+            step={0.01}
+            value={d.ratePct}
+            onChange={(v) => v !== undefined && onChange({ ratePct: v })}
+          />
+          <SelectField
+            className="col-span-2"
+            label="Minimum repayment"
+            value={d.minType}
+            options={[
+              { value: "fixed", label: "A set amount each month" },
+              { value: "percent", label: "A % of the balance (credit cards)" },
+            ]}
+            onChange={(minType) => onChange({ minType })}
+          />
+          {d.minType === "fixed" ? (
             <MoneyField
-              label="Or at least"
-              hint="Check your statement."
-              value={d.minFloor}
-              onChange={(v) => v !== undefined && onChange({ minFloor: v })}
+              className="col-span-2"
+              label="Each month"
+              value={d.minAmount}
+              onChange={(v) => v !== undefined && onChange({ minAmount: v })}
             />
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <NumberField
+                label="Percent of balance"
+                suffix="%"
+                min={0.1}
+                max={100}
+                step={0.1}
+                value={d.minPct}
+                onChange={(v) => v !== undefined && onChange({ minPct: v })}
+              />
+              <MoneyField
+                label="Or at least"
+                hint="Check your statement."
+                value={d.minFloor}
+                onChange={(v) => v !== undefined && onChange({ minFloor: v })}
+              />
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -931,6 +1012,182 @@ function TransferResults({
           </p>
         </div>
       )}
+    </>
+  );
+}
+
+function ConsolidateCard({
+  debts,
+  form,
+  onChange,
+}: {
+  debts: DebtRow[];
+  form: ConsolidateForm;
+  onChange: (patch: Partial<ConsolidateForm>) => void;
+}) {
+  const toggle = (id: string, on: boolean) =>
+    onChange({ from: on ? [...form.from, id] : form.from.filter((x) => x !== id) });
+  return (
+    <div className={card}>
+      <h2 className="font-semibold">Try a consolidation loan</h2>
+      <p className="mb-3 text-xs text-muted">
+        Roll some debts into one personal loan and compare it with your plan.
+      </p>
+      <fieldset className="mb-3">
+        <legend className="mb-1 text-sm font-medium">Roll in these debts</legend>
+        <div className="space-y-1">
+          {debts.map((d) => (
+            <Checkbox
+              key={d.id}
+              className="flex min-h-9 items-center text-sm"
+              isSelected={form.from.includes(d.id)}
+              onChange={(on) => toggle(d.id, on)}
+            >
+              {d.name || "Debt"} ({money(Math.round(d.balance * 100))})
+            </Checkbox>
+          ))}
+        </div>
+      </fieldset>
+      {form.from.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField
+            label="Loan rate"
+            suffix="%"
+            min={0}
+            max={100}
+            step={0.01}
+            value={form.ratePct}
+            onChange={(v) => v !== undefined && onChange({ ratePct: v })}
+          />
+          <NumberField
+            label="Loan term"
+            suffix="months"
+            min={1}
+            max={120}
+            step={1}
+            value={form.months}
+            onChange={(v) => v !== undefined && onChange({ months: Math.round(v) })}
+          />
+          <MoneyField
+            className="col-span-2"
+            label="Upfront fees"
+            hint="Added to the loan. Ongoing fees aren't included."
+            value={form.fee}
+            optional
+            placeholder="0"
+            onChange={(v) => onChange({ fee: v ?? 0 })}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConsolidationResults({
+  r,
+  names,
+  months: term,
+}: {
+  r: ConsolidationResult;
+  names: string[];
+  months: number;
+}) {
+  const { now, withLoan } = r;
+  const better = r.saving >= 0;
+  return (
+    <>
+      <div className="space-y-3 rounded-2xl bg-primary-container p-5 text-on-primary-container sm:p-6">
+        <p className="text-lg leading-relaxed sm:text-xl">
+          {!withLoan.paidOff ? (
+            <>With the loan, these debts still aren&apos;t repaid at this budget.</>
+          ) : (
+            <>
+              Rolling these into a loan, you&apos;d be debt-free in{" "}
+              <strong>{monthYear(withLoan.debtFreeDate)}</strong>
+              {r.monthsSooner > 0 ? (
+                <>, {months(r.monthsSooner)} sooner,</>
+              ) : r.monthsSooner < 0 ? (
+                <>, {months(-r.monthsSooner)} later,</>
+              ) : (
+                ","
+              )}{" "}
+              and pay{" "}
+              <strong className="num">
+                {money(Math.abs(r.saving))} {better ? "less" : "more"}
+              </strong>{" "}
+              in interest and fees.
+            </>
+          )}
+        </p>
+        {r.fee > 0 && (
+          <div className="flex flex-wrap gap-2 text-sm">
+            <span className="num rounded-full bg-white/60 px-3 py-1.5">
+              {money(r.fee)} in fees included
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className={`${card} overflow-x-auto`}>
+        <h2 className="mb-3 font-semibold">Your plan vs the loan</h2>
+        <table className="num w-full min-w-[360px] text-sm">
+          <thead>
+            <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:font-medium">
+              <th />
+              <th>As you are</th>
+              <th className="text-accent">With the loan</th>
+            </tr>
+          </thead>
+          <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td:not(:first-child)]:text-right">
+            <tr>
+              <td>Repayment on these debts</td>
+              <td>{moneyExact(r.currentMinimums)} minimums</td>
+              <td>{moneyExact(r.loanRepayment)} fixed</td>
+            </tr>
+            <tr>
+              <td>Paid each month in total</td>
+              <td>{moneyExact(now.monthlyBudget)}</td>
+              <td>{moneyExact(withLoan.monthlyBudget)}</td>
+            </tr>
+            <tr>
+              <td>Debt-free</td>
+              <td>{now.paidOff ? monthYear(now.debtFreeDate) : "Never"}</td>
+              <td>{withLoan.paidOff ? monthYear(withLoan.debtFreeDate) : "Never"}</td>
+            </tr>
+            <tr>
+              <td>Interest</td>
+              <td>{money(now.totalInterest)}</td>
+              <td>{money(withLoan.totalInterest)}</td>
+            </tr>
+            <tr>
+              <td>Fees</td>
+              <td>–</td>
+              <td>{money(r.fee)}</td>
+            </tr>
+            <tr className="font-semibold">
+              <td>Interest and fees</td>
+              <td>{money(r.costNow)}</td>
+              <td className={better ? "text-good" : "text-warn"}>{money(r.costWithLoan)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="mt-2 text-xs text-muted">
+          Rolling in: {names.join(", ")}. The loan runs {term} months.
+        </p>
+      </div>
+
+      <div className={`${card} space-y-2 text-sm text-muted`}>
+        <h2 className="font-semibold text-text">Worth knowing</h2>
+        <p>
+          A consolidation loan only helps if the old cards stay at a low balance. If they&apos;re
+          run back up, you end up with the loan and the new debt.
+        </p>
+        <p>
+          Fees count. A lower rate can still cost more overall once fees are added, or if the loan
+          runs for much longer than you&apos;d otherwise take to pay the debts off. Your extra each
+          month is the same in both plans, and the loan&apos;s repayment is fixed.
+        </p>
+      </div>
     </>
   );
 }
