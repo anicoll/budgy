@@ -28,7 +28,10 @@ export interface Scenario {
   lumpSum?: { amount: number; date: string; yearly: boolean };
   rateChange?: { date: string; ratePct: number; followMinimum?: boolean };
   frequency?: Frequency;
+  interestOnlyYears?: number; // interest-only period from the start, 0 to 10
 }
+
+export const MAX_INTEREST_ONLY_YEARS = 10;
 
 export interface CalculatorState {
   base: BaseLoan;
@@ -83,7 +86,8 @@ export function toLoanInput(base: BaseLoan): LoanInput {
   };
 }
 
-export function toChanges(s: Scenario): ScenarioChanges {
+/** `termYears` keeps an interest-only period shorter than the loan's term. */
+export function toChanges(s: Scenario, termYears?: number): ScenarioChanges {
   const c: ScenarioChanges = {};
   if (s.extra) c.extraPerPeriod = toCents(s.extra);
   if (s.offset !== undefined) c.offsetBalance = toCents(s.offset);
@@ -98,6 +102,11 @@ export function toChanges(s: Scenario): ScenarioChanges {
     if (s.rateChange.followMinimum) c.followMinimum = true;
   }
   if (s.frequency) c.frequency = s.frequency;
+  if (s.interestOnlyYears && s.interestOnlyYears > 0) {
+    const cap = termYears === undefined ? Number.POSITIVE_INFINITY : Math.round(termYears * 12) - 1;
+    const months = Math.min(Math.round(s.interestOnlyYears * 12), cap);
+    if (months > 0) c.interestOnlyMonths = months;
+  }
   return c;
 }
 
@@ -160,6 +169,7 @@ export function encodeState(state: CalculatorState): string {
         ? [s.rateChange.date, s.rateChange.ratePct, ...(s.rateChange.followMinimum ? [1] : [])]
         : undefined,
       f: s.frequency ? FREQ[s.frequency] : undefined,
+      i: s.interestOnlyYears ? s.interestOnlyYears : undefined,
     })),
   };
   return new URLSearchParams({
@@ -173,6 +183,12 @@ const num = (v: unknown, fallback: number) =>
 const date = (v: unknown, fallback: string) =>
   typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : fallback;
 const optNum = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+
+/** An interest-only period in years, up to 10; anything else means none. */
+const ioYears = (v: unknown) =>
+  typeof v === "number" && Number.isFinite(v) && v > 0
+    ? Math.min(MAX_INTEREST_ONLY_YEARS, v)
+    : undefined;
 
 /** Read state from a query string. Anything missing or broken falls back to defaults. */
 export function decodeState(query: string, fallback = defaultState()): CalculatorState {
@@ -213,6 +229,7 @@ export function decodeState(query: string, fallback = defaultState()): Calculato
               }
             : undefined,
           frequency: typeof s.f === "string" ? FREQ_BACK[s.f] : undefined,
+          interestOnlyYears: ioYears(s.i),
         };
       });
     return { base, scenarios };

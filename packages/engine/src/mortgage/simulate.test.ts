@@ -276,3 +276,73 @@ describe("scenarios", () => {
     expect(solveExtraRepayment(BASE, "2060-01-01")).toBe(0);
   });
 });
+
+describe("simulateLoan: interest-only period", () => {
+  const plain = simulateLoan(BASE);
+  const io = simulateLoan({ ...BASE, interestOnlyMonths: 60 });
+  const at = (r: typeof io, iso: string) => r.balances.find((b) => b.date === iso)?.balance ?? 0;
+
+  it("costs more total interest than straight principal and interest", () => {
+    expect(io.totalInterest).toBeGreaterThan(plain.totalInterest);
+  });
+
+  it("pays interest only at the start, then jumps to the P&I minimum over the rest of the term", () => {
+    // $500k at 6% is $2,500 a month of interest.
+    expect(io.repayment).toBe(250_000);
+    const expected = minimumRepayment(50_000_000, 0.06, 300, "monthly");
+    // Worked out on the balance at the time, which drifts a little from the start.
+    expect(Math.abs((io.afterInterestOnly?.repayment ?? 0) - expected)).toBeLessThan(500);
+    expect(io.afterInterestOnly?.repayment).toBeGreaterThan(io.repayment);
+    expect(io.afterInterestOnly?.date).toBe(addMonths(BASE.startDate, 60));
+    const ev = io.events.find((e) => e.type === "interest-only-ends");
+    expect(ev).toMatchObject({ from: 250_000 });
+  });
+
+  it("keeps the balance about flat while interest only, then pays it down", () => {
+    const end = at(io, addMonths(BASE.startDate, 60));
+    // Months differ in length, so allow some drift.
+    expect(Math.abs(end - BASE.balance)).toBeLessThan(150_000);
+    expect(at(io, addMonths(BASE.startDate, 120))).toBeLessThan(end);
+  });
+
+  it("still pays off by the end of the term", () => {
+    expect(io.paidOff).toBe(true);
+    expect(Math.abs(io.repaymentCount - 360)).toBeLessThanOrEqual(1);
+  });
+
+  it("extras and offset still reduce the balance during the period", () => {
+    const d = addMonths(BASE.startDate, 36);
+    const withExtra = simulateLoan({
+      ...BASE,
+      interestOnlyMonths: 60,
+      extraPerPeriod: cents(50_000),
+    });
+    expect(at(withExtra, d)).toBeLessThan(at(io, d) - 1_000_000);
+    const withOffset = simulateLoan({
+      ...BASE,
+      interestOnlyMonths: 60,
+      offsetBalance: cents(100_000),
+    });
+    expect(withOffset.totalInterest).toBeLessThan(io.totalInterest);
+    expect(at(withOffset, d)).toBeLessThan(at(io, d));
+  });
+
+  it("zero months matches no interest-only period", () => {
+    expect(simulateLoan({ ...BASE, interestOnlyMonths: 0 })).toEqual(plain);
+  });
+
+  it("follows a rate change while interest only", () => {
+    const r = simulateLoan({
+      ...BASE,
+      interestOnlyMonths: 60,
+      rateChanges: [{ date: "2027-01-15", annualRate: 0.07 }],
+    });
+    expect(r.events.some((e) => e.type === "repayment-raised")).toBe(true);
+    expect(r.paidOff).toBe(true);
+  });
+
+  it("rejects an interest-only period as long as the term", () => {
+    expect(validateLoan({ ...BASE, interestOnlyMonths: 360 })).toHaveLength(1);
+    expect(validateLoan({ ...BASE, interestOnlyMonths: -1 })).toHaveLength(1);
+  });
+});
