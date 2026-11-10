@@ -25,7 +25,7 @@ export function compareLeases(
 ): LeaseComparison {
   const diff = a.years[0].cost - b.years[0].cost;
   const perPay = Math.abs(diff) / pays;
-  const cheaper = perPay < 1 ? null : diff < 0 ? 0 : 1;
+  const cheaper = perPay < 100 ? null : diff < 0 ? 0 : 1;
   return {
     cheaper,
     perPaySaving: Math.round(perPay) as Cents,
