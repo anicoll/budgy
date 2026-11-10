@@ -1,4 +1,4 @@
-import type { Cents, Debt, DebtStrategy, PayoffInput } from "@budgy/engine";
+import type { BalanceTransfer, Cents, Debt, DebtStrategy, PayoffInput } from "@budgy/engine";
 import { b64urlDecode, b64urlEncode, today } from "./state";
 
 /** One debt as the person types it, in dollars and percent. */
@@ -22,7 +22,25 @@ export interface DebtPlanState {
   order: string[]; // custom priority, debt ids
   startDate: string;
   target?: string; // optional "debt-free by" date
+  transfer: TransferForm;
 }
+
+/** A balance transfer to try, in percent and months. Off when `from` is empty. */
+export interface TransferForm {
+  from: string[]; // debt ids moved onto the new card
+  promoPct: number;
+  months: number;
+  feePct: number;
+  revertPct: number;
+}
+
+export const defaultTransfer = (): TransferForm => ({
+  from: [],
+  promoPct: 0,
+  months: 24,
+  feePct: 2,
+  revertPct: 21.99,
+});
 
 export const MAX_ROWS = 12;
 
@@ -66,6 +84,7 @@ export function defaultDebtState(start = today()): DebtPlanState {
     strategy: "avalanche",
     order: ["d1", "d2", "d3"],
     startDate: start,
+    transfer: defaultTransfer(),
   };
 }
 
@@ -90,6 +109,23 @@ export function toPayoffInput(s: DebtPlanState): Omit<PayoffInput, "strategy"> {
     extraPerMonth: toCents(s.extra),
     order: s.order,
     startDate: s.startDate,
+  };
+}
+
+/** The transfer as the engine takes it, or null when no debt is ticked. */
+export function toTransfer(s: DebtPlanState): BalanceTransfer | null {
+  const t = s.transfer;
+  const from = t.from.filter((id) => s.debts.some((d) => d.id === id));
+  if (!from.length) return null;
+  return {
+    from,
+    name: "Transfer card",
+    promoRate: t.promoPct / 100,
+    promoMonths: Math.round(t.months),
+    revertRate: t.revertPct / 100,
+    feePercent: t.feePct / 100,
+    // Most Australian cards: 2% of the balance or $25, whichever is more.
+    minimum: { type: "percent", percent: 0.02, floor: toCents(25) },
   };
 }
 
@@ -125,6 +161,17 @@ export function encodeDebtState(s: DebtPlanState): string {
     o: s.order,
     t: s.startDate,
     g: s.target,
+    ...(s.transfer.from.length
+      ? {
+          b: [
+            s.transfer.from,
+            s.transfer.promoPct,
+            s.transfer.months,
+            s.transfer.feePct,
+            s.transfer.revertPct,
+          ],
+        }
+      : {}),
   };
   return new URLSearchParams({
     v: String(DEBT_URL_VERSION),
@@ -168,8 +215,22 @@ export function decodeDebtState(query: string, fallback = defaultDebtState()): D
       ),
       startDate: isDate(c.t) ? c.t : fallback.startDate,
       target: isDate(c.g) ? c.g : undefined,
+      transfer: decodeTransfer(c.b, debts),
     };
   } catch {
     return fallback;
   }
+}
+
+function decodeTransfer(b: unknown, debts: DebtRow[]): TransferForm {
+  const d = defaultTransfer();
+  if (!Array.isArray(b)) return d;
+  const ids = debts.map((r) => r.id);
+  return {
+    from: Array.isArray(b[0]) ? b[0].filter((x: unknown) => ids.includes(x as string)) : [],
+    promoPct: Math.min(100, Math.max(0, num(b[1], d.promoPct))),
+    months: Math.min(120, Math.max(1, Math.round(num(b[2], d.months)))),
+    feePct: Math.min(20, Math.max(0, num(b[3], d.feePct))),
+    revertPct: Math.min(100, Math.max(0, num(b[4], d.revertPct))),
+  };
 }
