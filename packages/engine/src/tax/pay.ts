@@ -258,7 +258,7 @@ function core(input: PayInput, rules: TaxRules, sup: SuperRules): Core {
   const sacrifice = Math.min(amt(input.salarySacrifice), gross) as Cents;
   const packaging = Math.min(amt(input.otherPackaging), gross - sacrifice) as Cents;
   const cash = gross - sacrifice - packaging;
-  const deductions = Math.min(amt(input.deductions), cash) as Cents;
+  const deductions = Math.max(0, Math.min(amt(input.deductions), cash)) as Cents;
   const taxable = (cash - deductions) as Cents;
 
   const residency = input.residency ?? "resident";

@@ -554,8 +554,8 @@ function MoreOptions({ state, set }: { state: PayState; set: (patch: Partial<Pay
             onChange={(v) => set({ fringe: v ?? 0 })}
           />
           <MoneyField
-            label="Tax deductions"
-            hint="A year, such as work expenses. Comes back at tax time"
+            label="Work deductions"
+            hint="Work-related expenses you'll claim at tax time, like tools, uniforms or courses. A yearly total. They don't change your pay slips."
             value={state.deductions}
             onChange={(v) => set({ deductions: v ?? 0 })}
           />

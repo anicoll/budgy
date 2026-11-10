@@ -4,8 +4,10 @@ import {
   decodeDebtState,
   defaultDebtState,
   encodeDebtState,
+  newDebt,
   nextId,
   syncOrder,
+  toConsolidation,
   toDebt,
   toTransfer,
 } from "./debtState";
@@ -31,6 +33,46 @@ describe("debt URL state", () => {
     expect(decodeDebtState(encodeDebtState(withBt))).toEqual(withBt);
     const stale = { ...withBt, transfer: { ...withBt.transfer, from: ["d1", "d7"] } };
     expect(decodeDebtState(encodeDebtState(stale)).transfer.from).toEqual(["d1"]);
+  });
+
+  it("round-trips a buy now pay later debt and a consolidation loan", () => {
+    const withBoth: DebtPlanState = {
+      ...FULL,
+      debts: [...FULL.debts, { ...newDebt("d4", "bnpl"), name: "Afterpay", everyDays: 7 }],
+      order: ["d1", "d2", "d3", "d4"],
+      consolidate: { from: ["d1", "d3"], ratePct: 8.5, months: 48, fee: 300 },
+    };
+    expect(decodeDebtState(encodeDebtState(withBoth))).toEqual(withBoth);
+    // BNPL can't be rolled into a loan, so a stale link drops it.
+    const stale = { ...withBoth, consolidate: { ...withBoth.consolidate, from: ["d1", "d4"] } };
+    expect(decodeDebtState(encodeDebtState(stale)).consolidate.from).toEqual(["d1"]);
+    expect(toConsolidation(FULL)).toBeNull();
+    expect(toConsolidation(withBoth)).toMatchObject({
+      from: ["d1", "d3"],
+      termMonths: 48,
+      upfrontFee: 30_000,
+    });
+  });
+
+  it("still decodes a link made before BNPL and consolidation existed", () => {
+    const json = JSON.stringify({
+      d: [["d1", "Card", 1000, 20, 0, 50, 2, 0]],
+      x: 0,
+      k: 0,
+      o: ["d1"],
+      t: "2026-11-04",
+    });
+    const s = Buffer.from(json).toString("base64url");
+    const out = decodeDebtState(new URLSearchParams({ v: "1", s }).toString());
+    expect(out.debts[0].balance).toBe(1000);
+    expect(out.debts[0].kind).toBeUndefined();
+    expect(out.consolidate.from).toEqual([]);
+  });
+
+  it("turns buy now pay later into a fixed schedule at 0%", () => {
+    const d = toDebt(newDebt("d4", "bnpl"));
+    expect(d.annualRate).toBe(0);
+    expect(d.schedule).toEqual({ instalment: 10_000, everyDays: 14 });
   });
 
   it("turns the transfer form into the engine's input, or null when off", () => {
