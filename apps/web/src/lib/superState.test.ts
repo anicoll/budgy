@@ -1,7 +1,9 @@
 import { projectSuper } from "@budgy/engine";
 import { describe, expect, it } from "vitest";
+import { b64urlDecode, b64urlEncode } from "./state";
 import {
   decodeSuperState,
+  defaultPension,
   defaultSuperState,
   encodeSuperState,
   newAccount,
@@ -38,11 +40,20 @@ const FULL: SuperState = {
   incomeUntil: 92,
   startDate: "2026-11-04",
   extraPerWeek: 75,
+  pension: { homeowner: false, savings: 40_000, otherAssets: 15_500, otherIncome: 120 },
 };
 
 describe("super URL state", () => {
   it("round-trips every field", () => {
     expect(decodeSuperState(encodeSuperState(FULL))).toEqual(FULL);
+  });
+
+  it("keeps a link from before the Age Pension, with its defaults", () => {
+    const q = new URLSearchParams(encodeSuperState(FULL));
+    const c = JSON.parse(b64urlDecode(q.get("s") ?? ""));
+    delete c.a;
+    q.set("s", b64urlEncode(JSON.stringify(c)));
+    expect(decodeSuperState(q.toString()).pension).toEqual(defaultPension());
   });
 
   it("falls back for junk, a wrong version or no people", () => {
