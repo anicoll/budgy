@@ -13,6 +13,7 @@ import {
 import { useDeferredValue, useMemo, useState } from "react";
 import { BenefitChart } from "@/components/BenefitChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
+import { GoodToKnow } from "@/components/GoodToKnow";
 import { RateChart } from "@/components/RateChart";
 import { SavedBar } from "@/components/SavedBar";
 import {
@@ -293,6 +294,7 @@ export function FixedVariableCalculator() {
           ) : (
             <Results r={result} form={form} onChange={set} onCopy={copyLink} copied={copied} />
           )}
+          <GoodToKnow tool="fixed" />
           <Method />
         </section>
       </div>
