@@ -26,7 +26,7 @@ export interface Scenario {
   offset?: number; // replaces the base offset
   offsetDeposit?: number; // dollars per month
   lumpSum?: { amount: number; date: string; yearly: boolean };
-  rateChange?: { date: string; ratePct: number };
+  rateChange?: { date: string; ratePct: number; followMinimum?: boolean };
   frequency?: Frequency;
 }
 
@@ -95,6 +95,7 @@ export function toChanges(s: Scenario): ScenarioChanges {
   }
   if (s.rateChange) {
     c.rateChanges = [{ date: s.rateChange.date, annualRate: s.rateChange.ratePct / 100 }];
+    if (s.rateChange.followMinimum) c.followMinimum = true;
   }
   if (s.frequency) c.frequency = s.frequency;
   return c;
@@ -155,7 +156,9 @@ export function encodeState(state: CalculatorState): string {
       o: s.offset,
       d: s.offsetDeposit,
       l: s.lumpSum ? [s.lumpSum.amount, s.lumpSum.date, s.lumpSum.yearly ? 1 : 0] : undefined,
-      r: s.rateChange ? [s.rateChange.date, s.rateChange.ratePct] : undefined,
+      r: s.rateChange
+        ? [s.rateChange.date, s.rateChange.ratePct, ...(s.rateChange.followMinimum ? [1] : [])]
+        : undefined,
       f: s.frequency ? FREQ[s.frequency] : undefined,
     })),
   };
@@ -203,7 +206,11 @@ export function decodeState(query: string, fallback = defaultState()): Calculato
             ? { amount: num(l[0], 0), date: date(l[1], base.startDate), yearly: l[2] === 1 }
             : undefined,
           rateChange: r
-            ? { date: date(r[0], base.startDate), ratePct: num(r[1], base.ratePct) }
+            ? {
+                date: date(r[0], base.startDate),
+                ratePct: num(r[1], base.ratePct),
+                ...(r[2] === 1 ? { followMinimum: true } : {}),
+              }
             : undefined,
           frequency: typeof s.f === "string" ? FREQ_BACK[s.f] : undefined,
         };

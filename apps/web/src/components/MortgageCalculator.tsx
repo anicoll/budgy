@@ -417,6 +417,28 @@ function ScenarioCard({
         ) : (
           <div />
         )}
+        {sc.rateChange && sc.rateChange.ratePct < baseRatePct && (
+          <SelectField
+            className="col-span-2"
+            label="When the rate falls"
+            hint="Lenders often lower your minimum. Paying the same clears the loan sooner."
+            value={sc.rateChange.followMinimum ? "minimum" : "keep"}
+            options={[
+              { value: "keep", label: "Keep paying the same" },
+              { value: "minimum", label: "Pay the new, lower minimum" },
+            ]}
+            onChange={(v) =>
+              sc.rateChange &&
+              onChange({
+                rateChange: {
+                  date: sc.rateChange.date,
+                  ratePct: sc.rateChange.ratePct,
+                  ...(v === "minimum" ? { followMinimum: true } : {}),
+                },
+              })
+            }
+          />
+        )}
         <SelectField
           className="col-span-2"
           label="Repayments"
@@ -674,9 +696,10 @@ function Method() {
         </p>
         <p>
           When the rate changes, the minimum is worked out again over the years left. If you already
-          pay more than the new minimum, you keep paying the same; if you pay less, it rises to the
-          minimum. Extra repayments and lump sums cut the balance on the day they are paid, and in a
-          real loan usually sit in redraw.
+          pay more than the new minimum, you keep paying the same, unless you pick the new, lower
+          minimum when the rate falls. If you pay less, it rises to the minimum. Extra repayments
+          and lump sums cut the balance on the day they are paid, and in a real loan usually sit in
+          redraw.
         </p>
         <p>
           Your bank&apos;s figures may differ by a few dollars because of rounding, fees and the
