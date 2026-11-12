@@ -51,6 +51,29 @@ function fbtCell(r: NovatedLeaseResult) {
   return "Paid from after-tax pay";
 }
 
+/** One live line for the "Compare a second car" idea card. */
+export function compareLine(state: LeaseState, result: NovatedLeaseResult): string | null {
+  const alt = altCar(state);
+  const second = (() => {
+    const input = toLeaseInput(withAltCar(state));
+    return validateLease(input).length ? null : safe(() => calculateNovatedLease(input));
+  })();
+  if (!second) return null;
+  const per = PER[state.show];
+  const cmp = compareLeases(result, second, per.pays, [
+    toLeaseInput(state).price,
+    toLeaseInput(withAltCar(state)).price,
+  ]);
+  if (cmp.cheaper === null || cmp.cheaper === undefined) return "Both cars cost about the same.";
+  const same = state.car === alt.car;
+  const name = same
+    ? cmp.cheaper === 0
+      ? "Car 1"
+      : "Car 2"
+    : `The ${KIND_NAME[cmp.cheaper === 0 ? state.car : alt.car]} car`;
+  return `${name} costs about ${money(cmp.perPaySaving)} less each ${per.text}.`;
+}
+
 /**
  * Two cars side by side on the same pay, term and rate: the lease above and a
  * second car. Self-contained: it reads the lease form and runs the same engine.
