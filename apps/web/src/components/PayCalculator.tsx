@@ -12,7 +12,24 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
-import { SavedBar } from "@/components/SavedBar";
+import { NextSteps } from "@/components/NextSteps";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  EditSheet,
+  IdeaCard,
+  Ideas,
+  openDisclosure,
+  SummaryRow,
+  SummaryRows,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+  useEditSheet,
+  useIdea,
+} from "@/components/tool";
 import { budgetLinkFromPay } from "@/lib/budgetState";
 import { money, moneyExact } from "@/lib/format";
 import { PAY_PEOPLE } from "@/lib/household";
@@ -92,8 +109,7 @@ function safePay(state: PayState, amount?: number): PayResult | null {
 export function PayCalculator() {
   const saved = useSavedState(PAY_SAVED);
   const { state, setState } = saved;
-  const [moreOpen, setMoreOpen] = useState<boolean | null>(null);
-  const [copied, setCopied] = useState(false);
+  const { ref: sheet, open: edit } = useEditSheet();
   const set = (patch: Partial<PayState>) => setState((s) => ({ ...s, ...patch }));
 
   const result = useMemo(() => safePay(state), [state]);
@@ -101,7 +117,6 @@ export function PayCalculator() {
     () => (state.view === "compare" ? safePay(state, state.compareAmount) : null),
     [state],
   );
-  const more = moreOpen ?? hasAdvanced(state);
 
   // The lease saved on this device, and whether the home page said there is one.
   const [savedLease, setSavedLease] = useState<{ lease: LeaseInPay | null; says: boolean }>({
@@ -126,29 +141,73 @@ export function PayCalculator() {
       };
     });
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked: the address bar still has the link */
-    }
-  };
-
   const show = state.show;
   const period = result ? result.periods[show] : null;
 
+  const yourPay = (
+    <ToolSection id="pay-h" title="Your pay">
+      <div className={`${card} space-y-4`}>
+        <div className="space-y-2">
+          <MoneyField
+            label="Salary"
+            value={state.amount}
+            onChange={(v) => v !== undefined && set({ amount: v })}
+          />
+          <Segmented label="Salary is per" options={ENTRY} value={state.per} onChange={switchPer} />
+          {state.per === "hour" && (
+            <NumberField
+              label="Hours a week"
+              min={1}
+              max={100}
+              step={0.5}
+              value={state.hoursPerWeek}
+              onChange={(v) => v !== undefined && set({ hoursPerWeek: v })}
+            />
+          )}
+        </div>
+        <SelectField
+          label="Financial year"
+          value={state.year}
+          onChange={(year) => set({ year })}
+          options={PAY_YEARS.map((y) => ({
+            value: y,
+            label:
+              y === defaultPayState().year
+                ? `${y} (this year)`
+                : y === "2027-28"
+                  ? `${y} (14% rate cut)`
+                  : y,
+          }))}
+        />
+      </div>
+      <SummaryRows>
+        <SummaryRow
+          title="Super, HELP and lease"
+          hint={`${state.includesSuper ? "super included" : "super on top"} · ${
+            state.studyLoan ? "HELP loan" : "no HELP loan"
+          }${state.lease ? " · novated lease" : ""}`}
+          onClick={() => edit("pay-checks")}
+        />
+        <SummaryRow
+          title="More options"
+          hint={
+            hasAdvanced(state)
+              ? "changed from the usual"
+              : "super, overtime, packaging, tax situation"
+          }
+          onClick={() => edit("pay-more")}
+        />
+      </SummaryRows>
+    </ToolSection>
+  );
+
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Pay calculator</h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          What you take home each week, fortnight or month after tax, Medicare and HELP, using the
-          ATO&apos;s {state.year} rates. Your numbers never leave your device.
-        </p>
-        <SavedBar saved={saved} />
-      </header>
+    <ToolPage>
+      <ToolHeader
+        title="Pay calculator"
+        intro={`What you take home after tax, Medicare and HELP, on the ATO's ${state.year} rates.`}
+        saved={saved}
+      />
 
       {result && period && (
         <div
@@ -175,35 +234,45 @@ export function PayCalculator() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
-        {/* ── Inputs ─────────────────────────────────────────────── */}
-        <section className={`${card} space-y-5 self-start`} aria-label="Your pay">
-          <h2 className="font-semibold">Your pay</h2>
+      <div className="space-y-8" aria-live="polite">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Segmented
+            label="View"
+            options={[
+              { value: "pay", label: "Your pay" },
+              { value: "compare", label: "Compare two salaries" },
+            ]}
+            value={state.view}
+            onChange={(view) => set({ view })}
+            pill
+          />
+          <PeriodTabs value={show} onChange={(s) => set({ show: s })} />
+        </div>
 
-          <div className="space-y-2">
-            <MoneyField
-              label="Salary"
-              value={state.amount}
-              onChange={(v) => v !== undefined && set({ amount: v })}
-            />
-            <Segmented
-              label="Salary is per"
-              options={ENTRY}
-              value={state.per}
-              onChange={switchPer}
-            />
-            {state.per === "hour" && (
-              <NumberField
-                label="Hours a week"
-                min={1}
-                max={100}
-                step={0.5}
-                value={state.hoursPerWeek}
-                onChange={(v) => v !== undefined && set({ hoursPerWeek: v })}
-              />
-            )}
-          </div>
+        {!result || !period ? (
+          <>
+            <div className={card}>
+              <p className="text-warn">
+                {validatePay(toPayInput(state)).join(" ") || "Check your inputs."}
+              </p>
+            </div>
+            {yourPay}
+            <PayDetail state={state} />
+          </>
+        ) : state.view === "compare" ? (
+          <>
+            <CompareView state={state} set={set} now={result} other={compare} />
+            {yourPay}
+            <PayDetail state={state} result={result} />
+          </>
+        ) : (
+          <PayView state={state} set={set} result={result} yourPay={yourPay} />
+        )}
+      </div>
 
+      <EditSheet ref={sheet} title="Your pay details">
+        <div id="pay-checks" className={`${card} scroll-mt-20 space-y-5`}>
+          <h2 className="font-semibold">Super, HELP and lease</h2>
           <Check
             label="This amount includes super"
             checked={state.includesSuper}
@@ -214,87 +283,19 @@ export function PayCalculator() {
             checked={state.studyLoan}
             onChange={(v) => set({ studyLoan: v })}
           />
-
           <LeaseOption
             state={state}
             saved={savedLease.lease}
             says={savedLease.says}
             onToggle={setLease}
           />
-
-          <SelectField
-            label="Financial year"
-            value={state.year}
-            onChange={(year) => set({ year })}
-            options={PAY_YEARS.map((y) => ({
-              value: y,
-              label:
-                y === defaultPayState().year
-                  ? `${y} (this year)`
-                  : y === "2027-28"
-                    ? `${y} (14% rate cut)`
-                    : y,
-            }))}
-          />
-
-          <button
-            type="button"
-            className="text-left text-sm font-medium text-accent hover:underline"
-            aria-expanded={more}
-            onClick={() => setMoreOpen(!more)}
-          >
-            {more ? "Fewer options" : "More options: super, overtime, packaging, tax situation"}
-          </button>
-
-          {more && <MoreOptions state={state} set={set} />}
-        </section>
-
-        {/* ── Results ────────────────────────────────────────────── */}
-        <section className="min-w-0 space-y-4" aria-label="Results">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Segmented
-              label="View"
-              options={[
-                { value: "pay", label: "Your pay" },
-                { value: "compare", label: "Compare two salaries" },
-              ]}
-              value={state.view}
-              onChange={(view) => set({ view })}
-              pill
-            />
-            <PeriodTabs value={show} onChange={(s) => set({ show: s })} />
-          </div>
-
-          {!result || !period ? (
-            <div className={card}>
-              <p className="text-warn">
-                {validatePay(toPayInput(state)).join(" ") || "Check your inputs."}
-              </p>
-            </div>
-          ) : state.view === "compare" ? (
-            <CompareView state={state} set={set} now={result} other={compare} />
-          ) : (
-            <PayView state={state} set={set} result={result} />
-          )}
-
-          {result && (
-            <a
-              href={budgetLinkFromPay(state)}
-              className={`${card} block font-medium text-accent transition hover:border-accent`}
-            >
-              Plan a budget with this pay →
-              <span className="mt-1 block text-sm font-normal text-muted">
-                Start the budget planner from {moneyExact(result.periods.monthly.net)} a month
-                take-home.
-              </span>
-            </a>
-          )}
-
-          <GoodToKnow tool="pay" />
-          {result && <Footer result={result} copied={copied} onCopy={copyLink} />}
-        </section>
-      </div>
-    </main>
+        </div>
+        <div id="pay-more" className={`${card} scroll-mt-20 space-y-5`}>
+          <h2 className="font-semibold">More options</h2>
+          <MoreOptions state={state} set={set} />
+        </div>
+      </EditSheet>
+    </ToolPage>
   );
 }
 
@@ -826,10 +827,12 @@ function PayView({
   state,
   set,
   result,
+  yourPay,
 }: {
   state: PayState;
   set: (patch: Partial<PayState>) => void;
   result: PayResult;
+  yourPay: React.ReactNode;
 }) {
   const p = result.periods[state.show];
   const rate = result.marginalRate;
@@ -843,106 +846,187 @@ function PayView({
   }, [state, raise]);
   const slipFreq = state.show === "annual" ? "fortnightly" : state.show;
   const slip = result.withholding?.[slipFreq];
+  const { idea, toggle } = useIdea<"raise">();
 
   return (
     <>
-      <div className={`${card} sm:p-6`}>
-        <p className="text-muted">You take home</p>
-        <p className="num mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
-          {moneyExact(p.net)}{" "}
-          <span className="text-lg font-medium text-muted sm:text-xl">{perLabel(state.show)}</span>
-        </p>
-        <p className="mt-1.5 text-sm text-muted">
-          Plus {moneyExact(p.employerSuper)} in super from your employer
-          {result.salarySacrifice > 0 ? ", including your salary sacrifice" : ""}
-        </p>
-        {slip && Math.abs(slip.atTaxTime) >= 100_00 && (
-          <a
-            href="#pay-slip"
-            className={`num mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${
-              slip.atTaxTime > 0 ? "bg-good/10 text-good" : "bg-warn/10 text-warn"
-            }`}
-          >
-            {slip.atTaxTime > 0
-              ? `About ${money(slip.atTaxTime)} back at tax time`
-              : `About ${money(-slip.atTaxTime)} to pay at tax time`}
-            <span aria-hidden="true">↓</span>
-          </a>
-        )}
-        <Breakdown a={result} />
-        <PayTable result={result} lease={Boolean(state.lease)} />
-        <PeriodList a={p} lease={Boolean(state.lease)} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className={card}>
-          <p className="text-sm text-muted">Marginal rate</p>
-          <p className="num mt-1 text-2xl font-semibold">{pct(rate, 1)}</p>
-          <p className="mt-1.5 text-sm text-muted">{marginalExplain(result, state.residency)}</p>
-        </div>
-        <div className={card}>
-          <p className="text-sm text-muted">Average rate</p>
-          <p className="num mt-1 text-2xl font-semibold">{pct(result.averageRate)}</p>
-          <p className="mt-1.5 text-sm text-muted">
-            Of your gross pay, in tax, levies{result.studyLoan > 0 ? " and HELP" : ""}
+      <AnswerRow>
+        <AnswerCard label="You take home">
+          <p className="num -mt-1 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+            {moneyExact(p.net)}{" "}
+            <span className="text-lg font-medium sm:text-xl">{perLabel(state.show)}</span>
           </p>
-        </div>
-        <div className={`${card} col-span-2 sm:col-span-1`}>
-          <MoneyField
-            label="If you got a raise of"
-            hint="A year, before tax"
-            value={state.raise}
-            onChange={(v) => v !== undefined && set({ raise: v })}
-          />
-          {kept !== null && (
-            <p className="mt-2 text-sm">
-              You&apos;d keep <strong className="num">{money(kept)}</strong> a year,{" "}
-              {moneyExact(kept / 26)} a fortnight.
-            </p>
+          <p className="text-lg">
+            Plus <strong className="num">{moneyExact(p.employerSuper)}</strong> in super from your
+            employer
+            {result.salarySacrifice > 0 ? ", including your salary sacrifice" : ""}.
+          </p>
+          {slip && Math.abs(slip.atTaxTime) >= 100_00 && (
+            <button
+              type="button"
+              onClick={() => openDisclosure("pay-slip")}
+              className={`num inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1.5 text-sm font-medium ${
+                slip.atTaxTime > 0 ? "bg-good/10 text-good" : "bg-warn/10 text-warn"
+              }`}
+            >
+              {slip.atTaxTime > 0
+                ? `About ${money(slip.atTaxTime)} back at tax time`
+                : `About ${money(-slip.atTaxTime)} to pay at tax time`}
+              <span aria-hidden="true">↓</span>
+            </button>
           )}
-        </div>
-      </div>
+          <Breakdown a={result} />
+          <dl className="grid grid-cols-2 gap-4 border-t border-on-primary-container/15 pt-3 text-sm">
+            <div>
+              <dt className="opacity-75">Marginal rate</dt>
+              <dd className="num text-xl font-semibold">{pct(rate, 1)}</dd>
+              <dd className="mt-0.5 opacity-75">{marginalExplain(result, state.residency)}</dd>
+            </div>
+            <div>
+              <dt className="opacity-75">Average rate</dt>
+              <dd className="num text-xl font-semibold">{pct(result.averageRate)}</dd>
+              <dd className="mt-0.5 opacity-75">
+                Of your gross pay, in tax, levies{result.studyLoan > 0 ? " and HELP" : ""}
+              </dd>
+            </div>
+          </dl>
+        </AnswerCard>
 
-      <div id="pay-slip" className={`${card} scroll-mt-20`}>
-        <h2 className="font-semibold">Your pay slip</h2>
-        {slip ? (
-          <>
-            <p className="mt-2">
-              Each {slipFreq === "weekly" ? "week" : slipFreq === "monthly" ? "month" : "fortnight"}{" "}
-              your employer withholds <strong className="num">{moneyExact(slip.tax)}</strong> in tax
-              {slip.studyLoan > 0 && (
-                <>
-                  {" "}
-                  and <strong className="num">{moneyExact(slip.studyLoan)}</strong> for HELP
-                </>
-              )}
-              {slip.afterTax > 0 && (
-                <>
-                  , your lease takes <strong className="num">{moneyExact(slip.afterTax)}</strong>{" "}
-                  after tax
-                </>
-              )}
-              , so <strong className="num">{moneyExact(slip.net)}</strong> lands in your account.
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              {slip.atTaxTime >= 100
-                ? `Over the year that's about ${money(slip.atTaxTime)} more than you owe, which comes back as a refund at tax time${result.deductions > 0 ? ", mostly from your deductions" : ""}.`
-                : slip.atTaxTime <= -100
-                  ? `Over the year that's about ${money(-slip.atTaxTime)} less than you owe, so expect a tax bill${result.surcharge > 0 ? " (the Medicare levy surcharge isn't withheld)" : ""}.`
-                  : "Over the year that's within a dollar of what you owe."}{" "}
-              Worked out with the ATO&apos;s withholding formulas for {result.year}, with your pay
-              spread evenly.
-            </p>
-          </>
-        ) : (
-          <p className="mt-2 text-sm text-muted">
-            Pay slip estimates use the ATO&apos;s withholding tables, which are in here for 2026-27
-            so far. The take-home above is what you&apos;d end up with after tax time.
-          </p>
-        )}
-      </div>
+        <figure className={`${card} min-w-0 rounded-3xl`}>
+          <figcaption className="font-semibold">Your pay, line by line</figcaption>
+          <PayTable result={result} lease={Boolean(state.lease)} />
+          <PeriodList a={p} lease={Boolean(state.lease)} />
+        </figure>
+      </AnswerRow>
 
       <Warnings warnings={result.warnings} />
+
+      {yourPay}
+
+      <Ideas
+        cards={
+          <IdeaCard
+            title="If you got a raise"
+            open={idea === "raise"}
+            onClick={() => toggle("raise")}
+          >
+            {kept !== null ? (
+              <>
+                A {money(raise)} raise keeps about{" "}
+                <strong className="num text-good">{money(kept)}</strong> a year after tax.
+              </>
+            ) : (
+              "See how much of a raise you'd keep after tax."
+            )}
+          </IdeaCard>
+        }
+      >
+        {idea === "raise" && (
+          <div className={card}>
+            <div className="max-w-xs">
+              <MoneyField
+                label="If you got a raise of"
+                hint="A year, before tax"
+                value={state.raise}
+                onChange={(v) => v !== undefined && set({ raise: v })}
+              />
+            </div>
+            {kept !== null && (
+              <p className="mt-3">
+                You&apos;d keep <strong className="num">{money(kept)}</strong> a year,{" "}
+                {moneyExact(kept / 26)} a fortnight.
+              </p>
+            )}
+          </div>
+        )}
+      </Ideas>
+
+      <PayDetail
+        state={state}
+        result={result}
+        extra={
+          <Disclosure id="pay-slip" title="Your pay slip" hint="what your employer withholds">
+            {slip ? (
+              <>
+                <p>
+                  Each{" "}
+                  {slipFreq === "weekly" ? "week" : slipFreq === "monthly" ? "month" : "fortnight"}{" "}
+                  your employer withholds <strong className="num">{moneyExact(slip.tax)}</strong> in
+                  tax
+                  {slip.studyLoan > 0 && (
+                    <>
+                      {" "}
+                      and <strong className="num">{moneyExact(slip.studyLoan)}</strong> for HELP
+                    </>
+                  )}
+                  {slip.afterTax > 0 && (
+                    <>
+                      , your lease takes{" "}
+                      <strong className="num">{moneyExact(slip.afterTax)}</strong> after tax
+                    </>
+                  )}
+                  , so <strong className="num">{moneyExact(slip.net)}</strong> lands in your
+                  account.
+                </p>
+                <p className="mt-2 text-sm text-muted">
+                  {slip.atTaxTime >= 100
+                    ? `Over the year that's about ${money(slip.atTaxTime)} more than you owe, which comes back as a refund at tax time${result.deductions > 0 ? ", mostly from your deductions" : ""}.`
+                    : slip.atTaxTime <= -100
+                      ? `Over the year that's about ${money(-slip.atTaxTime)} less than you owe, so expect a tax bill${result.surcharge > 0 ? " (the Medicare levy surcharge isn't withheld)" : ""}.`
+                      : "Over the year that's within a dollar of what you owe."}{" "}
+                  Worked out with the ATO&apos;s withholding formulas for {result.year}, with your
+                  pay spread evenly.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted">
+                Pay slip estimates use the ATO&apos;s withholding tables, which are in here for
+                2026-27 so far. The take-home above is what you&apos;d end up with after tax time.
+              </p>
+            )}
+          </Disclosure>
+        }
+      />
+    </>
+  );
+}
+
+/** The detail rows, the budget link and what to do next. */
+function PayDetail({
+  state,
+  result,
+  extra,
+}: {
+  state: PayState;
+  result?: PayResult;
+  extra?: React.ReactNode;
+}) {
+  return (
+    <>
+      <Detail>
+        {extra}
+        <Disclosure title="Good to know" hint="tips and things to check">
+          <GoodToKnow tool="pay" bare />
+        </Disclosure>
+        {result && (
+          <Disclosure title="How this is calculated" hint="tax, levies and sources">
+            <Method result={result} />
+          </Disclosure>
+        )}
+      </Detail>
+      {result && (
+        <a
+          href={budgetLinkFromPay(state)}
+          className={`${card} block font-medium text-accent transition hover:border-accent`}
+        >
+          Plan a budget with this pay →
+          <span className="mt-1 block text-sm font-normal text-muted">
+            Start the budget planner from {moneyExact(result.periods.monthly.net)} a month
+            take-home.
+          </span>
+        </a>
+      )}
+      <NextSteps tool="pay" className="pt-2" />
     </>
   );
 }
@@ -1134,52 +1218,34 @@ function CompareCard({
   );
 }
 
-function Footer({
-  result,
-  copied,
-  onCopy,
-}: {
-  result: PayResult;
-  copied: boolean;
-  onCopy: () => void;
-}) {
+function Method({ result }: { result: PayResult }) {
   const notes = [...result.notes];
   if (result.carriedForward) notes.unshift(`Using ${result.year} rates, the latest published.`);
   return (
-    <details className={`${card} text-sm`}>
-      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
-      <div className="mt-3 space-y-2 text-muted">
-        <p>
-          Take-home is worked out as the ATO assesses it at tax time: income tax, the low income tax
-          offset, Medicare levy and surcharge, and study loan repayments. It doesn&apos;t cover the
-          seniors offset, other income or capital gains.
-        </p>
-        {notes.map((n) => (
-          <p key={n}>{n}</p>
-        ))}
-        <p className="flex flex-wrap gap-x-3 gap-y-1">
-          <span>Sources:</span>
-          {[...result.rules.sources, ...result.superRules.sources.slice(0, 1)].map((s) => (
-            <a
-              key={s}
-              href={s}
-              className="text-accent hover:underline"
-              rel="noreferrer"
-              target="_blank"
-            >
-              {sourceName(s)}
-            </a>
-          ))}
-          <button
-            type="button"
-            onClick={onCopy}
-            className="font-medium text-accent hover:underline"
+    <div className="space-y-2 text-sm text-muted">
+      <p>
+        Take-home is worked out as the ATO assesses it at tax time: income tax, the low income tax
+        offset, Medicare levy and surcharge, and study loan repayments. It doesn&apos;t cover the
+        seniors offset, other income or capital gains.
+      </p>
+      {notes.map((n) => (
+        <p key={n}>{n}</p>
+      ))}
+      <p className="flex flex-wrap gap-x-3 gap-y-1">
+        <span>Sources:</span>
+        {[...result.rules.sources, ...result.superRules.sources.slice(0, 1)].map((s) => (
+          <a
+            key={s}
+            href={s}
+            className="text-accent hover:underline"
+            rel="noreferrer"
+            target="_blank"
           >
-            {copied ? "Link copied" : "Copy link"}
-          </button>
-        </p>
-      </div>
-    </details>
+            {sourceName(s)}
+          </a>
+        ))}
+      </p>
+    </div>
   );
 }
 
