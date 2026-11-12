@@ -11,10 +11,10 @@ export default function NovatedLeasePage() {
   return (
     <>
       <JsonLd data={toolJsonLd("lease")} />
-      <JourneyBar current="lease" />
       <Suspense>
         <LeaseCalculator />
       </Suspense>
+      <JourneyBar current="lease" />
     </>
   );
 }

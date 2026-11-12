@@ -11,10 +11,10 @@ export default function SuperOrMortgagePage() {
   return (
     <>
       <JsonLd data={toolJsonLd("super-mortgage")} />
-      <JourneyBar current="super-mortgage" />
       <Suspense>
         <SuperOrMortgage />
       </Suspense>
+      <JourneyBar current="super-mortgage" />
     </>
   );
 }

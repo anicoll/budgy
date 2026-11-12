@@ -11,10 +11,10 @@ export default function PayPage() {
   return (
     <>
       <JsonLd data={toolJsonLd("pay")} />
-      <JourneyBar current="pay" />
       <Suspense>
         <PayCalculator />
       </Suspense>
+      <JourneyBar current="pay" />
     </>
   );
 }

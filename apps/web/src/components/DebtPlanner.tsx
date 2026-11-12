@@ -10,12 +10,27 @@ import {
   validateDebts,
   withBalanceTransfer,
 } from "@budgy/engine";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
-import { ResultsBar } from "@/components/ResultsBar";
-import { SavedBar } from "@/components/SavedBar";
+import { NextSteps } from "@/components/NextSteps";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  EditSheet,
+  IdeaCard,
+  Ideas,
+  SummaryRow,
+  SummaryRows,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+  useEditSheet,
+  useIdea,
+} from "@/components/tool";
 import {
   BNPL_EVERY,
   type BnplEvery,
@@ -72,7 +87,8 @@ const DEBT_SAVED: SavedConfig<DebtPlanState> = {
 export function DebtPlanner() {
   const saved = useSavedState(DEBT_SAVED);
   const { state, setState } = saved;
-  const [copied, setCopied] = useState(false);
+  const { ref: sheet, open: edit } = useEditSheet();
+  const { idea, toggle } = useIdea<"transfer" | "consolidate" | "target">();
 
   const input = useMemo(() => toPayoffInput(state), [state]);
   const errors = useMemo(() => validateDebts(input.debts, input.extraPerMonth), [input]);
@@ -106,16 +122,6 @@ export function DebtPlanner() {
       [order[i], order[j]] = [order[j], order[i]];
       return { ...s, order };
     });
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked: the address bar still has the link */
-    }
-  };
 
   // Buy now pay later is paid on its own schedule, so it isn't in the order.
   const orderIds = state.order.filter((id) =>
@@ -158,190 +164,203 @@ export function DebtPlanner() {
     }
   }, [state, chosen]);
 
+  const transferSaved =
+    transfer && chosen ? chosen.totalInterest - (transfer.plan.totalInterest + transfer.fee) : 0;
+  const strategyLine = chosen
+    ? `${LABEL[chosen.strategy]}, ${moneyExact(chosen.monthlyBudget)} a month`
+    : "";
+
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Debt payoff planner</h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          List your debts and what you can put towards them each month. See which to pay first and
-          when you&apos;ll be debt-free. Your numbers never leave your device.
-        </p>
-        <SavedBar saved={saved} />
-      </header>
+    <ToolPage>
+      <ToolHeader
+        title="Debt payoff planner"
+        intro="Which debt to pay first, and when you'll be debt-free."
+        saved={saved}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
-        {/* ── Inputs ─────────────────────────────────────────────── */}
-        <section className="space-y-4" aria-label="Your debts and plan">
-          {state.debts.map((d) => (
-            <DebtCard
-              key={d.id}
-              debt={d}
-              onChange={(patch) => setDebt(d.id, patch)}
-              onRemove={state.debts.length > 1 ? () => removeDebt(d.id) : undefined}
-            />
-          ))}
-          {state.debts.length < MAX_ROWS && (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => addDebt("card")}
-                className={`${chip} border-dashed border-border hover:border-accent hover:text-accent`}
-              >
-                + Credit card
-              </button>
-              <button
-                type="button"
-                onClick={() => addDebt("loan")}
-                className={`${chip} border-dashed border-border hover:border-accent hover:text-accent`}
-              >
-                + Loan
-              </button>
-              <button
-                type="button"
-                onClick={() => addDebt("bnpl")}
-                className={`${chip} border-dashed border-border hover:border-accent hover:text-accent`}
-              >
-                + Buy now pay later
-              </button>
-            </div>
-          )}
-
-          <div className={card}>
-            <h2 className="mb-3 font-semibold">Your plan</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <MoneyField
-                className="col-span-2"
-                label="Extra each month"
-                hint="On top of your minimums. When a debt is paid off, its minimum moves to the next one."
-                value={state.extra}
-                optional
-                placeholder="0"
-                onChange={(v) => setState((s) => ({ ...s, extra: v ?? 0 }))}
-              />
-              <fieldset className="col-span-2">
-                <legend className="mb-1 text-sm font-medium">Pay off first</legend>
-                <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                  {STRATEGIES.map((o) => (
-                    <label
-                      key={o.value}
-                      className={`cursor-pointer rounded-lg border p-2.5 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/25 ${
-                        state.strategy === o.value ? "border-accent" : "border-border"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="strategy"
-                        className="sr-only"
-                        checked={state.strategy === o.value}
-                        onChange={() => setState((s) => ({ ...s, strategy: o.value }))}
-                      />
-                      <span className="block font-medium">{o.label}</span>
-                      <span className="block text-xs text-muted">{o.blurb}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              {state.strategy === "custom" && (
-                <ol className="col-span-2 space-y-1.5">
-                  {orderIds.map((id, i) => {
-                    const d = state.debts.find((x) => x.id === id);
-                    if (!d) return null;
-                    return (
-                      <li
-                        key={id}
-                        className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm"
-                      >
-                        <span className="num w-5 text-muted">{i + 1}.</span>
-                        <span className="min-w-0 flex-1 truncate">{d.name || "Debt"}</span>
-                        <button
-                          type="button"
-                          aria-label={`Move ${d.name} up`}
-                          disabled={i === 0}
-                          onClick={() => move(id, -1)}
-                          className="px-1.5 text-muted hover:text-accent disabled:opacity-30"
-                        >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Move ${d.name} down`}
-                          disabled={i === orderIds.length - 1}
-                          onClick={() => move(id, 1)}
-                          className="px-1.5 text-muted hover:text-accent disabled:opacity-30"
-                        >
-                          ↓
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ol>
-              )}
-              {hasBnpl && (
-                <p className="col-span-2 text-xs text-muted">
-                  Buy now pay later is paid on its own schedule, whichever order you pick. It
-                  isn&apos;t part of your monthly amount and doesn&apos;t get any extra. When it
-                  finishes, nothing moves to your other debts.
-                </p>
-              )}
-              <DateField
-                className="col-span-2"
-                label="Starting from"
-                hint="Your first payment is a month after this."
-                value={state.startDate}
-                onChange={(startDate) => setState((s) => ({ ...s, startDate }))}
-              />
-            </div>
-          </div>
-
-          <TransferCard
-            debts={state.debts.filter((d) => d.kind !== "bnpl")}
-            form={state.transfer}
-            onChange={(patch) => setState((s) => ({ ...s, transfer: { ...s.transfer, ...patch } }))}
-          />
-          <ConsolidateCard
-            debts={state.debts.filter((d) => d.kind !== "bnpl")}
-            form={state.consolidate}
-            onChange={(patch) =>
-              setState((s) => ({ ...s, consolidate: { ...s.consolidate, ...patch } }))
-            }
-          />
-        </section>
-
-        {/* ── Results ────────────────────────────────────────────── */}
-        <section
-          id="results"
-          className="min-w-0 scroll-mt-4 space-y-4"
-          aria-label="Results"
-          aria-live="polite"
-        >
-          {!plans || !chosen ? (
-            <div className={`${card} text-warn`}>
-              {errors.length
-                ? `Check your debts: ${errors.join("; ")}.`
-                : "Something in the inputs doesn't add up."}
-            </div>
-          ) : (
-            <>
-              {transfer && (
-                <TransferResults
-                  now={chosen}
-                  {...transfer}
-                  movedNames={state.debts
-                    .filter((d) => transfer.transfer.from.includes(d.id))
-                    .map((d) => d.name || "Debt")}
-                />
-              )}
-              {consolidation && (
-                <ConsolidationResults
-                  r={consolidation}
-                  names={state.debts
-                    .filter((d) => toConsolidation(state)?.from.includes(d.id))
-                    .map((d) => d.name || "Debt")}
-                  months={Math.round(state.consolidate.months)}
-                />
-              )}
+      {!plans || !chosen ? (
+        <div className={`${card} text-warn`}>
+          {errors.length
+            ? `Check your debts: ${errors.join("; ")}.`
+            : "Something in the inputs doesn't add up."}{" "}
+          <button type="button" onClick={() => edit()} className="text-accent underline">
+            Edit your debts
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <AnswerRow>
+            <AnswerCard label={strategyLine}>
               <Headline plan={chosen} baseline={plans.minimums} />
-              <Compare
+            </AnswerCard>
+            <TotalOwed
+              plans={[
+                chosen,
+                ...(["avalanche", "snowball"] as const)
+                  .filter((k) => k !== state.strategy)
+                  .map((k) => plans[k]),
+                plans.minimums,
+              ]}
+            />
+          </AnswerRow>
+
+          <ToolSection
+            id="debts-h"
+            title="Your debts"
+            action={
+              state.debts.length < MAX_ROWS && (
+                <button
+                  type="button"
+                  onClick={() => edit("add-debt")}
+                  className="text-sm font-semibold text-accent hover:underline"
+                >
+                  + Add a debt
+                </button>
+              )
+            }
+          >
+            <SummaryRows>
+              {chosen.priority
+                .map((id) => state.debts.find((d) => d.id === id))
+                .concat(state.debts.filter((d) => !chosen.priority.includes(d.id)))
+                .map((d, i) => {
+                  if (!d) return null;
+                  const r = chosen.debts.find((x) => x.id === d.id);
+                  return (
+                    <SummaryRow
+                      key={d.id}
+                      title={`${d.kind === "bnpl" ? "" : `${i + 1} · `}${d.name || "Debt"}`}
+                      hint={`${d.kind === "bnpl" ? "buy now pay later" : `${d.ratePct}%`} · ${
+                        r?.payoffDate ? `paid off ${monthYear(r.payoffDate)}` : "not repaid"
+                      }`}
+                      value={money(Math.round(d.balance * 100))}
+                      onClick={() => edit(`debt-${d.id}`)}
+                    />
+                  );
+                })}
+              <SummaryRow
+                title="Your plan"
+                hint={`${LABEL[state.strategy]} · ${money(Math.round(state.extra * 100))} extra a month · from ${state.startDate.split("-").reverse().join("/")}`}
+                onClick={() => edit("plan")}
+              />
+            </SummaryRows>
+          </ToolSection>
+
+          <Ideas
+            cards={
+              <>
+                <IdeaCard
+                  title="Balance transfer"
+                  open={idea === "transfer"}
+                  onClick={() => toggle("transfer")}
+                >
+                  {transfer ? (
+                    transferSaved >= 0 ? (
+                      <>
+                        Saves about{" "}
+                        <strong className="num text-good">{money(transferSaved)}</strong> after the
+                        fee.
+                      </>
+                    ) : (
+                      <>
+                        Costs <strong className="num text-warn">{money(-transferSaved)}</strong>{" "}
+                        more once the fee is in.
+                      </>
+                    )
+                  ) : (
+                    "Move a card to a low intro rate and see if the fee is worth it."
+                  )}
+                </IdeaCard>
+                <IdeaCard
+                  title="Consolidation loan"
+                  open={idea === "consolidate"}
+                  onClick={() => toggle("consolidate")}
+                >
+                  {consolidation ? (
+                    consolidation.saving >= 0 ? (
+                      <>
+                        Saves about{" "}
+                        <strong className="num text-good">{money(consolidation.saving)}</strong>.
+                      </>
+                    ) : (
+                      <>
+                        Costs{" "}
+                        <strong className="num text-warn">{money(-consolidation.saving)}</strong>{" "}
+                        more than your plan.
+                      </>
+                    )
+                  ) : (
+                    "Roll some debts into one personal loan and compare."
+                  )}
+                </IdeaCard>
+                <IdeaCard
+                  title="Pick a date"
+                  open={idea === "target"}
+                  onClick={() => toggle("target")}
+                >
+                  {state.target
+                    ? `Free by ${monthYear(state.target)}: see what it takes.`
+                    : "What would it take to be debt-free by a date you choose?"}
+                </IdeaCard>
+              </>
+            }
+          >
+            {idea === "transfer" && (
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+                <TransferCard
+                  debts={state.debts.filter((d) => d.kind !== "bnpl")}
+                  form={state.transfer}
+                  onChange={(patch) =>
+                    setState((s) => ({ ...s, transfer: { ...s.transfer, ...patch } }))
+                  }
+                />
+                {transfer && (
+                  <div className="min-w-0 space-y-4">
+                    <TransferResults
+                      now={chosen}
+                      {...transfer}
+                      movedNames={state.debts
+                        .filter((d) => transfer.transfer.from.includes(d.id))
+                        .map((d) => d.name || "Debt")}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {idea === "consolidate" && (
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+                <ConsolidateCard
+                  debts={state.debts.filter((d) => d.kind !== "bnpl")}
+                  form={state.consolidate}
+                  onChange={(patch) =>
+                    setState((s) => ({ ...s, consolidate: { ...s.consolidate, ...patch } }))
+                  }
+                />
+                {consolidation && (
+                  <div className="min-w-0 space-y-4">
+                    <ConsolidationResults
+                      r={consolidation}
+                      names={state.debts
+                        .filter((d) => toConsolidation(state)?.from.includes(d.id))
+                        .map((d) => d.name || "Debt")}
+                      months={Math.round(state.consolidate.months)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {idea === "target" && (
+              <TargetDate
+                state={state}
+                plan={chosen}
+                onTarget={(target) => setState((s) => ({ ...s, target }))}
+              />
+            )}
+          </Ideas>
+
+          <Detail>
+            <Disclosure title="Strategies side by side" hint="avalanche, snowball and minimums">
+              <Strategies
                 plans={[
                   chosen,
                   ...(["avalanche", "snowball"] as const)
@@ -349,36 +368,148 @@ export function DebtPlanner() {
                     .map((k) => plans[k]),
                   plans.minimums,
                 ]}
-                onCopy={copyLink}
-                copied={copied}
               />
+            </Disclosure>
+            <Disclosure title="Payoff order" hint="when each debt is cleared">
               <Order plan={chosen} />
-              <TargetDate
-                state={state}
-                plan={chosen}
-                onTarget={(target) => setState((s) => ({ ...s, target }))}
-              />
+            </Disclosure>
+            <Disclosure title="Month by month" hint="payments, interest and balances">
               <MonthByMonth plan={chosen} names={state.debts.map((d) => d.name || "Debt")} />
-            </>
-          )}
-          <GoodToKnow tool="debt" />
-          <Method />
-        </section>
-      </div>
-
-      {chosen && (
-        <ResultsBar>
-          {chosen.paidOff ? (
-            <>
-              Debt-free <strong>{monthYear(chosen.debtFreeDate)}</strong> ·{" "}
-              {money(chosen.totalInterest)} interest
-            </>
-          ) : (
-            "Not repaid at this budget"
-          )}
-        </ResultsBar>
+            </Disclosure>
+            <Disclosure title="Good to know" hint="tips and things to check">
+              <GoodToKnow tool="debt" bare />
+            </Disclosure>
+            <Disclosure title="How this is calculated" hint="interest, minimums and rollover">
+              <Method />
+            </Disclosure>
+          </Detail>
+          <NextSteps tool="debt" className="pt-2" />
+        </div>
       )}
-    </main>
+
+      <EditSheet ref={sheet} title="Your debts">
+        {state.debts.map((d) => (
+          <div key={d.id} id={`debt-${d.id}`} className="scroll-mt-20">
+            <DebtCard
+              debt={d}
+              onChange={(patch) => setDebt(d.id, patch)}
+              onRemove={state.debts.length > 1 ? () => removeDebt(d.id) : undefined}
+            />
+          </div>
+        ))}
+        {state.debts.length < MAX_ROWS && (
+          <div id="add-debt" className="flex scroll-mt-20 flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => addDebt("card")}
+              className={`${chip} border-dashed border-border hover:border-accent hover:text-accent`}
+            >
+              + Credit card
+            </button>
+            <button
+              type="button"
+              onClick={() => addDebt("loan")}
+              className={`${chip} border-dashed border-border hover:border-accent hover:text-accent`}
+            >
+              + Loan
+            </button>
+            <button
+              type="button"
+              onClick={() => addDebt("bnpl")}
+              className={`${chip} border-dashed border-border hover:border-accent hover:text-accent`}
+            >
+              + Buy now pay later
+            </button>
+          </div>
+        )}
+        <div id="plan" className={`${card} scroll-mt-20`}>
+          <h2 className="mb-3 font-semibold">Your plan</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <MoneyField
+              className="col-span-2"
+              label="Extra each month"
+              hint="On top of your minimums. When a debt is paid off, its minimum moves to the next one."
+              value={state.extra}
+              optional
+              placeholder="0"
+              onChange={(v) => setState((s) => ({ ...s, extra: v ?? 0 }))}
+            />
+            <fieldset className="col-span-2">
+              <legend className="mb-1 text-sm font-medium">Pay off first</legend>
+              <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                {STRATEGIES.map((o) => (
+                  <label
+                    key={o.value}
+                    className={`cursor-pointer rounded-lg border p-2.5 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/25 ${
+                      state.strategy === o.value ? "border-accent" : "border-border"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="strategy"
+                      className="sr-only"
+                      checked={state.strategy === o.value}
+                      onChange={() => setState((s) => ({ ...s, strategy: o.value }))}
+                    />
+                    <span className="block font-medium">{o.label}</span>
+                    <span className="block text-xs text-muted">{o.blurb}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {state.strategy === "custom" && (
+              <ol className="col-span-2 space-y-1.5">
+                {orderIds.map((id, i) => {
+                  const d = state.debts.find((x) => x.id === id);
+                  if (!d) return null;
+                  return (
+                    <li
+                      key={id}
+                      className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm"
+                    >
+                      <span className="num w-5 text-muted">{i + 1}.</span>
+                      <span className="min-w-0 flex-1 truncate">{d.name || "Debt"}</span>
+                      <button
+                        type="button"
+                        aria-label={`Move ${d.name} up`}
+                        disabled={i === 0}
+                        onClick={() => move(id, -1)}
+                        className="px-1.5 text-muted hover:text-accent disabled:opacity-30"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Move ${d.name} down`}
+                        disabled={i === orderIds.length - 1}
+                        onClick={() => move(id, 1)}
+                        className="px-1.5 text-muted hover:text-accent disabled:opacity-30"
+                      >
+                        ↓
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            {hasBnpl && (
+              <p className="col-span-2 text-xs text-muted">
+                Buy now pay later is paid on its own schedule, whichever order you pick. It
+                isn&apos;t part of your monthly amount and doesn&apos;t get any extra. When it
+                finishes, nothing moves to your other debts.
+              </p>
+            )}
+            <DateField
+              className="col-span-2"
+              label="Starting from"
+              hint="Your first payment is a month after this."
+              value={state.startDate}
+              onChange={(startDate) => setState((s) => ({ ...s, startDate }))}
+            />
+          </div>
+        </div>
+      </EditSheet>
+    </ToolPage>
   );
 }
 
@@ -494,48 +625,43 @@ function DebtCard({
 function Headline({ plan, baseline }: { plan: PayoffResult; baseline: PayoffResult }) {
   if (!plan.paidOff) {
     return (
-      <div className={`${card} text-lg text-warn`}>
+      <p className="text-lg text-warn">
         At {moneyExact(plan.monthlyBudget)} a month, these debts aren&apos;t repaid within 100
         years. Add an extra amount each month.
-      </div>
+      </p>
     );
   }
   const sooner = baseline.months - plan.months;
-  const saved = baseline.totalInterest - plan.totalInterest;
   return (
-    <div className={`${card} space-y-2 text-lg leading-relaxed`}>
-      <p>
-        Paying <strong className="num">{moneyExact(plan.monthlyBudget)}</strong> a month{" "}
-        {plan.strategy === "custom" ? "in your order" : `with ${plan.strategy}`}, you&apos;re
-        debt-free in <strong>{monthYear(plan.debtFreeDate)}</strong> ({months(plan.months)}) and pay{" "}
-        <strong className="num">{money(plan.totalInterest)}</strong> in interest.
+    <>
+      <p className="text-sm font-semibold text-on-primary-container">Debt-free</p>
+      <p className="num -mt-2 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+        {monthYear(plan.debtFreeDate)}
       </p>
-      {sooner > 0 && (
-        <p>
-          That&apos;s <strong>{months(sooner)}</strong> sooner and{" "}
-          <strong className="num text-good">{money(saved)}</strong> less interest than paying only
-          the minimums
-          {baseline.paidOff ? "" : ", which never clears them"}.
-        </p>
-      )}
+      <p className="text-lg">
+        In {months(plan.months)}, paying{" "}
+        <strong className="num">{money(plan.totalInterest)}</strong> interest.
+        {sooner > 0 && (
+          <>
+            {" "}
+            That&apos;s <strong className="text-good">{months(sooner)} sooner</strong> and{" "}
+            <strong className="num text-good">
+              {money(baseline.totalInterest - plan.totalInterest)}
+            </strong>{" "}
+            less interest than the minimums{baseline.paidOff ? "" : ", which never clear them"}.
+          </>
+        )}
+      </p>
       {[...new Set([...plan.warnings, ...baseline.warnings])].map((w) => (
         <p key={w} className="text-sm text-warn">
           {w}
         </p>
       ))}
-    </div>
+    </>
   );
 }
 
-function Compare({
-  plans,
-  onCopy,
-  copied,
-}: {
-  plans: PayoffResult[];
-  onCopy: () => void;
-  copied: boolean;
-}) {
+function TotalOwed({ plans }: { plans: PayoffResult[] }) {
   // Minimums only can run for decades and squash the plans into a sliver, so
   // leave it off the chart when it's much longer and say so underneath.
   const fastest = Math.min(...plans.filter((p) => p.strategy !== "minimums").map((p) => p.months));
@@ -549,85 +675,78 @@ function Compare({
       payoffDate: p.debtFreeDate,
     }));
   return (
-    <>
-      <div className={card}>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="font-semibold">Total owed</h2>
-          <button
-            type="button"
-            onClick={onCopy}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent"
-          >
-            {copied ? "Link copied" : "Copy link"}
-          </button>
-        </div>
-        <BalanceChart series={series} label="Total debt over time for each strategy" />
-        {offChart && (
-          <p className="text-xs text-muted">
-            Paying only the minimums is left off the chart: it runs{" "}
-            {offChart.paidOff ? `until ${monthYear(offChart.debtFreeDate)}` : "for over 100 years"}.
-          </p>
-        )}
-      </div>
-      <div className={`${card} overflow-x-auto`}>
-        <h2 className="mb-3 font-semibold">Strategies side by side</h2>
-        <table className="num w-full min-w-[480px] text-sm">
-          <thead>
-            <tr className="text-left text-muted">
-              <th className="py-1.5 pr-3 font-medium" />
-              {plans.map((p) => (
-                <th
-                  key={p.strategy}
-                  className="py-1.5 pr-3 text-right font-medium"
-                  style={{ color: COLOR[p.strategy] }}
-                >
-                  {LABEL[p.strategy]}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td]:pr-3 [&_td:not(:first-child)]:text-right">
-            <tr>
-              <td>Paid each month</td>
-              {plans.map((p) => (
-                <td key={p.strategy}>
-                  {moneyExact(p.monthlyBudget)}
-                  {p.strategy === "minimums" && "*"}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Debt-free</td>
-              {plans.map((p) => (
-                <td key={p.strategy}>{p.paidOff ? monthYear(p.debtFreeDate) : "Never"}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>Time</td>
-              {plans.map((p) => (
-                <td key={p.strategy}>{p.paidOff ? months(p.months) : "100+ years"}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>Total interest</td>
-              {plans.map((p) => (
-                <td key={p.strategy}>{money(p.totalInterest)}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>Total paid</td>
-              {plans.map((p) => (
-                <td key={p.strategy}>{money(p.totalPaid)}</td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-        <p className="mt-2 text-xs text-muted">
-          *At the start. Paying only the minimums means paying less as balances fall, and no
-          rollover when a debt is cleared.
+    <figure className={`${card} min-w-0 rounded-3xl`}>
+      <figcaption className="mb-2 font-semibold">Total owed</figcaption>
+      <BalanceChart series={series} label="Total debt over time for each strategy" />
+      {offChart && (
+        <p className="text-xs text-muted">
+          Paying only the minimums is left off the chart: it runs{" "}
+          {offChart.paidOff ? `until ${monthYear(offChart.debtFreeDate)}` : "for over 100 years"}.
         </p>
-      </div>
-    </>
+      )}
+    </figure>
+  );
+}
+
+function Strategies({ plans }: { plans: PayoffResult[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="num w-full min-w-[480px] text-sm">
+        <thead>
+          <tr className="text-left text-muted">
+            <th className="py-1.5 pr-3 font-medium" />
+            {plans.map((p) => (
+              <th
+                key={p.strategy}
+                className="py-1.5 pr-3 text-right font-medium"
+                style={{ color: COLOR[p.strategy] }}
+              >
+                {LABEL[p.strategy]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td]:pr-3 [&_td:not(:first-child)]:text-right">
+          <tr>
+            <td>Paid each month</td>
+            {plans.map((p) => (
+              <td key={p.strategy}>
+                {moneyExact(p.monthlyBudget)}
+                {p.strategy === "minimums" && "*"}
+              </td>
+            ))}
+          </tr>
+          <tr>
+            <td>Debt-free</td>
+            {plans.map((p) => (
+              <td key={p.strategy}>{p.paidOff ? monthYear(p.debtFreeDate) : "Never"}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Time</td>
+            {plans.map((p) => (
+              <td key={p.strategy}>{p.paidOff ? months(p.months) : "100+ years"}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Total interest</td>
+            {plans.map((p) => (
+              <td key={p.strategy}>{money(p.totalInterest)}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Total paid</td>
+            {plans.map((p) => (
+              <td key={p.strategy}>{money(p.totalPaid)}</td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+      <p className="mt-2 text-xs text-muted">
+        *At the start. Paying only the minimums means paying less as balances fall, and no rollover
+        when a debt is cleared.
+      </p>
+    </div>
   );
 }
 
@@ -635,8 +754,7 @@ function Order({ plan }: { plan: PayoffResult }) {
   const longest = Math.max(1, ...plan.debts.map((d) => d.months ?? plan.months));
   const byId = new Map(plan.debts.map((d) => [d.id, d]));
   return (
-    <div className={card}>
-      <h2 className="mb-3 font-semibold">Payoff order</h2>
+    <div>
       <ol className="space-y-3">
         {plan.priority.map((id, i) => {
           const d = byId.get(id);
@@ -691,7 +809,7 @@ function TargetDate({
   const currentExtra = Math.round(state.extra * 100);
   return (
     <div className={card}>
-      <h2 className="mb-3 font-semibold">Want to be debt-free sooner?</h2>
+      <h3 className="mb-3 font-semibold">Want to be debt-free sooner?</h3>
       <div className="grid gap-3 sm:grid-cols-[minmax(0,220px)_minmax(0,1fr)] sm:items-end">
         <DateField
           label="Debt-free by"
@@ -722,9 +840,8 @@ function TargetDate({
 function MonthByMonth({ plan, names }: { plan: PayoffResult; names: string[] }) {
   const rows = plan.timeline.slice(1);
   return (
-    <details className={card}>
-      <summary className="cursor-pointer font-semibold">Month by month</summary>
-      <div className="mt-3 max-h-[480px] overflow-auto">
+    <div>
+      <div className="max-h-[480px] overflow-auto">
         <table className="num w-full min-w-[480px] text-sm">
           <thead className="sticky top-0 bg-surface">
             <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
@@ -754,15 +871,14 @@ function MonthByMonth({ plan, names }: { plan: PayoffResult; names: string[] }) 
           </tbody>
         </table>
       </div>
-    </details>
+    </div>
   );
 }
 
 function Method() {
   return (
-    <details className={`${card} text-sm`}>
-      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
-      <div className="mt-3 space-y-2 text-muted">
+    <div className="text-sm">
+      <div className="space-y-2 text-muted">
         <p>
           Each month, interest is added to every debt at its yearly rate ÷ 12. Then each debt&apos;s
           minimum is paid, and whatever is left of your monthly amount goes to the debt at the top
@@ -784,7 +900,7 @@ function Method() {
           so your figures can differ a little. This is general information, not financial advice.
         </p>
       </div>
-    </details>
+    </div>
   );
 }
 

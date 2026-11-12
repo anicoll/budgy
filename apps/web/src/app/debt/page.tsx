@@ -11,10 +11,10 @@ export default function DebtPage() {
   return (
     <>
       <JsonLd data={toolJsonLd("debt")} />
-      <JourneyBar current="debt" />
       <Suspense>
         <DebtPlanner />
       </Suspense>
+      <JourneyBar current="debt" />
     </>
   );
 }

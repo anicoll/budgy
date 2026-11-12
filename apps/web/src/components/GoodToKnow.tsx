@@ -261,13 +261,30 @@ export const TIPS: Partial<Record<ToolKey, React.ReactNode[]>> = {
 export function GoodToKnow({
   tool,
   extra = [],
+  bare = false,
 }: {
   tool: ToolKey;
   /** Tips that depend on the inputs, shown before the general ones. */
   extra?: React.ReactNode[];
+  /** Just the tips, for inside "The detail": no box, heading or links on. */
+  bare?: boolean;
 }) {
   const tips = [...extra, ...(TIPS[tool] ?? [])];
   if (!tips.length) return null;
+  if (bare)
+    return (
+      <>
+        <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed">
+          {tips.map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ul>
+        <p className="mt-3 text-xs text-muted">
+          General information only, not financial advice. It doesn&apos;t take your circumstances
+          into account.
+        </p>
+      </>
+    );
   return (
     <section
       aria-labelledby={`tips-${tool}`}

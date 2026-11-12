@@ -11,10 +11,10 @@ export default function BuyingCostsPage() {
   return (
     <>
       <JsonLd data={toolJsonLd("buying")} />
-      <JourneyBar current="buying" />
       <Suspense>
         <BuyingCostsCalculator />
       </Suspense>
+      <JourneyBar current="buying" />
     </>
   );
 }

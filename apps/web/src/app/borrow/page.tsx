@@ -11,10 +11,10 @@ export default function BorrowPage() {
   return (
     <>
       <JsonLd data={toolJsonLd("borrow")} />
-      <JourneyBar current="borrow" />
       <Suspense>
         <BorrowingCalculator />
       </Suspense>
+      <JourneyBar current="borrow" />
     </>
   );
 }

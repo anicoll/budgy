@@ -11,10 +11,10 @@ export default function SuperPage() {
   return (
     <>
       <JsonLd data={toolJsonLd("super")} />
-      <JourneyBar current="super" />
       <Suspense>
         <SuperCalculator />
       </Suspense>
+      <JourneyBar current="super" />
     </>
   );
 }

@@ -72,11 +72,17 @@ export const NEXT: Partial<Record<ToolKey, { to: ToolKey; why: string }[]>> = {
   ],
 };
 
-export function NextSteps({ tool: key }: { tool: ToolKey }) {
+export function NextSteps({
+  tool: key,
+  className = "mt-4 border-t border-border pt-3",
+}: {
+  tool: ToolKey;
+  className?: string;
+}) {
   const next = NEXT[key];
   if (!next?.length) return null;
   return (
-    <div className="mt-4 border-t border-border pt-3">
+    <div className={className}>
       <h3 className="mb-2 text-sm font-semibold">Where to next</h3>
       <ul className="space-y-1.5 text-sm">
         {next.map(({ to, why }) => (
