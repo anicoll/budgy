@@ -15,8 +15,24 @@ import { useMemo, useState } from "react";
 import { BenefitChart } from "@/components/BenefitChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
-import { ResultsBar } from "@/components/ResultsBar";
-import { SavedBar } from "@/components/SavedBar";
+import { NextSteps } from "@/components/NextSteps";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  EditSheet,
+  IdeaCard,
+  Ideas,
+  SummaryRow,
+  SummaryRows,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+  tonalBtn,
+  useEditSheet,
+  useIdea,
+} from "@/components/tool";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import {
   decodeRefinance,
@@ -51,7 +67,8 @@ const REFINANCE_SAVED: SavedConfig<RefinanceForm> = {
 export function RefinanceCalculator() {
   const saved = useSavedState(REFINANCE_SAVED);
   const { state: form, setState: setForm } = saved;
-  const [copied, setCopied] = useState(false);
+  const { ref: sheet, open: edit } = useEditSheet();
+  const { idea, toggle } = useIdea<"offer">();
 
   const input = useMemo(() => toRefinanceInput(form), [form]);
   const errors = useMemo(() => validateRefinance(input), [input]);
@@ -76,411 +93,420 @@ export function RefinanceCalculator() {
 
   const set = (patch: Partial<RefinanceForm>) => setForm((f) => ({ ...f, ...patch }));
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked: the address bar still has the link */
-    }
-  };
+  const compared = result && resultB ? compareOffers(result, resultB, 5) : null;
+
+  const costHint = `${money(Math.round((form.exitCosts + form.setupCosts) * 100))} costs${
+    form.cashback > 0 ? ` · ${money(Math.round(form.cashback * 100))} cashback` : ""
+  }`;
+  const newHint = `${form.newRatePct}%${
+    form.introRatePct !== undefined ? ` (${form.introRatePct}% intro)` : ""
+  } · ${form.newTermYears ?? form.termYears} yrs${
+    form.newFee > 0 ? ` · ${money(Math.round(form.newFee * 100))} a year fee` : ""
+  }`;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Refinance check</h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          Is switching to a lower rate worth it after fees and cashback? Enter your loan and the
-          offer to see when it pays for itself. Your numbers never leave your device.
-        </p>
-        <SavedBar saved={saved} />
-      </header>
+    <ToolPage>
+      <ToolHeader
+        title="Refinance check"
+        intro="When switching to a new loan pays for itself, after fees and cashback."
+        saved={saved}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-        <section className="space-y-4" aria-label="Your loan and the new offer">
-          <div className={card}>
-            <h2 className="mb-3 font-semibold">Your loan today</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <MoneyField
-                className="col-span-2"
-                label="Loan balance"
-                hint="What you owe now, not the original loan."
-                value={form.balance}
-                onChange={(v) => v !== undefined && set({ balance: v })}
+      {!result ? (
+        <div className={`${card} text-warn`}>
+          {errors.length
+            ? `Check your numbers: ${errors.join("; ")}.`
+            : "Something in the inputs doesn't add up."}{" "}
+          <button type="button" onClick={() => edit("loan")} className="text-accent underline">
+            Edit your loan
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <Results
+            r={result}
+            frequency={form.frequency}
+            lmi={
+              <LmiNote
+                loan={form.balance}
+                value={form.homeValue}
+                onAdd={(premium) => set({ setupCosts: form.setupCosts + premium })}
               />
-              <NumberField
-                label="Interest rate"
-                suffix="%"
-                min={0}
-                max={20}
-                step={0.01}
-                value={form.ratePct}
-                onChange={(v) => v !== undefined && set({ ratePct: v })}
+            }
+          />
+
+          <ToolSection id="loan-h" title="Your numbers">
+            <SummaryRows>
+              <SummaryRow
+                title="Your loan today"
+                hint={`${money(Math.round(form.balance * 100))} · ${form.ratePct}% · ${form.termYears} yrs`}
+                onClick={() => edit("loan")}
               />
-              <NumberField
-                label="Years left"
-                suffix="yrs"
-                min={1}
-                max={40}
-                step={1}
-                value={form.termYears}
-                onChange={(v) => v !== undefined && set({ termYears: v })}
+              <SummaryRow
+                title={form.offerB ? "Offer A: the new loan" : "The new loan"}
+                hint={newHint}
+                onClick={() => edit("new")}
               />
-              <SelectField
-                label="Repayments"
-                value={form.frequency}
-                options={FREQUENCIES}
-                onChange={(frequency) => set({ frequency })}
-              />
-              <MoneyField
-                label="You pay each time"
-                optional
-                placeholder="Minimum"
-                value={form.repayment}
-                onChange={(repayment) => set({ repayment })}
-              />
-              {form.frequency === "fortnightly" && (
-                <SelectField
-                  className="col-span-2"
-                  label="How your bank sets fortnightly repayments"
-                  value={form.fortnightlyMethod}
-                  options={[
-                    { value: "half-monthly", label: "Half the monthly repayment (most common)" },
-                    { value: "true", label: "True fortnightly amount" },
-                  ]}
-                  onChange={(fortnightlyMethod) => set({ fortnightlyMethod })}
+              {form.offerB && (
+                <SummaryRow
+                  title="Offer B"
+                  hint={`${form.offerB.ratePct}%${
+                    form.offerB.annualFee > 0
+                      ? ` · ${money(Math.round(form.offerB.annualFee * 100))} a year fee`
+                      : ""
+                  }`}
+                  onClick={() => edit("offer-b")}
                 />
               )}
-              <MoneyField
-                label="Offset balance"
-                hint="Assumed to move with you."
-                value={form.offset}
-                onChange={(v) => set({ offset: v ?? 0 })}
-              />
-              <MoneyField
-                label="Annual fee"
-                hint="Package or account fees a year."
-                value={form.currentFee}
-                onChange={(v) => set({ currentFee: v ?? 0 })}
-              />
-            </div>
-          </div>
+              <SummaryRow title="Cost to switch" hint={costHint} onClick={() => edit("cost")} />
+            </SummaryRows>
+          </ToolSection>
 
-          <div className={card} style={{ borderLeft: "4px solid var(--series-a)" }}>
-            <h2 className="mb-3 font-semibold">
-              {form.offerB ? "Offer A: the new loan" : "The new loan"}
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField
-                label="Interest rate"
-                suffix="%"
-                min={0}
-                max={20}
-                step={0.01}
-                value={form.newRatePct}
-                onChange={(v) => v !== undefined && set({ newRatePct: v })}
-              />
-              <NumberField
-                label="Loan term"
-                suffix="yrs"
-                optional
-                placeholder={String(form.termYears)}
-                hint="Blank keeps your years left."
-                min={1}
-                max={40}
-                step={1}
-                value={form.newTermYears}
-                onChange={(newTermYears) => set({ newTermYears })}
-              />
-              <NumberField
-                label="Intro rate"
-                suffix="%"
-                optional
-                placeholder="None"
-                min={0}
-                max={20}
-                step={0.01}
-                value={form.introRatePct}
-                onChange={(introRatePct) =>
-                  set({
-                    introRatePct,
-                    introYears: introRatePct === undefined ? undefined : (form.introYears ?? 2),
-                  })
-                }
-              />
-              {form.introRatePct !== undefined ? (
-                <NumberField
-                  label="For"
-                  suffix="yrs"
-                  min={0.5}
-                  max={10}
-                  step={0.5}
-                  value={form.introYears}
-                  hint="Then the rate above."
-                  onChange={(introYears) => set({ introYears })}
-                />
+          <Ideas
+            cards={
+              <IdeaCard
+                title="Compare a second offer"
+                open={idea === "offer"}
+                onClick={() => toggle("offer")}
+              >
+                {compared ? (
+                  compared.winner === "tie" ? (
+                    "After 5 years the two offers are a tie."
+                  ) : (
+                    <>
+                      After 5 years, Offer {compared.winner.toUpperCase()} leaves you{" "}
+                      <strong className="num text-good">{money(compared.difference)}</strong>{" "}
+                      further ahead.
+                    </>
+                  )
+                ) : (
+                  "Put another lender's offer next to this one and see which leaves you further ahead."
+                )}
+              </IdeaCard>
+            }
+          >
+            {idea === "offer" &&
+              (form.offerB && resultB ? (
+                <OfferCompare a={result} b={resultB} frequency={form.frequency} />
               ) : (
-                <div />
-              )}
-              <MoneyField
-                className="col-span-2"
-                label="Annual fee"
-                value={form.newFee}
-                onChange={(v) => set({ newFee: v ?? 0 })}
-              />
-              <fieldset className="col-span-2">
-                <legend className="mb-1.5 text-sm font-medium">After you switch</legend>
-                <div className="flex flex-wrap gap-2">
+                <div className={`${card} space-y-3`}>
+                  <p className="text-sm text-muted">
+                    {form.offerB
+                      ? "Check Offer B's numbers: they don't add up yet."
+                      : "Add a second offer, with its own rate, fee and cashback. It shares your cost of leaving your current lender."}
+                  </p>
                   <button
                     type="button"
-                    className={pill(form.repaymentChoice === "keep")}
-                    aria-pressed={form.repaymentChoice === "keep"}
-                    onClick={() => set({ repaymentChoice: "keep" })}
+                    className={tonalBtn}
+                    onClick={() => {
+                      if (!form.offerB)
+                        set({
+                          offerB: {
+                            ratePct: form.newRatePct,
+                            annualFee: 0,
+                            setupCosts: form.setupCosts,
+                            cashback: 0,
+                          },
+                        });
+                      edit("offer-b");
+                    }}
                   >
-                    Keep paying the same
-                  </button>
-                  <button
-                    type="button"
-                    className={pill(form.repaymentChoice === "minimum")}
-                    aria-pressed={form.repaymentChoice === "minimum"}
-                    onClick={() => set({ repaymentChoice: "minimum" })}
-                  >
-                    Pay the new minimum
+                    {form.offerB ? "Edit Offer B" : "Add a second offer"}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-muted">
-                  Keeping your repayment the same pays the loan off sooner.
-                </p>
-              </fieldset>
-            </div>
-          </div>
+              ))}
+          </Ideas>
 
-          {form.offerB ? (
-            <div className={card} style={{ borderLeft: "4px solid var(--series-b)" }}>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="font-semibold">Offer B</h2>
-                <button
-                  type="button"
-                  onClick={() => set({ offerB: undefined })}
-                  className="text-sm text-muted hover:text-warn"
-                >
-                  Remove
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <NumberField
-                  label="Interest rate"
-                  suffix="%"
-                  min={0}
-                  max={20}
-                  step={0.01}
-                  value={form.offerB.ratePct}
-                  onChange={(v) =>
-                    v !== undefined &&
-                    form.offerB &&
-                    set({ offerB: { ...form.offerB, ratePct: v } })
-                  }
-                />
-                <MoneyField
-                  label="Annual fee"
-                  value={form.offerB.annualFee}
-                  onChange={(v) =>
-                    form.offerB && set({ offerB: { ...form.offerB, annualFee: v ?? 0 } })
-                  }
-                />
-                <MoneyField
-                  label="Setting up this loan"
-                  hint="The cost of leaving your lender is shared with Offer A."
-                  value={form.offerB.setupCosts}
-                  onChange={(v) =>
-                    form.offerB && set({ offerB: { ...form.offerB, setupCosts: v ?? 0 } })
-                  }
-                />
-                <MoneyField
-                  label="Cashback"
-                  value={form.offerB.cashback}
-                  onChange={(v) =>
-                    form.offerB && set({ offerB: { ...form.offerB, cashback: v ?? 0 } })
-                  }
-                />
-                <p className="col-span-2 text-xs text-muted">
-                  Offer B uses the same loan term and repayment choice as Offer A, with no intro
-                  rate.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() =>
+          <Detail>
+            <Disclosure title="Side by side" hint="stay and switch">
+              <SideBySide
+                r={result}
+                current={input.current}
+                frequency={form.frequency}
+                hasIntro={form.introRatePct !== undefined}
+              />
+            </Disclosure>
+            <Disclosure title="The numbers" hint="upfront cost, after 1 and 5 years">
+              <KeyNumbers r={result} />
+            </Disclosure>
+            <Disclosure title="Good to know" hint="tips and things to check">
+              <GoodToKnow tool="refinance" bare />
+            </Disclosure>
+            <Disclosure
+              title="How this is calculated"
+              hint="break-even and what counts as a saving"
+            >
+              <Method />
+            </Disclosure>
+          </Detail>
+          <NextSteps tool="refinance" className="pt-2" />
+        </div>
+      )}
+
+      <EditSheet ref={sheet} title="Your loan and the offer">
+        <div id="loan" className="scroll-mt-20">
+          <h3 className="mb-3 font-semibold">Your loan today</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <MoneyField
+              className="col-span-2"
+              label="Loan balance"
+              hint="What you owe now, not the original loan."
+              value={form.balance}
+              onChange={(v) => v !== undefined && set({ balance: v })}
+            />
+            <NumberField
+              label="Interest rate"
+              suffix="%"
+              min={0}
+              max={20}
+              step={0.01}
+              value={form.ratePct}
+              onChange={(v) => v !== undefined && set({ ratePct: v })}
+            />
+            <NumberField
+              label="Years left"
+              suffix="yrs"
+              min={1}
+              max={40}
+              step={1}
+              value={form.termYears}
+              onChange={(v) => v !== undefined && set({ termYears: v })}
+            />
+            <SelectField
+              label="Repayments"
+              value={form.frequency}
+              options={FREQUENCIES}
+              onChange={(frequency) => set({ frequency })}
+            />
+            <MoneyField
+              label="You pay each time"
+              optional
+              placeholder="Minimum"
+              value={form.repayment}
+              onChange={(repayment) => set({ repayment })}
+            />
+            {form.frequency === "fortnightly" && (
+              <SelectField
+                className="col-span-2"
+                label="How your bank sets fortnightly repayments"
+                value={form.fortnightlyMethod}
+                options={[
+                  { value: "half-monthly", label: "Half the monthly repayment (most common)" },
+                  { value: "true", label: "True fortnightly amount" },
+                ]}
+                onChange={(fortnightlyMethod) => set({ fortnightlyMethod })}
+              />
+            )}
+            <MoneyField
+              label="Offset balance"
+              hint="Assumed to move with you."
+              value={form.offset}
+              onChange={(v) => set({ offset: v ?? 0 })}
+            />
+            <MoneyField
+              label="Annual fee"
+              hint="Package or account fees a year."
+              value={form.currentFee}
+              onChange={(v) => set({ currentFee: v ?? 0 })}
+            />
+          </div>
+        </div>
+
+        <div
+          id="new"
+          className="scroll-mt-20 border-l-4 pl-3"
+          style={{ borderColor: "var(--series-a)" }}
+        >
+          <h3 className="mb-3 font-semibold">
+            {form.offerB ? "Offer A: the new loan" : "The new loan"}
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Interest rate"
+              suffix="%"
+              min={0}
+              max={20}
+              step={0.01}
+              value={form.newRatePct}
+              onChange={(v) => v !== undefined && set({ newRatePct: v })}
+            />
+            <NumberField
+              label="Loan term"
+              suffix="yrs"
+              optional
+              placeholder={String(form.termYears)}
+              hint="Blank keeps your years left."
+              min={1}
+              max={40}
+              step={1}
+              value={form.newTermYears}
+              onChange={(newTermYears) => set({ newTermYears })}
+            />
+            <NumberField
+              label="Intro rate"
+              suffix="%"
+              optional
+              placeholder="None"
+              min={0}
+              max={20}
+              step={0.01}
+              value={form.introRatePct}
+              onChange={(introRatePct) =>
                 set({
-                  offerB: {
-                    ratePct: form.newRatePct,
-                    annualFee: 0,
-                    setupCosts: form.setupCosts,
-                    cashback: 0,
-                  },
+                  introRatePct,
+                  introYears: introRatePct === undefined ? undefined : (form.introYears ?? 2),
                 })
               }
-              className="w-full rounded-xl border border-dashed border-border p-4 text-sm font-medium text-accent hover:border-accent"
-            >
-              Compare a second offer
-            </button>
-          )}
+            />
+            {form.introRatePct !== undefined ? (
+              <NumberField
+                label="For"
+                suffix="yrs"
+                min={0.5}
+                max={10}
+                step={0.5}
+                value={form.introYears}
+                hint="Then the rate above."
+                onChange={(introYears) => set({ introYears })}
+              />
+            ) : (
+              <div />
+            )}
+            <MoneyField
+              className="col-span-2"
+              label="Annual fee"
+              value={form.newFee}
+              onChange={(v) => set({ newFee: v ?? 0 })}
+            />
+            <fieldset className="col-span-2">
+              <legend className="mb-1.5 text-sm font-medium">After you switch</legend>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={pill(form.repaymentChoice === "keep")}
+                  aria-pressed={form.repaymentChoice === "keep"}
+                  onClick={() => set({ repaymentChoice: "keep" })}
+                >
+                  Keep paying the same
+                </button>
+                <button
+                  type="button"
+                  className={pill(form.repaymentChoice === "minimum")}
+                  aria-pressed={form.repaymentChoice === "minimum"}
+                  onClick={() => set({ repaymentChoice: "minimum" })}
+                >
+                  Pay the new minimum
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                Keeping your repayment the same pays the loan off sooner.
+              </p>
+            </fieldset>
+          </div>
+        </div>
 
-          <div className={card}>
-            <h2 className="mb-3 font-semibold">Cost to switch</h2>
+        {form.offerB && (
+          <div
+            id="offer-b"
+            className="scroll-mt-20 border-l-4 pl-3"
+            style={{ borderColor: "var(--series-b)" }}
+          >
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="font-semibold">Offer B</h3>
+              <button
+                type="button"
+                onClick={() => set({ offerB: undefined })}
+                className="text-sm text-muted hover:text-warn"
+              >
+                Remove
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <MoneyField
-                className="col-span-2"
-                label="What your home is worth (optional)"
-                hint="For your loan-to-value ratio. Over 80%, a new lender may charge mortgage insurance."
-                optional
-                value={form.homeValue}
-                onChange={(homeValue) => set({ homeValue })}
+              <NumberField
+                label="Interest rate"
+                suffix="%"
+                min={0}
+                max={20}
+                step={0.01}
+                value={form.offerB.ratePct}
+                onChange={(v) =>
+                  v !== undefined && form.offerB && set({ offerB: { ...form.offerB, ratePct: v } })
+                }
               />
               <MoneyField
-                label="Leaving your lender"
-                hint="Discharge fee, plus break costs on a fixed rate."
-                value={form.exitCosts}
-                onChange={(v) => set({ exitCosts: v ?? 0 })}
+                label="Annual fee"
+                value={form.offerB.annualFee}
+                onChange={(v) =>
+                  form.offerB && set({ offerB: { ...form.offerB, annualFee: v ?? 0 } })
+                }
               />
               <MoneyField
-                label="Setting up the new loan"
-                hint="Application, valuation, settlement, government fees."
-                value={form.setupCosts}
-                onChange={(v) => set({ setupCosts: v ?? 0 })}
+                label="Setting up this loan"
+                hint="The cost of leaving your lender is shared with Offer A."
+                value={form.offerB.setupCosts}
+                onChange={(v) =>
+                  form.offerB && set({ offerB: { ...form.offerB, setupCosts: v ?? 0 } })
+                }
               />
               <MoneyField
                 label="Cashback"
-                hint="Paid to you by the new lender."
-                value={form.cashback}
-                onChange={(v) => set({ cashback: v ?? 0 })}
+                value={form.offerB.cashback}
+                onChange={(v) =>
+                  form.offerB && set({ offerB: { ...form.offerB, cashback: v ?? 0 } })
+                }
               />
-              <DateField
-                label="Switch date"
-                value={form.startDate}
-                onChange={(startDate) => set({ startDate })}
-              />
-              <Checkbox
-                className="col-span-2 flex items-center gap-2 text-sm"
-                isSelected={form.addCostsToLoan}
-                onChange={(v) => set({ addCostsToLoan: v })}
-              >
-                Add the costs to the new loan
-              </Checkbox>
+              <p className="col-span-2 text-xs text-muted">
+                Offer B uses the same loan term and repayment choice as Offer A, with no intro rate.
+              </p>
             </div>
           </div>
-        </section>
-
-        <section
-          id="results"
-          className="min-w-0 scroll-mt-4 space-y-4"
-          aria-label="Results"
-          aria-live="polite"
-        >
-          {result && (
-            <LmiNote
-              loan={form.balance}
-              value={form.homeValue}
-              onAdd={(premium) => set({ setupCosts: form.setupCosts + premium })}
-            />
-          )}
-          {!result ? (
-            <div className={`${card} text-warn`}>
-              {errors.length
-                ? `Check your numbers: ${errors.join("; ")}.`
-                : "Something in the inputs doesn't add up."}
-            </div>
-          ) : (
-            <Results
-              r={result}
-              current={input.current}
-              frequency={form.frequency}
-              onCopy={copyLink}
-              copied={copied}
-              hasIntro={form.introRatePct !== undefined}
-            />
-          )}
-          {result && resultB && <OfferCompare a={result} b={resultB} frequency={form.frequency} />}
-          <GoodToKnow tool="refinance" />
-          <Method />
-        </section>
-      </div>
-
-      {result && <MobileSummary r={result} />}
-    </main>
-  );
-}
-
-function verdict(r: RefinanceResult) {
-  const m = r.breakEvenMonths;
-  if (m === null) {
-    return {
-      good: false,
-      text: (
-        <>
-          Switching <strong>doesn&apos;t pay for itself</strong>. You&apos;d end up{" "}
-          <strong className="num text-warn">{money(-r.lifetimeBenefit)}</strong> worse off over the
-          life of the loan.
-        </>
-      ),
-    };
-  }
-  const when =
-    m === 0 ? (
-      <>
-        The cashback covers the costs, so you&apos;re <strong>ahead from day one</strong>.
-      </>
-    ) : (
-      <>
-        Switching pays for itself in{" "}
-        <strong>
-          {m} month{m === 1 ? "" : "s"}
-        </strong>{" "}
-        ({monthYear(r.breakEvenDate as string)}).
-      </>
-    );
-  return {
-    good: r.lifetimeBenefit >= 0,
-    text: (
-      <>
-        {when}{" "}
-        {r.lifetimeBenefit >= 0 ? (
-          <>
-            Over the life of the loan you&apos;d be{" "}
-            <strong className="num text-good">{money(r.lifetimeBenefit)}</strong> ahead.
-          </>
-        ) : (
-          <>
-            But over the life of the loan you&apos;d be{" "}
-            <strong className="num text-warn">{money(-r.lifetimeBenefit)}</strong> behind.
-          </>
         )}
-      </>
-    ),
-  };
-}
 
-function MobileSummary({ r }: { r: RefinanceResult }) {
-  const m = r.breakEvenMonths;
-  return (
-    <ResultsBar>
-      {m === null ? (
-        <strong className="text-warn">Doesn&apos;t pay off</strong>
-      ) : (
-        <>
-          Breaks even <strong>{m === 0 ? "day one" : monthYear(r.breakEvenDate as string)}</strong>
-          {r.lifetimeBenefit > 0 && (
-            <>
-              {" "}
-              · <strong className="text-good">{money(r.lifetimeBenefit)}</strong> ahead
-            </>
-          )}
-        </>
-      )}
-    </ResultsBar>
+        <div id="cost" className="scroll-mt-20">
+          <h3 className="mb-3 font-semibold">Cost to switch</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <MoneyField
+              className="col-span-2"
+              label="What your home is worth (optional)"
+              hint="For your loan-to-value ratio. Over 80%, a new lender may charge mortgage insurance."
+              optional
+              value={form.homeValue}
+              onChange={(homeValue) => set({ homeValue })}
+            />
+            <MoneyField
+              label="Leaving your lender"
+              hint="Discharge fee, plus break costs on a fixed rate."
+              value={form.exitCosts}
+              onChange={(v) => set({ exitCosts: v ?? 0 })}
+            />
+            <MoneyField
+              label="Setting up the new loan"
+              hint="Application, valuation, settlement, government fees."
+              value={form.setupCosts}
+              onChange={(v) => set({ setupCosts: v ?? 0 })}
+            />
+            <MoneyField
+              label="Cashback"
+              hint="Paid to you by the new lender."
+              value={form.cashback}
+              onChange={(v) => set({ cashback: v ?? 0 })}
+            />
+            <DateField
+              label="Switch date"
+              value={form.startDate}
+              onChange={(startDate) => set({ startDate })}
+            />
+            <Checkbox
+              className="col-span-2 flex items-center gap-2 text-sm"
+              isSelected={form.addCostsToLoan}
+              onChange={(v) => set({ addCostsToLoan: v })}
+            >
+              Add the costs to the new loan
+            </Checkbox>
+          </div>
+        </div>
+      </EditSheet>
+    </ToolPage>
   );
 }
 
@@ -498,136 +524,182 @@ const signed = (c: number) => (c >= 0 ? money(c) : `−${money(-c)}`);
 
 function Results({
   r,
-  current,
   frequency,
-  onCopy,
-  copied,
-  hasIntro,
+  lmi,
 }: {
   r: RefinanceResult;
-  current: LoanInput;
   frequency: Frequency;
-  onCopy: () => void;
-  copied: boolean;
-  hasIntro: boolean;
+  lmi: React.ReactNode;
 }) {
   const [range, setRange] = useState<"5y" | "all">("5y");
-  const v = verdict(r);
-  const at = (years: number) => r.timeline[Math.min(years * 12, r.timeline.length - 1)].benefit;
   const points = range === "all" ? r.timeline : r.timeline.slice(0, 61);
   const daysSooner =
     (Date.parse(r.current.payoffDate) - Date.parse(r.proposed.payoffDate)) / 86_400_000;
   const change = r.repaymentChange;
+  const m = r.breakEvenMonths;
   const warnings = [
     ...new Set([...r.warnings, ...r.current.warnings, ...r.proposed.warnings]),
   ].filter((w) => !/below the lender's minimum/.test(w) || r.current.warnings.includes(w));
 
   return (
     <>
-      <div className={`${card} space-y-2 text-lg leading-relaxed`}>
-        <p>{v.text}</p>
-        <p className="text-base text-muted">
-          {change < 0 ? (
+      <AnswerRow>
+        <AnswerCard label="When switching pays for itself">
+          {m === null ? (
             <>
-              Your repayment drops by{" "}
-              <strong className="num text-text">{moneyExact(-change)}</strong>{" "}
-              {perPeriod[frequency]}
-            </>
-          ) : change > 0 ? (
-            <>
-              Your repayment rises by{" "}
-              <strong className="num text-text">{moneyExact(change)}</strong> {perPeriod[frequency]}
+              <p className="num -mt-1 text-4xl leading-none font-bold tracking-tight text-warn sm:text-5xl">
+                Not worth it
+              </p>
+              <p className="text-lg">
+                Switching <strong>doesn&apos;t pay for itself</strong>. You&apos;d end up{" "}
+                <strong className="num text-warn">{money(-r.lifetimeBenefit)}</strong> worse off
+                over the life of the loan.
+              </p>
             </>
           ) : (
-            <>You keep paying {moneyExact(r.current.repayment)}</>
+            <>
+              <p className="num -mt-1 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+                {m === 0 ? "Day one" : monthYear(r.breakEvenDate as string)}
+              </p>
+              <p className="text-lg">
+                {m === 0 ? (
+                  <>The cashback covers the costs, so you&apos;re ahead from day one. </>
+                ) : (
+                  <>
+                    That&apos;s <strong>{m}</strong> month{m === 1 ? "" : "s"} after you switch.{" "}
+                  </>
+                )}
+                {r.lifetimeBenefit >= 0 ? (
+                  <>
+                    Over the life of the loan you&apos;d be{" "}
+                    <strong className="num text-good">{money(r.lifetimeBenefit)}</strong> ahead.
+                  </>
+                ) : (
+                  <>
+                    But over the life of the loan you&apos;d be{" "}
+                    <strong className="num text-warn">{money(-r.lifetimeBenefit)}</strong> behind.
+                  </>
+                )}
+              </p>
+            </>
           )}
-          {daysSooner > 15 && <>, and you&apos;re debt-free {duration(daysSooner)} sooner</>}
-          {daysSooner < -15 && <>, and you&apos;re debt-free {duration(daysSooner)} later</>}.
-        </p>
-        {warnings.map((w) => (
-          <p key={w} className="text-sm text-warn">
-            {w}
+          <p className="text-base">
+            {change < 0 ? (
+              <>
+                Your repayment drops by <strong className="num">{moneyExact(-change)}</strong>{" "}
+                {perPeriod[frequency]}
+              </>
+            ) : change > 0 ? (
+              <>
+                Your repayment rises by <strong className="num">{moneyExact(change)}</strong>{" "}
+                {perPeriod[frequency]}
+              </>
+            ) : (
+              <>You keep paying {moneyExact(r.current.repayment)}</>
+            )}
+            {daysSooner > 15 && <>, and you&apos;re debt-free {duration(daysSooner)} sooner</>}
+            {daysSooner < -15 && <>, and you&apos;re debt-free {duration(-daysSooner)} later</>}.
           </p>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat
-          label="Upfront cost"
-          value={signed(r.netUpfrontCost)}
-          note={r.netUpfrontCost < 0 ? "Cashback is more than the costs" : "After cashback"}
-        />
-        <Stat label="After 1 year" value={signed(at(1))} note={at(1) >= 0 ? "ahead" : "behind"} />
-        <Stat label="After 5 years" value={signed(at(5))} note={at(5) >= 0 ? "ahead" : "behind"} />
-        <Stat label="Interest saved" value={signed(r.interestSaved)} note="Over the loan" />
-      </div>
-
-      <div className={card}>
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold">How far ahead you are</h2>
-          <div className="flex gap-2">
-            <button type="button" className={pill(range === "5y")} onClick={() => setRange("5y")}>
-              5 years
-            </button>
-            <button type="button" className={pill(range === "all")} onClick={() => setRange("all")}>
-              Whole loan
-            </button>
-            <button
-              type="button"
-              onClick={onCopy}
-              className="rounded-lg border border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent"
-            >
-              {copied ? "Link copied" : "Copy link"}
-            </button>
+          {warnings.map((w) => (
+            <p key={w} className="text-sm text-warn">
+              {w}
+            </p>
+          ))}
+        </AnswerCard>
+        <figure className={`${card} min-w-0 rounded-3xl`}>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <figcaption className="font-semibold">How far ahead you are</figcaption>
+            <div className="flex gap-2">
+              <button type="button" className={pill(range === "5y")} onClick={() => setRange("5y")}>
+                5 years
+              </button>
+              <button
+                type="button"
+                className={pill(range === "all")}
+                onClick={() => setRange("all")}
+              >
+                Whole loan
+              </button>
+            </div>
           </div>
-        </div>
-        <BenefitChart points={points} markerMonth={r.breakEvenMonths} />
-        <p className="mt-1 text-xs text-muted">
-          Interest and fees saved, less the cost to switch. Above $0 means switching has paid for
-          itself.
-        </p>
-      </div>
-
-      <div className={`${card} overflow-x-auto`}>
-        <h2 className="mb-3 font-semibold">Side by side</h2>
-        <table className="num w-full text-sm">
-          <thead>
-            <tr className="text-left text-muted">
-              <th className="py-1.5 pr-3 font-medium" />
-              <th className="py-1.5 pr-3 text-right font-medium">Stay</th>
-              <th className="py-1.5 pr-3 text-right font-medium">Switch</th>
-            </tr>
-          </thead>
-          <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td]:pr-3 [&_td:not(:first-child)]:text-right">
-            <tr>
-              <td>Interest rate{hasIntro ? " (at the start)" : ""}</td>
-              <td>{pct(current.annualRate)}</td>
-              <td>{pct(r.proposedInput.annualRate)}</td>
-            </tr>
-            <tr>
-              <td>Loan amount</td>
-              <td>{money(current.balance)}</td>
-              <td>{money(r.proposedInput.balance)}</td>
-            </tr>
-            <tr>
-              <td>Repayment {perPeriod[frequency]}</td>
-              <td>{moneyExact(r.current.repayment)}</td>
-              <td>{moneyExact(r.proposed.repayment)}</td>
-            </tr>
-            <tr>
-              <td>Debt-free</td>
-              <td>{monthYear(r.current.payoffDate)}</td>
-              <td>{monthYear(r.proposed.payoffDate)}</td>
-            </tr>
-            <tr>
-              <td>Total interest</td>
-              <td>{money(r.current.totalInterest)}</td>
-              <td>{money(r.proposed.totalInterest)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          <BenefitChart points={points} markerMonth={r.breakEvenMonths} />
+          <p className="mt-1 text-xs text-muted">
+            Interest and fees saved, less the cost to switch. Above $0 means switching has paid for
+            itself.
+          </p>
+        </figure>
+      </AnswerRow>
+      {lmi}
     </>
+  );
+}
+
+function KeyNumbers({ r }: { r: RefinanceResult }) {
+  const at = (years: number) => r.timeline[Math.min(years * 12, r.timeline.length - 1)].benefit;
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <Stat
+        label="Upfront cost"
+        value={signed(r.netUpfrontCost)}
+        note={r.netUpfrontCost < 0 ? "Cashback is more than the costs" : "After cashback"}
+      />
+      <Stat label="After 1 year" value={signed(at(1))} note={at(1) >= 0 ? "ahead" : "behind"} />
+      <Stat label="After 5 years" value={signed(at(5))} note={at(5) >= 0 ? "ahead" : "behind"} />
+      <Stat label="Interest saved" value={signed(r.interestSaved)} note="Over the loan" />
+    </div>
+  );
+}
+
+function SideBySide({
+  r,
+  current,
+  frequency,
+  hasIntro,
+}: {
+  r: RefinanceResult;
+  current: LoanInput;
+  frequency: Frequency;
+  hasIntro: boolean;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="num w-full text-sm">
+        <thead>
+          <tr className="text-left text-muted">
+            <th className="py-1.5 pr-3 font-medium" />
+            <th className="py-1.5 pr-3 text-right font-medium">Stay</th>
+            <th className="py-1.5 pr-3 text-right font-medium">Switch</th>
+          </tr>
+        </thead>
+        <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td]:pr-3 [&_td:not(:first-child)]:text-right">
+          <tr>
+            <td>Interest rate{hasIntro ? " (at the start)" : ""}</td>
+            <td>{pct(current.annualRate)}</td>
+            <td>{pct(r.proposedInput.annualRate)}</td>
+          </tr>
+          <tr>
+            <td>Loan amount</td>
+            <td>{money(current.balance)}</td>
+            <td>{money(r.proposedInput.balance)}</td>
+          </tr>
+          <tr>
+            <td>Repayment {perPeriod[frequency]}</td>
+            <td>{moneyExact(r.current.repayment)}</td>
+            <td>{moneyExact(r.proposed.repayment)}</td>
+          </tr>
+          <tr>
+            <td>Debt-free</td>
+            <td>{monthYear(r.current.payoffDate)}</td>
+            <td>{monthYear(r.proposed.payoffDate)}</td>
+          </tr>
+          <tr>
+            <td>Total interest</td>
+            <td>{money(r.current.totalInterest)}</td>
+            <td>{money(r.proposed.totalInterest)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -655,7 +727,7 @@ function OfferCompare({
   return (
     <div className={`${card} overflow-x-auto`}>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Offer A or Offer B</h2>
+        <h3 className="font-semibold">Offer A or Offer B</h3>
         <div className="flex gap-2">
           {[1, 5, 10].map((y) => (
             <button
@@ -773,32 +845,29 @@ function OfferCompare({
 
 function Method() {
   return (
-    <details className={`${card} text-sm`}>
-      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
-      <div className="mt-3 space-y-2 text-muted">
-        <p>
-          Both loans are run side by side from the switch date, the way Australian lenders run a
-          variable home loan: interest worked out daily on the balance less your offset, added
-          monthly, with repayments on real calendar dates.
-        </p>
-        <p>
-          Each month we add up the interest and fees you&apos;ve saved by switching, and take off
-          the cost to switch less any cashback. The break-even date is the first month that total
-          reaches $0. A lower repayment on its own isn&apos;t counted as a saving, because the money
-          you didn&apos;t repay is still owed. That&apos;s why paying the new minimum can look
-          better month to month but cost more over the whole loan, especially on a longer term.
-        </p>
-        <p>
-          If you add the costs to the new loan, you pay interest on them too. An intro rate reverts
-          to the ongoing rate on the date you choose, and the minimum repayment is recalculated
-          then. Your current rate is assumed to stay where it is.
-        </p>
-        <p>
-          Real offers can differ by a few dollars because of rounding and the exact day each lender
-          charges interest. This is general information, not financial advice.
-        </p>
-      </div>
-    </details>
+    <div className="space-y-2 text-sm text-muted">
+      <p>
+        Both loans are run side by side from the switch date, the way Australian lenders run a
+        variable home loan: interest worked out daily on the balance less your offset, added
+        monthly, with repayments on real calendar dates.
+      </p>
+      <p>
+        Each month we add up the interest and fees you&apos;ve saved by switching, and take off the
+        cost to switch less any cashback. The break-even date is the first month that total reaches
+        $0. A lower repayment on its own isn&apos;t counted as a saving, because the money you
+        didn&apos;t repay is still owed. That&apos;s why paying the new minimum can look better
+        month to month but cost more over the whole loan, especially on a longer term.
+      </p>
+      <p>
+        If you add the costs to the new loan, you pay interest on them too. An intro rate reverts to
+        the ongoing rate on the date you choose, and the minimum repayment is recalculated then.
+        Your current rate is assumed to stay where it is.
+      </p>
+      <p>
+        Real offers can differ by a few dollars because of rounding and the exact day each lender
+        charges interest. This is general information, not financial advice.
+      </p>
+    </div>
   );
 }
 

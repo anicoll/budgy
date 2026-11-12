@@ -14,9 +14,24 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { BenefitChart } from "@/components/BenefitChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { NextSteps } from "@/components/NextSteps";
 import { RateChart } from "@/components/RateChart";
-import { ResultsBar } from "@/components/ResultsBar";
-import { SavedBar } from "@/components/SavedBar";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  EditSheet,
+  IdeaCard,
+  Ideas,
+  SummaryRow,
+  SummaryRows,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+  useEditSheet,
+  useIdea,
+} from "@/components/tool";
 import {
   decodeFixed,
   defaultFixed,
@@ -76,7 +91,7 @@ const FIXED_SAVED: SavedConfig<FixedForm> = {
 export function FixedVariableCalculator() {
   const saved = useSavedState(FIXED_SAVED);
   const { state: form, setState: setForm } = saved;
-  const [copied, setCopied] = useState(false);
+  const { ref: sheet, open: edit } = useEditSheet();
 
   const input = useMemo(() => toFixedInput(form), [form]);
   const errors = useMemo(() => validateFixedVsVariable(input), [input]);
@@ -101,214 +116,223 @@ export function FixedVariableCalculator() {
     } else set({ path });
   };
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked: the address bar still has the link */
-    }
-  };
-
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Fixed or variable</h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          What if rates rise 1% next year, or you fix half? Pick a path for rates and see what
-          fixing all or part of your loan would save or cost. Coming off a fixed rate? Enter the
-          balance you&apos;ll owe on the roll-off date. Your numbers never leave your device.
-        </p>
-        <SavedBar saved={saved} />
-      </header>
+    <ToolPage>
+      <ToolHeader
+        title="Fixed or variable"
+        intro="What fixing all or part of your loan would save or cost if rates rise, fall or stay put."
+        saved={saved}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-        <section className="space-y-4" aria-label="Your loan, the rate path and the fixed offer">
-          <div className={card}>
-            <h2 className="mb-3 font-semibold">Your loan</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <MoneyField
-                className="col-span-2"
-                label="Loan balance"
-                hint="What you owe now, not the original loan."
-                value={form.balance}
-                onChange={(v) => v !== undefined && set({ balance: v })}
-              />
-              <NumberField
-                label="Variable rate"
-                suffix="%"
-                hint="What you'd pay if you don't fix."
-                min={0}
-                max={20}
-                step={0.01}
-                value={form.variableRatePct}
-                onChange={(v) => v !== undefined && set({ variableRatePct: v })}
-              />
-              <NumberField
-                label="Years left"
-                suffix="yrs"
-                min={1}
-                max={40}
-                step={1}
-                value={form.termYears}
-                onChange={(v) => v !== undefined && set({ termYears: v })}
-              />
-              <SelectField
-                label="Repayments"
-                value={form.frequency}
-                options={FREQUENCIES}
-                onChange={(frequency) => set({ frequency })}
-              />
-              <MoneyField
-                label="Extra each time"
-                hint="On the variable part."
-                value={form.extra}
-                onChange={(v) => set({ extra: v ?? 0 })}
-              />
-              {form.frequency === "fortnightly" && (
-                <SelectField
-                  className="col-span-2"
-                  label="How your bank sets fortnightly repayments"
-                  value={form.fortnightlyMethod}
-                  options={[
-                    { value: "half-monthly", label: "Half the monthly repayment (most common)" },
-                    { value: "true", label: "True fortnightly amount" },
-                  ]}
-                  onChange={(fortnightlyMethod) => set({ fortnightlyMethod })}
-                />
-              )}
-              <MoneyField
-                label="Offset balance"
-                hint="Only works on the variable part."
-                value={form.offset}
-                onChange={(v) => set({ offset: v ?? 0 })}
-              />
-              <DateField
-                label="Starting"
-                value={form.startDate}
-                onChange={(startDate) => set({ startDate })}
-              />
-            </div>
+      {!result ? (
+        <div className="space-y-8">
+          <div className={`${card} text-warn`}>
+            {errors.length
+              ? `Check your numbers: ${errors.join("; ")}.`
+              : "Something in the inputs doesn't add up."}{" "}
+            <button type="button" onClick={() => edit("loan")} className="text-accent underline">
+              Edit your loan
+            </button>
           </div>
+          <Controls form={form} onChange={set} onPath={choosePath} />
+        </div>
+      ) : (
+        <Results
+          r={result}
+          form={form}
+          onChange={set}
+          onPath={choosePath}
+          edit={edit}
+          loanHint={`${money(Math.round(form.balance * 100))} · ${form.variableRatePct}% variable · ${form.termYears} yrs`}
+          fixedHint={`${form.fixedRatePct}% for ${years(form.fixedYears)}${
+            form.lockFee > 0 ? ` · ${money(Math.round(form.lockFee * 100))} fee` : ""
+          }`}
+        />
+      )}
 
-          <div className={card} style={{ borderLeft: "4px solid var(--series-b)" }}>
-            <h2 className="mb-1 font-semibold">Where variable rates go</h2>
-            <p className="mb-3 text-xs text-muted">
-              Nobody knows. Try a few and see how much it matters.
-            </p>
+      <EditSheet ref={sheet} title="Your loan and the fixed rate">
+        <div id="loan" className="scroll-mt-20">
+          <h3 className="mb-3 font-semibold">Your loan</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <MoneyField
+              className="col-span-2"
+              label="Loan balance"
+              hint="What you owe now, not the original loan."
+              value={form.balance}
+              onChange={(v) => v !== undefined && set({ balance: v })}
+            />
+            <NumberField
+              label="Variable rate"
+              suffix="%"
+              hint="What you'd pay if you don't fix."
+              min={0}
+              max={20}
+              step={0.01}
+              value={form.variableRatePct}
+              onChange={(v) => v !== undefined && set({ variableRatePct: v })}
+            />
+            <NumberField
+              label="Years left"
+              suffix="yrs"
+              min={1}
+              max={40}
+              step={1}
+              value={form.termYears}
+              onChange={(v) => v !== undefined && set({ termYears: v })}
+            />
+            <SelectField
+              label="Repayments"
+              value={form.frequency}
+              options={FREQUENCIES}
+              onChange={(frequency) => set({ frequency })}
+            />
+            <MoneyField
+              label="Extra each time"
+              hint="On the variable part."
+              value={form.extra}
+              onChange={(v) => set({ extra: v ?? 0 })}
+            />
+            {form.frequency === "fortnightly" && (
+              <SelectField
+                className="col-span-2"
+                label="How your bank sets fortnightly repayments"
+                value={form.fortnightlyMethod}
+                options={[
+                  { value: "half-monthly", label: "Half the monthly repayment (most common)" },
+                  { value: "true", label: "True fortnightly amount" },
+                ]}
+                onChange={(fortnightlyMethod) => set({ fortnightlyMethod })}
+              />
+            )}
+            <MoneyField
+              label="Offset balance"
+              hint="Only works on the variable part."
+              value={form.offset}
+              onChange={(v) => set({ offset: v ?? 0 })}
+            />
+            <DateField
+              label="Starting"
+              value={form.startDate}
+              onChange={(startDate) => set({ startDate })}
+            />
+          </div>
+        </div>
+
+        <div id="fixed" className="scroll-mt-20">
+          <h3 className="mb-3 font-semibold">The fixed rate</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Fixed rate"
+              suffix="%"
+              min={0}
+              max={20}
+              step={0.01}
+              value={form.fixedRatePct}
+              onChange={(v) => v !== undefined && set({ fixedRatePct: v })}
+            />
+            <NumberField
+              label="Fixed for"
+              suffix="yrs"
+              min={1}
+              max={10}
+              step={1}
+              value={form.fixedYears}
+              onChange={(v) => v !== undefined && set({ fixedYears: v })}
+            />
+            <NumberField
+              className="col-span-2"
+              label="Revert rate vs your variable rate"
+              suffix="%"
+              hint="When the fix ends it rolls to the lender's standard variable rate, often higher than new customers get. 0 = the same as your variable rate."
+              min={-5}
+              max={5}
+              step={0.05}
+              value={form.revertMarginPct}
+              onChange={(v) => v !== undefined && set({ revertMarginPct: v })}
+            />
+            <MoneyField
+              className="col-span-2"
+              label="Rate lock or fixing fee"
+              hint="Some lenders charge to lock in the rate before settlement, often $500 to $1,000. Counted against fixing."
+              value={form.lockFee}
+              onChange={(v) => set({ lockFee: v ?? 0 })}
+            />
+          </div>
+        </div>
+      </EditSheet>
+    </ToolPage>
+  );
+}
+
+/** Where variable rates go, and how much to fix: these stay on the page by the answer. */
+function Controls({
+  form,
+  onChange,
+  onPath,
+}: {
+  form: FixedForm;
+  onChange: (patch: Partial<FixedForm>) => void;
+  onPath: (p: PathChoice) => void;
+}) {
+  return (
+    <ToolSection id="try-h" title="Try a rate path">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className={card} style={{ borderLeft: "4px solid var(--series-b)" }}>
+          <h3 className="mb-1 font-semibold">Where variable rates go</h3>
+          <p className="mb-3 text-xs text-muted">
+            Nobody knows. Try a few and see how much it matters.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[...PATH_CHOICES, "custom" as const].map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={pill(form.path === p)}
+                aria-pressed={form.path === p}
+                onClick={() => onPath(p)}
+              >
+                {p === "custom" ? "Customise" : RATE_PATH_PRESETS[p].label}
+              </button>
+            ))}
+          </div>
+          {form.path === "custom" && (
+            <CustomPath form={form} onChange={(customPath) => onChange({ customPath })} />
+          )}
+        </div>
+
+        <div className={card} style={{ borderLeft: "4px solid var(--series-a)" }}>
+          <fieldset>
+            <legend className="mb-1.5 font-semibold">How much to fix</legend>
             <div className="flex flex-wrap gap-2">
-              {[...PATH_CHOICES, "custom" as const].map((p) => (
+              {SHARES.map((s) => (
                 <button
-                  key={p}
+                  key={s}
                   type="button"
-                  className={pill(form.path === p)}
-                  aria-pressed={form.path === p}
-                  onClick={() => choosePath(p)}
+                  className={pill(form.fixedSharePct === s)}
+                  aria-pressed={form.fixedSharePct === s}
+                  onClick={() => onChange({ fixedSharePct: s })}
                 >
-                  {p === "custom" ? "Customise" : RATE_PATH_PRESETS[p].label}
+                  {s === 0 ? "None" : s === 100 ? "All" : `${s}%`}
                 </button>
               ))}
             </div>
-            {form.path === "custom" && (
-              <CustomPath form={form} onChange={(customPath) => set({ customPath })} />
-            )}
-          </div>
-
-          <div className={card} style={{ borderLeft: "4px solid var(--series-a)" }}>
-            <h2 className="mb-3 font-semibold">The fixed rate</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField
-                label="Fixed rate"
-                suffix="%"
-                min={0}
-                max={20}
-                step={0.01}
-                value={form.fixedRatePct}
-                onChange={(v) => v !== undefined && set({ fixedRatePct: v })}
-              />
-              <NumberField
-                label="Fixed for"
-                suffix="yrs"
-                min={1}
-                max={10}
-                step={1}
-                value={form.fixedYears}
-                onChange={(v) => v !== undefined && set({ fixedYears: v })}
-              />
-              <fieldset className="col-span-2">
-                <legend className="mb-1.5 text-sm font-medium">How much to fix</legend>
-                <div className="flex flex-wrap gap-2">
-                  {SHARES.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className={pill(form.fixedSharePct === s)}
-                      aria-pressed={form.fixedSharePct === s}
-                      onClick={() => set({ fixedSharePct: s })}
-                    >
-                      {s === 0 ? "None" : s === 100 ? "All" : `${s}%`}
-                    </button>
-                  ))}
-                </div>
-                <Slider
-                  label="Share of the loan to fix"
-                  className="mt-1"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={form.fixedSharePct}
-                  onChange={(fixedSharePct) => set({ fixedSharePct })}
-                />
-                <p className="num text-xs text-muted">
-                  {money(form.balance * form.fixedSharePct)} fixed,{" "}
-                  {money(form.balance * (100 - form.fixedSharePct))} variable
-                </p>
-              </fieldset>
-              <NumberField
-                className="col-span-2"
-                label="Revert rate vs your variable rate"
-                suffix="%"
-                hint="When the fix ends it rolls to the lender's standard variable rate, often higher than new customers get. 0 = the same as your variable rate."
-                min={-5}
-                max={5}
-                step={0.05}
-                value={form.revertMarginPct}
-                onChange={(v) => v !== undefined && set({ revertMarginPct: v })}
-              />
-              <MoneyField
-                className="col-span-2"
-                label="Rate lock or fixing fee"
-                hint="Some lenders charge to lock in the rate before settlement, often $500 to $1,000. Counted against fixing."
-                value={form.lockFee}
-                onChange={(v) => set({ lockFee: v ?? 0 })}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="results"
-          className="min-w-0 scroll-mt-4 space-y-4"
-          aria-label="Results"
-          aria-live="polite"
-        >
-          {!result ? (
-            <div className={`${card} text-warn`}>
-              {errors.length
-                ? `Check your numbers: ${errors.join("; ")}.`
-                : "Something in the inputs doesn't add up."}
-            </div>
-          ) : (
-            <Results r={result} form={form} onChange={set} onCopy={copyLink} copied={copied} />
-          )}
-          <GoodToKnow tool="fixed" />
-          <Method />
-        </section>
+            <Slider
+              label="Share of the loan to fix"
+              className="mt-1"
+              min={0}
+              max={100}
+              step={5}
+              value={form.fixedSharePct}
+              onChange={(fixedSharePct) => onChange({ fixedSharePct })}
+            />
+            <p className="num text-xs text-muted">
+              {money(form.balance * form.fixedSharePct)} fixed,{" "}
+              {money(form.balance * (100 - form.fixedSharePct))} variable
+            </p>
+          </fieldset>
+        </div>
       </div>
-
-      {result && form.fixedSharePct > 0 && <MobileSummary r={result} form={form} />}
-    </main>
+    </ToolSection>
   );
 }
 
@@ -379,19 +403,6 @@ function CustomPath({
   );
 }
 
-function MobileSummary({ r, form }: { r: FixedVsVariableResult; form: FixedForm }) {
-  const a = r.aheadFixedPeriod;
-  return (
-    <ResultsBar>
-      Over the fix:{" "}
-      <strong className={a >= 0 ? "text-good" : "text-warn"}>
-        {a >= 0 ? `${money(a)} saved` : `${money(-a)} extra`}
-      </strong>{" "}
-      <span className="text-muted">({pathLabel(form.path).toLowerCase()})</span>
-    </ResultsBar>
-  );
-}
-
 function Stat({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) {
   return (
     <div className="rounded-lg border border-border p-3">
@@ -406,14 +417,18 @@ function Results({
   r,
   form,
   onChange,
-  onCopy,
-  copied,
+  onPath,
+  edit,
+  loanHint,
+  fixedHint,
 }: {
   r: FixedVsVariableResult;
   form: FixedForm;
   onChange: (patch: Partial<FixedForm>) => void;
-  onCopy: () => void;
-  copied: boolean;
+  onPath: (p: PathChoice) => void;
+  edit: (focusId?: string) => void;
+  loanHint: string;
+  fixedHint: string;
 }) {
   const [range, setRange] = useState<"fix" | "all">("fix");
   const fixedMonths = Math.round(form.fixedYears * 12);
@@ -489,188 +504,271 @@ function Results({
   }));
   const warnings = [...new Set([...r.warnings, ...r.variable.warnings])];
 
-  if (share === 0) {
-    return (
-      <>
-        <div className={`${card} space-y-2 text-lg leading-relaxed`}>
-          <p>
-            Staying fully variable, your repayment starts at{" "}
-            <strong className="num">{moneyExact(r.variableRepayment)}</strong> {per} and you&apos;re
-            debt-free in <strong>{monthYear(r.variable.payoffDate)}</strong>, if rates{" "}
-            {pathLabel(form.path)
-              .toLowerCase()
-              .replace(/^rates /, "")}
-            .
+  const { idea, toggle } = useIdea<"grid" | "break">();
+  const pathName = pathLabel(form.path)
+    .toLowerCase()
+    .replace(/^rates /, "");
+
+  const summary = (
+    <ToolSection id="loan-h" title="Your numbers">
+      <SummaryRows>
+        <SummaryRow title="Your loan" hint={loanHint} onClick={() => edit("loan")} />
+        <SummaryRow title="The fixed rate" hint={fixedHint} onClick={() => edit("fixed")} />
+      </SummaryRows>
+    </ToolSection>
+  );
+
+  const ratesChart = <RatesCard rates={rates} fixedMonths={fixedMonths} showFixed={share > 0} />;
+
+  const ideas = (
+    <Ideas
+      cards={
+        <>
+          <IdeaCard
+            title="Every rate path, every split"
+            open={idea === "grid"}
+            onClick={() => toggle("grid")}
+          >
+            {share > 0 ? (
+              <>
+                {name[0].toUpperCase() + name.slice(1)} {a >= 0 ? "saves" : "costs"}{" "}
+                <strong className={`num ${a >= 0 ? "text-good" : "text-warn"}`}>
+                  {money(Math.abs(a))}
+                </strong>{" "}
+                if rates {pathName}. See every path and split side by side.
+              </>
+            ) : (
+              "See what fixing 25%, 50%, 75% or all of the loan does under every rate path."
+            )}
+          </IdeaCard>
+          <IdeaCard
+            title="If you need to break the fix"
+            open={idea === "break"}
+            onClick={() => toggle("break")}
+          >
+            {share === 0 ? (
+              "Fix some of the loan to see a break cost."
+            ) : breakCost === null ? (
+              "Breaking after the fix ends has no break cost."
+            ) : breakCost === 0 ? (
+              "With rates no lower, there's usually little or no break cost."
+            ) : (
+              <>
+                Breaking after {years(form.breakAfterYears)} could cost about{" "}
+                <strong className="num text-warn">{money(breakCost)}</strong>.
+              </>
+            )}
+          </IdeaCard>
+        </>
+      }
+    >
+      {idea === "grid" && <Grid grid={grid} form={form} onChange={onChange} />}
+      {idea === "break" && (
+        <div className={card}>
+          <p className="mb-3 text-sm text-muted">
+            Selling, refinancing or paying a lot off early can trigger a break cost if fixed rates
+            have fallen since you fixed.
           </p>
-          <p className="text-base text-muted">
-            Choose how much to fix to compare. The table below shows every split at once.
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Break after"
+              suffix="yrs"
+              min={0}
+              max={10}
+              step={0.5}
+              value={form.breakAfterYears}
+              onChange={(v) => v !== undefined && onChange({ breakAfterYears: v })}
+            />
+            <NumberField
+              label="Fixed rates have fallen by"
+              suffix="%"
+              min={0}
+              max={5}
+              step={0.25}
+              value={form.breakDropPct}
+              onChange={(v) => v !== undefined && onChange({ breakDropPct: v })}
+            />
+          </div>
+          <p className="mt-3">
+            {breakCost === null ? (
+              <span className="text-muted">
+                That&apos;s after the fix ends, so there&apos;s no break cost.
+              </span>
+            ) : breakCost === 0 ? (
+              <span className="text-muted">
+                With rates no lower, there&apos;s usually little or no break cost.
+              </span>
+            ) : (
+              <>
+                Expect a break cost in the region of{" "}
+                <strong className="num text-warn">{money(breakCost)}</strong>, plus any break fee.
+              </>
+            )}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            A ballpark only. Each lender has its own formula, based on its funding costs.
           </p>
         </div>
-        <RatesCard rates={rates} fixedMonths={fixedMonths} showFixed={false} />
-        <Grid grid={grid} form={form} onChange={onChange} />
-      </>
+      )}
+    </Ideas>
+  );
+
+  const detail = (
+    <Detail>
+      {share > 0 && (
+        <Disclosure title="Interest rates" hint="variable and fixed, month by month">
+          {ratesChart}
+        </Disclosure>
+      )}
+      {share > 0 && (
+        <Disclosure title="The numbers" hint="interest over the fix and debt-free date">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat
+              label="Interest over the fix"
+              value={money(r.planInterestFixedPeriod)}
+              note={`${money(r.variableInterestFixedPeriod)} all variable`}
+            />
+            <Stat
+              label="Over the fix"
+              value={signed(a)}
+              note={`${a >= 0 ? "saved by fixing" : "extra by fixing"}${r.fixingFee > 0 ? `, after the ${money(r.fixingFee)} fee` : ""}`}
+            />
+            <Stat
+              label="Over the whole loan"
+              value={signed(r.aheadLifetime)}
+              note={r.aheadLifetime >= 0 ? "saved by fixing" : "extra by fixing"}
+            />
+            <Stat
+              label="Debt-free"
+              value={monthYear(r.planPayoffDate)}
+              note={`${monthYear(r.variable.payoffDate)} all variable`}
+            />
+          </div>
+        </Disclosure>
+      )}
+      <Disclosure title="Good to know" hint="tips and things to check">
+        <GoodToKnow tool="fixed" bare />
+      </Disclosure>
+      <Disclosure title="How this is calculated" hint="two runs, one variable and one split">
+        <Method />
+      </Disclosure>
+    </Detail>
+  );
+
+  if (share === 0) {
+    return (
+      <div className="space-y-8">
+        <AnswerRow>
+          <AnswerCard label="Staying fully variable">
+            <p className="text-sm font-semibold text-on-primary-container">Debt-free</p>
+            <p className="num -mt-2 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+              {monthYear(r.variable.payoffDate)}
+            </p>
+            <p className="text-lg">
+              Your repayment starts at{" "}
+              <strong className="num">{moneyExact(r.variableRepayment)}</strong> {per}, if rates{" "}
+              {pathName}. Choose how much to fix to compare.
+            </p>
+          </AnswerCard>
+          {ratesChart}
+        </AnswerRow>
+        <Controls form={form} onChange={onChange} onPath={onPath} />
+        {summary}
+        {ideas}
+        {detail}
+        <NextSteps tool="fixed" className="pt-2" />
+      </div>
     );
   }
 
   return (
-    <>
-      <div className={`${card} space-y-2 text-lg leading-relaxed`}>
-        <p>
-          If rates{" "}
-          {pathLabel(form.path)
-            .toLowerCase()
-            .replace(/^rates /, "")}
-          , {name} for {years(form.fixedYears)}{" "}
-          {a >= 0 ? (
-            <>
-              saves you <strong className="num text-good">{money(a)}</strong>
-            </>
-          ) : (
-            <>
-              costs you <strong className="num text-warn">{money(-a)}</strong> more
-            </>
-          )}{" "}
-          {r.fixingFee > 0
-            ? `over the fixed period, counting the ${money(r.fixingFee)} fee.`
-            : "in interest over the fixed period."}
-        </p>
-        {breakEven !== null && (
-          <p className="text-base text-muted">
-            Fixing comes out ahead if the variable rate averages more than{" "}
-            <strong className="num text-text">{pct(breakEven)}</strong> over the next{" "}
-            {years(form.fixedYears)}
-            {breakEven > form.variableRatePct / 100 + 0.00005 ? (
-              <>, {((breakEven - form.variableRatePct / 100) * 100).toFixed(2)}% above today.</>
-            ) : breakEven < form.variableRatePct / 100 - 0.00005 ? (
-              <>
-                . That&apos;s below today&apos;s rate, so rates would have to fall to make staying
-                variable the better bet.
-              </>
-            ) : (
-              <>, about where it is today.</>
+    <div className="space-y-8">
+      <AnswerRow>
+        <AnswerCard label={`If rates ${pathName}, ${name} for ${years(form.fixedYears)}`}>
+          <p className="text-sm font-semibold text-on-primary-container">
+            {a >= 0 ? "Interest saved by fixing" : "Extra interest from fixing"}
+          </p>
+          <p
+            className={`num -mt-2 text-4xl leading-none font-bold tracking-tight sm:text-5xl ${
+              a < 0 ? "text-warn" : ""
+            }`}
+          >
+            {money(Math.abs(a))}
+          </p>
+          <p className="text-lg">
+            {r.fixingFee > 0
+              ? `Over the fixed period, counting the ${money(r.fixingFee)} fee.`
+              : "Over the fixed period."}
+          </p>
+          {breakEven !== null && (
+            <p className="text-base">
+              Fixing comes out ahead if the variable rate averages more than{" "}
+              <strong className="num">{pct(breakEven)}</strong> over the next{" "}
+              {years(form.fixedYears)}
+              {breakEven > form.variableRatePct / 100 + 0.00005 ? (
+                <>, {((breakEven - form.variableRatePct / 100) * 100).toFixed(2)}% above today.</>
+              ) : breakEven < form.variableRatePct / 100 - 0.00005 ? (
+                <>
+                  . That&apos;s below today&apos;s rate, so rates would have to fall to make staying
+                  variable the better bet.
+                </>
+              ) : (
+                <>, about where it is today.</>
+              )}
+            </p>
+          )}
+          <p className="text-base">
+            Your repayment starts at <strong className="num">{moneyExact(r.planRepayment)}</strong>{" "}
+            {per}
+            {r.planRepayment !== r.variableRepayment && (
+              <> ({moneyExact(r.variableRepayment)} all variable)</>
             )}
+            . When the fix ends in {monthYear(r.fixedEndDate)}, the fixed part rolls to about{" "}
+            <strong className="num">{pct(r.revertRate)}</strong>.
           </p>
-        )}
-        <p className="text-base text-muted">
-          Your repayment starts at{" "}
-          <strong className="num text-text">{moneyExact(r.planRepayment)}</strong> {per}
-          {r.planRepayment !== r.variableRepayment && (
-            <> ({moneyExact(r.variableRepayment)} all variable)</>
-          )}
-          . When the fix ends in {monthYear(r.fixedEndDate)}, the fixed part rolls to about{" "}
-          <strong className="num text-text">{pct(r.revertRate)}</strong>.
-        </p>
-        {warnings.map((w) => (
-          <p key={w} className="text-sm text-warn">
-            {w}
-          </p>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat
-          label="Interest over the fix"
-          value={money(r.planInterestFixedPeriod)}
-          note={`${money(r.variableInterestFixedPeriod)} all variable`}
-        />
-        <Stat
-          label="Over the fix"
-          value={signed(a)}
-          note={`${a >= 0 ? "saved by fixing" : "extra by fixing"}${r.fixingFee > 0 ? `, after the ${money(r.fixingFee)} fee` : ""}`}
-        />
-        <Stat
-          label="Over the whole loan"
-          value={signed(r.aheadLifetime)}
-          note={r.aheadLifetime >= 0 ? "saved by fixing" : "extra by fixing"}
-        />
-        <Stat
-          label="Debt-free"
-          value={monthYear(r.planPayoffDate)}
-          note={`${monthYear(r.variable.payoffDate)} all variable`}
-        />
-      </div>
-
-      <RatesCard rates={rates} fixedMonths={fixedMonths} showFixed />
-
-      <div className={card}>
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold">Interest saved by fixing</h2>
-          <div className="flex gap-2">
-            <button type="button" className={pill(range === "fix")} onClick={() => setRange("fix")}>
-              Fixed period
-            </button>
-            <button type="button" className={pill(range === "all")} onClick={() => setRange("all")}>
-              Whole loan
-            </button>
-            <button
-              type="button"
-              onClick={onCopy}
-              className="rounded-lg border border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent"
-            >
-              {copied ? "Link copied" : "Copy link"}
-            </button>
+          {warnings.map((w) => (
+            <p key={w} className="text-sm text-warn">
+              {w}
+            </p>
+          ))}
+        </AnswerCard>
+        <figure className={`${card} min-w-0 rounded-3xl`}>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <figcaption className="font-semibold">Interest saved by fixing</figcaption>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className={pill(range === "fix")}
+                onClick={() => setRange("fix")}
+              >
+                Fixed period
+              </button>
+              <button
+                type="button"
+                className={pill(range === "all")}
+                onClick={() => setRange("all")}
+              >
+                Whole loan
+              </button>
+            </div>
           </div>
-        </div>
-        <BenefitChart
-          points={points}
-          markerMonth={fixedMonths}
-          label="Interest saved by fixing compared with staying variable, over time"
-        />
-        <p className="mt-1 text-xs text-muted">
-          Interest on your plan compared with staying fully variable. Above $0 means fixing is
-          ahead. The dot marks the end of the fix.
-        </p>
-      </div>
-
-      <Grid grid={grid} form={form} onChange={onChange} />
-
-      <div className={card}>
-        <h2 className="mb-1 font-semibold">If you need to break the fix</h2>
-        <p className="mb-3 text-sm text-muted">
-          Selling, refinancing or paying a lot off early can trigger a break cost if fixed rates
-          have fallen since you fixed.
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <NumberField
-            label="Break after"
-            suffix="yrs"
-            min={0}
-            max={10}
-            step={0.5}
-            value={form.breakAfterYears}
-            onChange={(v) => v !== undefined && onChange({ breakAfterYears: v })}
+          <BenefitChart
+            points={points}
+            markerMonth={fixedMonths}
+            label="Interest saved by fixing compared with staying variable, over time"
           />
-          <NumberField
-            label="Fixed rates have fallen by"
-            suffix="%"
-            min={0}
-            max={5}
-            step={0.25}
-            value={form.breakDropPct}
-            onChange={(v) => v !== undefined && onChange({ breakDropPct: v })}
-          />
-        </div>
-        <p className="mt-3">
-          {breakCost === null ? (
-            <span className="text-muted">
-              That&apos;s after the fix ends, so there&apos;s no break cost.
-            </span>
-          ) : breakCost === 0 ? (
-            <span className="text-muted">
-              With rates no lower, there&apos;s usually little or no break cost.
-            </span>
-          ) : (
-            <>
-              Expect a break cost in the region of{" "}
-              <strong className="num text-warn">{money(breakCost)}</strong>, plus any break fee.
-            </>
-          )}
-        </p>
-        <p className="mt-1 text-xs text-muted">
-          A ballpark only. Each lender has its own formula, based on its funding costs.
-        </p>
-      </div>
-    </>
+          <p className="mt-1 text-xs text-muted">
+            Interest on your plan compared with staying fully variable. Above $0 means fixing is
+            ahead. The dot marks the end of the fix.
+          </p>
+        </figure>
+      </AnswerRow>
+      <Controls form={form} onChange={onChange} onPath={onPath} />
+      {summary}
+      {ideas}
+      {detail}
+      <NextSteps tool="fixed" className="pt-2" />
+    </div>
   );
 }
 
@@ -684,8 +782,8 @@ function RatesCard({
   showFixed: boolean;
 }) {
   return (
-    <div className={card}>
-      <h2 className="mb-2 font-semibold">Interest rates</h2>
+    <figure className={`${card} min-w-0 rounded-3xl`}>
+      <figcaption className="mb-2 font-semibold">Interest rates</figcaption>
       <RateChart
         dates={rates.dates}
         markerMonth={showFixed ? fixedMonths : undefined}
@@ -696,7 +794,7 @@ function RatesCard({
             : []),
         ]}
       />
-    </div>
+    </figure>
   );
 }
 
@@ -714,7 +812,6 @@ function Grid({
 }) {
   return (
     <div className={`${card} overflow-x-auto`}>
-      <h2 className="mb-1 font-semibold">Every rate path, every split</h2>
       <p className="mb-3 text-sm text-muted">
         Interest saved (or extra) by fixing for {years(form.fixedYears)}, compared with staying
         fully variable. Pick a row or column to try it.
@@ -770,36 +867,33 @@ function Grid({
 
 function Method() {
   return (
-    <details className={`${card} text-sm`}>
-      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
-      <div className="mt-3 space-y-2 text-muted">
-        <p>
-          Your loan is run twice from the start date, the way Australian lenders run a home loan:
-          interest worked out daily, added monthly, with repayments on real calendar dates. Once
-          staying fully variable, following the rate path you picked, and once with your split.
-        </p>
-        <p>
-          A split loan is two accounts. Each has its own minimum repayment over the years left, so
-          your total repayment changes with the split. Extra repayments and your offset go on the
-          variable part, because most fixed loans cap extras and don&apos;t have an offset. When the
-          fix ends, the fixed part rolls onto the variable path plus the revert gap you entered, and
-          its minimum repayment is recalculated.
-        </p>
-        <p>
-          We compare the interest you&apos;re charged. The principal you repay is still your money
-          (it&apos;s in the house), so interest is the real cost. The break-even rate is the flat
-          variable rate at which the fixed period costs the same either way.
-        </p>
-        <p>
-          When a variable rate changes, the lender recalculates your minimum. A higher minimum is
-          paid from then on; when rates fall, we assume you keep paying what you were, which is what
-          most lenders do unless you ask.
-        </p>
-        <p>
-          Real loans can differ by a few dollars because of rounding and the exact day each lender
-          charges interest. This is general information, not financial advice.
-        </p>
-      </div>
-    </details>
+    <div className="space-y-2 text-sm text-muted">
+      <p>
+        Your loan is run twice from the start date, the way Australian lenders run a home loan:
+        interest worked out daily, added monthly, with repayments on real calendar dates. Once
+        staying fully variable, following the rate path you picked, and once with your split.
+      </p>
+      <p>
+        A split loan is two accounts. Each has its own minimum repayment over the years left, so
+        your total repayment changes with the split. Extra repayments and your offset go on the
+        variable part, because most fixed loans cap extras and don&apos;t have an offset. When the
+        fix ends, the fixed part rolls onto the variable path plus the revert gap you entered, and
+        its minimum repayment is recalculated.
+      </p>
+      <p>
+        We compare the interest you&apos;re charged. The principal you repay is still your money
+        (it&apos;s in the house), so interest is the real cost. The break-even rate is the flat
+        variable rate at which the fixed period costs the same either way.
+      </p>
+      <p>
+        When a variable rate changes, the lender recalculates your minimum. A higher minimum is paid
+        from then on; when rates fall, we assume you keep paying what you were, which is what most
+        lenders do unless you ask.
+      </p>
+      <p>
+        Real loans can differ by a few dollars because of rounding and the exact day each lender
+        charges interest. This is general information, not financial advice.
+      </p>
+    </div>
   );
 }
