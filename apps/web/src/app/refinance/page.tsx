@@ -11,10 +11,10 @@ export default function RefinancePage() {
   return (
     <>
       <JsonLd data={toolJsonLd("refinance")} />
-      <JourneyBar current="refinance" />
       <Suspense>
         <RefinanceCalculator />
       </Suspense>
+      <JourneyBar current="refinance" />
     </>
   );
 }

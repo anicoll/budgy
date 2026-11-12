@@ -11,10 +11,10 @@ export default function RateCheckPage() {
   return (
     <>
       <JsonLd data={toolJsonLd("rates")} />
-      <JourneyBar current="rates" />
       <Suspense>
         <RateCheckCalculator />
       </Suspense>
+      <JourneyBar current="rates" />
     </>
   );
 }

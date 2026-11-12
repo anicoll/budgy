@@ -11,10 +11,10 @@ export default function PayOffHelpPage() {
   return (
     <>
       <JsonLd data={toolJsonLd("help")} />
-      <JourneyBar current="help" />
       <Suspense>
         <HelpCalculator />
       </Suspense>
+      <JourneyBar current="help" />
     </>
   );
 }

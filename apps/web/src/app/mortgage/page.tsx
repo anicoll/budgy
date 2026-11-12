@@ -11,10 +11,10 @@ export default function MortgagePage() {
   return (
     <>
       <JsonLd data={toolJsonLd("mortgage")} />
-      <JourneyBar current="mortgage" />
       <Suspense>
         <MortgageCalculator />
       </Suspense>
+      <JourneyBar current="mortgage" />
     </>
   );
 }

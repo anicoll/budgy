@@ -52,9 +52,15 @@ function LiveSideMenu() {
 function SideMenu({ active }: { active: HomeView | null }) {
   const path = trim(usePathname());
   const [remembering, setRemembering] = useState(true);
+  // Tools this device has used. Empty until loaded, so the exported HTML lists every tool.
+  const [used, setUsed] = useState<string[]>([]);
 
   useEffect(() => {
-    const load = () => setRemembering(readSaved().remember);
+    const load = () => {
+      const data = readSaved();
+      setRemembering(data.remember);
+      setUsed(Object.keys(data.tools));
+    };
     load();
     window.addEventListener("storage", load);
     window.addEventListener(SAVED_CHANGED, load);
@@ -71,6 +77,26 @@ function SideMenu({ active }: { active: HomeView | null }) {
         ? "bg-primary-container font-semibold text-on-primary-container"
         : "text-muted hover:bg-surface-container-high hover:text-text"
     }`;
+
+  const toolLink = (t: (typeof TOOLS)[number]) => (
+    <Link
+      key={t.key}
+      href={`${t.href}/`}
+      aria-current={path === t.href ? "page" : undefined}
+      className={row(path === t.href, true)}
+    >
+      {t.name}
+    </Link>
+  );
+  const areaLinks = (tools: typeof TOOLS) =>
+    AREAS.filter((a) => tools.some((t) => t.area === a.area)).map((a) => (
+      <div key={a.area} className="flex flex-col gap-0.5">
+        <p className="mx-4 mt-4 mb-1 text-xs font-semibold text-muted">{a.name}</p>
+        {tools.filter((t) => t.area === a.area).map(toolLink)}
+      </div>
+    ));
+  const current = TOOLS.find((t) => t.href === path);
+  const mine = TOOLS.filter((t) => used.includes(t.key) || t === current);
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto bg-surface-container px-3 py-4 lg:flex print:hidden">
@@ -110,21 +136,23 @@ function SideMenu({ active }: { active: HomeView | null }) {
           <SettingsIcon size={20} />
           Settings and your answers
         </Link>
-        {AREAS.map((a) => (
-          <div key={a.area} className="flex flex-col gap-0.5">
-            <p className="mx-4 mt-4 mb-1 text-xs font-semibold text-muted">{a.name}</p>
-            {TOOLS.filter((t) => t.area === a.area).map((t) => (
-              <Link
-                key={t.key}
-                href={`${t.href}/`}
-                aria-current={path === t.href ? "page" : undefined}
-                className={row(path === t.href, true)}
-              >
-                {t.name}
-              </Link>
-            ))}
-          </div>
-        ))}
+        {mine.length > 0 ? (
+          <>
+            <p className="mx-4 mt-4 mb-1 text-xs font-semibold text-muted">Your tools</p>
+            {mine.map((t) => toolLink(t))}
+            <details className="group mt-2">
+              <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between rounded-full px-4 text-[13.5px] font-semibold text-accent hover:bg-surface-container-high [&::-webkit-details-marker]:hidden">
+                All {TOOLS.length} tools
+                <span aria-hidden="true" className="transition group-open:rotate-180">
+                  ▾
+                </span>
+              </summary>
+              {areaLinks(TOOLS.filter((t) => !mine.includes(t)))}
+            </details>
+          </>
+        ) : (
+          areaLinks(TOOLS)
+        )}
       </nav>
       <p className="mt-auto px-4 pt-4 text-xs text-muted">
         {remembering ? "Saved on this device only" : "Free, no sign-up"}

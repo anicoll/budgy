@@ -11,10 +11,10 @@ export default function BudgetPage() {
   return (
     <>
       <JsonLd data={toolJsonLd("budget")} />
-      <JourneyBar current="budget" />
       <Suspense>
         <BudgetPlanner />
       </Suspense>
+      <JourneyBar current="budget" />
     </>
   );
 }

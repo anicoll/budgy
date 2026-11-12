@@ -11,10 +11,10 @@ export default function SplitPage() {
   return (
     <>
       <JsonLd data={toolJsonLd("split")} />
-      <JourneyBar current="split" />
       <Suspense>
         <SplitCalculator />
       </Suspense>
+      <JourneyBar current="split" />
     </>
   );
 }

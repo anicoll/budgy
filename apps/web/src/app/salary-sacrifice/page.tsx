@@ -11,10 +11,10 @@ export default function SalarySacrificePage() {
   return (
     <>
       <JsonLd data={toolJsonLd("sacrifice")} />
-      <JourneyBar current="sacrifice" />
       <Suspense>
         <SacrificeCalculator />
       </Suspense>
+      <JourneyBar current="sacrifice" />
     </>
   );
 }

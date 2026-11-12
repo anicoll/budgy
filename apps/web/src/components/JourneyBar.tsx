@@ -13,8 +13,8 @@ interface Place {
 }
 
 /**
- * A thin bar at the top of a tool page when the tool is part of someone's
- * plan: which step it is, and the way back and on. Shows nothing otherwise.
+ * One row at the end of a tool page when the tool is part of someone's plan:
+ * which step it is and the way on. Shows nothing otherwise.
  */
 export function JourneyBar({ current }: { current: ToolKey }) {
   const [place, setPlace] = useState<Place | null>(null);
@@ -33,47 +33,28 @@ export function JourneyBar({ current }: { current: ToolKey }) {
 
   if (!place) return null;
   const { steps, index, done } = place;
-  const prev = steps[index - 1];
-  const next = steps[index + 1];
+  const next = steps.slice(index + 1).find((s) => !done.has(s.key)) ?? steps[index + 1];
+  const left = steps.length - done.size;
   return (
-    <nav
-      aria-label="Your plan"
-      className="bg-primary-container text-on-primary-container print:hidden"
-    >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
-        <Link href="/" className="text-sm font-semibold hover:underline">
-          Your plan · step {index + 1} of {steps.length}
-        </Link>
-        <ol aria-hidden="true" className="flex min-w-0 flex-[1_1_200px] gap-1.5">
-          {steps.map((s, i) => (
-            <li
-              key={s.key}
-              className={`h-1.5 flex-1 rounded-full ${
-                i === index ? "bg-accent" : done.has(s.key) ? "bg-good" : "bg-accent/20"
-              }`}
-            />
-          ))}
-        </ol>
-        <div className="flex flex-wrap gap-x-4 text-sm">
-          {prev && (
-            <Link href={`${tool(prev.key).href}/`} className="text-accent hover:underline">
-              Back: {tool(prev.key).name}
-            </Link>
-          )}
-          {next ? (
-            <Link
-              href={`${tool(next.key).href}/`}
-              className="font-semibold text-accent hover:underline"
-            >
-              Next: {tool(next.key).name}
-            </Link>
-          ) : (
-            <Link href="/" className="font-semibold text-accent hover:underline">
-              Back to my dashboard
-            </Link>
-          )}
-        </div>
-      </div>
+    <nav aria-label="Your plan" className="mx-auto max-w-6xl px-4 pb-10 print:hidden">
+      <Link
+        href={next ? `${tool(next.key).href}/` : "/"}
+        className="flex min-h-16 items-center justify-between gap-4 rounded-xl border border-border bg-surface px-4 py-3 hover:border-accent sm:px-5"
+      >
+        <span className="min-w-0">
+          <strong className="block">
+            {next ? `Next in your plan: ${tool(next.key).name}` : "That's your plan done"}
+          </strong>
+          <span className="text-sm text-muted">
+            {next
+              ? `${left > 0 ? `${left} of ${steps.length} left` : `Step ${index + 1} of ${steps.length}`}. Anything you've entered carries over.`
+              : "Back to your dashboard"}
+          </span>
+        </span>
+        <span aria-hidden="true" className="text-xl text-accent">
+          ›
+        </span>
+      </Link>
     </nav>
   );
 }

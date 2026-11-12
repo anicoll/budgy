@@ -16,12 +16,21 @@ import {
   type SuperResult,
   validateSuper,
 } from "@budgy/engine";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { FundFeeCompare } from "@/components/FundFeeCompare";
 import { DateField, MoneyField, NumberField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
-import { SavedBar } from "@/components/SavedBar";
+import { NextSteps } from "@/components/NextSteps";
+import {
+  Disclosure,
+  EditSheet,
+  IdeaCard,
+  openDisclosure,
+  ToolHeader,
+  ToolPage,
+  useEditSheet,
+} from "@/components/tool";
 import { money, moneyExact, monthYear } from "@/lib/format";
 import { SUPER_PEOPLE } from "@/lib/household";
 import { verb } from "@/lib/names";
@@ -66,9 +75,8 @@ const SUPER_SAVED: SavedConfig<SuperState> = {
 export function SuperCalculator() {
   const saved = useSavedState(SUPER_SAVED);
   const { state, setState } = saved;
-  const [copied, setCopied] = useState(false);
   const [way, setWay] = useState<Way | null>(null);
-  const sheet = useRef<HTMLDialogElement>(null);
+  const { ref: sheet, open: edit } = useEditSheet();
 
   const input = useMemo(() => toSuperInput(state), [state]);
   const errors = useMemo(() => validateSuper(input), [input]);
@@ -146,25 +154,6 @@ export function SuperCalculator() {
   const removePerson = (id: string) =>
     setState((s) => ({ ...s, people: s.people.filter((p) => p.id !== id) }));
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked: the address bar still has the link */
-    }
-  };
-
-  /** Open the edit panel, scrolled to one person or fund when given. */
-  const edit = (focusId?: string) => {
-    sheet.current?.showModal();
-    if (focusId)
-      requestAnimationFrame(() =>
-        document.getElementById(focusId)?.scrollIntoView({ block: "start" }),
-      );
-  };
-
   const rules = rulesFor(state.startDate).rules;
   const sg = rules.sgRate * 100;
 
@@ -207,25 +196,17 @@ export function SuperCalculator() {
   const couple = state.people.length === 2;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Super at retirement</h1>
-          <p className="mt-1 max-w-2xl text-muted">
-            How much super will you have, and what income could it pay? Add everyone in your
-            household and all their funds. Your numbers never leave your device.
-          </p>
-          <SavedBar saved={saved} />
-        </div>
-        <div className="flex flex-wrap gap-2 print:hidden">
-          <button type="button" onClick={copyLink} className={tonal}>
-            {copied ? "Link copied" : "Copy link"}
-          </button>
+    <ToolPage>
+      <ToolHeader
+        title="Super at retirement"
+        intro="How much super your household will have, and the income it could pay."
+        saved={saved}
+        actions={
           <button type="button" onClick={() => edit()} className={filled}>
             Edit your details
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <div id="results" className="space-y-8" aria-live="polite">
         {!result ? (
@@ -262,7 +243,7 @@ export function SuperCalculator() {
               </h2>
               <div className="grid gap-3 md:grid-cols-3">
                 {effects.length > 0 && (
-                  <WayCard
+                  <IdeaCard
                     open={way === "extra"}
                     onClick={() => toggle("extra")}
                     title="Put in a little extra"
@@ -272,10 +253,10 @@ export function SuperCalculator() {
                       {money(effects.reduce((s, { e }) => s + e.atRetirementReal, 0))}
                     </strong>{" "}
                     {effects.length > 1 ? "between you " : ""}by retirement.
-                  </WayCard>
+                  </IdeaCard>
                 )}
                 {effects.length > 0 && (
-                  <WayCard
+                  <IdeaCard
                     open={way === "fees"}
                     onClick={() => toggle("fees")}
                     title="Compare fees"
@@ -285,9 +266,9 @@ export function SuperCalculator() {
                       {money(result.people.reduce((s, p) => s + p.fees, 0))}
                     </strong>{" "}
                     by retirement. See what a cheaper fund saves.
-                  </WayCard>
+                  </IdeaCard>
                 )}
-                <WayCard
+                <IdeaCard
                   open={way === "pension"}
                   onClick={() => toggle("pension")}
                   title="Age Pension"
@@ -304,7 +285,7 @@ export function SuperCalculator() {
                       Likely <strong>none at {pension.rules.age}</strong> with this much put away.
                     </>
                   )}
-                </WayCard>
+                </IdeaCard>
               </div>
 
               {way === "extra" && (
@@ -371,51 +352,40 @@ export function SuperCalculator() {
                 >
                   <Assumptions state={state} setState={setState} />
                 </Disclosure>
+                <Disclosure title="Good to know" hint="tips and things to check">
+                  <GoodToKnow tool="super" bare />
+                </Disclosure>
                 <Disclosure title="How this is calculated" hint="the rules used and their sources">
                   <Method result={result} startDate={state.startDate} />
                 </Disclosure>
               </div>
-              <GoodToKnow tool="super" />
+              <NextSteps tool="super" className="pt-2" />
             </section>
           </>
         )}
       </div>
 
-      <dialog
-        ref={sheet}
-        aria-labelledby="edit-h"
-        className="fixed inset-0 m-0 ml-auto h-dvh max-h-none w-full max-w-xl overflow-y-auto bg-bg p-0 text-text backdrop:bg-black/40 sm:rounded-l-2xl"
-      >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-bg px-4 py-3 sm:px-5">
-          <h2 id="edit-h" className="text-lg font-semibold">
-            Your details
-          </h2>
-          <button type="button" onClick={() => sheet.current?.close()} className={filled}>
-            Done
+      <EditSheet ref={sheet} title="Your details">
+        {state.people.map((p, i) => (
+          <PersonCard
+            key={p.id}
+            person={p}
+            color={COLORS[i]}
+            sg={sg}
+            onChange={(patch) => setPerson(p.id, patch)}
+            onAccount={(aid, patch) => setAccount(p.id, aid, patch)}
+            onAddAccount={p.accounts.length < MAX_ACCOUNTS ? () => addAccount(p.id) : undefined}
+            onRemoveAccount={(aid) => removeAccount(p.id, aid)}
+            onRemove={state.people.length > 1 ? () => removePerson(p.id) : undefined}
+          />
+        ))}
+        {state.people.length < MAX_PEOPLE && (
+          <button type="button" onClick={addPerson} className={chip}>
+            + Person
           </button>
-        </div>
-        <div className="space-y-4 p-4 sm:p-5">
-          {state.people.map((p, i) => (
-            <PersonCard
-              key={p.id}
-              person={p}
-              color={COLORS[i]}
-              sg={sg}
-              onChange={(patch) => setPerson(p.id, patch)}
-              onAccount={(aid, patch) => setAccount(p.id, aid, patch)}
-              onAddAccount={p.accounts.length < MAX_ACCOUNTS ? () => addAccount(p.id) : undefined}
-              onRemoveAccount={(aid) => removeAccount(p.id, aid)}
-              onRemove={state.people.length > 1 ? () => removePerson(p.id) : undefined}
-            />
-          ))}
-          {state.people.length < MAX_PEOPLE && (
-            <button type="button" onClick={addPerson} className={chip}>
-              + Person
-            </button>
-          )}
-        </div>
-      </dialog>
-    </main>
+        )}
+      </EditSheet>
+    </ToolPage>
   );
 }
 
@@ -492,11 +462,7 @@ function Answer({ result, state }: { result: SuperResult; state: SuperState }) {
           <button
             type="button"
             className="font-semibold underline"
-            onClick={() => {
-              const d = document.getElementById("assumptions");
-              if (d instanceof HTMLDetailsElement) d.open = true;
-              d?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
+            onClick={() => openDisclosure("assumptions")}
           >
             Change
           </button>
@@ -672,60 +638,6 @@ function FundsToday({
         </button>
       )}
     </section>
-  );
-}
-
-function WayCard({
-  title,
-  open,
-  onClick,
-  children,
-}: {
-  title: string;
-  open: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-expanded={open}
-      onClick={onClick}
-      className={`flex flex-col gap-2 rounded-xl border bg-surface p-4 text-left transition sm:p-5 ${
-        open ? "border-2 border-accent" : "border-border hover:border-accent"
-      }`}
-    >
-      <span className="text-xs font-semibold tracking-wide text-accent uppercase">{title}</span>
-      <span className="leading-snug">{children}</span>
-      <span className="mt-auto text-sm text-muted">{open ? "Close" : "Open"}</span>
-    </button>
-  );
-}
-
-function Disclosure({
-  id,
-  title,
-  hint,
-  children,
-}: {
-  id?: string;
-  title: string;
-  hint: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <details id={id} className="group scroll-mt-4">
-      <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 py-3 sm:px-5">
-        <span>
-          <strong>{title}</strong>
-          <span className="text-sm text-muted"> · {hint}</span>
-        </span>
-        <span aria-hidden="true" className="text-muted transition group-open:rotate-180">
-          ▾
-        </span>
-      </summary>
-      <div className="px-4 pb-4 sm:px-5 sm:pb-5">{children}</div>
-    </details>
   );
 }
 

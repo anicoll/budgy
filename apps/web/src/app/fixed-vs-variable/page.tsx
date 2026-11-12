@@ -11,10 +11,10 @@ export default function FixedVsVariablePage() {
   return (
     <>
       <JsonLd data={toolJsonLd("fixed")} />
-      <JourneyBar current="fixed" />
       <Suspense>
         <FixedVariableCalculator />
       </Suspense>
+      <JourneyBar current="fixed" />
     </>
   );
 }
