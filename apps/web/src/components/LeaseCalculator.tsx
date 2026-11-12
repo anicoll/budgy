@@ -16,8 +16,25 @@ import {
 import { useMemo, useState } from "react";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
-import { LeaseCompare } from "@/components/LeaseCompare";
-import { SavedBar } from "@/components/SavedBar";
+import { compareLine, LeaseCompare } from "@/components/LeaseCompare";
+import { NextSteps } from "@/components/NextSteps";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  EditSheet,
+  IdeaCard,
+  Ideas,
+  SummaryRow,
+  SummaryRows,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+  toolCard,
+  useEditSheet,
+  useIdea,
+} from "@/components/tool";
 import { money, moneyExact } from "@/lib/format";
 import { LEASE_PEOPLE } from "@/lib/household";
 import {
@@ -31,7 +48,7 @@ import {
   toLeaseInput,
 } from "@/lib/leaseState";
 import { type SavedConfig, useSavedState } from "@/lib/useSavedState";
-import { Checkbox, Select } from "./ui";
+import { Checkbox } from "./ui";
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
 const LEASE_SAVED: SavedConfig<LeaseState> = {
@@ -75,6 +92,8 @@ export function LeaseCalculator() {
   const saved = useSavedState(LEASE_SAVED);
   const { state, setState } = saved;
   const set = (patch: Partial<LeaseState>) => setState((s) => ({ ...s, ...patch }));
+  const { ref: sheet, open: edit } = useEditSheet();
+  const { idea, toggle } = useIdea<"own" | "cars" | "terms" | "quote">();
 
   const input = useMemo(() => toLeaseInput(state), [state]);
   const errors = useMemo(() => validateLease(input), [input]);
@@ -92,105 +111,236 @@ export function LeaseCalculator() {
   // From the rounded per-pay figures, so the sentence adds up.
   const taxSavedPer = per ? per.preTax + per.postTax - per.cost : 0;
 
-  return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Novated lease calculator
-        </h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          What a car really costs out of your pay on a novated lease, and whether that beats a car
-          loan or paying cash. Uses the ATO&apos;s {state.year} tax rates and the current FBT rules.
-        </p>
-        <SavedBar saved={saved} />
-      </header>
+  const vsCash = result ? result.cash.total - result.lease.total : 0;
+  const vsLoan = result?.loan ? result.loan.total - result.lease.total : null;
+  const bestTerm = terms?.reduce((a, b) =>
+    b.cash.total - b.lease.total > a.cash.total - a.lease.total ? b : a,
+  );
+  const carsLine = result ? compareLine(state, result) : null;
+  const quoteRate = result ? quoteImplied(state, result) : null;
+  const runningTotal = state.energy + state.rego + state.insurance + state.servicing;
 
-      {result && per && (
-        <div
-          className="sticky top-[var(--header-h)] z-10 -mx-4 mb-4 flex items-center justify-between gap-3 bg-primary-container px-4 py-3 text-on-primary-container lg:hidden"
-          aria-live="polite"
-        >
-          <div>
-            <p className="text-xs opacity-75">Take-home pay drops by</p>
-            <p className="num text-2xl font-semibold">{moneyExact(per.cost)}</p>
-            <p className="text-xs opacity-75">{show.per}</p>
-          </div>
-          <div className="flex flex-col gap-1 text-xs opacity-90">
-            <span aria-hidden>Show per</span>
-            <Select<LeasePer>
-              ariaLabel="Show per"
-              triggerClassName="rounded-lg border border-on-primary-container/20 bg-surface/60 px-2 py-2 text-base text-on-primary-container"
-              value={state.show}
-              onChange={(show) => set({ show })}
-              options={SHOW}
-            />
-          </div>
+  return (
+    <ToolPage>
+      <ToolHeader
+        title="Novated lease calculator"
+        intro={`What a car really costs out of your pay, and whether that beats a car loan or cash. Uses the ATO's ${state.year} tax rates.`}
+        saved={saved}
+      />
+
+      {!result || !per ? (
+        <div className={`${toolCard} text-warn`} role="alert">
+          {errors.map((e) => (
+            <p key={e}>{e}</p>
+          ))}
+          <button type="button" onClick={() => edit()} className="mt-2 text-accent underline">
+            Edit your numbers
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <AnswerRow>
+            <AnswerCard label="Your take-home pay drops by">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <p className="num text-4xl font-bold tracking-tight sm:text-5xl">
+                  {moneyExact(per.cost)}{" "}
+                  <span className="text-lg font-medium text-muted">{show.per}</span>
+                </p>
+                <Segmented
+                  pill
+                  label="Show amounts per"
+                  options={SHOW.map(({ value, label }) => ({ value, label }))}
+                  value={state.show}
+                  onChange={(v) => set({ show: v })}
+                />
+              </div>
+              <p className="text-sm">
+                {per.postTax > 0 ? (
+                  <>
+                    {moneyExact(per.preTax)} {show.per} comes out before tax and{" "}
+                    {moneyExact(per.postTax)} after tax to cover FBT. You save{" "}
+                    {moneyExact(taxSavedPer)} in tax.
+                  </>
+                ) : (
+                  <>
+                    {moneyExact(per.preTax)} {show.per} comes out before tax, and you save{" "}
+                    {moneyExact(taxSavedPer)} in tax. That covers the car, running costs and fees.
+                  </>
+                )}
+              </p>
+              <Warnings result={result} />
+            </AnswerCard>
+            <div className={`${toolCard} flex min-w-0 flex-col gap-4`}>
+              <FbtBadge result={result} />
+              <div className="divide-y divide-border">
+                <CompareRow
+                  label="paying cash"
+                  diff={vsCash}
+                  note={
+                    result.cash.lostInterest > 0
+                      ? `Counts ${money(result.cash.lostInterest)} of savings interest`
+                      : undefined
+                  }
+                />
+                {vsLoan !== null && state.loanPct !== undefined && (
+                  <CompareRow label={`a car loan at ${state.loanPct}%`} diff={vsLoan} />
+                )}
+              </div>
+            </div>
+          </AnswerRow>
+
+          <ToolSection id="numbers-h" title="Your numbers">
+            <SummaryRows>
+              <SummaryRow
+                title="Your pay"
+                hint={`${money(state.salary * 100)} a year · ${state.year}${
+                  state.studyLoan ? " · study loan" : ""
+                }`}
+                onClick={() => edit("lease-pay")}
+              />
+              <SummaryRow
+                title="The car"
+                hint={`${CARS.find((c) => c.value === state.car)?.label} · ${money(
+                  state.price * 100,
+                )} + ${money(state.onRoads * 100)} on-roads`}
+                onClick={() => edit("lease-car")}
+              />
+              <SummaryRow
+                title="The lease"
+                hint={`${years(state.termYears)} · ${state.ratePct}% · residual ${pct(
+                  result.residualRate,
+                )}`}
+                onClick={() => edit("lease-lease")}
+              />
+              <SummaryRow
+                title="Running costs"
+                hint={`${money(runningTotal * 100)} ${state.quoteAmounts ? "a month" : "a year"}`}
+                onClick={() => edit("lease-running")}
+              />
+              <SummaryRow
+                title="Compare with"
+                hint={`${
+                  state.loanPct === undefined ? "no car loan" : `car loan ${state.loanPct}%`
+                } · savings ${state.savingsPct}%`}
+                onClick={() => edit("lease-compare")}
+              />
+            </SummaryRows>
+          </ToolSection>
+
+          <Ideas
+            cards={
+              <>
+                <IdeaCard
+                  title={`To own the car after ${years(result.termYears)}`}
+                  open={idea === "own"}
+                  onClick={() => toggle("own")}
+                >
+                  {vsCash >= 0 ? (
+                    <>
+                      The lease saves <strong className="num text-good">{money(vsCash)}</strong>{" "}
+                      over cash.
+                    </>
+                  ) : (
+                    <>
+                      The lease costs <strong className="num text-warn">{money(-vsCash)}</strong>{" "}
+                      more than cash.
+                    </>
+                  )}
+                </IdeaCard>
+                <IdeaCard
+                  title="Compare a second car"
+                  open={idea === "cars"}
+                  onClick={() => toggle("cars")}
+                >
+                  {carsLine ?? "Put two cars side by side on the same pay."}
+                </IdeaCard>
+                <IdeaCard
+                  title="Shorter or longer lease"
+                  open={idea === "terms"}
+                  onClick={() => toggle("terms")}
+                >
+                  {bestTerm ? (
+                    <>
+                      Saves most over {years(bestTerm.termYears)}:{" "}
+                      <strong className="num">
+                        {money(bestTerm.cash.total - bestTerm.lease.total)}
+                      </strong>{" "}
+                      against cash.
+                    </>
+                  ) : (
+                    "See each term from 1 to 5 years."
+                  )}
+                </IdeaCard>
+                <IdeaCard
+                  title="Got a quote?"
+                  open={idea === "quote"}
+                  onClick={() => toggle("quote")}
+                >
+                  {quoteRate !== null
+                    ? `Your quote works out to ${pct(quoteRate)} interest.`
+                    : "Check the interest rate hidden in a provider's quote."}
+                </IdeaCard>
+              </>
+            }
+          >
+            {idea === "own" && <Ownership result={result} loanPct={state.loanPct} />}
+            {idea === "cars" && <LeaseCompare state={state} set={set} result={result} />}
+            {idea === "terms" && terms && <Terms rows={terms} current={state.termYears} />}
+            {idea === "quote" && <QuoteCheck state={state} set={set} result={result} />}
+          </Ideas>
+
+          <Detail>
+            <Disclosure
+              title={result.termYears > 4 ? "Years 1 to 4 of the lease" : "Each year of the lease"}
+              hint="where the money goes"
+            >
+              <Breakdown result={result} />
+            </Disclosure>
+            <Disclosure title="If you leave your job" hint="what happens to the lease">
+              <LeaveJob input={input} result={result} />
+            </Disclosure>
+            <Disclosure title="Good to know" hint="tips and things to check">
+              <GoodToKnow tool="lease" bare />
+            </Disclosure>
+            <Disclosure title="How this is calculated" hint="tax, FBT and the lease">
+              <Sources result={result} year={state.year} />
+            </Disclosure>
+          </Detail>
+          <NextSteps tool="lease" className="pt-2" />
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
+      <EditSheet ref={sheet} title="Your lease">
         <Inputs state={state} set={set} setAll={setState} result={result} />
+      </EditSheet>
+    </ToolPage>
+  );
+}
 
-        <section className="min-w-0 space-y-4" aria-label="Results">
-          {errors.length > 0 && (
-            <div className={`${card} text-warn`} role="alert">
-              {errors.map((e) => (
-                <p key={e}>{e}</p>
-              ))}
-            </div>
-          )}
-          {result && per && (
-            <>
-              <div className={card}>
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="text-muted">Your take-home pay drops by</p>
-                    <p className="num mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
-                      {moneyExact(per.cost)}{" "}
-                      <span className="text-lg font-medium text-muted">{show.per}</span>
-                    </p>
-                    <p className="mt-1.5 max-w-xl text-sm text-muted">
-                      {per.postTax > 0 ? (
-                        <>
-                          {moneyExact(per.preTax)} {show.per} comes out before tax and{" "}
-                          {moneyExact(per.postTax)} after tax to cover FBT. You save{" "}
-                          {moneyExact(taxSavedPer)} in tax.
-                        </>
-                      ) : (
-                        <>
-                          {moneyExact(per.preTax)} {show.per} comes out before tax, and you save{" "}
-                          {moneyExact(taxSavedPer)} in tax. That covers the car, running costs and
-                          fees.
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  <div className="hidden lg:block">
-                    <Segmented
-                      pill
-                      label="Show amounts per"
-                      options={SHOW.map(({ value, label }) => ({ value, label }))}
-                      value={state.show}
-                      onChange={(v) => set({ show: v })}
-                    />
-                  </div>
-                </div>
-                <FbtBadge result={result} />
-                <Breakdown result={result} />
-                <Warnings result={result} />
-              </div>
-              <Ownership result={result} loanPct={state.loanPct} />
-              <LeaseCompare state={state} set={set} result={result} />
-              <LeaveJob input={input} result={result} />
-              {terms && <Terms rows={terms} current={state.termYears} />}
-              <QuoteCheck state={state} set={set} result={result} />
-              <Sources result={result} year={state.year} />
-            </>
-          )}
-          <GoodToKnow tool="lease" />
-        </section>
-      </div>
-    </main>
+function CompareRow({ label, diff, note }: { label: string; diff: number; note?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+      <span>
+        <span className="block">Compared with {label}</span>
+        {note && <span className="block text-xs text-muted">{note}</span>}
+      </span>
+      <strong className={`num shrink-0 ${diff >= 0 ? "text-good" : "text-warn"}`}>
+        {money(Math.abs(diff))} {diff >= 0 ? "better" : "worse"}
+      </strong>
+    </div>
+  );
+}
+
+/** The interest rate a quote works out to, when the quote's payment is filled in. */
+function quoteImplied(state: LeaseState, result: NovatedLeaseResult): number | null {
+  if (state.quoteRental === undefined) return null;
+  const c = (d: number) => Math.round(d * 100) as Cents;
+  return impliedLeaseRate(
+    c(state.quoteFinanced ?? result.financed / 100),
+    c(state.quoteResidual ?? result.residual / 100),
+    state.termYears * 12,
+    c(state.quoteRental),
+    state.inAdvance,
   );
 }
 
@@ -207,8 +357,8 @@ function Inputs({
 }) {
   const min = atoResidual(state.termYears);
   return (
-    <div className="space-y-4 self-start">
-      <section className={`${card} space-y-4`} aria-label="Your pay">
+    <>
+      <section id="lease-pay" className={`${card} scroll-mt-20 space-y-4`} aria-label="Your pay">
         <h2 className="font-semibold">Your pay</h2>
         <div className="grid grid-cols-2 gap-3">
           <MoneyField
@@ -240,7 +390,7 @@ function Inputs({
         </p>
       </section>
 
-      <section className={`${card} space-y-4`} aria-label="The car">
+      <section id="lease-car" className={`${card} scroll-mt-20 space-y-4`} aria-label="The car">
         <h2 className="font-semibold">The car</h2>
         <Segmented
           label="Type of car"
@@ -264,7 +414,7 @@ function Inputs({
         </div>
       </section>
 
-      <section className={`${card} space-y-4`} aria-label="The lease">
+      <section id="lease-lease" className={`${card} scroll-mt-20 space-y-4`} aria-label="The lease">
         <h2 className="font-semibold">The lease</h2>
         <div>
           <p className="mb-1 text-sm font-medium">Term</p>
@@ -344,7 +494,11 @@ function Inputs({
         </details>
       </section>
 
-      <section className={`${card} space-y-4`} aria-label="Running costs">
+      <section
+        id="lease-running"
+        className={`${card} scroll-mt-20 space-y-4`}
+        aria-label="Running costs"
+      >
         <h2 className="font-semibold">Running costs</h2>
         <Segmented
           label="Running costs are"
@@ -387,7 +541,11 @@ function Inputs({
         </p>
       </section>
 
-      <section className={`${card} space-y-4`} aria-label="Compare with">
+      <section
+        id="lease-compare"
+        className={`${card} scroll-mt-20 space-y-4`}
+        aria-label="Compare with"
+      >
         <h2 className="font-semibold">Compare with</h2>
         <div className="grid grid-cols-2 gap-3">
           <NumberField
@@ -413,7 +571,7 @@ function Inputs({
           />
         </div>
       </section>
-    </div>
+    </>
   );
 }
 
@@ -460,7 +618,7 @@ function FbtBadge({ result }: { result: NovatedLeaseResult }) {
   }
   return (
     <div
-      className={`mt-5 flex flex-col gap-1 rounded-lg px-4 py-3.5 ${
+      className={`flex flex-col gap-1 rounded-lg px-4 py-3.5 ${
         exempt
           ? "bg-[color-mix(in_srgb,var(--good)_12%,var(--surface))]"
           : "bg-[color-mix(in_srgb,var(--warn)_12%,var(--surface))]"
@@ -487,7 +645,7 @@ function Breakdown({ result }: { result: NovatedLeaseResult }) {
   ];
   const fn = (c: number) => moneyExact(Math.round(c / 26));
   return (
-    <div className="mt-5 overflow-x-auto">
+    <div className="overflow-x-auto">
       <table className="num w-full min-w-[420px] border-collapse text-right">
         <thead>
           <tr className="text-sm text-muted">
@@ -671,9 +829,6 @@ function QuoteCheck({
   set: (p: Partial<LeaseState>) => void;
   result: NovatedLeaseResult;
 }) {
-  const [opened, setOpen] = useState(false);
-  // Saved inputs load after the first render, so open for a saved quote then too.
-  const open = opened || state.quoteRental !== undefined;
   const financed = state.quoteFinanced ?? result.financed / 100;
   const residual = state.quoteResidual ?? result.residual / 100;
   const months = state.termYears * 12;
@@ -687,23 +842,12 @@ function QuoteCheck({
   const extra = rental === undefined ? 0 : c(rental) - bench;
   return (
     <div className={card}>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-semibold">Check a lease quote</h2>
-        {!open && (
-          <button
-            type="button"
-            className="text-sm font-medium text-accent hover:underline"
-            onClick={() => setOpen(true)}
-          >
-            Check one
-          </button>
-        )}
-      </div>
+      <h2 className="font-semibold">Check a lease quote</h2>
       <p className="mt-1 text-sm text-muted">
         Providers rarely show the interest rate. Put in the finance figures from your quote and
         we&apos;ll work it out.
       </p>
-      {open && (
+      {
         <>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <MoneyField
@@ -763,16 +907,15 @@ function QuoteCheck({
             </div>
           )}
         </>
-      )}
+      }
     </div>
   );
 }
 
 function Sources({ result, year }: { result: NovatedLeaseResult; year: string }) {
   return (
-    <details className={`${card} text-sm`}>
-      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
-      <p className="mt-3 text-muted">
+    <>
+      <p className="text-sm text-muted">
         Uses the ATO&apos;s {year} tax rates, Medicare levy and HELP thresholds, the{" "}
         {result.carRules.year} <a href={result.carRules.sources[1]}>car limit</a> for the GST your
         employer claims back ({moneyExact(result.gstCredit)} here), the{" "}
@@ -781,7 +924,7 @@ function Sources({ result, year }: { result: NovatedLeaseResult; year: string })
         every provider uses. Later years use this year&apos;s tax rates. Not financial advice: check
         a real quote before you sign.
       </p>
-    </details>
+    </>
   );
 }
 
@@ -880,9 +1023,8 @@ function LeaveJob({ input, result }: { input: NovatedLeaseInput; result: Novated
   );
   const show = SHOW.find((o) => o.value === per) ?? SHOW[1];
   return (
-    <details className={`${card} group`}>
-      <summary className="cursor-pointer font-semibold">If you leave your job</summary>
-      <div className="mt-3 space-y-3 text-sm">
+    <div className="space-y-3 text-sm">
+      <div className="space-y-3">
         <p className="text-muted">
           A novated lease is a three-way deal between you, your employer and the lease provider.
           When you leave, it usually either moves to you personally or to a new employer who agrees
@@ -961,6 +1103,6 @@ function LeaveJob({ input, result }: { input: NovatedLeaseInput; result: Novated
           any new employer&apos;s terms can change this. Ask your provider what they&apos;d offer.
         </p>
       </div>
-    </details>
+    </div>
   );
 }

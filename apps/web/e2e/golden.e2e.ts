@@ -25,6 +25,11 @@ async function showPer(page: Page, per: string) {
       .click();
 }
 
+/** Open the edit sheet from the summary row with this title. */
+async function editSheet(page: Page, row: string) {
+  await page.getByRole("button", { name: new RegExp(`^${row}`) }).click();
+}
+
 /** The stamp duty breakdown ("How this is calculated"), open or not. */
 const dutyWorking = (page: Page) => page.locator("details", { hasText: "How this is calculated" });
 
@@ -54,20 +59,24 @@ test(`mortgage: ${LOAN_600K_6PC_30Y.name}`, async ({ page }) => {
 
 test(`buying costs: ${NSW_DUTY_1_35M.name}`, async ({ page }) => {
   await page.goto("/buying-costs/");
+  await editSheet(page, "The purchase");
   await choose(page, /State or territory/, "New South Wales");
   await typeInto(page, "Purchase price", String(NSW_DUTY_1_35M.input.price));
   await page.getByRole("button", { name: "Living in it" }).click();
   await page.getByRole("button", { name: "Existing home" }).click();
+  await page.getByRole("button", { name: "Done" }).click();
 
   await expect(dutyWorking(page)).toContainText(dollars(NSW_DUTY_1_35M.expected.duty, true));
 });
 
 test(`buying costs: ${QLD_HOME_950K.name}`, async ({ page }) => {
   await page.goto("/buying-costs/");
+  await editSheet(page, "The purchase");
   await choose(page, /State or territory/, "Queensland");
   await typeInto(page, "Purchase price", String(QLD_HOME_950K.input.price));
   await page.getByRole("button", { name: "Living in it" }).click();
   await page.getByRole("button", { name: "Existing home" }).click();
+  await page.getByRole("button", { name: "Done" }).click();
 
   await expect(dutyWorking(page)).toContainText(dollars(QLD_HOME_950K.expected.duty, true));
 });
