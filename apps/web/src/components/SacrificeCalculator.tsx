@@ -19,7 +19,24 @@ import {
 import { useMemo, useState } from "react";
 import { MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
-import { SavedBar } from "@/components/SavedBar";
+import { NextSteps } from "@/components/NextSteps";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  EditSheet,
+  filledBtn,
+  IdeaCard,
+  Ideas,
+  SummaryRow,
+  SummaryRows,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+  useEditSheet,
+  useIdea,
+} from "@/components/tool";
 import { money, moneyExact } from "@/lib/format";
 import { SACRIFICE_PEOPLE } from "@/lib/household";
 import {
@@ -82,7 +99,8 @@ function safeCheck(state: SacrificeState): SacrificeResult | null {
 export function SacrificeCalculator() {
   const saved = useSavedState(SAVED);
   const { state, setState } = saved;
-  const [copied, setCopied] = useState(false);
+  const { ref: sheet, open: edit } = useEditSheet();
+  const { idea, toggle } = useIdea<string>();
   const set = (patch: Partial<SacrificeState>) => setState((s) => ({ ...s, ...patch }));
   const setPerson = (id: string, patch: Partial<PersonRow>) =>
     setState((s) => ({
@@ -95,16 +113,7 @@ export function SacrificeCalculator() {
   const show = state.show;
   const n = SHOW_N[show];
   const fmt = (c: number) => (show === "annual" ? money(c) : moneyExact(Math.round(c / n)));
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked: the address bar still has the link */
-    }
-  };
+  const dollars = (d: number) => money(Math.round(d * 100));
 
   const addPerson = () =>
     setState((s) => {
@@ -126,19 +135,24 @@ export function SacrificeCalculator() {
 
   const total = result?.total;
   const me = result?.people[0];
+  const you = state.people[0];
+  const yearField = (
+    <SelectField
+      label="Financial year"
+      value={state.year}
+      onChange={(year) => set({ year })}
+      options={SACRIFICE_YEARS.map((y) => ({ value: y, label: y }))}
+    />
+  );
+  const applyExtra = (id: string, extra: Cents) => setPerson(id, { extra: cents(extra) });
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Salary sacrifice check
-        </h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          See what putting more of your pay into super really costs you, how much tax it saves, and
-          how much room is left under your cap. Your numbers never leave your device.
-        </p>
-        <SavedBar saved={saved} />
-      </header>
+    <ToolPage>
+      <ToolHeader
+        title="Salary sacrifice check"
+        intro="What putting more of your pay into super costs you, and what it adds."
+        saved={saved}
+      />
 
       {total && (
         <div
@@ -162,118 +176,131 @@ export function SacrificeCalculator() {
         </div>
       )}
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <Segmented
-          label="Who"
-          options={[
-            { value: "me", label: "Just me" },
-            { value: "household", label: "Household" },
-          ]}
-          value={state.mode}
-          onChange={(mode) => set({ mode })}
-        />
-        <Segmented
-          label="Show amounts per"
-          options={SHOW.map(({ value, label }) => ({ value, label }))}
-          value={show}
-          onChange={(s) => set({ show: s })}
-        />
-      </div>
+      <div className="space-y-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Segmented
+            label="Who"
+            options={[
+              { value: "me", label: "Just me" },
+              { value: "household", label: "Household" },
+            ]}
+            value={state.mode}
+            onChange={(mode) => set({ mode })}
+          />
+          <Segmented
+            label="Show amounts per"
+            options={SHOW.map(({ value, label }) => ({ value, label }))}
+            value={show}
+            onChange={(s) => set({ show: s })}
+          />
+        </div>
 
-      {state.mode === "me" ? (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
-          <section className={`${card} self-start`} aria-label="Your pay">
-            <PersonForm
-              person={state.people[0]}
-              year={state.year}
-              show={show}
-              onChange={(patch) => setPerson(state.people[0].id, patch)}
-              yearField={
-                <SelectField
-                  label="Financial year"
-                  value={state.year}
-                  onChange={(year) => set({ year })}
-                  options={SACRIFICE_YEARS.map((y) => ({ value: y, label: y }))}
-                />
-              }
-            />
-          </section>
-          <section className="min-w-0 space-y-4" aria-label="Results">
+        {state.mode === "me" ? (
+          <>
             {!me || !result ? (
+              <>
+                <Invalid state={state} />
+                <div className={`${card} space-y-4`}>
+                  <ExtraField
+                    person={you}
+                    year={state.year}
+                    show={show}
+                    onChange={(patch) => setPerson(you.id, patch)}
+                  />
+                </div>
+              </>
+            ) : (
+              <AnswerRow>
+                <AnswerCard label="Salary sacrifice">
+                  <Statement effect={me.effect} show={show} fmt={fmt} />
+                </AnswerCard>
+                <div className={`${card} min-w-0 space-y-4 rounded-3xl`}>
+                  <ExtraField
+                    person={you}
+                    year={state.year}
+                    show={show}
+                    onChange={(patch) => setPerson(you.id, patch)}
+                  />
+                  {you.funds.length > 1 && (
+                    <SelectField
+                      label="Pay it into"
+                      value={you.extraFund}
+                      onChange={(extraFund) => setPerson(you.id, { extraFund })}
+                      options={you.funds.map((f) => ({
+                        value: f.id,
+                        label: f.name || "Super fund",
+                      }))}
+                    />
+                  )}
+                  <CapMeter person={me} year={result.year} you />
+                </div>
+              </AnswerRow>
+            )}
+            {me && <Warnings people={[me]} you />}
+
+            <ToolSection id="numbers-h" title="Your numbers">
+              <SummaryRows>
+                <SummaryRow
+                  title="Your pay"
+                  hint={`${dollars(you.salary)} a year · ${you.employerPct ?? 12}% employer super · ${state.year}`}
+                  onClick={() => edit("sac-pay")}
+                />
+                <SummaryRow
+                  title="Funds, unused cap and HELP"
+                  hint={`${you.funds.length} fund${you.funds.length === 1 ? "" : "s"}${
+                    you.studyLoan ? " · HELP loan" : ""
+                  }${you.unusedCaps ? ` · ${dollars(you.unusedCaps)} unused cap` : ""}`}
+                  onClick={() => edit("sac-more")}
+                />
+              </SummaryRows>
+            </ToolSection>
+
+            {me && (
+              <SacrificeIdeas
+                people={[me]}
+                show={show}
+                fmt={fmt}
+                you
+                open={idea}
+                onToggle={toggle}
+                onUse={applyExtra}
+              />
+            )}
+
+            <Detail>
+              {me && result && (
+                <>
+                  <Disclosure
+                    title={`The numbers a ${perLabel(show).replace(/^an? /, "")}`}
+                    hint="now and with the extra"
+                  >
+                    <NumbersTable effect={me.effect} fmt={fmt} />
+                  </Disclosure>
+                  {me.effect.extra > 0 && (
+                    <Disclosure
+                      title={`Where the ${money(me.effect.extra)} comes from`}
+                      hint="you, tax saved and the fund's tax"
+                    >
+                      <WhereItGoes effect={me.effect} />
+                    </Disclosure>
+                  )}
+                </>
+              )}
+              <Disclosure title="Good to know" hint="tips and things to check">
+                <GoodToKnow tool="sacrifice" bare />
+              </Disclosure>
+              {result && (
+                <Disclosure title="How this is calculated" hint="the rules and sources">
+                  <Method result={result} />
+                </Disclosure>
+              )}
+            </Detail>
+          </>
+        ) : (
+          <>
+            {!result ? (
               <Invalid state={state} />
             ) : (
-              <>
-                <Statement effect={me.effect} show={show} fmt={fmt} />
-                <WhereItGoes effect={me.effect} />
-                <NumbersTable effect={me.effect} show={show} fmt={fmt} />
-                <CapMeter person={me} year={result.year} you />
-                <Ideas
-                  people={[me]}
-                  show={show}
-                  fmt={fmt}
-                  you
-                  onUse={(id, extra) => setPerson(id, { extra: cents(extra) })}
-                />
-                <Warnings people={[me]} you />
-              </>
-            )}
-            <GoodToKnow tool="sacrifice" />
-            {result && <Footer result={result} copied={copied} onCopy={copyLink} />}
-          </section>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
-            {people.map((p) => (
-              <PersonCard
-                key={p.id}
-                person={p}
-                year={state.year}
-                show={show}
-                canRemove={people.length > 1}
-                onRemove={() => removePerson(p.id)}
-                onChange={(patch) => setPerson(p.id, patch)}
-              />
-            ))}
-            {people.length < MAX_SACRIFICE_PEOPLE && (
-              <button
-                type="button"
-                onClick={addPerson}
-                className="min-h-40 rounded-xl border-2 border-dashed border-border font-medium text-accent hover:border-accent"
-              >
-                + Add a person
-                <span className="mt-1 block text-xs font-normal text-muted">
-                  Up to {MAX_SACRIFICE_PEOPLE} people, {MAX_SACRIFICE_FUNDS} funds each
-                </span>
-              </button>
-            )}
-          </div>
-
-          <div className={`${card} flex flex-wrap items-end gap-4`}>
-            <MoneyField
-              className="min-w-0 flex-[1_1_280px]"
-              label={`How much take-home pay can the household give up ${perLabel(show)}?`}
-              value={Math.round((state.budget / n) * 100) / 100}
-              onChange={(v) => set({ budget: (v ?? 0) * n })}
-            />
-            <div className="min-w-0 flex-[2_1_320px] space-y-2">
-              <p className="text-sm text-muted">
-                We split it between you so each dollar puts the most into super, staying under
-                everyone&apos;s cap.
-              </p>
-              <SelectField
-                label="Financial year"
-                value={state.year}
-                onChange={(year) => set({ year })}
-                options={SACRIFICE_YEARS.map((y) => ({ value: y, label: y }))}
-              />
-            </div>
-          </div>
-
-          {!result ? (
-            <Invalid state={state} />
-          ) : (
-            <>
               <BudgetSplit
                 result={result}
                 people={people}
@@ -288,21 +315,102 @@ export function SacrificeCalculator() {
                   }))
                 }
               />
-              <HouseholdTable result={result} people={people} fmt={fmt} show={show} />
-              <Ideas
+            )}
+
+            <div className={`${card} flex flex-wrap items-end gap-4`}>
+              <MoneyField
+                className="min-w-0 flex-[1_1_280px]"
+                label={`How much take-home pay can the household give up ${perLabel(show)}?`}
+                value={Math.round((state.budget / n) * 100) / 100}
+                onChange={(v) => set({ budget: (v ?? 0) * n })}
+              />
+              <div className="min-w-0 flex-[2_1_320px] space-y-2">
+                <p className="text-sm text-muted">
+                  We split it between you so each dollar puts the most into super, staying under
+                  everyone&apos;s cap.
+                </p>
+                {yearField}
+              </div>
+            </div>
+
+            {result && <Warnings people={result.people} />}
+
+            <ToolSection id="people-h" title="Your household">
+              <div className="grid gap-4 sm:grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
+                {people.map((p) => (
+                  <PersonCard
+                    key={p.id}
+                    person={p}
+                    year={state.year}
+                    show={show}
+                    canRemove={people.length > 1}
+                    onRemove={() => removePerson(p.id)}
+                    onChange={(patch) => setPerson(p.id, patch)}
+                  />
+                ))}
+                {people.length < MAX_SACRIFICE_PEOPLE && (
+                  <button
+                    type="button"
+                    onClick={addPerson}
+                    className="min-h-40 rounded-xl border-2 border-dashed border-border font-medium text-accent hover:border-accent"
+                  >
+                    + Add a person
+                    <span className="mt-1 block text-xs font-normal text-muted">
+                      Up to {MAX_SACRIFICE_PEOPLE} people, {MAX_SACRIFICE_FUNDS} funds each
+                    </span>
+                  </button>
+                )}
+              </div>
+            </ToolSection>
+
+            {result && (
+              <SacrificeIdeas
                 people={result.people}
                 show={show}
                 fmt={fmt}
-                onUse={(id, extra) => setPerson(id, { extra: cents(extra) })}
+                open={idea}
+                onToggle={toggle}
+                onUse={applyExtra}
               />
-              <Warnings people={result.people} />
-            </>
-          )}
-          <GoodToKnow tool="sacrifice" />
-          {result && <Footer result={result} copied={copied} onCopy={copyLink} />}
-        </div>
+            )}
+
+            <Detail>
+              {result && (
+                <Disclosure
+                  title={`Each person, ${perLabel(show)}`}
+                  hint="cost, super and cap room"
+                >
+                  <HouseholdTable result={result} people={people} fmt={fmt} />
+                </Disclosure>
+              )}
+              <Disclosure title="Good to know" hint="tips and things to check">
+                <GoodToKnow tool="sacrifice" bare />
+              </Disclosure>
+              {result && (
+                <Disclosure title="How this is calculated" hint="the rules and sources">
+                  <Method result={result} />
+                </Disclosure>
+              )}
+            </Detail>
+          </>
+        )}
+        <NextSteps tool="sacrifice" className="pt-2" />
+      </div>
+
+      {state.mode === "me" && (
+        <EditSheet ref={sheet} title="Your pay details">
+          <PersonForm
+            person={you}
+            year={state.year}
+            show={show}
+            onChange={(patch) => setPerson(you.id, patch)}
+            yearField={yearField}
+            hideExtra
+            idPrefix="sac"
+          />
+        </EditSheet>
       )}
-    </main>
+    </ToolPage>
   );
 }
 
@@ -454,6 +562,8 @@ function PersonForm({
   onChange,
   yearField,
   compact,
+  hideExtra,
+  idPrefix,
 }: {
   person: PersonRow;
   year: string;
@@ -461,17 +571,22 @@ function PersonForm({
   onChange: (patch: Partial<PersonRow>) => void;
   yearField?: React.ReactNode;
   compact?: boolean;
+  /** Leave out the amount to sacrifice, because it sits beside the answer. */
+  hideExtra?: boolean;
+  /** Gives the pay and more-options groups ids, so a summary row can open the sheet at them. */
+  idPrefix?: string;
 }) {
   const [moreOpen, setMoreOpen] = useState<boolean | null>(null);
   const more =
-    moreOpen ??
-    Boolean(
-      person.personal ||
-        person.unusedCaps ||
-        person.studyLoan ||
-        !person.hospitalCover ||
-        person.funds.length > 1,
-    );
+    hideExtra ||
+    (moreOpen ??
+      Boolean(
+        person.personal ||
+          person.unusedCaps ||
+          person.studyLoan ||
+          !person.hospitalCover ||
+          person.funds.length > 1,
+      ));
   const setFund = (id: string, patch: Partial<PersonRow["funds"][number]>) =>
     onChange({ funds: person.funds.map((f) => (f.id === id ? { ...f, ...patch } : f)) });
   const addFund = () => {
@@ -492,56 +607,62 @@ function PersonForm({
 
   return (
     <div className="space-y-5">
-      {!compact && <h2 className="font-semibold">Your pay</h2>}
-      <MoneyField
-        label="Salary before tax, a year"
-        value={person.salary}
-        onChange={(v) => v !== undefined && onChange({ salary: v })}
-      />
-      <div className="grid grid-cols-2 gap-3">
-        {yearField}
-        <NumberField
-          label="Employer super"
-          suffix="%"
-          min={0}
-          max={50}
-          step={0.5}
-          optional
-          placeholder="12"
-          value={person.employerPct}
-          onChange={(v) => onChange({ employerPct: v })}
-          className={yearField ? "" : "col-span-2"}
+      <div id={idPrefix && `${idPrefix}-pay`} className="scroll-mt-20 space-y-5">
+        {!compact && <h2 className="font-semibold">Your pay</h2>}
+        <MoneyField
+          label="Salary before tax, a year"
+          value={person.salary}
+          onChange={(v) => v !== undefined && onChange({ salary: v })}
         />
-      </div>
-      <MoneyField
-        label="Already salary sacrificing, a year"
-        value={person.current}
-        onChange={(v) => onChange({ current: v ?? 0 })}
-      />
-
-      <Section title="Extra to sacrifice">
-        <ExtraField person={person} year={year} show={show} onChange={onChange} />
-        {person.funds.length > 1 && (
-          <SelectField
-            label="Pay it into"
-            value={person.extraFund}
-            onChange={(extraFund) => onChange({ extraFund })}
-            options={person.funds.map((f) => ({ value: f.id, label: f.name || "Super fund" }))}
+        <div className="grid grid-cols-2 gap-3">
+          {yearField}
+          <NumberField
+            label="Employer super"
+            suffix="%"
+            min={0}
+            max={50}
+            step={0.5}
+            optional
+            placeholder="12"
+            value={person.employerPct}
+            onChange={(v) => onChange({ employerPct: v })}
+            className={yearField ? "" : "col-span-2"}
           />
-        )}
-      </Section>
+        </div>
+        <MoneyField
+          label="Already salary sacrificing, a year"
+          value={person.current}
+          onChange={(v) => onChange({ current: v ?? 0 })}
+        />
 
-      <button
-        type="button"
-        className="text-left text-sm font-medium text-accent hover:underline"
-        aria-expanded={more}
-        onClick={() => setMoreOpen(!more)}
-      >
-        {more ? "Fewer options" : "More options: funds, unused cap, HELP, hospital cover"}
-      </button>
+        {!hideExtra && (
+          <Section title="Extra to sacrifice">
+            <ExtraField person={person} year={year} show={show} onChange={onChange} />
+            {person.funds.length > 1 && (
+              <SelectField
+                label="Pay it into"
+                value={person.extraFund}
+                onChange={(extraFund) => onChange({ extraFund })}
+                options={person.funds.map((f) => ({ value: f.id, label: f.name || "Super fund" }))}
+              />
+            )}
+          </Section>
+        )}
+      </div>
+
+      {!hideExtra && (
+        <button
+          type="button"
+          className="text-left text-sm font-medium text-accent hover:underline"
+          aria-expanded={more}
+          onClick={() => setMoreOpen(!more)}
+        >
+          {more ? "Fewer options" : "More options: funds, unused cap, HELP, hospital cover"}
+        </button>
+      )}
 
       {more && (
-        <div className="space-y-5">
+        <div id={idPrefix && `${idPrefix}-more`} className="scroll-mt-20 space-y-5">
           <Section title="Super funds">
             {person.funds.map((f, i) => (
               <div key={f.id} className="flex items-end gap-2">
@@ -675,20 +796,15 @@ function Statement({
   fmt: (c: number) => string;
 }) {
   if (effect.extra <= 0) {
-    return (
-      <div className="rounded-xl bg-primary-container p-5 text-on-primary-container sm:p-6">
-        <p className="text-lg">
-          Enter an extra amount to sacrifice, or try one of the ideas below.
-        </p>
-      </div>
-    );
+    return <p className="text-lg">Enter an amount to sacrifice, or try one of the ideas below.</p>;
   }
   return (
-    <div
-      className="space-y-3 rounded-xl bg-primary-container p-5 text-on-primary-container sm:p-6"
-      aria-live="polite"
-    >
-      <p className="text-lg leading-relaxed sm:text-xl">
+    <>
+      <p className="num -mt-1 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+        +{fmt(effect.intoSuper)}
+        <span className="ml-2 text-lg font-medium sm:text-xl">into super</span>
+      </p>
+      <p className="text-lg leading-relaxed">
         Sacrificing <strong className="num">{fmt(effect.extra)}</strong> {perLabel(show)} costs you{" "}
         <strong className="num">{fmt(effect.takeHomeCost)}</strong> in take-home pay and puts{" "}
         <strong className="num">{fmt(effect.intoSuper)}</strong> more into your super.
@@ -703,7 +819,7 @@ function Statement({
             : `${money(-effect.netGain)} a year worse off overall`}
         </span>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -743,11 +859,8 @@ function WhereItGoes({ effect }: { effect: SacrificeEffect }) {
   // What's paid in comes from take-home and tax saved; what lands is super and taxes.
   const lost = effect.contributionsTax + effect.division293;
   return (
-    <div className={card}>
-      <h2 className="font-semibold">
-        Where the {money(effect.extra)} a year comes from, and where it goes
-      </h2>
-      <p className="mt-1 mb-4 text-sm text-muted">
+    <div>
+      <p className="mb-4 text-sm text-muted">
         The tax you no longer pay covers part of it. The fund takes 15% on the way in
         {effect.division293 > 0 ? ", plus Division 293 tax" : ""}.
       </p>
@@ -778,15 +891,7 @@ function WhereItGoes({ effect }: { effect: SacrificeEffect }) {
   );
 }
 
-function NumbersTable({
-  effect,
-  show,
-  fmt,
-}: {
-  effect: SacrificeEffect;
-  show: ShowPer;
-  fmt: (c: number) => string;
-}) {
+function NumbersTable({ effect, fmt }: { effect: SacrificeEffect; fmt: (c: number) => string }) {
   const { before: b, after: a } = effect;
   const rows: { label: string; now: number; after: number; good?: boolean; bold?: boolean }[] = [
     { label: "Take-home pay", now: b.pay.net, after: a.pay.net, bold: true },
@@ -807,9 +912,8 @@ function NumbersTable({
   const signed = (c: number) => (c === 0 ? fmt(0) : c > 0 ? `+${fmt(c)}` : `−${fmt(-c)}`);
   const rate = (r: number) => `${(r * 100).toLocaleString("en-AU", { maximumFractionDigits: 1 })}%`;
   return (
-    <div className={card}>
-      <h2 className="font-semibold">The numbers, {perLabel(show)}</h2>
-      <div className="mt-2 overflow-x-auto">
+    <div>
+      <div className="overflow-x-auto">
         <table className="num w-full border-collapse text-sm sm:text-[15px]">
           <thead>
             <tr className="text-sm text-muted">
@@ -859,9 +963,9 @@ function CapMeter({ person, year, you }: { person: PersonSacrifice; year: string
   const scale = Math.max(room, a.concessional) || 1;
   const left = a.headroom;
   return (
-    <div className={card}>
+    <div className="border-t border-border pt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-semibold">{you ? "Your" : `${person.name}'s`} concessional cap</h2>
+        <h3 className="font-semibold">{you ? "Your" : `${person.name}'s`} concessional cap</h3>
         <span className="num text-sm text-muted">
           {left >= 0 ? (
             <>
@@ -925,62 +1029,90 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-function ideaTitle(s: SacrificeSuggestion, who: string, fmt: (c: number) => string, per: string) {
-  if (s.kind === "fill-cap") return `Fill ${who} cap: ${fmt(s.extra)} ${per}`;
-  return `Bring ${who} taxable income down to ${money(s.taxableIncome ?? 0)}: ${fmt(s.extra)} ${per}`;
+function ideaName(s: SacrificeSuggestion, who: string) {
+  return s.kind === "fill-cap" ? `Fill ${who} cap` : `Bring ${who} taxable income down`;
 }
 
-function Ideas({
+function ideaLine(s: SacrificeSuggestion, fmt: (c: number) => string, per: string) {
+  if (s.kind === "fill-cap") return `${fmt(s.extra)} ${per} fills the cap.`;
+  return `${fmt(s.extra)} ${per} brings taxable income down to ${money(s.taxableIncome ?? 0)}.`;
+}
+
+function SacrificeIdeas({
   people,
   show,
   fmt,
   onUse,
   you,
+  open,
+  onToggle,
 }: {
   people: PersonSacrifice[];
   show: ShowPer;
   fmt: (c: number) => string;
   onUse: (id: string, extra: Cents) => void;
   you?: boolean;
+  open: string | null;
+  onToggle: (key: string) => void;
 }) {
   const ideas = people.flatMap((p) => p.suggestions.map((s) => ({ p, s })));
   if (!ideas.length) return null;
+  const shownIdea = ideas.find(({ p, s }) => `${p.id}-${s.kind}` === open);
   return (
-    <div className={`${card} space-y-3`}>
-      <h2 className="font-semibold">Ideas to try</h2>
-      {ideas.map(({ p, s }) => {
+    <Ideas
+      cards={ideas.map(({ p, s }) => {
         const who = you || p.name === "You" ? "your" : `${p.name}'s`;
-        const e = s.effect;
+        const key = `${p.id}-${s.kind}`;
         return (
-          <div
-            key={`${p.id}-${s.kind}`}
-            className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border px-4 py-3"
+          <IdeaCard
+            key={key}
+            title={ideaName(s, who)}
+            open={open === key}
+            onClick={() => onToggle(key)}
           >
-            <div className="min-w-0 flex-[1_1_280px]">
-              <p className="font-medium">{ideaTitle(s, who, fmt, perLabel(show))}</p>
-              <p className="num mt-1 text-sm text-muted">
-                Costs {fmt(e.takeHomeCost)} take-home, saves {fmt(e.taxSaved)} tax and adds{" "}
-                {fmt(e.intoSuper)} to super.
-                {s.kind === "bracket-edge" &&
-                  ` Above that line each dollar saves ${cpd(s.rateAbove ?? 0)} in income tax; below it, less.`}
-              </p>
-            </div>
-            {p.effect.extra === s.extra ? (
-              <span className="min-h-11 content-center px-5 text-sm font-medium text-good">
-                In use ✓
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => onUse(p.id, s.extra)}
-                className="min-h-11 rounded-full border border-outline px-5 text-sm font-medium text-accent hover:bg-accent hover:text-on-accent"
-              >
-                Use this
-              </button>
-            )}
-          </div>
+            {ideaLine(s, fmt, perLabel(show))} Adds{" "}
+            <strong className="num text-good">{fmt(s.effect.intoSuper)}</strong> to super.
+          </IdeaCard>
         );
       })}
+    >
+      {shownIdea && <IdeaDetail idea={shownIdea} fmt={fmt} show={show} onUse={onUse} />}
+    </Ideas>
+  );
+}
+
+function IdeaDetail({
+  idea: { p, s },
+  fmt,
+  show,
+  onUse,
+}: {
+  idea: { p: PersonSacrifice; s: SacrificeSuggestion };
+  fmt: (c: number) => string;
+  show: ShowPer;
+  onUse: (id: string, extra: Cents) => void;
+}) {
+  const e = s.effect;
+  return (
+    <div className={`${card} flex flex-wrap items-center justify-between gap-4`}>
+      <div className="min-w-0 flex-[1_1_280px]">
+        <p className="font-medium">
+          Sacrifice {fmt(s.extra)} {perLabel(show)}
+        </p>
+        <p className="num mt-1 text-sm text-muted">
+          Costs {fmt(e.takeHomeCost)} take-home, saves {fmt(e.taxSaved)} tax and adds{" "}
+          {fmt(e.intoSuper)} to super.
+          {s.kind === "bracket-edge" &&
+            ` Above that line each dollar saves ${cpd(s.rateAbove ?? 0)} in income tax; below it, less.`}
+        </p>
+      </div>
+      {p.effect.extra === s.extra ? (
+        <span className="min-h-11 content-center px-5 text-sm font-medium text-good">In use ✓</span>
+      ) : (
+        <button type="button" onClick={() => onUse(p.id, s.extra)} className={filledBtn}>
+          Use this
+        </button>
+      )}
     </div>
   );
 }
@@ -1054,19 +1186,20 @@ function BudgetSplit({
   );
   if (!used.length) {
     return (
-      <div className="rounded-xl bg-primary-container p-5 text-on-primary-container sm:p-6">
+      <AnswerCard label="Household split">
         <p className="text-lg">
           No one has room under their cap for that budget. Try a bigger amount.
         </p>
-      </div>
+      </AnswerCard>
     );
   }
   return (
-    <div
-      className="space-y-3 rounded-xl bg-primary-container p-5 text-on-primary-container sm:p-6"
-      aria-live="polite"
-    >
-      <p className="text-lg leading-relaxed sm:text-xl">
+    <AnswerCard label="Household split">
+      <p className="num -mt-1 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+        +{fmt(into)}
+        <span className="ml-2 text-lg font-medium sm:text-xl">into super</span>
+      </p>
+      <p className="text-lg leading-relaxed">
         Have{" "}
         {used.map((s, i) => (
           <span key={s.id}>
@@ -1093,11 +1226,11 @@ function BudgetSplit({
         type="button"
         disabled={applied}
         onClick={() => onUse(split)}
-        className="min-h-11 rounded-lg bg-bg px-4 text-sm font-medium text-text disabled:opacity-60"
+        className="min-h-11 self-start rounded-full bg-bg px-5 text-sm font-medium text-text disabled:opacity-60"
       >
         {applied ? "Using this split" : "Use this split"}
       </button>
-    </div>
+    </AnswerCard>
   );
 }
 
@@ -1105,12 +1238,10 @@ function HouseholdTable({
   result,
   people,
   fmt,
-  show,
 }: {
   result: SacrificeResult;
   people: PersonRow[];
   fmt: (c: number) => string;
-  show: ShowPer;
 }) {
   const rateFor = (p: PersonSacrifice) => {
     if (p.effect.extra > 0) return p.effect.superPerDollar;
@@ -1119,9 +1250,8 @@ function HouseholdTable({
   };
   const { total } = result;
   return (
-    <div className={card}>
-      <h2 className="font-semibold">Each person, {perLabel(show)}</h2>
-      <div className="mt-2 overflow-x-auto">
+    <div>
+      <div className="overflow-x-auto">
         <table className="num w-full min-w-[640px] border-collapse text-[15px]">
           <thead>
             <tr className="text-sm text-muted">
@@ -1188,15 +1318,7 @@ function sourceName(url: string): string {
   return "ATO";
 }
 
-function Footer({
-  result,
-  copied,
-  onCopy,
-}: {
-  result: SacrificeResult;
-  copied: boolean;
-  onCopy: () => void;
-}) {
+function Method({ result }: { result: SacrificeResult }) {
   const sources = [...new Set(result.sources)];
   return (
     <div className="space-y-2 text-sm text-muted">
@@ -1220,9 +1342,6 @@ function Footer({
             {sourceName(s)}
           </a>
         ))}
-        <button type="button" onClick={onCopy} className="font-medium text-accent hover:underline">
-          {copied ? "Link copied" : "Copy link"}
-        </button>
       </p>
     </div>
   );
