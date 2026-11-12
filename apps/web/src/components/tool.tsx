@@ -2,6 +2,7 @@
 
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import type { SavedControls } from "@/lib/useSavedState";
+import { PortalContainer } from "./portal";
 
 /**
  * The shared answer-first layout for every tool: a short header with a ⋯
@@ -402,9 +403,19 @@ export const EditSheet = forwardRef<
   HTMLDialogElement,
   { title: string; children: React.ReactNode; onDone?: () => void }
 >(function EditSheet({ title, children, onDone }, ref) {
+  // Pop-ups inside the sheet render into it, or the modal makes them unclickable.
+  const [node, setNode] = useState<HTMLDialogElement | null>(null);
+  const setRef = useCallback(
+    (el: HTMLDialogElement | null) => {
+      setNode(el);
+      if (typeof ref === "function") ref(el);
+      else if (ref) ref.current = el;
+    },
+    [ref],
+  );
   return (
     <dialog
-      ref={ref}
+      ref={setRef}
       aria-labelledby="edit-h"
       className="fixed inset-0 m-0 ml-auto h-dvh max-h-none w-full max-w-xl overflow-y-auto bg-bg p-0 text-text backdrop:bg-black/40 sm:rounded-l-2xl"
       onClose={onDone}
@@ -419,7 +430,9 @@ export const EditSheet = forwardRef<
           </button>
         </form>
       </div>
-      <div className="space-y-4 p-4 sm:p-5">{children}</div>
+      <PortalContainer.Provider value={node}>
+        <div className="space-y-4 p-4 sm:p-5">{children}</div>
+      </PortalContainer.Provider>
     </dialog>
   );
 });

@@ -29,6 +29,7 @@ import {
   SliderThumb,
   SliderTrack,
 } from "react-aria-components";
+import { usePortalContainer } from "./portal";
 
 /** The M3 filled text field look, shared with the plain inputs in fields.tsx. */
 export const filledField =
@@ -145,6 +146,7 @@ export function Select<T extends string>({
   ariaLabel?: string;
   triggerClassName?: string;
 }) {
+  const portal = usePortalContainer();
   return (
     <AriaSelect
       aria-label={ariaLabel}
@@ -161,7 +163,10 @@ export function Select<T extends string>({
           <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="2" />
         </svg>
       </Button>
-      <Popover className="min-w-(--trigger-width) rounded-lg bg-surface-container py-2 text-text shadow-lg ring-1 ring-border">
+      <Popover
+        UNSTABLE_portalContainer={portal}
+        className="min-w-(--trigger-width) rounded-lg bg-surface-container py-2 text-text shadow-lg ring-1 ring-border"
+      >
         <ListBox className="max-h-80 overflow-auto outline-none">
           {options.map((o) => (
             <ListBoxItem
@@ -197,6 +202,7 @@ export function DatePicker({
   onChange: (v: string) => void;
   label: string;
 }) {
+  const portal = usePortalContainer();
   return (
     <I18nProvider locale="en-AU">
       <AriaDatePicker
@@ -235,7 +241,10 @@ export function DatePicker({
             </svg>
           </Button>
         </Group>
-        <Popover className="rounded-xl bg-surface-container p-4 text-text shadow-lg ring-1 ring-border">
+        <Popover
+          UNSTABLE_portalContainer={portal}
+          className="rounded-xl bg-surface-container p-4 text-text shadow-lg ring-1 ring-border"
+        >
           <Dialog className="outline-none">
             <Calendar>
               <header className="mb-2 flex items-center justify-between gap-2">
