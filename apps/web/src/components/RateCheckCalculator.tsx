@@ -14,9 +14,21 @@ import {
 import { useMemo, useState } from "react";
 import { MoneyField, NumberField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
+import { NextSteps } from "@/components/NextSteps";
 import { RateHistoryChart } from "@/components/RateHistoryChart";
-import { ResultsBar } from "@/components/ResultsBar";
-import { SavedBar } from "@/components/SavedBar";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  EditSheet,
+  SummaryRow,
+  SummaryRows,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+  useEditSheet,
+} from "@/components/tool";
 import { money, monthYear } from "@/lib/format";
 import {
   decodeRateCheck,
@@ -75,97 +87,96 @@ export function RateCheckCalculator() {
   }, [input, errors]);
 
   const set = (patch: Partial<RateCheckForm>) => setForm((f) => ({ ...f, ...patch }));
+  const { ref: sheet, open: edit } = useEditSheet();
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Am I paying too much?</h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          Compare your home loan rate with what Australians are actually paying, from the Reserve
-          Bank&apos;s monthly averages, and see what the gap costs you. Your numbers never leave
-          your device.
-        </p>
-        <SavedBar saved={saved} />
-      </header>
+    <ToolPage>
+      <ToolHeader
+        title="Am I paying too much?"
+        intro="Your home loan rate against what Australians are actually paying, and what the gap costs you."
+        saved={saved}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-        <section className="space-y-4" aria-label="Your loan">
-          <div className={card}>
-            <h2 className="mb-3 font-semibold">Your loan</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField
-                className="col-span-2"
-                label="Your interest rate"
-                suffix="%"
-                min={0.01}
-                max={20}
-                step={0.01}
-                value={form.ratePct}
-                onChange={(v) => v !== undefined && set({ ratePct: v })}
-              />
-              <MoneyField
-                label="Loan balance"
-                value={form.balance}
-                onChange={(v) => v !== undefined && set({ balance: v })}
-              />
-              <NumberField
-                label="Years left"
-                suffix="yrs"
-                min={1}
-                max={40}
-                step={1}
-                value={form.termYears}
-                onChange={(v) => v !== undefined && set({ termYears: v })}
-              />
-            </div>
-            <Pills
-              legend="The home is"
-              options={PURPOSES}
-              value={form.purpose}
-              onChange={(purpose) => set({ purpose })}
+      <div className="space-y-8">
+        {!result ? (
+          <div className={`${card} text-warn`}>
+            {errors.length
+              ? `Check your numbers: ${errors.join("; ")}.`
+              : "Something in the inputs doesn't add up."}{" "}
+            <button type="button" onClick={() => edit("loan")} className="text-accent underline">
+              Edit your loan
+            </button>
+          </div>
+        ) : (
+          <Results r={result} form={form} edit={edit} />
+        )}
+        {!result && (
+          <ToolSection id="loan-h" title="Your loan">
+            <SummaryRows>
+              <SummaryRow title="Your loan" hint={loanHint(form)} onClick={() => edit("loan")} />
+            </SummaryRows>
+          </ToolSection>
+        )}
+      </div>
+
+      <EditSheet ref={sheet} title="Your loan">
+        <div id="loan" className="scroll-mt-20">
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              className="col-span-2"
+              label="Your interest rate"
+              suffix="%"
+              min={0.01}
+              max={20}
+              step={0.01}
+              value={form.ratePct}
+              onChange={(v) => v !== undefined && set({ ratePct: v })}
             />
-            <Pills
-              legend="Repayments"
-              options={REPAYMENTS}
-              value={form.repayment}
-              onChange={(repayment) => set({ repayment })}
+            <MoneyField
+              label="Loan balance"
+              value={form.balance}
+              onChange={(v) => v !== undefined && set({ balance: v })}
             />
-            <Pills
-              legend="Rate type"
-              options={RATE_TYPES}
-              value={form.rateType}
-              onChange={(rateType) => set({ rateType })}
+            <NumberField
+              label="Years left"
+              suffix="yrs"
+              min={1}
+              max={40}
+              step={1}
+              value={form.termYears}
+              onChange={(v) => v !== undefined && set({ termYears: v })}
             />
           </div>
-          <p className="text-sm text-muted">
+          <Pills
+            legend="The home is"
+            options={PURPOSES}
+            value={form.purpose}
+            onChange={(purpose) => set({ purpose })}
+          />
+          <Pills
+            legend="Repayments"
+            options={REPAYMENTS}
+            value={form.repayment}
+            onChange={(repayment) => set({ repayment })}
+          />
+          <Pills
+            legend="Rate type"
+            options={RATE_TYPES}
+            value={form.rateType}
+            onChange={(rateType) => set({ rateType })}
+          />
+          <p className="mt-4 text-sm text-muted">
             Not sure of your rate? It&apos;s on your latest statement or in your banking app,
             usually under loan details.
           </p>
-        </section>
-
-        <section
-          id="results"
-          className="min-w-0 scroll-mt-4 space-y-4"
-          aria-label="Results"
-          aria-live="polite"
-        >
-          {!result ? (
-            <div className={`${card} text-warn`}>
-              {errors.length
-                ? `Check your numbers: ${errors.join("; ")}.`
-                : "Something in the inputs doesn't add up."}
-            </div>
-          ) : (
-            <Results r={result} form={form} />
-          )}
-          <GoodToKnow tool="rates" />
-        </section>
-      </div>
-
-      {result && <MobileSummary r={result} />}
-    </main>
+        </div>
+      </EditSheet>
+    </ToolPage>
   );
 }
+
+const loanHint = (form: RateCheckForm) =>
+  `${form.ratePct}% · ${money(Math.round(form.balance * 100))} · ${form.termYears} yrs`;
 
 function Pills<T extends string>({
   legend,
@@ -205,7 +216,15 @@ function describeLoan(form: RateCheckForm): string {
   return `${purpose}, ${rate}`;
 }
 
-function Results({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
+function Results({
+  r,
+  form,
+  edit,
+}: {
+  r: RateCheckResult;
+  form: RateCheckForm;
+  edit: (focusId?: string) => void;
+}) {
   const n = r.newLoans;
   const interestOnly = form.repayment === "interest-only";
   const fixed = form.rateType !== "variable" && !interestOnly;
@@ -221,111 +240,127 @@ function Results({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
 
   return (
     <>
-      <div className={card}>
-        <Headline r={r} />
-        <RateScale r={r} yours={form.ratePct / 100} />
-      </div>
+      <AnswerRow>
+        <AnswerCard label={VERDICT_LABEL[r.verdict]}>
+          <Headline r={r} />
+          <RateScale r={r} yours={form.ratePct / 100} />
+        </AnswerCard>
+        <HistoryCard r={r} form={form} />
+      </AnswerRow>
 
-      <div className={`grid gap-3 ${interestOnly ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
-        <Stat
-          label={n.monthlyRepaymentGap >= 0 ? "Extra each month" : "Less each month"}
-          value={money(Math.abs(n.monthlyRepaymentGap))}
-          tone={n.monthlyRepaymentGap}
-          note={interestOnly ? "in interest" : "in repayments"}
-        />
-        <Stat
-          label={
-            n.firstYearInterestGap >= 0 ? "Extra interest this year" : "Less interest this year"
-          }
-          value={money(Math.abs(n.firstYearInterestGap))}
-          tone={n.firstYearInterestGap}
-          note="next 12 months"
-        />
-        {n.lifetimeInterestGap !== null && (
-          <Stat
-            label="Over the rest of the loan"
-            value={money(Math.abs(n.lifetimeInterestGap))}
-            tone={n.lifetimeInterestGap}
-            note={`${n.lifetimeInterestGap >= 0 ? "more" : "less"} interest over ${form.termYears} years`}
-          />
-        )}
-      </div>
-
-      <div className={card}>
-        <h3 className="font-semibold">How you compare</h3>
-        <p className="mb-3 text-sm text-muted">
-          {describeLoan(form)}. {month}.
-        </p>
-        <div className="overflow-x-auto">
-          <table className="num w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-muted">
-                <th className="py-2 pr-2 font-medium">Compared with</th>
-                <th className="px-2 py-2 text-right font-medium">Average rate</th>
-                <th className="px-2 py-2 text-right font-medium">Your gap</th>
-                <th className="py-2 pl-2 text-right font-medium">Cost a year</th>
-              </tr>
-            </thead>
-            <tbody>
-              <CompareRow
-                label="New loans this month"
-                note="what a lender offers to win you"
-                g={r.newLoans}
-              />
-              <CompareRow
-                label="All existing loans"
-                note="what borrowers pay on average today"
-                g={r.existingLoans}
-              />
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <HistoryCard r={r} form={form} />
+      <ToolSection id="loan-h" title="Your loan">
+        <SummaryRows>
+          <SummaryRow title="Your loan" hint={loanHint(form)} onClick={() => edit("loan")} />
+        </SummaryRows>
+      </ToolSection>
 
       {r.verdict !== "below" && (
-        <div className={`${card} flex flex-wrap items-center justify-between gap-4`}>
-          <div className="min-w-0 flex-[1_1_320px]">
-            <h3 className="font-semibold">What to do next</h3>
-            <p className="mt-1 text-sm text-muted">
+        <ToolSection id="next-h" title="What to do next">
+          <div className={`${card} flex flex-wrap items-center justify-between gap-4`}>
+            <p className="min-w-0 flex-[1_1_320px] text-sm text-muted">
               {fixed
                 ? `Fixed rates usually can't change until the fixed term ends, and leaving early can mean break costs. When it ends, ask for at least ${pct(n.averageRate)}.`
                 : `Call your lender and ask them to match ${pct(n.averageRate)}. If they won't, check whether switching pays for itself after fees.`}
             </p>
+            <a
+              href={refinanceHref}
+              className="inline-flex h-11 items-center rounded-full bg-accent px-6 font-medium text-on-accent hover:opacity-90"
+            >
+              Try the refinance check →
+            </a>
+            {!fixed && (
+              <CallScript
+                yours={pct(form.ratePct / 100)}
+                target={pct(n.averageRate)}
+                balance={money(form.balance * 100)}
+              />
+            )}
           </div>
-          <a
-            href={refinanceHref}
-            className="inline-flex h-11 items-center rounded-full bg-accent px-6 font-medium text-on-accent hover:opacity-90"
-          >
-            Try the refinance check →
-          </a>
-          {!fixed && (
-            <CallScript
-              yours={pct(form.ratePct / 100)}
-              target={pct(n.averageRate)}
-              balance={money(form.balance * 100)}
-            />
-          )}
-        </div>
+        </ToolSection>
       )}
 
-      <details className={`${card} text-sm`}>
-        <summary className="cursor-pointer font-semibold">How this is calculated</summary>
-        <p className="mt-3 text-muted">
-          Averages are from the{" "}
-          <a href={r.url} className="underline hover:text-text">
-            Reserve Bank of Australia, Table F6 Housing Lending Rates
-          </a>
-          , {month}. They cover all lenders, loan sizes and deposits, and the RBA splits loans one
-          way at a time, so the variable and fixed averages mix principal-and-interest with
-          interest-only loans. A loan with a small deposit may sit a little above them. Repayments
-          and interest are estimates on today&apos;s balance with no rate changes.
-        </p>
-      </details>
+      <Detail>
+        <Disclosure title="What the gap costs" hint="each month, this year and over the loan">
+          <div className={`grid gap-3 ${interestOnly ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+            <Stat
+              label={n.monthlyRepaymentGap >= 0 ? "Extra each month" : "Less each month"}
+              value={money(Math.abs(n.monthlyRepaymentGap))}
+              tone={n.monthlyRepaymentGap}
+              note={interestOnly ? "in interest" : "in repayments"}
+            />
+            <Stat
+              label={
+                n.firstYearInterestGap >= 0 ? "Extra interest this year" : "Less interest this year"
+              }
+              value={money(Math.abs(n.firstYearInterestGap))}
+              tone={n.firstYearInterestGap}
+              note="next 12 months"
+            />
+            {n.lifetimeInterestGap !== null && (
+              <Stat
+                label="Over the rest of the loan"
+                value={money(Math.abs(n.lifetimeInterestGap))}
+                tone={n.lifetimeInterestGap}
+                note={`${n.lifetimeInterestGap >= 0 ? "more" : "less"} interest over ${form.termYears} years`}
+              />
+            )}
+          </div>
+        </Disclosure>
+        <Disclosure title="How you compare" hint="new loans and all existing loans">
+          <p className="mb-3 text-sm text-muted">
+            {describeLoan(form)}. {month}.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="num w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted">
+                  <th className="py-2 pr-2 font-medium">Compared with</th>
+                  <th className="px-2 py-2 text-right font-medium">Average rate</th>
+                  <th className="px-2 py-2 text-right font-medium">Your gap</th>
+                  <th className="py-2 pl-2 text-right font-medium">Cost a year</th>
+                </tr>
+              </thead>
+              <tbody>
+                <CompareRow
+                  label="New loans this month"
+                  note="what a lender offers to win you"
+                  g={r.newLoans}
+                />
+                <CompareRow
+                  label="All existing loans"
+                  note="what borrowers pay on average today"
+                  g={r.existingLoans}
+                />
+              </tbody>
+            </table>
+          </div>
+        </Disclosure>
+        <Disclosure title="Good to know" hint="tips and things to check">
+          <GoodToKnow tool="rates" bare />
+        </Disclosure>
+        <Disclosure title="How this is calculated" hint="where the averages come from">
+          <p className="text-sm text-muted">
+            Averages are from the{" "}
+            <a href={r.url} className="underline hover:text-text">
+              Reserve Bank of Australia, Table F6 Housing Lending Rates
+            </a>
+            , {month}. They cover all lenders, loan sizes and deposits, and the RBA splits loans one
+            way at a time, so the variable and fixed averages mix principal-and-interest with
+            interest-only loans. A loan with a small deposit may sit a little above them. Repayments
+            and interest are estimates on today&apos;s balance with no rate changes.
+          </p>
+        </Disclosure>
+      </Detail>
+      <NextSteps tool="rates" className="pt-2" />
     </>
   );
 }
+
+const VERDICT_LABEL = {
+  above: "Above average",
+  below: "Below average",
+  about: "About average",
+} as Record<string, string>;
 
 const RANGES = [
   { years: 1, label: "1 year" },
@@ -355,9 +390,9 @@ function HistoryCard({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
     points.length - 1 >= years * 12 ? `${years === 1 ? "year" : `${years} years`}` : span;
 
   return (
-    <div className={card}>
+    <figure className={`${card} min-w-0 rounded-3xl`}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-semibold">Your rate against the averages</h3>
+        <figcaption className="font-semibold">Your rate against the averages</figcaption>
         <fieldset className="flex overflow-hidden rounded-full border border-outline">
           <legend className="sr-only">Time range</legend>
           {RANGES.filter((x) => full.length > x.years * 12 || x.years === 1).map((x) => (
@@ -391,51 +426,43 @@ function HistoryCard({ r, form }: { r: RateCheckResult; form: RateCheckForm }) {
       <p className="mt-3 text-xs text-muted">
         {describeLoan(form)} averages, monthly, from the RBA.
       </p>
-    </div>
+    </figure>
   );
 }
 
 function Headline({ r }: { r: RateCheckResult }) {
   const n = r.newLoans;
+  const big = "num -mt-1 text-4xl leading-none font-bold tracking-tight sm:text-5xl";
   if (r.verdict === "above")
     return (
       <>
-        <p className="text-sm font-semibold tracking-wide text-warn uppercase">Above average</p>
-        <h2 className="mt-1.5 text-xl font-semibold sm:text-2xl">
-          You&apos;re paying <span className="num text-warn">{pct(n.gap)} more</span> than the
-          average new loan like yours.
-        </h2>
-        <p className="mt-2 text-muted">
-          At the average new rate of {pct(n.averageRate)}, you&apos;d pay about{" "}
-          <strong className="num text-text">{money(n.monthlyRepaymentGap)} a month</strong> less.
-          Lenders often give existing customers a lower rate if they ask.
+        <p className={`${big} text-warn`}>{pct(n.gap)} more</p>
+        <p className="text-lg">
+          You&apos;re paying more than the average new loan like yours. At the average new rate of{" "}
+          {pct(n.averageRate)}, you&apos;d pay about{" "}
+          <strong className="num">{money(n.monthlyRepaymentGap)} a month</strong> less. Lenders
+          often give existing customers a lower rate if they ask.
         </p>
       </>
     );
   if (r.verdict === "below")
     return (
       <>
-        <p className="text-sm font-semibold tracking-wide text-good uppercase">Below average</p>
-        <h2 className="mt-1.5 text-xl font-semibold sm:text-2xl">
-          Nice. You&apos;re paying <span className="num text-good">{pct(-n.gap)} less</span> than
-          the average new loan.
-        </h2>
-        <p className="mt-2 text-muted">
-          That&apos;s worth about{" "}
-          <strong className="num text-text">{money(-n.firstYearInterestGap)} a year</strong> to you.
-          Check again when rates move.
+        <p className={`${big} text-good`}>{pct(-n.gap)} less</p>
+        <p className="text-lg">
+          Nice. You&apos;re paying less than the average new loan. That&apos;s worth about{" "}
+          <strong className="num">{money(-n.firstYearInterestGap)} a year</strong> to you. Check
+          again when rates move.
         </p>
       </>
     );
   return (
     <>
-      <p className="text-sm font-semibold tracking-wide text-muted uppercase">About average</p>
-      <h2 className="mt-1.5 text-xl font-semibold sm:text-2xl">
-        Your rate is within 0.10% of the average new loan ({pct(n.averageRate)}).
-      </h2>
-      <p className="mt-2 text-muted">
-        You&apos;re not overpaying much, but plenty of lenders beat the average. A quick call to
-        your lender may still get you a little off.
+      <p className={big}>Within 0.10%</p>
+      <p className="text-lg">
+        Your rate is close to the average new loan ({pct(n.averageRate)}). You&apos;re not
+        overpaying much, but plenty of lenders beat the average. A quick call to your lender may
+        still get you a little off.
       </p>
     </>
   );
@@ -549,24 +576,6 @@ function Stat({
       </div>
       {note && <div className="text-xs text-muted">{note}</div>}
     </div>
-  );
-}
-
-function MobileSummary({ r }: { r: RateCheckResult }) {
-  const gap = r.newLoans.gap;
-  return (
-    <ResultsBar>
-      {r.verdict === "about" ? (
-        <strong>About average</strong>
-      ) : (
-        <>
-          <strong className={gap > 0 ? "text-warn" : "text-good"}>
-            {pct(Math.abs(gap))} {gap > 0 ? "above" : "below"}
-          </strong>{" "}
-          average
-        </>
-      )}
-    </ResultsBar>
   );
 }
 

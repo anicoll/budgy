@@ -43,11 +43,13 @@ test(`pay: ${PAY_100K_2025_26.name}`, async ({ page }) => {
 test(`mortgage: ${LOAN_600K_6PC_30Y.name}`, async ({ page }) => {
   const { input, expected } = LOAN_600K_6PC_30Y;
   await page.goto("/mortgage/");
+  await page.getByRole("button", { name: /Your loan today/ }).click();
   await typeInto(page, "Loan balance", String(input.amount));
   await page
     .getByRole("spinbutton", { name: "Interest rate", exact: true })
     .fill(String(input.rate * 100));
   await page.getByRole("spinbutton", { name: "Years left", exact: true }).fill(String(input.years));
+  await page.getByRole("button", { name: "Done" }).click();
 
   await expect(shown(page, dollars(expected.monthly, true))).toBeVisible();
 });

@@ -16,9 +16,21 @@ import { useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
-import { ResultsBar } from "@/components/ResultsBar";
-import { SavedBar } from "@/components/SavedBar";
+import { NextSteps } from "@/components/NextSteps";
 import { SplitBuyOut } from "@/components/SplitBuyOut";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  EditSheet,
+  SummaryRow,
+  SummaryRows,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+  useEditSheet,
+} from "@/components/tool";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import { SPLIT_PEOPLE } from "@/lib/household";
 import { objectName, verb } from "@/lib/names";
@@ -65,7 +77,8 @@ const SPLIT_SAVED: SavedConfig<SplitState> = {
 export function SplitCalculator() {
   const saved = useSavedState(SPLIT_SAVED);
   const { state, setState } = saved;
-  const [copied, setCopied] = useState(false);
+  const { ref: sheet, open: edit } = useEditSheet();
+  const [tab, setTab] = useState<"share" | "buyout">("share");
 
   const input = useMemo(() => toCoBorrowInput(state), [state]);
   const errors = useMemo(() => validateCoBorrow(input), [input]);
@@ -102,36 +115,137 @@ export function SplitCalculator() {
   const remove = (id: string) =>
     setState((s) => ({ ...s, borrowers: removeParty(s.borrowers, id) }));
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked: the address bar still has the link */
-    }
-  };
-
   const { loan } = state;
   const shareTotal = state.borrowers.reduce((s, b) => s + b.sharePct, 0);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Co-borrower split</h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          Sharing a home loan with a partner, friend or family? Split it by share, see what each of
-          you pays, what happens when one of you pays extra, and who owns how much. Your numbers
-          never leave your device.
-        </p>
-        <SavedBar saved={saved} />
-      </header>
+    <ToolPage>
+      <ToolHeader
+        title="Co-borrower split"
+        intro="Sharing a home loan: what each of you pays, who owns how much, and what a buy-out looks like."
+        saved={saved}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
-        {/* ── Inputs ─────────────────────────────────────────────── */}
-        <section className="space-y-4" aria-label="The loan and borrowers">
-          <div className={card}>
-            <h2 className="mb-3 font-semibold">The loan today</h2>
+      <div
+        role="tablist"
+        aria-label="What to work out"
+        className="mb-6 inline-flex max-w-full overflow-hidden rounded-full border border-outline"
+      >
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={`split-tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls="split-panel"
+            tabIndex={tab === t.id ? 0 : -1}
+            onClick={() => setTab(t.id)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                const next = tab === "share" ? "buyout" : "share";
+                setTab(next);
+                requestAnimationFrame(() => document.getElementById(`split-tab-${next}`)?.focus());
+              }
+            }}
+            className={`min-h-11 px-4 text-sm font-medium sm:px-5 ${
+              tab === t.id
+                ? "bg-primary-container text-on-primary-container"
+                : "hover:bg-surface-container"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div
+        role="tabpanel"
+        id="split-panel"
+        aria-labelledby={`split-tab-${tab}`}
+        className="space-y-8"
+      >
+        {!result ? (
+          <div className={`${card} text-warn`}>
+            {errors.length
+              ? `Check the inputs: ${errors.join("; ")}.`
+              : "Something in the inputs doesn't add up."}{" "}
+            <button type="button" onClick={() => edit("loan")} className="text-accent underline">
+              Edit the loan
+            </button>
+          </div>
+        ) : tab === "buyout" ? (
+          <>
+            <SplitBuyOut state={state} setState={setState} result={result} />
+            <NextSteps tool="split" className="pt-2" />
+          </>
+        ) : (
+          <>
+            <Results result={result} />
+
+            <ToolSection
+              id="loan-h"
+              title="The loan and borrowers"
+              action={
+                state.borrowers.length < MAX_PARTIES && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      add();
+                      edit("add-borrower");
+                    }}
+                    className="text-sm font-semibold text-accent hover:underline"
+                  >
+                    + Add a borrower
+                  </button>
+                )
+              }
+            >
+              <SummaryRows>
+                <SummaryRow
+                  title="The loan"
+                  hint={`${money(Math.round(loan.balance * 100))} · ${loan.ratePct}% · ${loan.termYears} yrs`}
+                  onClick={() => edit("loan")}
+                />
+                {state.borrowers.map((b, i) => (
+                  <SummaryRow
+                    key={b.id}
+                    title={b.name || "Borrower"}
+                    color={COLORS[i]}
+                    hint={`${b.sharePct}% share${b.extra ? ` · ${money(Math.round(b.extra * 100))} extra` : ""}`}
+                    value={money(result.parties[i]?.portion ?? 0)}
+                    onClick={() => edit(`borrower-${b.id}`)}
+                  />
+                ))}
+              </SummaryRows>
+            </ToolSection>
+
+            <Detail>
+              <Disclosure title="Side by side" hint="each borrower's repayments and interest">
+                <SideBySide parties={result.parties} frequency={loan.frequency} />
+              </Disclosure>
+              <Disclosure title="Who owns how much over time" hint="by what each of you has put in">
+                <Ownership result={result} hasValue={loan.propertyValue !== undefined} />
+              </Disclosure>
+              <Disclosure title="Year by year" hint="loan left and what each of you put in">
+                <OwnershipTable result={result} />
+              </Disclosure>
+              <Disclosure title="Good to know" hint="tips and things to check">
+                <GoodToKnow tool="split" bare />
+              </Disclosure>
+              <Disclosure title="How this is calculated" hint="a part of the loan each">
+                <Method />
+              </Disclosure>
+            </Detail>
+            <NextSteps tool="split" className="pt-2" />
+          </>
+        )}
+      </div>
+
+      {tab === "share" && (
+        <EditSheet ref={sheet} title="The loan and borrowers">
+          <div id="loan" className="scroll-mt-20">
+            <h3 className="mb-3 font-semibold">The loan today</h3>
             <div className="grid grid-cols-2 gap-3">
               <MoneyField
                 className="col-span-2"
@@ -194,19 +308,20 @@ export function SplitCalculator() {
           </div>
 
           {state.borrowers.map((b, i) => (
-            <BorrowerCard
-              key={b.id}
-              borrower={b}
-              color={COLORS[i]}
-              loanFrequency={loan.frequency}
-              startDate={loan.startDate}
-              onChange={(patch) => setBorrower(b.id, patch)}
-              onShare={(v) => changeShare(b.id, v)}
-              onRemove={state.borrowers.length > 2 ? () => remove(b.id) : undefined}
-            />
+            <div key={b.id} id={`borrower-${b.id}`} className="scroll-mt-20">
+              <BorrowerCard
+                borrower={b}
+                color={COLORS[i]}
+                loanFrequency={loan.frequency}
+                startDate={loan.startDate}
+                onChange={(patch) => setBorrower(b.id, patch)}
+                onShare={(v) => changeShare(b.id, v)}
+                onRemove={state.borrowers.length > 2 ? () => remove(b.id) : undefined}
+              />
+            </div>
           ))}
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div id="add-borrower" className="flex flex-wrap items-center gap-2 scroll-mt-20">
             {state.borrowers.length < MAX_PARTIES && (
               <button
                 type="button"
@@ -229,45 +344,16 @@ export function SplitCalculator() {
               Shares: {Math.round(shareTotal * 100) / 100}%
             </span>
           </div>
-        </section>
-
-        {/* ── Results ────────────────────────────────────────────── */}
-        <section
-          id="results"
-          className="min-w-0 scroll-mt-4 space-y-4"
-          aria-label="Results"
-          aria-live="polite"
-        >
-          {!result ? (
-            <div className={`${card} text-warn`}>
-              {errors.length
-                ? `Check the inputs: ${errors.join("; ")}.`
-                : "Something in the inputs doesn't add up."}
-            </div>
-          ) : (
-            <Results
-              result={result}
-              frequency={loan.frequency}
-              hasValue={loan.propertyValue !== undefined}
-              onCopy={copyLink}
-              copied={copied}
-            />
-          )}
-          {result && <SplitBuyOut state={state} setState={setState} result={result} />}
-          <GoodToKnow tool="split" />
-          <Method />
-        </section>
-      </div>
-
-      {result && (
-        <ResultsBar>
-          Together <strong>{moneyExact(result.monthlyRepayment)}</strong> a month · free{" "}
-          <strong>{monthYear(result.debtFreeDate)}</strong>
-        </ResultsBar>
+        </EditSheet>
       )}
-    </main>
+    </ToolPage>
   );
 }
+
+const TABS = [
+  { id: "share", label: "Share the loan" },
+  { id: "buyout", label: "Buy out a partner" },
+] as const;
 
 function BorrowerCard({
   borrower: b,
@@ -388,19 +474,7 @@ function BorrowerCard({
   );
 }
 
-function Results({
-  result,
-  frequency,
-  hasValue,
-  onCopy,
-  copied,
-}: {
-  result: CoBorrowResult;
-  frequency: Frequency;
-  hasValue: boolean;
-  onCopy: () => void;
-  copied: boolean;
-}) {
+function Results({ result }: { result: CoBorrowResult }) {
   const { parties } = result;
   const series: Series[] = parties.map((p, i) => ({
     name: p.name,
@@ -411,15 +485,17 @@ function Results({
   const savers = parties.filter((p) => p.interestSaved > 0);
 
   return (
-    <>
-      <div className={`${card} space-y-2 text-lg leading-relaxed`}>
-        <p>
-          Together you pay <strong className="num">{moneyExact(result.monthlyRepayment)}</strong> a
-          month
+    <AnswerRow>
+      <AnswerCard label="Together each month">
+        <p className="num -mt-1 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+          {moneyExact(result.monthlyRepayment)}
+        </p>
+        <p className="text-lg">
+          The loan is gone in <strong>{monthYear(result.debtFreeDate)}</strong>
           {result.monthlyRepayment !== result.monthlyMinimum && (
-            <> (the minimum is {moneyExact(result.monthlyMinimum)})</>
+            <> (the minimum is {moneyExact(result.monthlyMinimum)} a month)</>
           )}
-          , and the loan is gone in <strong>{monthYear(result.debtFreeDate)}</strong>.
+          .
         </p>
         {new Set(parties.map((p) => p.result.payoffDate)).size > 1 && (
           <p>
@@ -450,25 +526,12 @@ function Results({
             {w}
           </p>
         ))}
-      </div>
-
-      <div className={card}>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="font-semibold">What each of you owes</h2>
-          <button
-            type="button"
-            onClick={onCopy}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent"
-          >
-            {copied ? "Link copied" : "Copy link"}
-          </button>
-        </div>
+      </AnswerCard>
+      <figure className={`${card} min-w-0 rounded-3xl`}>
+        <figcaption className="mb-2 font-semibold">What each of you owes</figcaption>
         <BalanceChart series={series} label="Each borrower's share of the loan over time" />
-      </div>
-
-      <SideBySide parties={parties} frequency={frequency} />
-      <Ownership result={result} hasValue={hasValue} />
-    </>
+      </figure>
+    </AnswerRow>
   );
 }
 
@@ -504,8 +567,7 @@ function SideBySide({ parties, frequency }: { parties: CoBorrowerResult[]; frequ
     ["Interest split by share*", (p) => money(p.proRataInterest)],
   ];
   return (
-    <div className={`${card} overflow-x-auto`}>
-      <h2 className="mb-3 font-semibold">Side by side</h2>
+    <div className="overflow-x-auto">
       <table className={`num w-full text-sm ${parties.length > 2 ? "min-w-[420px]" : ""}`}>
         <thead>
           <tr className="text-left text-muted">
@@ -547,9 +609,8 @@ function Ownership({ result, hasValue }: { result: CoBorrowResult; hasValue: boo
   const label = (p: OwnershipPoint) =>
     p.year === 0 ? "Today" : p.year === last ? "Loan paid off" : `In ${p.year} years`;
   return (
-    <div className={card}>
-      <h2 className="font-semibold">Who owns how much</h2>
-      <p className="mt-1 mb-3 text-sm text-muted">
+    <div>
+      <p className="mb-3 text-sm text-muted">
         Based on what each of you has put in: up-front money plus the loan you&apos;ve repaid.
         Interest isn&apos;t counted, because it buys nothing.
         {hasValue && " Equity uses today's property value."}
@@ -587,68 +648,68 @@ function Ownership({ result, hasValue }: { result: CoBorrowResult; hasValue: boo
           );
         })}
       </div>
-      <details className="mt-4">
-        <summary className="cursor-pointer text-sm font-medium">Year by year</summary>
-        <div className="mt-2 overflow-x-auto">
-          <table className="num w-full min-w-[420px] text-sm">
-            <thead>
-              <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
-                <th className="text-left">Year</th>
-                <th>Loan left</th>
-                {parties.map((p) => (
-                  <th key={p.id}>{p.name} put in</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-1.5 [&_td]:pr-3 [&_td]:text-right">
-              {ownership.map((p) => (
-                <tr key={p.year}>
-                  <td className="!text-left">
-                    {p.year} <span className="text-muted">({p.date.slice(0, 7)})</span>
-                  </td>
-                  <td>{money(p.balance)}</td>
-                  {p.contributed.map((c, i) => (
-                    <td key={parties[i].id}>
-                      {money(c)} <span className="text-muted">({pct(p.shares[i])})</span>
-                    </td>
-                  ))}
-                </tr>
+    </div>
+  );
+}
+
+function OwnershipTable({ result }: { result: CoBorrowResult }) {
+  const { ownership, parties } = result;
+  return (
+    <div className="overflow-x-auto">
+      <table className="num w-full min-w-[420px] text-sm">
+        <thead>
+          <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
+            <th className="text-left">Year</th>
+            <th>Loan left</th>
+            {parties.map((p) => (
+              <th key={p.id}>{p.name} put in</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-1.5 [&_td]:pr-3 [&_td]:text-right">
+          {ownership.map((p) => (
+            <tr key={p.year}>
+              <td className="!text-left">
+                {p.year} <span className="text-muted">({p.date.slice(0, 7)})</span>
+              </td>
+              <td>{money(p.balance)}</td>
+              {p.contributed.map((c, i) => (
+                <td key={parties[i].id}>
+                  {money(c)} <span className="text-muted">({pct(p.shares[i])})</span>
+                </td>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 function Method() {
   return (
-    <details className={`${card} text-sm`}>
-      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
-      <div className="mt-3 space-y-2 text-muted">
-        <p>
-          Your bank sees one loan, and each of you is usually liable for all of it. This tool tracks
-          what&apos;s fair between you by giving each person their own part of the balance, based on
-          their share.
-        </p>
-        <p>
-          Each part is worked out the way the mortgage what-if does it: interest daily (rate ÷ 365)
-          on that part less that person&apos;s own offset, charged monthly, with repayments on real
-          dates. Each person&apos;s minimum is the standard repayment on their part over the years
-          left, so together the minimums cover the loan. Extras, offset savings and lump sums only
-          shrink the part of the person who paid them.
-        </p>
-        <p>
-          Ownership here is by contribution: money put in up front plus the loan each of you has
-          repaid. It&apos;s one common way to think about it, not the only one. Many co-owners
-          record their shares in a written agreement, and a lawyer can help with that.
-        </p>
-        <p>
-          Your bank&apos;s figures may differ a little because of rounding, fees and the exact day
-          it charges interest. This is general information, not financial or legal advice.
-        </p>
-      </div>
-    </details>
+    <div className="space-y-2 text-sm text-muted">
+      <p>
+        Your bank sees one loan, and each of you is usually liable for all of it. This tool tracks
+        what&apos;s fair between you by giving each person their own part of the balance, based on
+        their share.
+      </p>
+      <p>
+        Each part is worked out the way the mortgage what-if does it: interest daily (rate ÷ 365) on
+        that part less that person&apos;s own offset, charged monthly, with repayments on real
+        dates. Each person&apos;s minimum is the standard repayment on their part over the years
+        left, so together the minimums cover the loan. Extras, offset savings and lump sums only
+        shrink the part of the person who paid them.
+      </p>
+      <p>
+        Ownership here is by contribution: money put in up front plus the loan each of you has
+        repaid. It&apos;s one common way to think about it, not the only one. Many co-owners record
+        their shares in a written agreement, and a lawyer can help with that.
+      </p>
+      <p>
+        Your bank&apos;s figures may differ a little because of rounding, fees and the exact day it
+        charges interest. This is general information, not financial or legal advice.
+      </p>
+    </div>
   );
 }

@@ -12,12 +12,27 @@ import {
   toIso,
   validateLoan,
 } from "@budgy/engine";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { BalanceChart, type Series } from "@/components/BalanceChart";
 import { DateField, MoneyField, NumberField, SelectField } from "@/components/fields";
 import { GoodToKnow } from "@/components/GoodToKnow";
-import { ResultsBar } from "@/components/ResultsBar";
-import { SavedBar } from "@/components/SavedBar";
+import { NextSteps } from "@/components/NextSteps";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  EditSheet,
+  IdeaCard,
+  Ideas,
+  SummaryRow,
+  SummaryRows,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+  useEditSheet,
+  useIdea,
+} from "@/components/tool";
 import { duration, money, moneyExact, monthYear, perPeriod } from "@/lib/format";
 import { OWN_LINK_PARAM, withLoanFields } from "@/lib/saved";
 import { encodeSplitState, splitFromBaseLoan } from "@/lib/splitState";
@@ -64,6 +79,8 @@ function presets(start: string): { label: string; scenario: Omit<Scenario, "name
 }
 
 const card = "rounded-xl border border-border bg-surface p-4 sm:p-5";
+const chip =
+  "min-h-10 rounded-full border border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent";
 
 const MORTGAGE_SAVED: SavedConfig<CalculatorState> = {
   tool: "mortgage",
@@ -79,7 +96,9 @@ const MORTGAGE_SAVED: SavedConfig<CalculatorState> = {
 export function MortgageCalculator() {
   const saved = useSavedState(MORTGAGE_SAVED);
   const { state, setState } = saved;
-  const [copied, setCopied] = useState(false);
+  const { ref: sheet, open: edit } = useEditSheet();
+  const { idea, toggle } = useIdea<"offset" | "compare">();
+  const [spare, setSpare] = useState<number | undefined>(20_000);
 
   const { base } = state;
   const input = useMemo(() => toLoanInput(base), [base]);
@@ -96,6 +115,7 @@ export function MortgageCalculator() {
       return null;
     }
   }, [input, errors, state.scenarios, base.termYears]);
+  const offsetRuns = useOffsetRuns(input, results ? spare : undefined);
 
   const setBase = (patch: Partial<CalculatorState["base"]>) =>
     setState((s) => ({ ...s, base: { ...s.base, ...patch } }));
@@ -106,6 +126,7 @@ export function MortgageCalculator() {
     }));
   const addScenario = (preset: Omit<Scenario, "name">) =>
     setState((s) => {
+      if (s.scenarios.length >= MAX_SCENARIOS) return s;
       const name = `Scenario ${LETTERS[s.scenarios.length]}`;
       const sc: Scenario = { name, ...preset };
       if (sc.rateChange && Number.isNaN(sc.rateChange.ratePct)) {
@@ -126,188 +147,486 @@ export function MortgageCalculator() {
         ),
     }));
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked: the address bar still has the link */
-    }
-  };
+  const names = state.scenarios.map((s) => s.name);
+  const cols: Col[] = results
+    ? [{ name: "Today", result: results.base, run: undefined } as Col].concat(
+        results.scenarios.map((r, i) => ({ name: names[i], result: r.result, run: r })),
+      )
+    : [];
+  const atMax = state.scenarios.length >= MAX_SCENARIOS;
+  const presetChips = (
+    <div className="flex flex-wrap gap-2">
+      {presets(base.startDate).map((p) => (
+        <button
+          key={p.label}
+          type="button"
+          onClick={() => addScenario(p.scenario)}
+          className={chip}
+        >
+          {p.label}
+        </button>
+      ))}
+      <button type="button" onClick={() => addScenario({})} className={chip}>
+        Blank
+      </button>
+    </div>
+  );
+
+  const offsetSaved = offsetRuns
+    ? offsetRuns.base.totalInterest - offsetRuns.offset.totalInterest
+    : null;
+  const pair = results && results.scenarios.length >= 2 ? results.scenarios.slice(0, 2) : null;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Mortgage what-if</h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          Enter your loan, then try changes. Results update as soon as you leave a field, and your
-          numbers never leave your device.
-        </p>
-        <SavedBar saved={saved} />
-      </header>
+    <ToolPage>
+      <ToolHeader
+        title="Mortgage what-if"
+        intro="See how a change to your home loan moves your interest and your debt-free date."
+        saved={saved}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-        {/* ── Inputs ─────────────────────────────────────────────── */}
-        <section className="space-y-4" aria-label="Your loan and scenarios">
-          <div className={card}>
-            <h2 className="mb-3 font-semibold">Your loan today</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <MoneyField
-                className="col-span-2"
-                label="Loan balance"
-                hint="What you owe now, not the original loan."
-                value={base.balance}
-                onChange={(v) => v !== undefined && setBase({ balance: v })}
-              />
-              <NumberField
-                label="Interest rate"
-                suffix="%"
-                min={0}
-                max={20}
-                step={0.01}
-                value={base.ratePct}
-                onChange={(v) => v !== undefined && setBase({ ratePct: v })}
-              />
-              <NumberField
-                label="Years left"
-                suffix="yrs"
-                min={1}
-                max={40}
-                step={1}
-                value={base.termYears}
-                onChange={(v) => v !== undefined && setBase({ termYears: v })}
-              />
-              <SelectField
-                label="Repayments"
-                value={base.frequency}
-                options={FREQUENCIES}
-                onChange={(frequency) => setBase({ frequency })}
-              />
-              <MoneyField
-                label="Offset balance"
-                value={base.offset}
-                onChange={(v) => setBase({ offset: v ?? 0 })}
-              />
-              {base.frequency === "fortnightly" && (
-                <SelectField
-                  className="col-span-2"
-                  label="How your bank sets fortnightly repayments"
-                  hint="Most banks halve the monthly amount, which adds about one extra monthly repayment a year."
-                  value={base.fortnightlyMethod}
-                  options={[
-                    { value: "half-monthly", label: "Half the monthly repayment (most common)" },
-                    { value: "true", label: "True fortnightly amount" },
-                  ]}
-                  onChange={(fortnightlyMethod) => setBase({ fortnightlyMethod })}
-                />
-              )}
-              <DateField
-                className="col-span-2"
-                label="Starting from"
-                hint="Usually today. Your next repayment is one period after this."
-                value={base.startDate}
-                onChange={(startDate) => setBase({ startDate })}
-              />
-            </div>
-            <a
-              href={`../split/?${encodeSplitState(splitFromBaseLoan(base))}&${OWN_LINK_PARAM}=1`}
-              className="mt-3 inline-block text-sm text-accent hover:underline"
-            >
-              Sharing this loan? Split it between borrowers →
-            </a>
+      <div className="space-y-8">
+        <ToolSection id="loan-h" title="Your loan">
+          <SummaryRows>
+            <SummaryRow
+              title="Your loan today"
+              hint={`${money(Math.round(base.balance * 100))} · ${base.ratePct}% · ${base.termYears} yrs${
+                results
+                  ? ` · ${moneyExact(results.base.repayment)} ${perPeriod[base.frequency]}`
+                  : ""
+              }`}
+              onClick={() => edit("loan")}
+            />
+          </SummaryRows>
+        </ToolSection>
+
+        {!results ? (
+          <div className={`${card} text-warn`}>
+            {errors.length
+              ? `Check your loan: ${errors.join("; ")}.`
+              : "Something in the inputs doesn't add up."}{" "}
+            <button type="button" onClick={() => edit("loan")} className="text-accent underline">
+              Edit your loan
+            </button>
           </div>
+        ) : (
+          <>
+            <ToolSection id="try-h" title="Try a change">
+              {atMax ? (
+                <p className="text-sm text-muted">
+                  You&apos;re comparing {MAX_SCENARIOS} changes. Remove one below to try another.
+                </p>
+              ) : (
+                presetChips
+              )}
+              <AnswerRow>
+                <AnswerCard label={answerLabel(results.scenarios, names)}>
+                  <Answer base={results.base} runs={results.scenarios} names={names} />
+                </AnswerCard>
+                <figure className={`${card} min-w-0 rounded-3xl`}>
+                  <figcaption className="mb-2 font-semibold">Loan balance</figcaption>
+                  <BalanceChart series={chartSeries(cols)} />
+                </figure>
+              </AnswerRow>
+            </ToolSection>
 
-          {state.scenarios.map((sc, i) => (
-            <ScenarioCard
-              key={i}
-              index={i}
-              scenario={sc}
-              baseRatePct={base.ratePct}
-              baseOffset={base.offset}
-              termYears={base.termYears}
-              startDate={base.startDate}
-              onChange={(patch) => setScenario(i, patch)}
-              onRemove={() => removeScenario(i)}
-            />
-          ))}
+            {state.scenarios.length > 0 && (
+              <ToolSection id="changes-h" title="Your changes">
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {state.scenarios.map((sc, i) => (
+                    <ScenarioCard
+                      key={i}
+                      index={i}
+                      scenario={sc}
+                      baseRatePct={base.ratePct}
+                      baseOffset={base.offset}
+                      termYears={base.termYears}
+                      startDate={base.startDate}
+                      onChange={(patch) => setScenario(i, patch)}
+                      onRemove={() => removeScenario(i)}
+                    />
+                  ))}
+                </div>
+              </ToolSection>
+            )}
 
-          {state.scenarios.length < MAX_SCENARIOS && (
-            <div className={`${card} border-dashed print:hidden`}>
-              <h2 className="mb-2 text-sm font-medium">Add a scenario</h2>
-              <div className="flex flex-wrap gap-2">
-                {presets(base.startDate).map((p) => (
-                  <button
-                    key={p.label}
-                    type="button"
-                    onClick={() => addScenario(p.scenario)}
-                    className="rounded-full border border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent"
+            <Ideas
+              cards={
+                <>
+                  <IdeaCard
+                    title="Offset or extra repayment?"
+                    open={idea === "offset"}
+                    onClick={() => toggle("offset")}
                   >
-                    {p.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => addScenario({})}
-                  className="rounded-full border border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent"
-                >
-                  Blank
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
+                    {offsetSaved !== null ? (
+                      <>
+                        {money(Math.round((spare ?? 0) * 100))} saves about{" "}
+                        <strong className="num text-good">{money(offsetSaved)}</strong> in interest
+                        either way.
+                      </>
+                    ) : (
+                      "Keep spare money in your offset or pay it into the loan, and see what each saves."
+                    )}
+                  </IdeaCard>
+                  <IdeaCard
+                    title="Compare two changes"
+                    open={idea === "compare"}
+                    onClick={() => toggle("compare")}
+                  >
+                    {pair ? (
+                      <>
+                        <strong style={{ color: COLORS[0] }}>{names[0]}</strong> saves{" "}
+                        <strong className="num text-good">
+                          {money(pair[0].vsBase.interestSaved)}
+                        </strong>
+                        , <strong style={{ color: COLORS[1] }}>{names[1]}</strong>{" "}
+                        <strong className="num text-good">
+                          {money(pair[1].vsBase.interestSaved)}
+                        </strong>
+                        .
+                      </>
+                    ) : (
+                      "Add a second change and see both against today on the chart."
+                    )}
+                  </IdeaCard>
+                </>
+              }
+            >
+              {idea === "offset" && (
+                <OffsetVsRedraw amount={spare} onAmount={setSpare} runs={offsetRuns} />
+              )}
+              {idea === "compare" && (
+                <div className={`${card} space-y-3`}>
+                  <p className="text-sm text-muted">
+                    Each change is worked out against your loan today, so you can line them up on
+                    the chart and in &ldquo;Side by side&rdquo; below.
+                  </p>
+                  {atMax ? (
+                    <p className="text-sm">
+                      You&apos;re comparing {MAX_SCENARIOS} changes. Remove one to try another.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium">Add another change</p>
+                      {presetChips}
+                    </>
+                  )}
+                </div>
+              )}
+            </Ideas>
 
-        {/* ── Results ────────────────────────────────────────────── */}
-        <section
-          id="results"
-          className="min-w-0 scroll-mt-4 space-y-4"
-          aria-label="Results"
-          aria-live="polite"
-        >
-          {!results ? (
-            <div className={`${card} text-warn`}>
-              {errors.length
-                ? `Check your loan: ${errors.join("; ")}.`
-                : "Something in the inputs doesn't add up."}
-            </div>
-          ) : (
-            <Results
-              base={results.base}
-              runs={results.scenarios}
-              names={state.scenarios.map((s) => s.name)}
-              frequency={base.frequency}
-              onCopy={copyLink}
-              copied={copied}
-            />
-          )}
-          {results && <OffsetVsRedraw input={input} />}
-          <GoodToKnow tool="mortgage" />
-          <Method />
-        </section>
+            <Detail>
+              <Disclosure title="Side by side" hint="today and each change">
+                <SideBySide cols={cols} frequency={base.frequency} />
+              </Disclosure>
+              <Disclosure title="Year by year" hint="interest, principal and balance">
+                <YearByYear cols={cols} />
+              </Disclosure>
+              <Disclosure title="Good to know" hint="tips and things to check">
+                <GoodToKnow tool="mortgage" bare />
+              </Disclosure>
+              <Disclosure title="How this is calculated" hint="daily interest, offsets and extras">
+                <Method />
+              </Disclosure>
+            </Detail>
+            <NextSteps tool="mortgage" className="pt-2" />
+          </>
+        )}
       </div>
 
-      {results && <MobileSummary base={results.base} runs={results.scenarios} />}
-    </main>
+      <EditSheet ref={sheet} title="Your loan today">
+        <div id="loan" className="scroll-mt-20">
+          <div className="grid grid-cols-2 gap-3">
+            <MoneyField
+              className="col-span-2"
+              label="Loan balance"
+              hint="What you owe now, not the original loan."
+              value={base.balance}
+              onChange={(v) => v !== undefined && setBase({ balance: v })}
+            />
+            <NumberField
+              label="Interest rate"
+              suffix="%"
+              min={0}
+              max={20}
+              step={0.01}
+              value={base.ratePct}
+              onChange={(v) => v !== undefined && setBase({ ratePct: v })}
+            />
+            <NumberField
+              label="Years left"
+              suffix="yrs"
+              min={1}
+              max={40}
+              step={1}
+              value={base.termYears}
+              onChange={(v) => v !== undefined && setBase({ termYears: v })}
+            />
+            <SelectField
+              label="Repayments"
+              value={base.frequency}
+              options={FREQUENCIES}
+              onChange={(frequency) => setBase({ frequency })}
+            />
+            <MoneyField
+              label="Offset balance"
+              value={base.offset}
+              onChange={(v) => setBase({ offset: v ?? 0 })}
+            />
+            {base.frequency === "fortnightly" && (
+              <SelectField
+                className="col-span-2"
+                label="How your bank sets fortnightly repayments"
+                hint="Most banks halve the monthly amount, which adds about one extra monthly repayment a year."
+                value={base.fortnightlyMethod}
+                options={[
+                  { value: "half-monthly", label: "Half the monthly repayment (most common)" },
+                  { value: "true", label: "True fortnightly amount" },
+                ]}
+                onChange={(fortnightlyMethod) => setBase({ fortnightlyMethod })}
+              />
+            )}
+            <DateField
+              className="col-span-2"
+              label="Starting from"
+              hint="Usually today. Your next repayment is one period after this."
+              value={base.startDate}
+              onChange={(startDate) => setBase({ startDate })}
+            />
+          </div>
+          <a
+            href={`../split/?${encodeSplitState(splitFromBaseLoan(base))}&${OWN_LINK_PARAM}=1`}
+            className="mt-3 inline-block text-sm text-accent hover:underline"
+          >
+            Sharing this loan? Split it between borrowers →
+          </a>
+        </div>
+      </EditSheet>
+    </ToolPage>
   );
 }
 
-/** Phones show the inputs first, so keep the answer in view at the bottom. */
-function MobileSummary({ base, runs }: { base: SimulationResult; runs: ScenarioRun[] }) {
-  const best = runs.reduce<ScenarioRun | undefined>(
-    (b, r) => (!b || r.vsBase.interestSaved > b.vsBase.interestSaved ? r : b),
-    undefined,
-  );
+interface Col {
+  name: string;
+  result: SimulationResult;
+  run?: ScenarioRun;
+}
+
+function chartSeries(cols: Col[]): Series[] {
+  return cols.map((c, i) => ({
+    name: c.name,
+    color: i ? COLORS[i - 1] : "var(--series-base)",
+    points: c.result.balances,
+    payoffDate: c.result.payoffDate,
+  }));
+}
+
+/** The scenario that saves the most interest leads the answer. */
+function bestRun(runs: ScenarioRun[]) {
+  let best = -1;
+  runs.forEach((r, i) => {
+    if (best < 0 || r.vsBase.interestSaved > runs[best].vsBase.interestSaved) best = i;
+  });
+  return best;
+}
+
+function answerLabel(runs: ScenarioRun[], names: string[]) {
+  const i = bestRun(runs);
+  return i < 0 ? "Your loan today" : names[i];
+}
+
+function Answer({
+  base,
+  runs,
+  names,
+}: {
+  base: SimulationResult;
+  runs: ScenarioRun[];
+  names: string[];
+}) {
+  const bi = bestRun(runs);
+  const warnings = [...new Set([base, ...runs.map((r) => r.result)].flatMap((r) => r.warnings))];
+  const rest = runs.map((r, i) => ({ r, i })).filter(({ i }) => i !== bi);
+  const best = bi >= 0 ? runs[bi] : undefined;
   return (
-    <ResultsBar>
-      Debt-free <strong>{monthYear((best?.result ?? base).payoffDate)}</strong>
-      {best && best.vsBase.interestSaved > 0 && (
+    <>
+      {best ? (
         <>
-          {" "}
-          · save <strong className="text-good">{money(best.vsBase.interestSaved)}</strong>
+          <p className="text-sm font-semibold text-on-primary-container">
+            {best.vsBase.interestSaved >= 0 ? "Interest saved" : "Extra interest"}
+          </p>
+          <p
+            className={`num -mt-2 text-4xl leading-none font-bold tracking-tight sm:text-5xl ${
+              best.vsBase.interestSaved < 0 ? "text-warn" : ""
+            }`}
+          >
+            {money(Math.abs(best.vsBase.interestSaved))}
+          </p>
+          <p className="text-lg">
+            Debt-free in <strong>{monthYear(best.result.payoffDate)}</strong>
+            {best.vsBase.daysSaved > 15 && (
+              <>
+                , <strong className="text-good">{duration(best.vsBase.daysSaved)} sooner</strong>
+              </>
+            )}
+            {best.vsBase.daysSaved < -15 && <>, {duration(-best.vsBase.daysSaved)} later</>}
+            {Math.abs(best.vsBase.daysSaved) <= 15 && <>, about the same time</>}. Today it&apos;s{" "}
+            {monthYear(base.payoffDate)}, paying{" "}
+            <strong className="num">{money(base.totalInterest)}</strong> in interest.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-semibold text-on-primary-container">Debt-free</p>
+          <p className="num -mt-2 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+            {monthYear(base.payoffDate)}
+          </p>
+          <p className="text-lg">
+            Paying <strong className="num">{money(base.totalInterest)}</strong> in interest. Pick a
+            change above to see what it saves.
+          </p>
         </>
       )}
-    </ResultsBar>
+      {rest.length > 0 && (
+        <div className="space-y-1 border-t border-on-primary-container/20 pt-3">
+          {rest.map(({ r, i }) => (
+            <Headline key={i} name={names[i]} color={COLORS[i]} result={r.result} run={r} />
+          ))}
+        </div>
+      )}
+      {warnings.map((w) => (
+        <p key={w} className="text-sm text-warn">
+          {w}
+        </p>
+      ))}
+    </>
+  );
+}
+
+function SideBySide({ cols, frequency }: { cols: Col[]; frequency: Frequency }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="num w-full min-w-[480px] text-sm">
+        <thead>
+          <tr className="text-left text-muted">
+            <th className="py-1.5 pr-3 font-medium" />
+            {cols.map((c, i) => (
+              <th
+                key={i}
+                className="py-1.5 pr-3 text-right font-medium"
+                style={{ color: i ? COLORS[i - 1] : undefined }}
+              >
+                {c.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td]:pr-3 [&_td:not(:first-child)]:text-right">
+          <tr>
+            <td>Repayment {perPeriod[frequency]}*</td>
+            {cols.map((c, i) => (
+              <td key={i}>{moneyExact(c.result.repayment)}</td>
+            ))}
+          </tr>
+          {cols.some((c) => c.result.afterInterestOnly) && (
+            <tr>
+              <td>Repayment after interest only*</td>
+              {cols.map((c, i) => (
+                <td key={i}>
+                  {c.result.afterInterestOnly
+                    ? `${moneyExact(c.result.afterInterestOnly.repayment)} from ${monthYear(c.result.afterInterestOnly.date)}`
+                    : "–"}
+                </td>
+              ))}
+            </tr>
+          )}
+          <tr>
+            <td>Debt-free</td>
+            {cols.map((c, i) => (
+              <td key={i}>{monthYear(c.result.payoffDate)}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Total interest</td>
+            {cols.map((c, i) => (
+              <td key={i}>{money(c.result.totalInterest)}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Total repaid</td>
+            {cols.map((c, i) => (
+              <td key={i}>{money(c.result.totalPaid)}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Interest saved</td>
+            {cols.map((c, i) => (
+              <td key={i}>{c.run ? money(c.run.vsBase.interestSaved) : "–"}</td>
+            ))}
+          </tr>
+          <tr>
+            <td>Time saved</td>
+            {cols.map((c, i) => (
+              <td key={i}>
+                {c.run && c.run.vsBase.daysSaved > 15 ? duration(c.run.vsBase.daysSaved) : "–"}
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+      <p className="mt-2 text-xs text-muted">
+        *At the start, including any extra. A scenario with a different repayment frequency shows
+        its own per-repayment amount. After an interest-only period the repayment is worked out on
+        the balance at the time, over the years left, before any extra.
+      </p>
+    </div>
+  );
+}
+
+function YearByYear({ cols }: { cols: Col[] }) {
+  const [detail, setDetail] = useState(0);
+  const shown = (cols[detail] ?? cols[0]).result;
+  return (
+    <>
+      <div className="mb-2 flex flex-wrap gap-2">
+        {cols.map((c, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setDetail(i)}
+            className={`rounded-full border px-3 py-1 text-sm ${
+              detail === i ? "border-accent text-accent" : "border-border"
+            }`}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="num w-full min-w-[420px] text-sm">
+          <thead>
+            <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
+              <th className="text-left">Year</th>
+              <th>Interest</th>
+              <th>Principal</th>
+              <th>Balance at end</th>
+            </tr>
+          </thead>
+          <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-1.5 [&_td]:pr-3 [&_td]:text-right">
+            {shown.yearly.map((y) => (
+              <tr key={y.year}>
+                <td className="!text-left">
+                  {y.year} <span className="text-muted">({y.endDate.slice(0, 7)})</span>
+                </td>
+                <td>{money(y.interest)}</td>
+                <td>{money(y.principal)}</td>
+                <td>{money(y.closingBalance)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -331,6 +650,17 @@ function ScenarioCard({
   onRemove: () => void;
 }) {
   const nextYear = addYearsIso(startDate, 1);
+  const hasOther = Boolean(
+    sc.offset !== undefined ||
+      sc.offsetDeposit ||
+      sc.lumpSum ||
+      sc.rateChange ||
+      sc.interestOnlyYears ||
+      sc.frequency,
+  );
+  // Open from the start when a preset or shared link set something beyond the extra repayment.
+  const [more, setMore] = useState(hasOther);
+  const moreId = useId();
   return (
     <div className={card} style={{ borderLeft: `4px solid ${COLORS[index]}` }}>
       <div className="mb-3 flex items-center gap-2">
@@ -345,14 +675,23 @@ function ScenarioCard({
           Remove
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <MoneyField
-          label="Extra each repayment"
-          optional
-          placeholder="0"
-          value={sc.extra}
-          onChange={(extra) => onChange({ extra })}
-        />
+      <MoneyField
+        label="Extra each repayment"
+        optional
+        placeholder="0"
+        value={sc.extra}
+        onChange={(extra) => onChange({ extra })}
+      />
+      <button
+        type="button"
+        aria-expanded={more}
+        aria-controls={moreId}
+        onClick={() => setMore((m) => !m)}
+        className="mt-3 min-h-10 text-sm font-semibold text-accent hover:underline"
+      >
+        {more ? "Fewer changes" : "More changes"}
+      </button>
+      <div id={moreId} hidden={!more} className="mt-2 grid grid-cols-2 gap-3">
         <MoneyField
           label="Offset balance"
           optional
@@ -519,230 +858,32 @@ function Headline({
   );
 }
 
-function Results({
-  base,
-  runs,
-  names,
-  frequency,
-  onCopy,
-  copied,
-}: {
-  base: SimulationResult;
-  runs: ScenarioRun[];
-  names: string[];
-  frequency: Frequency;
-  onCopy: () => void;
-  copied: boolean;
-}) {
-  const [detail, setDetail] = useState(-1);
-  const series: Series[] = [
-    {
-      name: "Today",
-      color: "var(--series-base)",
-      points: base.balances,
-      payoffDate: base.payoffDate,
-    },
-    ...runs.map((r, i) => ({
-      name: names[i],
-      color: COLORS[i],
-      points: r.result.balances,
-      payoffDate: r.result.payoffDate,
-    })),
-  ];
-  const cols = [{ name: "Today", result: base, run: undefined as ScenarioRun | undefined }].concat(
-    runs.map((r, i) => ({ name: names[i], result: r.result, run: r })),
-  );
-  const shown = detail < 0 ? base : (runs[detail]?.result ?? base);
-  const warnings = [...new Set(cols.flatMap((c) => c.result.warnings))];
-
-  return (
-    <>
-      <div className={`${card} space-y-2 text-lg leading-relaxed`}>
-        {cols.map((c, i) => (
-          <Headline
-            key={c.name + i}
-            name={c.name}
-            color={i ? COLORS[i - 1] : "var(--text)"}
-            result={c.result}
-            run={c.run}
-          />
-        ))}
-        {warnings.map((w) => (
-          <p key={w} className="text-sm text-warn">
-            {w}
-          </p>
-        ))}
-      </div>
-
-      <div className={card}>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="font-semibold">Loan balance</h2>
-          <button
-            type="button"
-            onClick={onCopy}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm hover:border-accent hover:text-accent"
-          >
-            {copied ? "Link copied" : "Copy link"}
-          </button>
-        </div>
-        <BalanceChart series={series} />
-      </div>
-
-      <div className={`${card} overflow-x-auto`}>
-        <h2 className="mb-3 font-semibold">Side by side</h2>
-        <table className="num w-full min-w-[480px] text-sm">
-          <thead>
-            <tr className="text-left text-muted">
-              <th className="py-1.5 pr-3 font-medium" />
-              {cols.map((c, i) => (
-                <th
-                  key={c.name + i}
-                  className="py-1.5 pr-3 text-right font-medium"
-                  style={{ color: i ? COLORS[i - 1] : undefined }}
-                >
-                  {c.name}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-2 [&_td]:pr-3 [&_td:not(:first-child)]:text-right">
-            <tr>
-              <td>Repayment {perPeriod[frequency]}*</td>
-              {cols.map((c, i) => (
-                <td key={i}>{moneyExact(c.result.repayment)}</td>
-              ))}
-            </tr>
-            {cols.some((c) => c.result.afterInterestOnly) && (
-              <tr>
-                <td>Repayment after interest only*</td>
-                {cols.map((c, i) => (
-                  <td key={i}>
-                    {c.result.afterInterestOnly
-                      ? `${moneyExact(c.result.afterInterestOnly.repayment)} from ${monthYear(c.result.afterInterestOnly.date)}`
-                      : "–"}
-                  </td>
-                ))}
-              </tr>
-            )}
-            <tr>
-              <td>Debt-free</td>
-              {cols.map((c, i) => (
-                <td key={i}>{monthYear(c.result.payoffDate)}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>Total interest</td>
-              {cols.map((c, i) => (
-                <td key={i}>{money(c.result.totalInterest)}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>Total repaid</td>
-              {cols.map((c, i) => (
-                <td key={i}>{money(c.result.totalPaid)}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>Interest saved</td>
-              {cols.map((c, i) => (
-                <td key={i}>{c.run ? money(c.run.vsBase.interestSaved) : "–"}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>Time saved</td>
-              {cols.map((c, i) => (
-                <td key={i}>
-                  {c.run
-                    ? c.run.vsBase.daysSaved > 15
-                      ? duration(c.run.vsBase.daysSaved)
-                      : "–"
-                    : "–"}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-        <p className="mt-2 text-xs text-muted">
-          *At the start, including any extra. A scenario with a different repayment frequency shows
-          its own per-repayment amount. After an interest-only period the repayment is worked out on
-          the balance at the time, over the years left, before any extra.
-        </p>
-      </div>
-
-      <details className={card}>
-        <summary className="cursor-pointer font-semibold">Year by year</summary>
-        <div className="mt-3 mb-2 flex flex-wrap gap-2">
-          {cols.map((c, i) => (
-            <button
-              key={c.name + i}
-              type="button"
-              onClick={() => setDetail(i - 1)}
-              className={`rounded-full border px-3 py-1 text-sm ${
-                detail === i - 1 ? "border-accent text-accent" : "border-border"
-              }`}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
-        <div className="overflow-x-auto">
-          <table className="num w-full min-w-[420px] text-sm">
-            <thead>
-              <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
-                <th className="text-left">Year</th>
-                <th>Interest</th>
-                <th>Principal</th>
-                <th>Balance at end</th>
-              </tr>
-            </thead>
-            <tbody className="[&_td]:border-t [&_td]:border-border [&_td]:py-1.5 [&_td]:pr-3 [&_td]:text-right">
-              {shown.yearly.map((y) => (
-                <tr key={y.year}>
-                  <td className="!text-left">
-                    {y.year} <span className="text-muted">({y.endDate.slice(0, 7)})</span>
-                  </td>
-                  <td>{money(y.interest)}</td>
-                  <td>{money(y.principal)}</td>
-                  <td>{money(y.closingBalance)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
-    </>
-  );
-}
-
 function Method() {
   return (
-    <details className={`${card} text-sm`}>
-      <summary className="cursor-pointer font-semibold">How this is calculated</summary>
-      <div className="mt-3 space-y-2 text-muted">
-        <p>
-          This works the way Australian lenders run a variable home loan. Interest is worked out
-          daily on your balance less your offset (your rate ÷ 365), and added to the loan once a
-          month. Repayments fall on real calendar dates.
-        </p>
-        <p>
-          The minimum repayment is the standard formula over the years left, rounded up to the cent.
-          Fortnightly repayments are either half the monthly repayment, which most banks use, or a
-          true fortnightly amount. Because a year has about 26.09 fortnights, true fortnightly and
-          weekly repayments finish a little early.
-        </p>
-        <p>
-          When the rate changes, the minimum is worked out again over the years left. If you already
-          pay more than the new minimum, you keep paying the same, unless you pick the new, lower
-          minimum when the rate falls. If you pay less, it rises to the minimum. Extra repayments
-          and lump sums cut the balance on the day they are paid, and in a real loan usually sit in
-          redraw.
-        </p>
-        <p>
-          Your bank&apos;s figures may differ by a few dollars because of rounding, fees and the
-          exact day it charges interest. This is general information, not financial advice.
-        </p>
-      </div>
-    </details>
+    <div className="space-y-2 text-sm text-muted">
+      <p>
+        This works the way Australian lenders run a variable home loan. Interest is worked out daily
+        on your balance less your offset (your rate ÷ 365), and added to the loan once a month.
+        Repayments fall on real calendar dates.
+      </p>
+      <p>
+        The minimum repayment is the standard formula over the years left, rounded up to the cent.
+        Fortnightly repayments are either half the monthly repayment, which most banks use, or a
+        true fortnightly amount. Because a year has about 26.09 fortnights, true fortnightly and
+        weekly repayments finish a little early.
+      </p>
+      <p>
+        When the rate changes, the minimum is worked out again over the years left. If you already
+        pay more than the new minimum, you keep paying the same, unless you pick the new, lower
+        minimum when the rate falls. If you pay less, it rises to the minimum. Extra repayments and
+        lump sums cut the balance on the day they are paid, and in a real loan usually sit in
+        redraw.
+      </p>
+      <p>
+        Your bank&apos;s figures may differ by a few dollars because of rounding, fees and the exact
+        day it charges interest. This is general information, not financial advice.
+      </p>
+    </div>
   );
 }
 
@@ -752,10 +893,9 @@ function Method() {
  * balance less the offset, so both save about the same interest. What differs
  * is access and a few lender rules, which the list below sets out.
  */
-function OffsetVsRedraw({ input }: { input: LoanInput }) {
-  const [amount, setAmount] = useState<number | undefined>(20_000);
+function useOffsetRuns(input: LoanInput, amount: number | undefined) {
   const spare = Math.round((amount ?? 0) * 100) as Cents;
-  const runs = useMemo(() => {
+  return useMemo(() => {
     if (spare <= 0 || spare >= input.balance) return null;
     try {
       const base = simulateLoan(input);
@@ -776,16 +916,25 @@ function OffsetVsRedraw({ input }: { input: LoanInput }) {
       return null;
     }
   }, [input, spare]);
+}
 
+function OffsetVsRedraw({
+  amount,
+  onAmount,
+  runs,
+}: {
+  amount: number | undefined;
+  onAmount: (v: number | undefined) => void;
+  runs: ReturnType<typeof useOffsetRuns>;
+}) {
   return (
     <div className={card}>
-      <h2 className="font-semibold">Offset or extra repayment?</h2>
-      <p className="mt-1 text-sm text-muted">
+      <p className="text-sm text-muted">
         The same spare money, kept in your offset account or paid into the loan (where it can be
         redrawn). Uses your loan today, and your current repayment stays the same.
       </p>
       <div className="mt-3 max-w-xs">
-        <MoneyField label="Spare money" value={amount} onChange={setAmount} optional />
+        <MoneyField label="Spare money" value={amount} onChange={onAmount} optional />
       </div>
       {runs ? (
         <div className="mt-3 overflow-x-auto">
