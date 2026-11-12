@@ -22,7 +22,16 @@ import {
 } from "@budgy/engine";
 import { useEffect, useMemo, useState } from "react";
 import { GoodToKnow } from "@/components/GoodToKnow";
-import { SavedBar } from "@/components/SavedBar";
+import { NextSteps } from "@/components/NextSteps";
+import {
+  AnswerCard,
+  AnswerRow,
+  Detail,
+  Disclosure,
+  ToolHeader,
+  ToolPage,
+  ToolSection,
+} from "@/components/tool";
 import {
   adoptPay,
   type BudgetMode,
@@ -149,7 +158,7 @@ export function BudgetPlanner() {
   const saved = useSavedState(BUDGET_SAVED);
   const { state, setState } = saved;
   const view = state.view;
-  const [open, setOpen] = useState<Record<number, boolean>>({ 0: true });
+  const [open, setOpen] = useState<Record<number, boolean>>({});
   // The novated lease saved on this device, which is yours (the first person's).
   const [savedLease, setSavedLease] = useState<LeaseInPay | null>(null);
   useEffect(() => setSavedLease(leaseInPay(readSaved().tools.lease)), []);
@@ -202,40 +211,37 @@ export function BudgetPlanner() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pt-10 lg:pb-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Budget planner</h1>
-        <p className="mt-1 max-w-2xl text-muted">
-          Start from what you actually take home, add what you spend the way you&apos;re billed, and
-          see where every dollar goes. Your numbers never leave your device.
-        </p>
-        <SavedBar saved={saved} />
-        <fieldset
-          aria-label="Show the budget by"
-          className="m-0 mt-4 inline-flex min-w-0 rounded-full border border-border bg-bg p-0.5 text-sm"
-        >
-          {(
-            [
-              ["month", "Month"],
-              ["pay", "This pay"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={state.mode === value}
-              onClick={() => setMode(value)}
-              className={`min-h-10 rounded-full px-4 py-1.5 ${
-                state.mode === value
-                  ? "bg-surface font-semibold shadow-sm"
-                  : "text-muted hover:text-text"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </fieldset>
-      </header>
+    <ToolPage>
+      <ToolHeader
+        title="Budget planner"
+        intro="Where your take-home pay goes, and what is left over."
+        saved={saved}
+      />
+      <fieldset
+        aria-label="Show the budget by"
+        className="m-0 mb-6 inline-flex min-w-0 rounded-full border border-border bg-bg p-0.5 text-sm"
+      >
+        {(
+          [
+            ["month", "Month"],
+            ["pay", "This pay"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={state.mode === value}
+            onClick={() => setMode(value)}
+            className={`min-h-10 rounded-full px-4 py-1.5 ${
+              state.mode === value
+                ? "bg-surface font-semibold shadow-sm"
+                : "text-muted hover:text-text"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </fieldset>
 
       {totals && !payMode && (
         <div
@@ -262,277 +268,279 @@ export function BudgetPlanner() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="min-w-0 space-y-4">
-          {/* ── Money in ─────────────────────────────────────────── */}
-          <section className={card} aria-labelledby="money-in">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 id="money-in" className="font-semibold">
-                Money in
-              </h2>
-              {totals && (
-                <p className="num font-semibold">
-                  {moneyExact(totals.income)}{" "}
-                  <span className="font-normal text-muted">{perLabel(view)}</span>
-                </p>
-              )}
-            </div>
-
-            <ul className="mt-2">
-              {state.people.map((p, i) => (
-                <PersonRow
-                  key={p.id}
-                  person={p}
-                  net={result ? incomeForView(result.income[i], view) : null}
-                  view={view}
-                  canRemove={state.people.length > 1}
-                  lease={i === 0 ? (p.pay.lease ?? savedLease) : p.pay.lease}
-                  onLease={(on) => setPerson(i, { pay: toggleLease(p.pay, on, readSaved()) })}
-                  onChange={(patch) => setPerson(i, patch)}
-                  onRemove={() => set({ people: state.people.filter((_, j) => j !== i) })}
-                />
-              ))}
-              {state.other.map((o, i) => (
-                <li key={o.id} className="border-t border-border py-3">
-                  <LineRow
-                    line={o}
-                    view={view}
-                    nameLabel="Other income, after tax"
-                    onChange={(patch) =>
-                      set({
-                        other: state.other.map((x, j) => (j === i ? { ...x, ...patch } : x)),
-                      })
-                    }
-                    onRemove={() => set({ other: state.other.filter((_, j) => j !== i) })}
-                  />
-                </li>
-              ))}
-            </ul>
-
-            <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-border pt-3">
-              {state.people.length < MAX_PEOPLE && (
-                <button
-                  type="button"
-                  className={linkBtn}
-                  onClick={() =>
-                    set({
-                      people: [...state.people, newPerson(`Person ${state.people.length + 1}`)],
-                    })
-                  }
-                >
-                  + Add a person
-                </button>
-              )}
-              {state.other.length < MAX_OTHER && (
-                <button
-                  type="button"
-                  className={linkBtn}
-                  onClick={() =>
-                    set({
-                      other: [
-                        ...state.other,
-                        { id: newId("o"), label: "", amount: 0, per: "month" },
-                      ],
-                    })
-                  }
-                >
-                  + Add other income
-                </button>
-              )}
-            </div>
-          </section>
-
-          {/* ── Money out ────────────────────────────────────────── */}
-          <section className={card} aria-labelledby="money-out">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 id="money-out" className="font-semibold">
-                Money out
-              </h2>
-              {totals && (
-                <p className="num font-semibold">
-                  {moneyExact(totals.spend)}{" "}
-                  <span className="font-normal text-muted">{perLabel(view)}</span>
-                </p>
-              )}
-            </div>
-            <p className="mt-1 text-sm text-muted">
-              Enter each amount the way you pay it: weekly, monthly, quarterly or yearly. It&apos;s
-              converted for you.
-              {payMode && " Add a next due date to a bill to see which pay it lands in."}
-            </p>
-
-            {showTemplates ? (
-              <TemplatePicker
-                hasAmounts={!budgetIsEmpty(state.categories)}
-                lineCount={state.categories.reduce((n, c) => n + c.lines.length, 0)}
-                onUse={applyTemplate}
-                onClose={budgetIsEmpty(state.categories) ? null : () => setTemplatesOpen(false)}
-              />
-            ) : (
-              <button
-                type="button"
-                className={`${linkBtn} mt-2`}
-                onClick={() => setTemplatesOpen(true)}
-              >
-                Start from a template
-              </button>
-            )}
-
-            <div className="mt-3">
-              {state.categories.map((c, i) => {
-                const isOpen = Boolean(open[i]);
-                const total = result ? perView(result.categories[i].year, view) : 0;
-                return (
-                  <div key={c.id} className="border-t border-border">
-                    <button
-                      type="button"
-                      aria-expanded={isOpen}
-                      onClick={() => setOpen((o) => ({ ...o, [i]: !isOpen }))}
-                      className="flex min-h-12 w-full items-center gap-2.5 py-3 text-left"
-                    >
-                      <span
-                        className="size-3 shrink-0 rounded-[3px]"
-                        style={{ background: colorFor(i) }}
-                        aria-hidden="true"
-                      />
-                      <span className="font-semibold">{c.name || "Untitled"}</span>
-                      <span className="text-sm text-muted">
-                        {c.lines.length} {c.lines.length === 1 ? "item" : "items"}
-                      </span>
-                      <span className="num ml-auto font-medium">{moneyExact(total)}</span>
-                      <span aria-hidden="true" className="w-4 text-center text-muted">
-                        {isOpen ? "−" : "+"}
-                      </span>
-                    </button>
-                    {isOpen && (
-                      <div className="space-y-3 pb-4 sm:pl-5">
-                        <div className="flex flex-wrap items-end gap-3">
-                          <label className="min-w-40 flex-1 text-sm">
-                            <span className="mb-1 block font-medium">Category name</span>
-                            <input
-                              className={input}
-                              value={c.name}
-                              maxLength={60}
-                              onChange={(e) => setCategory(i, { name: e.target.value })}
-                            />
-                          </label>
-                          <div className="text-sm">
-                            <span className="mb-1 block font-medium">Counts as</span>
-                            <Select<BudgetBucket>
-                              ariaLabel="Counts as"
-                              value={c.bucket}
-                              onChange={(bucket) => setCategory(i, { bucket })}
-                              options={[
-                                { value: "need", label: "A need" },
-                                { value: "want", label: "A want" },
-                                { value: "save", label: "Saving" },
-                              ]}
-                            />
-                          </div>
-                        </div>
-                        <ul className="space-y-3">
-                          {c.lines.map((l, j) => (
-                            <li key={l.id}>
-                              <LineRow
-                                line={l}
-                                view={view}
-                                showDue={payMode}
-                                nameLabel="What it is"
-                                onChange={(patch) =>
-                                  setLines(i, (ls) =>
-                                    ls.map((x, k) => (k === j ? { ...x, ...patch } : x)),
-                                  )
-                                }
-                                onRemove={() => setLines(i, (ls) => ls.filter((_, k) => k !== j))}
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="flex flex-wrap gap-x-5">
-                          {c.lines.length < MAX_LINES && (
-                            <button
-                              type="button"
-                              className={linkBtn}
-                              onClick={() =>
-                                setLines(i, (ls) => [
-                                  ...ls,
-                                  { id: newId("l"), label: "", amount: 0, per: "month" },
-                                ])
-                              }
-                            >
-                              + Add to {c.name || "this category"}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="py-1.5 text-sm text-muted hover:text-text hover:underline"
-                            onClick={() => {
-                              set({ categories: state.categories.filter((_, k) => k !== i) });
-                              setOpen({});
-                            }}
-                          >
-                            Remove category
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {state.categories.length < MAX_CATEGORIES && (
-              <div className="border-t border-border pt-3">
-                <button
-                  type="button"
-                  className={linkBtn}
-                  onClick={() => {
-                    const n = state.categories.length;
-                    set({
-                      categories: [
-                        ...state.categories,
-                        {
-                          id: newId("c"),
-                          name: "New category",
-                          bucket: "want",
-                          lines: [{ id: newId("l"), label: "", amount: 0, per: "month" }],
-                        },
-                      ],
-                    });
-                    setOpen((o) => ({ ...o, [n]: true }));
-                  }}
-                >
-                  + Add a category
-                </button>
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* ── Results ──────────────────────────────────────────── */}
-        <div className="min-w-0 space-y-4 lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start">
-          {errors.length > 0 && (
-            <div className={`${card} text-sm text-warn`} role="alert">
-              {errors.map((e) => (
-                <p key={e}>{e}</p>
-              ))}
-            </div>
-          )}
-          {payMode && (
-            <PaySetup state={state} onChange={(payDay) => set({ payDay })} result={result} />
-          )}
-          {result && totals && !payMode && (
-            <Results
+      <div className="space-y-8">
+        {errors.length > 0 && (
+          <div className={`${card} text-sm text-warn`} role="alert">
+            {errors.map((e) => (
+              <p key={e}>{e}</p>
+            ))}
+          </div>
+        )}
+        {payMode && (
+          <PaySetup state={state} onChange={(payDay) => set({ payDay })} result={result} />
+        )}
+        {result && totals && !payMode && (
+          <div className="space-y-4">
+            <BudgetAnswer
               result={result}
               state={state}
               view={view}
               totals={totals}
               onView={(v) => set({ view: v })}
             />
-          )}
-          <GoodToKnow tool="budget" />
-        </div>
+          </div>
+        )}
+
+        <ToolSection id="budget-h" title="Your budget">
+          <div className="space-y-4">
+            {/* ── Money in ─────────────────────────────────────────── */}
+            <section className={card} aria-labelledby="money-in">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 id="money-in" className="font-semibold">
+                  Money in
+                </h2>
+                {totals && (
+                  <p className="num font-semibold">
+                    {moneyExact(totals.income)}{" "}
+                    <span className="font-normal text-muted">{perLabel(view)}</span>
+                  </p>
+                )}
+              </div>
+
+              <ul className="mt-2">
+                {state.people.map((p, i) => (
+                  <PersonRow
+                    key={p.id}
+                    person={p}
+                    net={result ? incomeForView(result.income[i], view) : null}
+                    view={view}
+                    canRemove={state.people.length > 1}
+                    lease={i === 0 ? (p.pay.lease ?? savedLease) : p.pay.lease}
+                    onLease={(on) => setPerson(i, { pay: toggleLease(p.pay, on, readSaved()) })}
+                    onChange={(patch) => setPerson(i, patch)}
+                    onRemove={() => set({ people: state.people.filter((_, j) => j !== i) })}
+                  />
+                ))}
+                {state.other.map((o, i) => (
+                  <li key={o.id} className="border-t border-border py-3">
+                    <LineRow
+                      line={o}
+                      view={view}
+                      nameLabel="Other income, after tax"
+                      onChange={(patch) =>
+                        set({
+                          other: state.other.map((x, j) => (j === i ? { ...x, ...patch } : x)),
+                        })
+                      }
+                      onRemove={() => set({ other: state.other.filter((_, j) => j !== i) })}
+                    />
+                  </li>
+                ))}
+              </ul>
+
+              <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-border pt-3">
+                {state.people.length < MAX_PEOPLE && (
+                  <button
+                    type="button"
+                    className={linkBtn}
+                    onClick={() =>
+                      set({
+                        people: [...state.people, newPerson(`Person ${state.people.length + 1}`)],
+                      })
+                    }
+                  >
+                    + Add a person
+                  </button>
+                )}
+                {state.other.length < MAX_OTHER && (
+                  <button
+                    type="button"
+                    className={linkBtn}
+                    onClick={() =>
+                      set({
+                        other: [
+                          ...state.other,
+                          { id: newId("o"), label: "", amount: 0, per: "month" },
+                        ],
+                      })
+                    }
+                  >
+                    + Add other income
+                  </button>
+                )}
+              </div>
+            </section>
+
+            {/* ── Money out ────────────────────────────────────────── */}
+            <section className={card} aria-labelledby="money-out">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 id="money-out" className="font-semibold">
+                  Money out
+                </h2>
+                {totals && (
+                  <p className="num font-semibold">
+                    {moneyExact(totals.spend)}{" "}
+                    <span className="font-normal text-muted">{perLabel(view)}</span>
+                  </p>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-muted">
+                Enter each amount the way you pay it: weekly, monthly, quarterly or yearly.
+                It&apos;s converted for you.
+                {payMode && " Add a next due date to a bill to see which pay it lands in."}
+              </p>
+
+              {showTemplates ? (
+                <TemplatePicker
+                  hasAmounts={!budgetIsEmpty(state.categories)}
+                  lineCount={state.categories.reduce((n, c) => n + c.lines.length, 0)}
+                  onUse={applyTemplate}
+                  onClose={budgetIsEmpty(state.categories) ? null : () => setTemplatesOpen(false)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className={`${linkBtn} mt-2`}
+                  onClick={() => setTemplatesOpen(true)}
+                >
+                  Start from a template
+                </button>
+              )}
+
+              <div className="mt-3">
+                {state.categories.map((c, i) => {
+                  const isOpen = Boolean(open[i]);
+                  const total = result ? perView(result.categories[i].year, view) : 0;
+                  return (
+                    <div key={c.id} className="border-t border-border">
+                      <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        onClick={() => setOpen((o) => ({ ...o, [i]: !isOpen }))}
+                        className="flex min-h-12 w-full items-center gap-2.5 py-3 text-left"
+                      >
+                        <span
+                          className="size-3 shrink-0 rounded-[3px]"
+                          style={{ background: colorFor(i) }}
+                          aria-hidden="true"
+                        />
+                        <span className="font-semibold">{c.name || "Untitled"}</span>
+                        <span className="text-sm text-muted">
+                          {c.lines.length} {c.lines.length === 1 ? "item" : "items"}
+                        </span>
+                        <span className="num ml-auto font-medium">{moneyExact(total)}</span>
+                        <span aria-hidden="true" className="w-4 text-center text-muted">
+                          {isOpen ? "−" : "+"}
+                        </span>
+                      </button>
+                      {isOpen && (
+                        <div className="space-y-3 pb-4 sm:pl-5">
+                          <div className="flex flex-wrap items-end gap-3">
+                            <label className="min-w-40 flex-1 text-sm">
+                              <span className="mb-1 block font-medium">Category name</span>
+                              <input
+                                className={input}
+                                value={c.name}
+                                maxLength={60}
+                                onChange={(e) => setCategory(i, { name: e.target.value })}
+                              />
+                            </label>
+                            <div className="text-sm">
+                              <span className="mb-1 block font-medium">Counts as</span>
+                              <Select<BudgetBucket>
+                                ariaLabel="Counts as"
+                                value={c.bucket}
+                                onChange={(bucket) => setCategory(i, { bucket })}
+                                options={[
+                                  { value: "need", label: "A need" },
+                                  { value: "want", label: "A want" },
+                                  { value: "save", label: "Saving" },
+                                ]}
+                              />
+                            </div>
+                          </div>
+                          <ul className="space-y-3">
+                            {c.lines.map((l, j) => (
+                              <li key={l.id}>
+                                <LineRow
+                                  line={l}
+                                  view={view}
+                                  showDue={payMode}
+                                  nameLabel="What it is"
+                                  onChange={(patch) =>
+                                    setLines(i, (ls) =>
+                                      ls.map((x, k) => (k === j ? { ...x, ...patch } : x)),
+                                    )
+                                  }
+                                  onRemove={() => setLines(i, (ls) => ls.filter((_, k) => k !== j))}
+                                />
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="flex flex-wrap gap-x-5">
+                            {c.lines.length < MAX_LINES && (
+                              <button
+                                type="button"
+                                className={linkBtn}
+                                onClick={() =>
+                                  setLines(i, (ls) => [
+                                    ...ls,
+                                    { id: newId("l"), label: "", amount: 0, per: "month" },
+                                  ])
+                                }
+                              >
+                                + Add to {c.name || "this category"}
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="py-1.5 text-sm text-muted hover:text-text hover:underline"
+                              onClick={() => {
+                                set({ categories: state.categories.filter((_, k) => k !== i) });
+                                setOpen({});
+                              }}
+                            >
+                              Remove category
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {state.categories.length < MAX_CATEGORIES && (
+                <div className="border-t border-border pt-3">
+                  <button
+                    type="button"
+                    className={linkBtn}
+                    onClick={() => {
+                      const n = state.categories.length;
+                      set({
+                        categories: [
+                          ...state.categories,
+                          {
+                            id: newId("c"),
+                            name: "New category",
+                            bucket: "want",
+                            lines: [{ id: newId("l"), label: "", amount: 0, per: "month" }],
+                          },
+                        ],
+                      });
+                      setOpen((o) => ({ ...o, [n]: true }));
+                    }}
+                  >
+                    + Add a category
+                  </button>
+                </div>
+              )}
+            </section>
+          </div>
+        </ToolSection>
+
+        <BudgetDetail result={result} />
       </div>
-    </main>
+    </ToolPage>
   );
 }
 
@@ -821,7 +829,7 @@ function AmountField({
   );
 }
 
-function Results({
+function BudgetAnswer({
   result,
   state,
   view,
@@ -857,88 +865,86 @@ function Results({
       .map((c) => c.name)
       .join(", ");
 
-  const home = result.categories.find((c) => /home|housing|mortgage|rent/i.test(c.name));
-  const debts = result.categories.find((c) => /debt|loan|credit/i.test(c.name));
-
   return (
     <>
-      <section className={card} aria-label="Summary">
-        <fieldset
-          aria-label="Show amounts per"
-          className="m-0 hidden min-w-0 rounded-full border border-border bg-bg p-0.5 text-sm lg:inline-flex"
-        >
-          {VIEW_TABS.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              aria-pressed={t.value === view}
-              onClick={() => onView(t.value)}
-              className={`rounded-full px-3.5 py-1.5 ${
-                t.value === view
-                  ? "bg-surface font-semibold shadow-sm"
-                  : "text-muted hover:text-text"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </fieldset>
-        <p className="mt-4 text-muted">{short ? "Short by" : "Left over"}</p>
-        <p
-          className={`num mt-1 text-4xl font-semibold tracking-tight ${short ? "text-warn" : "text-good"}`}
-          aria-live="polite"
-        >
-          {moneyExact(Math.abs(totals.left))}{" "}
-          <span className="text-lg font-medium text-muted">{perLabel(view)}</span>
-        </p>
-        <p className="mt-1 text-sm text-muted">
-          {moneyExact(totals.income)} in, {moneyExact(totals.spend)} out.{" "}
-          {income > 0 &&
-            (short
-              ? "You're spending more than you take home."
-              : `You keep ${pct(result.leftYear / income)} of what you take home.`)}
-        </p>
+      <AnswerRow>
+        <AnswerCard label={short ? "Short by" : "Left over"}>
+          <fieldset
+            aria-label="Show amounts per"
+            className="m-0 hidden min-w-0 self-start rounded-full border border-on-primary-container/20 bg-bg/40 p-0.5 text-sm lg:inline-flex"
+          >
+            {VIEW_TABS.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                aria-pressed={t.value === view}
+                onClick={() => onView(t.value)}
+                className={`rounded-full px-3.5 py-1.5 ${
+                  t.value === view ? "bg-surface font-semibold shadow-sm" : "hover:opacity-80"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </fieldset>
+          <p className="num -mt-1 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+            {moneyExact(Math.abs(totals.left))}{" "}
+            <span className="text-lg font-medium sm:text-xl">{perLabel(view)}</span>
+          </p>
+          <p className="text-lg">
+            {moneyExact(totals.income)} in, {moneyExact(totals.spend)} out.{" "}
+            {income > 0 &&
+              (short
+                ? "You're spending more than you take home."
+                : `You keep ${pct(result.leftYear / income)} of what you take home.`)}
+          </p>
+        </AnswerCard>
 
-        <h3 className="mt-6 text-sm font-semibold">Where it goes</h3>
-        {rows.length > 0 ? (
-          <>
-            <div className="mt-3 flex h-4 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
-              {rows.map((r) => (
-                <div
-                  key={r.id}
-                  style={{ width: `${(r.year / base) * 100}%`, background: r.color }}
-                />
-              ))}
-            </div>
-            <ul className="num mt-3 text-sm">
-              {rows.map((r) => (
-                <li
-                  key={r.id}
-                  className="grid grid-cols-[12px_minmax(0,1fr)_56px_110px] items-center gap-2.5 border-b border-border py-2"
-                >
-                  <span className="size-2.5 rounded-[3px]" style={{ background: r.color }} />
-                  <span className="truncate">{r.name}</span>
-                  <span className="text-right text-muted">
-                    {income > 0 ? pct(r.year / income) : ""}
-                  </span>
-                  <span className="text-right">
-                    {moneyExact(r.id === "left" ? totals.left : perView(r.year as Cents, view))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : (
-          <p className="mt-2 text-sm text-muted">Add your spending to see where it goes.</p>
-        )}
-      </section>
+        <section className={`${card} min-w-0 rounded-3xl`} aria-label="Where it goes">
+          <h2 className="font-semibold">Where it goes</h2>
+          {rows.length > 0 ? (
+            <>
+              <div
+                className="mt-3 flex h-4 gap-0.5 overflow-hidden rounded-full"
+                aria-hidden="true"
+              >
+                {rows.map((r) => (
+                  <div
+                    key={r.id}
+                    style={{ width: `${(r.year / base) * 100}%`, background: r.color }}
+                  />
+                ))}
+              </div>
+              <ul className="num mt-3 text-sm">
+                {rows.map((r) => (
+                  <li
+                    key={r.id}
+                    className="grid grid-cols-[12px_minmax(0,1fr)_56px_110px] items-center gap-2.5 border-b border-border py-2"
+                  >
+                    <span className="size-2.5 rounded-[3px]" style={{ background: r.color }} />
+                    <span className="truncate">{r.name}</span>
+                    <span className="text-right text-muted">
+                      {income > 0 ? pct(r.year / income) : ""}
+                    </span>
+                    <span className="text-right">
+                      {moneyExact(r.id === "left" ? totals.left : perView(r.year as Cents, view))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-muted">Add your spending to see where it goes.</p>
+          )}
+        </section>
+      </AnswerRow>
 
       {income > 0 && (
         <section className={card} aria-labelledby="buckets">
-          <h3 id="buckets" className="text-sm font-semibold">
+          <h2 id="buckets" className="font-semibold">
             Needs, wants and saving
-          </h3>
-          <div className="mt-4 space-y-5">
+          </h2>
+          <div className="mt-4 grid gap-5 md:grid-cols-3">
             {buckets.map((b) => {
               const share = b.year / income;
               const guide = BUCKET_GUIDE[b.key];
@@ -983,63 +989,77 @@ function Results({
           </p>
         </section>
       )}
+    </>
+  );
+}
 
-      {result.lumpyBills.length > 0 && result.lumpyPerMonth > 0 && (
-        <section className={card} aria-labelledby="lumpy">
-          <h3 id="lumpy" className="text-sm font-semibold">
-            Bills that land in lumps
-          </h3>
-          <p className="mt-2 text-sm">
-            Put aside <strong className="num">{moneyExact(result.lumpyPerMonth)} a month</strong>{" "}
-            and your quarterly and yearly bills are covered when they arrive.
+function BudgetDetail({ result }: { result: BudgetResult | null }) {
+  const income = result?.incomeYear ?? 0;
+  const home = result?.categories.find((c) => /home|housing|mortgage|rent/i.test(c.name));
+  const debts = result?.categories.find((c) => /debt|loan|credit/i.test(c.name));
+  const lumpy = result && result.lumpyBills.length > 0 && result.lumpyPerMonth > 0 ? result : null;
+  const showNext = Boolean((home && home.year > 0) || (debts && debts.year > 0));
+
+  return (
+    <>
+      <Detail>
+        {lumpy && (
+          <Disclosure
+            title="Bills that land in lumps"
+            hint={`put aside ${moneyExact(lumpy.lumpyPerMonth)} a month`}
+          >
+            <p className="text-sm">
+              Put aside <strong className="num">{moneyExact(lumpy.lumpyPerMonth)} a month</strong>{" "}
+              and your quarterly and yearly bills are covered when they arrive.
+            </p>
+            <ul className="num mt-2 text-sm text-muted">
+              {lumpy.lumpyBills
+                .filter((l) => l.year > 0)
+                .slice(0, 5)
+                .map((l) => (
+                  <li key={l.id} className="flex justify-between gap-3 py-1">
+                    <span className="truncate">{l.label || "Untitled"}</span>
+                    <span>
+                      {moneyExact(l.amount)} {FREQ_LABEL[l.frequency]}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          </Disclosure>
+        )}
+        {showNext && result && (
+          <Disclosure title="Make the left over work" hint="mortgage and debts">
+            <div className="space-y-3 text-sm">
+              {home && home.year > 0 && income > 0 && (
+                <p>
+                  {home.name} takes {pct(home.year / income)} of your take-home.{" "}
+                  <a href="../mortgage/" className="font-medium text-accent hover:underline">
+                    See what extra mortgage repayments do
+                  </a>
+                </p>
+              )}
+              {debts && debts.year > 0 && (
+                <p>
+                  You pay {moneyExact(perView(debts.year, "month"))} a month on debts.{" "}
+                  <a href="../debt/" className="font-medium text-accent hover:underline">
+                    Plan which to clear first
+                  </a>
+                </p>
+              )}
+            </div>
+          </Disclosure>
+        )}
+        <Disclosure title="Good to know" hint="tips and things to check">
+          <GoodToKnow tool="budget" bare />
+        </Disclosure>
+        <Disclosure title="How this is calculated" hint="take-home pay and periods">
+          <p className="text-sm text-muted">
+            Take-home pay is worked out as the ATO assesses it, the same as the pay calculator.
+            Weekly amounts are 52 a year and fortnightly 26, so a month is a twelfth of a year.
           </p>
-          <ul className="num mt-2 text-sm text-muted">
-            {result.lumpyBills
-              .filter((l) => l.year > 0)
-              .slice(0, 5)
-              .map((l) => (
-                <li key={l.id} className="flex justify-between gap-3 py-1">
-                  <span className="truncate">{l.label || "Untitled"}</span>
-                  <span>
-                    {moneyExact(l.amount)} {FREQ_LABEL[l.frequency]}
-                  </span>
-                </li>
-              ))}
-          </ul>
-        </section>
-      )}
-
-      {((home && home.year > 0) || (debts && debts.year > 0)) && (
-        <section className={`${card} space-y-3 text-sm`} aria-labelledby="next">
-          <h3 id="next" className="font-semibold">
-            Make the left over work
-          </h3>
-          {home && home.year > 0 && income > 0 && (
-            <p>
-              {home.name} takes {pct(home.year / income)} of your take-home.{" "}
-              <a href="../mortgage/" className="font-medium text-accent hover:underline">
-                See what extra mortgage repayments do
-              </a>
-            </p>
-          )}
-          {debts && debts.year > 0 && (
-            <p>
-              You pay {moneyExact(perView(debts.year, "month"))} a month on debts.{" "}
-              <a href="../debt/" className="font-medium text-accent hover:underline">
-                Plan which to clear first
-              </a>
-            </p>
-          )}
-        </section>
-      )}
-
-      <details className={`${card} text-sm`}>
-        <summary className="cursor-pointer font-semibold">How this is calculated</summary>
-        <p className="mt-3 text-muted">
-          Take-home pay is worked out as the ATO assesses it, the same as the pay calculator. Weekly
-          amounts are 52 a year and fortnightly 26, so a month is a twelfth of a year.
-        </p>
-      </details>
+        </Disclosure>
+      </Detail>
+      <NextSteps tool="budget" className="pt-2" />
     </>
   );
 }
@@ -1143,7 +1163,7 @@ function PaySetup({
     return { error: null, plan: planPayPeriod(input) };
   }, [result, every, last, now, state]);
 
-  return (
+  const setup = (
     <>
       <section className={card} aria-labelledby="pay-setup">
         <h2 id="pay-setup" className="font-semibold">
@@ -1183,12 +1203,21 @@ function PaySetup({
           {plan.error}
         </div>
       )}
-      {plan.plan && <PayResults plan={plan.plan} now={now} />}
     </>
   );
+  if (!plan.plan) return setup;
+  return <PayResults plan={plan.plan} now={now} setup={setup} />;
 }
 
-function PayResults({ plan, now }: { plan: PayPeriodResult; now: string }) {
+function PayResults({
+  plan,
+  now,
+  setup,
+}: {
+  plan: PayPeriodResult;
+  now: string;
+  setup: React.ReactNode;
+}) {
   const short = plan.left < 0;
   const base = Math.max(plan.income, plan.planned) || 1;
   const w = (v: number) => `${(v / base) * 100}%`;
@@ -1203,56 +1232,57 @@ function PayResults({ plan, now }: { plan: PayPeriodResult; now: string }) {
   const when = (i: PayItem) =>
     i.date ? shortDay(i.date) : i.nextDue ? `Next due ${shortDay(i.nextDue)}` : "Every pay";
   return (
-    <>
-      <section className={card} aria-label="This pay">
-        <p className="text-sm text-muted">
-          Pay started {longDay(plan.start)}. Next pay {longDay(plan.next)}.
-        </p>
-        <p className="text-sm text-muted">
-          Day {plan.dayOf} of {plan.days}
-        </p>
-        <p className="mt-4 text-muted">
-          {short ? "Planned to run short by" : "Planned left until payday"}
-        </p>
-        <p
-          className={`num mt-1 text-4xl font-semibold tracking-tight ${short ? "text-warn" : "text-good"}`}
-          aria-live="polite"
-        >
-          {moneyExact(Math.abs(plan.left))}
-        </p>
-        {!short && plan.left > 0 && (
-          <p className="mt-1 text-sm">
-            About <strong className="num">{moneyExact(plan.perDay)} a day</strong> for the{" "}
-            {plan.daysLeft} {plan.daysLeft === 1 ? "day" : "days"} until payday.
+    <div className="space-y-4">
+      <AnswerRow>
+        <AnswerCard label="This pay">
+          <p className="text-sm">
+            Pay started {longDay(plan.start)}. Next pay {longDay(plan.next)}. Day {plan.dayOf} of{" "}
+            {plan.days}.
           </p>
-        )}
-        <div
-          className="mt-4 flex h-3 gap-0.5 overflow-hidden rounded-full bg-border"
-          aria-hidden="true"
-        >
-          <div style={{ width: w(plan.datedTotal), background: "var(--accent)" }} />
-          <div style={{ width: w(plan.spreadTotal + plan.setAsideTotal), background: "#d9480f" }} />
-        </div>
-        <ul className="num mt-3 space-y-1 text-sm">
-          <LegendRow color="var(--accent)" label="Bills due this pay" cents={plan.datedTotal} />
-          <LegendRow
-            color="#d9480f"
-            label="Spread and set aside"
-            cents={(plan.spreadTotal + plan.setAsideTotal) as Cents}
-          />
-          <LegendRow
-            color="var(--series-base)"
-            label={short ? "Short by" : "Left"}
-            cents={Math.abs(plan.left) as Cents}
-            outline
-          />
-        </ul>
-        <p className="mt-3 text-xs leading-relaxed text-muted">
-          Out of {moneyExact(plan.income)} take-home pay. These are planned amounts from your
-          budget. This planner doesn&apos;t see your bank account, so it can&apos;t show what
-          you&apos;ve spent so far.
-        </p>
-      </section>
+          <p className="num -mt-1 text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+            {moneyExact(Math.abs(plan.left))}
+          </p>
+          <p className="text-lg" aria-live="polite">
+            {short ? "Planned to run short by this much." : "Planned left until payday."}
+            {!short && plan.left > 0 && (
+              <>
+                {" "}
+                About <strong className="num">{moneyExact(plan.perDay)} a day</strong> for the{" "}
+                {plan.daysLeft} {plan.daysLeft === 1 ? "day" : "days"} until payday.
+              </>
+            )}
+          </p>
+          <div
+            className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-border"
+            aria-hidden="true"
+          >
+            <div style={{ width: w(plan.datedTotal), background: "var(--accent)" }} />
+            <div
+              style={{ width: w(plan.spreadTotal + plan.setAsideTotal), background: "#d9480f" }}
+            />
+          </div>
+          <ul className="num space-y-1 text-sm">
+            <LegendRow color="var(--accent)" label="Bills due this pay" cents={plan.datedTotal} />
+            <LegendRow
+              color="#d9480f"
+              label="Spread and set aside"
+              cents={(plan.spreadTotal + plan.setAsideTotal) as Cents}
+            />
+            <LegendRow
+              color="var(--series-base)"
+              label={short ? "Short by" : "Left"}
+              cents={Math.abs(plan.left) as Cents}
+              outline
+            />
+          </ul>
+          <p className="text-xs leading-relaxed">
+            Out of {moneyExact(plan.income)} take-home pay. These are planned amounts from your
+            budget. This planner doesn&apos;t see your bank account, so it can&apos;t show what
+            you&apos;ve spent so far.
+          </p>
+        </AnswerCard>
+        <div className="min-w-0 space-y-4">{setup}</div>
+      </AnswerRow>
 
       <section className={card} aria-labelledby="pay-bills">
         <h3 id="pay-bills" className="text-sm font-semibold">
@@ -1290,7 +1320,7 @@ function PayResults({ plan, now }: { plan: PayPeriodResult; now: string }) {
           pay, so a big bill doesn&apos;t land on one pay.
         </p>
       </section>
-    </>
+    </div>
   );
 }
 
