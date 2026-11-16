@@ -88,6 +88,34 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ScrollTable: scrolls on its own, with the first column pinned. Set
+   --table-bg on it when the table sits on something other than a card. */
+.table-scroll {
+  --table-bg: var(--surface);
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  container-type: inline-size;
+}
+.table-scroll :is(th, td):first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--table-bg);
+}
+.table-scroll thead {
+  z-index: 2;
+}
+.table-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* A soft edge on the pinned column once the card is narrower than most tables. */
+@container (width < 34rem) {
+  .table-scroll :is(th, td):first-child {
+    box-shadow: 10px 0 8px -8px rgb(0 0 0 / 0.35);
+  }
+}
+
 /* The phone tab bar's height, so fixed bars and the page end sit above it. None on wide screens. */
 html {
   --bottom-nav-h: 0px;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { clampWithHint } from "@/lib/clampHint";
 import { parseMoney } from "@/lib/state";
 import { DatePicker, filledField, Select } from "./ui";
@@ -29,10 +29,40 @@ function Field({
         {label}
       </label>
       {children}
-      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
+      {hint && (
+        <p id={`${id}-hint`} className="mt-1 text-xs text-muted">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
+
+/** The hint, and the note under the field only while it shows, for aria-describedby. */
+const describedBy = (id: string, hint: string | undefined, note: boolean) =>
+  [hint && `${id}-hint`, note && `${id}-note`].filter(Boolean).join(" ") || undefined;
+
+let liveRegion: HTMLElement | null = null;
+/**
+ * Say a field's note once, through one polite live region for the page. A
+ * note that appears in its own live region isn't read reliably, and the short
+ * wait keeps it from talking over the next field's label.
+ */
+function announce(text: string) {
+  if (!liveRegion) {
+    liveRegion = document.createElement("div");
+    liveRegion.setAttribute("aria-live", "polite");
+    liveRegion.className = "sr-only";
+    document.body.append(liveRegion);
+  }
+  const region = liveRegion;
+  region.textContent = "";
+  setTimeout(() => {
+    region.textContent = text;
+  }, 150);
+}
+
+const MONEY_ERROR = "That isn't an amount. Enter one like 600k or 600,000.";
 
 /**
  * Dollar input that accepts "600k", "$600,000" or "1.2m". Commits on blur or
@@ -56,24 +86,33 @@ export function MoneyField({
   max?: number;
 }) {
   const id = useId();
+  const input = useRef<HTMLInputElement>(null);
   const [text, setText] = useState(fmt(value));
   const [bad, setBad] = useState(false);
   const [capped, setCapped] = useState<string | null>(null);
   useEffect(() => setText(fmt(value)), [value]);
 
+  // The browser's validity follows ours, so :user-invalid styles the field
+  // once someone has left it, and never while they're still typing.
+  const setError = (on: boolean) => {
+    input.current?.setCustomValidity(on ? MONEY_ERROR : "");
+    if (on && !bad) announce(MONEY_ERROR);
+    setBad(on);
+  };
+
   const commit = () => {
     if (text.trim() === "" && optional) {
-      setBad(false);
+      setError(false);
       setCapped(null);
       onChange(undefined);
       return;
     }
     const parsed = parseMoney(text);
     if (parsed === null) {
-      setBad(true);
+      setError(true);
       return;
     }
-    setBad(false);
+    setError(false);
     const { value: n, hint } = clampWithHint(
       parsed,
       min ?? Number.NEGATIVE_INFINITY,
@@ -82,6 +121,7 @@ export function MoneyField({
       (x) => `$${fmt(x)}`,
     );
     setCapped(hint);
+    if (hint && hint !== capped) announce(hint);
     onChange(n);
     setText(fmt(n));
   };
@@ -93,21 +133,31 @@ export function MoneyField({
           $
         </span>
         <input
+          ref={input}
           id={id}
           inputMode="decimal"
           autoComplete="off"
-          className={`${inputClass} pl-8 ${bad ? "border-warn" : ""}`}
+          className={`${inputClass} pl-8 user-invalid:border-warn aria-invalid:border-warn`}
           value={text}
           placeholder={placeholder}
           aria-invalid={bad}
-          onChange={(e) => setText(e.target.value)}
+          aria-describedby={describedBy(id, field.hint, bad || !!capped)}
+          onChange={(e) => {
+            setText(e.target.value);
+            // Fixing it clears the error straight away; a new one waits for blur.
+            if (bad && parseMoney(e.target.value) !== null) setError(false);
+          }}
           onBlur={commit}
           onKeyDown={(e) => e.key === "Enter" && commit()}
         />
       </div>
-      {bad && <p className="mt-1 text-xs text-warn">Enter an amount, like 600k or 600,000.</p>}
+      {bad && (
+        <p id={`${id}-note`} className="mt-1 text-xs text-warn">
+          {MONEY_ERROR}
+        </p>
+      )}
       {!bad && capped && (
-        <p className="mt-1 text-xs text-warn" role="status">
+        <p id={`${id}-note`} className="mt-1 text-xs text-warn">
           {capped}
         </p>
       )}
@@ -153,6 +203,7 @@ export function NumberField({
     if (!Number.isFinite(n)) return setText(value === undefined ? "" : String(value));
     const { value: clamped, hint } = clampWithHint(n, min, max, suffix);
     setCapped(hint);
+    if (hint && hint !== capped) announce(hint);
     onChange(clamped);
     setText(String(clamped));
   };
@@ -169,6 +220,7 @@ export function NumberField({
           max={max}
           step={step}
           placeholder={placeholder}
+          aria-describedby={describedBy(id, field.hint, !!capped)}
           onChange={(e) => setText(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => e.key === "Enter" && commit()}
@@ -180,7 +232,7 @@ export function NumberField({
         )}
       </div>
       {capped && (
-        <p className="mt-1 text-xs text-warn" role="status">
+        <p id={`${id}-note`} className="mt-1 text-xs text-warn">
           {capped}
         </p>
       )}

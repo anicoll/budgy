@@ -24,6 +24,7 @@ import {
   Detail,
   Disclosure,
   EditSheet,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -567,7 +568,7 @@ function SideBySide({ parties, frequency }: { parties: CoBorrowerResult[]; frequ
     ["Interest split by share*", (p) => money(p.proRataInterest)],
   ];
   return (
-    <div className="overflow-x-auto">
+    <ScrollTable label="Side by side">
       <table className={`num w-full text-sm ${parties.length > 2 ? "min-w-[420px]" : ""}`}>
         <thead>
           <tr className="text-left text-muted">
@@ -598,7 +599,7 @@ function SideBySide({ parties, frequency }: { parties: CoBorrowerResult[]; frequ
         Repayments are {perPeriod[frequency]} unless marked. *What each of you would pay if the
         loan&apos;s total interest were simply divided by share, ignoring who paid extra.
       </p>
-    </div>
+    </ScrollTable>
   );
 }
 
@@ -655,7 +656,7 @@ function Ownership({ result, hasValue }: { result: CoBorrowResult; hasValue: boo
 function OwnershipTable({ result }: { result: CoBorrowResult }) {
   const { ownership, parties } = result;
   return (
-    <div className="overflow-x-auto">
+    <ScrollTable label="Who owns what">
       <table className="num w-full min-w-[420px] text-sm">
         <thead>
           <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
@@ -682,7 +683,7 @@ function OwnershipTable({ result }: { result: CoBorrowResult }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 

@@ -25,6 +25,7 @@ import {
   EditSheet,
   IdeaCard,
   Ideas,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -505,7 +506,7 @@ function Answer({
 
 function SideBySide({ cols, frequency }: { cols: Col[]; frequency: Frequency }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollTable label="Side by side">
       <table className="num w-full min-w-[480px] text-sm">
         <thead>
           <tr className="text-left text-muted">
@@ -579,7 +580,7 @@ function SideBySide({ cols, frequency }: { cols: Col[]; frequency: Frequency }) 
         its own per-repayment amount. After an interest-only period the repayment is worked out on
         the balance at the time, over the years left, before any extra.
       </p>
-    </div>
+    </ScrollTable>
   );
 }
 
@@ -602,7 +603,7 @@ function YearByYear({ cols }: { cols: Col[] }) {
           </button>
         ))}
       </div>
-      <div className="overflow-x-auto">
+      <ScrollTable label="Year by year">
         <table className="num w-full min-w-[420px] text-sm">
           <thead>
             <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
@@ -625,7 +626,7 @@ function YearByYear({ cols }: { cols: Col[] }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </>
   );
 }
@@ -937,7 +938,7 @@ function OffsetVsRedraw({
         <MoneyField label="Spare money" value={amount} onChange={onAmount} optional />
       </div>
       {runs ? (
-        <div className="mt-3 overflow-x-auto">
+        <ScrollTable label="Offset or extra repayment" className="mt-3">
           <table className="num w-full min-w-[420px] text-sm">
             <thead>
               <tr className="text-left text-muted">
@@ -967,7 +968,7 @@ function OffsetVsRedraw({
               <>The two differ by more than rounding, so check the inputs.</>
             )}
           </p>
-        </div>
+        </ScrollTable>
       ) : (
         <p className="mt-3 text-sm text-muted">Enter an amount below your loan balance.</p>
       )}

@@ -24,6 +24,7 @@ import {
   EditSheet,
   IdeaCard,
   Ideas,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -811,7 +812,7 @@ function Grid({
   onChange: (patch: Partial<FixedForm>) => void;
 }) {
   return (
-    <div className={`${card} overflow-x-auto`}>
+    <ScrollTable label="Interest saved by fixing" className={card}>
       <p className="mb-3 text-sm text-muted">
         Interest saved (or extra) by fixing for {years(form.fixedYears)}, compared with staying
         fully variable. Pick a row or column to try it.
@@ -861,7 +862,7 @@ function Grid({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 
