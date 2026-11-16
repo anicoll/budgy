@@ -152,3 +152,15 @@ html {
     break-inside: avoid;
   }
 }
+
+/* Moving between tools: a quick cross-fade, and none at all for reduced motion. */
+::view-transition-group(*) {
+  animation-duration: 180ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
