@@ -27,6 +27,7 @@ import {
   EditSheet,
   IdeaCard,
   openDisclosure,
+  ScrollTable,
   ToolHeader,
   ToolPage,
   useEditSheet,
@@ -569,7 +570,10 @@ function FundsToday({
           {money(total.feesToRetire)} by retirement.
         </li>
       </ul>
-      <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
+      <ScrollTable
+        label="Each fund"
+        className="hidden rounded-xl border border-border bg-surface md:block"
+      >
         <table className="num w-full min-w-[720px] text-sm">
           <thead>
             <tr className="text-right text-muted [&_th]:px-3 [&_th]:py-3 [&_th]:font-medium">
@@ -626,7 +630,7 @@ function FundsToday({
             )}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
       <p className="text-xs text-muted">
         Fees are admin fees plus the percent of balance you entered. Fees to retirement are in
         future dollars, for each person&apos;s funds together. Going in a year is employer super
@@ -896,7 +900,7 @@ function PersonCard({
 function Breakdown({ people }: { people: PersonProjection[] }) {
   const many = people.length > 1;
   return (
-    <div className="overflow-x-auto">
+    <ScrollTable label="Where your super comes from">
       <table className={`num w-full text-sm ${people.length > 2 ? "min-w-[460px]" : ""}`}>
         <thead>
           <tr className="text-left text-muted">
@@ -947,7 +951,7 @@ function Breakdown({ people }: { people: PersonProjection[] }) {
       <p className="mt-2 text-xs text-muted">
         Contributions and earnings are in future dollars, as they&apos;re paid.
       </p>
-    </div>
+    </ScrollTable>
   );
 }
 
@@ -1031,7 +1035,7 @@ function YearByYear({
         </div>
       )}
       {showHousehold ? (
-        <div className="mt-3 max-h-[420px] overflow-auto">
+        <ScrollTable label="Household year by year" className="mt-3 max-h-[420px]">
           <table className="num w-full text-sm">
             <thead className="sticky top-0 bg-surface">
               <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
@@ -1057,9 +1061,9 @@ function YearByYear({
           <p className="mt-2 text-xs text-muted">
             In today&apos;s dollars. Someone who has retired is drawing their income.
           </p>
-        </div>
+        </ScrollTable>
       ) : (
-        <div className="mt-3 max-h-[420px] overflow-auto">
+        <ScrollTable label="Year by year" className="mt-3 max-h-[420px]">
           <table className="num w-full text-sm">
             <thead className="sticky top-0 bg-surface">
               <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
@@ -1080,7 +1084,7 @@ function YearByYear({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       )}
     </div>
   );

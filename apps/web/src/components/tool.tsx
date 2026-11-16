@@ -198,6 +198,28 @@ export function ToolMenu({ saved }: { saved: SavedControls }) {
   );
 }
 
+/**
+ * A table that's wider than its card scrolls sideways in its own box, with the
+ * first column pinned so you can see which row you're on. It takes keyboard
+ * focus so arrow keys scroll it, and its label names it for screen readers.
+ */
+export function ScrollTable({
+  label,
+  className = "",
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region needs focus for keyboard scrolling
+    <section aria-label={label} tabIndex={0} className={`table-scroll ${className}`}>
+      {children}
+    </section>
+  );
+}
+
 /** The big answer card. Put the one number people came for first. */
 export function AnswerCard({
   label,

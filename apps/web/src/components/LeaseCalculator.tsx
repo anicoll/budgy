@@ -26,6 +26,7 @@ import {
   EditSheet,
   IdeaCard,
   Ideas,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -645,7 +646,7 @@ function Breakdown({ result }: { result: NovatedLeaseResult }) {
   ];
   const fn = (c: number) => moneyExact(Math.round(c / 26));
   return (
-    <div className="overflow-x-auto">
+    <ScrollTable label="Where the lease money comes from">
       <table className="num w-full min-w-[420px] border-collapse text-right">
         <thead>
           <tr className="text-sm text-muted">
@@ -678,7 +679,7 @@ function Breakdown({ result }: { result: NovatedLeaseResult }) {
           </tr>
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 
@@ -783,7 +784,7 @@ function Terms({ rows, current }: { rows: NovatedLeaseResult[]; current: number 
   return (
     <div className={card}>
       <h2 className="font-semibold">Shorter or longer lease</h2>
-      <div className="mt-3 overflow-x-auto">
+      <ScrollTable label="Shorter or longer lease" className="mt-3">
         <table className="num w-full min-w-[460px] border-collapse text-right">
           <thead>
             <tr className="text-sm text-muted">
@@ -812,7 +813,7 @@ function Terms({ rows, current }: { rows: NovatedLeaseResult[]; current: number 
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
       <p className="mt-3 text-sm text-muted">
         Each term at the ATO&apos;s minimum residual, with the first year&apos;s cost.
       </p>

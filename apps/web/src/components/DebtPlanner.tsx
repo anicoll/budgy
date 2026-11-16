@@ -23,6 +23,7 @@ import {
   EditSheet,
   IdeaCard,
   Ideas,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -690,7 +691,7 @@ function TotalOwed({ plans }: { plans: PayoffResult[] }) {
 
 function Strategies({ plans }: { plans: PayoffResult[] }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollTable label="Strategies compared">
       <table className="num w-full min-w-[480px] text-sm">
         <thead>
           <tr className="text-left text-muted">
@@ -746,7 +747,7 @@ function Strategies({ plans }: { plans: PayoffResult[] }) {
         *At the start. Paying only the minimums means paying less as balances fall, and no rollover
         when a debt is cleared.
       </p>
-    </div>
+    </ScrollTable>
   );
 }
 
@@ -841,7 +842,7 @@ function MonthByMonth({ plan, names }: { plan: PayoffResult; names: string[] }) 
   const rows = plan.timeline.slice(1);
   return (
     <div>
-      <div className="max-h-[480px] overflow-auto">
+      <ScrollTable label="Month by month" className="max-h-[480px]">
         <table className="num w-full min-w-[480px] text-sm">
           <thead className="sticky top-0 bg-surface">
             <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
@@ -870,7 +871,7 @@ function MonthByMonth({ plan, names }: { plan: PayoffResult; names: string[] }) 
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </div>
   );
 }
@@ -1055,7 +1056,7 @@ function TransferResults({
         </div>
       </div>
 
-      <div className={`${card} overflow-x-auto`}>
+      <ScrollTable label="Side by side" className={card}>
         <h2 className="mb-3 font-semibold">Side by side</h2>
         <table className="num w-full min-w-[360px] text-sm">
           <thead>
@@ -1094,7 +1095,7 @@ function TransferResults({
           </tbody>
         </table>
         <p className="mt-2 text-xs text-muted">Moving: {movedNames.join(", ")}.</p>
-      </div>
+      </ScrollTable>
 
       {promoEnd && (
         <div className={card}>
@@ -1244,7 +1245,7 @@ function ConsolidationResults({
         )}
       </div>
 
-      <div className={`${card} overflow-x-auto`}>
+      <ScrollTable label="Your plan vs the loan" className={card}>
         <h2 className="mb-3 font-semibold">Your plan vs the loan</h2>
         <table className="num w-full min-w-[360px] text-sm">
           <thead>
@@ -1290,7 +1291,7 @@ function ConsolidationResults({
         <p className="mt-2 text-xs text-muted">
           Rolling in: {names.join(", ")}. The loan runs {term} months.
         </p>
-      </div>
+      </ScrollTable>
 
       <div className={`${card} space-y-2 text-sm text-muted`}>
         <h2 className="font-semibold text-text">Worth knowing</h2>

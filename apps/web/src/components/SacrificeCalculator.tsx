@@ -29,6 +29,7 @@ import {
   filledBtn,
   IdeaCard,
   Ideas,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -913,7 +914,7 @@ function NumbersTable({ effect, fmt }: { effect: SacrificeEffect; fmt: (c: numbe
   const rate = (r: number) => `${(r * 100).toLocaleString("en-AU", { maximumFractionDigits: 1 })}%`;
   return (
     <div>
-      <div className="overflow-x-auto">
+      <ScrollTable label="Before and after salary sacrifice">
         <table className="num w-full border-collapse text-sm sm:text-[15px]">
           <thead>
             <tr className="text-sm text-muted">
@@ -950,7 +951,7 @@ function NumbersTable({ effect, fmt }: { effect: SacrificeEffect; fmt: (c: numbe
             </tr>
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </div>
   );
 }
@@ -1251,7 +1252,7 @@ function HouseholdTable({
   const { total } = result;
   return (
     <div>
-      <div className="overflow-x-auto">
+      <ScrollTable label="Your household">
         <table className="num w-full min-w-[640px] border-collapse text-[15px]">
           <thead>
             <tr className="text-sm text-muted">
@@ -1300,7 +1301,7 @@ function HouseholdTable({
             </tr>
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </div>
   );
 }
