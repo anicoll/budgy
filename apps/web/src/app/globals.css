@@ -52,18 +52,6 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Moving between tools: a quick cross-fade, and none at all for reduced motion. */
-::view-transition-group(*) {
-  animation-duration: 180ms;
-}
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
-}
-
 /* The phone tab bar's height, so fixed bars and the page end sit above it. None on wide screens. */
 html {
   --bottom-nav-h: 0px;
@@ -118,5 +106,17 @@ html {
   figure,
   svg {
     break-inside: avoid;
+  }
+}
+
+/* Moving between tools: a quick cross-fade, and none at all for reduced motion. */
+::view-transition-group(*) {
+  animation-duration: 180ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
