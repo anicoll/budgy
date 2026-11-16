@@ -25,9 +25,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Tells the browser before the CSS loads, so there's no white flash in dark mode.
+  colorScheme: "light dark",
+  // The page background, --bg in m3-tokens.css.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5fafb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0e1415" },
+    { media: "(prefers-color-scheme: light)", color: "#f8fafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#111415" },
   ],
 };
 

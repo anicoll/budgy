@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useId, useRef, useState } from "react";
 import type { SavedControls } from "@/lib/useSavedState";
 import { PortalContainer } from "./portal";
 
@@ -85,30 +85,22 @@ function LinkNotice({ saved }: { saved: SavedControls }) {
 
 /** Save, forget, copy link and print, out of the way behind one button. */
 export function ToolMenu({ saved }: { saved: SavedControls }) {
-  const [open, setOpen] = useState(false);
+  const id = useId();
+  const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: MouseEvent) => {
-      if (!box.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", away);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("mousedown", away);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) setConfirming(false);
-  }, [open]);
+  // A popover gives us light dismiss, Escape, focus return and top-layer
+  // stacking. It sits in the top layer, so place it under the button against
+  // the page, which keeps it with the button as the page scrolls.
+  const place = (e: React.ToggleEvent<HTMLDivElement>) => {
+    const b = button.current?.getBoundingClientRect();
+    if (e.newState !== "open" || !b) return;
+    e.currentTarget.style.top = `${b.bottom + window.scrollY + 4}px`;
+    e.currentTarget.style.right = `${document.documentElement.clientWidth - b.right - window.scrollX}px`;
+  };
+  const close = () => menu.current?.hidePopover();
 
   const copy = async () => {
     try {
@@ -121,13 +113,12 @@ export function ToolMenu({ saved }: { saved: SavedControls }) {
   };
 
   return (
-    <div ref={box} className="relative">
+    <>
       <button
+        ref={button}
         type="button"
         aria-label="Save, share or print"
-        aria-expanded={open}
-        aria-haspopup="true"
-        onClick={() => setOpen((o) => !o)}
+        popoverTarget={id}
         className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-accent hover:border-accent"
       >
         <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="currentColor">
@@ -136,67 +127,74 @@ export function ToolMenu({ saved }: { saved: SavedControls }) {
           <circle cx="15.5" cy="10" r="1.7" />
         </svg>
       </button>
-      {open && (
-        <div className="absolute top-12 right-0 z-30 w-72 rounded-2xl border border-border bg-surface p-2 shadow-lg">
-          <p className="px-3 pt-2 pb-2 text-xs text-muted" aria-live="polite">
-            {saved.mode === "saved" &&
-              "Saved on this device only, across every tool. Your numbers never leave it."}
-            {saved.mode === "link" && "Showing a shared link. Your own inputs aren't changed."}
-            {saved.mode === "off" && "Not remembering your inputs on this device."}
-          </p>
-          <button type="button" className={menuItem} onClick={copy}>
-            {copied ? "Link copied" : "Copy a link to these numbers"}
+      <div
+        ref={menu}
+        id={id}
+        popover="auto"
+        onBeforeToggle={place}
+        onToggle={(e) => {
+          if (e.newState === "closed") setConfirming(false);
+        }}
+        className="absolute inset-auto m-0 w-72 rounded-2xl border border-border bg-surface p-2 text-text shadow-lg"
+      >
+        <p className="px-3 pt-2 pb-2 text-xs text-muted" aria-live="polite">
+          {saved.mode === "saved" &&
+            "Saved on this device only, across every tool. Your numbers never leave it."}
+          {saved.mode === "link" && "Showing a shared link. Your own inputs aren't changed."}
+          {saved.mode === "off" && "Not remembering your inputs on this device."}
+        </p>
+        <button type="button" className={menuItem} onClick={copy}>
+          {copied ? "Link copied" : "Copy a link to these numbers"}
+        </button>
+        <button
+          type="button"
+          className={menuItem}
+          onClick={() => {
+            close();
+            window.print();
+          }}
+        >
+          Print or save as PDF
+        </button>
+        {saved.mode === "off" && (
+          <button type="button" className={menuItem} onClick={saved.remember}>
+            Remember my inputs
           </button>
+        )}
+        {saved.mode === "saved" && !confirming && (
           <button
             type="button"
-            className={menuItem}
-            onClick={() => {
-              setOpen(false);
-              window.print();
-            }}
+            className={`${menuItem} text-warn`}
+            onClick={() => setConfirming(true)}
           >
-            Print or save as PDF
+            Forget everything
           </button>
-          {saved.mode === "off" && (
-            <button type="button" className={menuItem} onClick={saved.remember}>
-              Remember my inputs
-            </button>
-          )}
-          {saved.mode === "saved" && !confirming && (
-            <button
-              type="button"
-              className={`${menuItem} text-warn`}
-              onClick={() => setConfirming(true)}
-            >
-              Forget everything
-            </button>
-          )}
-          {saved.mode === "saved" && confirming && (
-            <div className="space-y-2 px-3 py-2 text-sm">
-              <p>
-                Forget what you&apos;ve entered in every tool on this device? This can&apos;t be
-                undone.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="min-h-10 rounded-full bg-warn px-4 font-semibold text-white"
-                  onClick={() => {
-                    setOpen(false);
-                    saved.forget();
-                  }}
-                >
-                  Forget
-                </button>
-                <button type="button" className={tonalBtn} onClick={() => setConfirming(false)}>
-                  Cancel
-                </button>
-              </div>
+        )}
+        {saved.mode === "saved" && confirming && (
+          <div className="space-y-2 px-3 py-2 text-sm">
+            <p>
+              Forget what you&apos;ve entered in every tool on this device? This can&apos;t be
+              undone.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="min-h-10 rounded-full bg-warn px-4 font-semibold text-white"
+                onClick={() => {
+                  close();
+                  saved.forget();
+                }}
+              >
+                Forget
+              </button>
+              <button type="button" className={tonalBtn} onClick={() => setConfirming(false)}>
+                Cancel
+              </button>
             </div>
-          )}
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -413,12 +411,28 @@ export const EditSheet = forwardRef<
     },
     [ref],
   );
+  // Safari has no closedby yet: close on a tap that starts and ends on the
+  // backdrop, so dragging a slider out of the sheet doesn't close it.
+  const downOnBackdrop = useRef(false);
+  const onBackdrop = (e: React.PointerEvent<HTMLDialogElement>) => {
+    if (e.target !== e.currentTarget) return false;
+    const r = e.currentTarget.getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  };
   return (
     <dialog
       ref={setRef}
       aria-labelledby="edit-h"
+      closedby="any"
       className="fixed inset-0 m-0 ml-auto h-dvh max-h-none w-full max-w-xl overflow-y-auto bg-bg p-0 text-text backdrop:bg-black/40 sm:rounded-l-2xl"
       onClose={onDone}
+      onPointerDown={(e) => {
+        downOnBackdrop.current = onBackdrop(e);
+      }}
+      onPointerUp={(e) => {
+        if ("closedBy" in HTMLDialogElement.prototype) return;
+        if (downOnBackdrop.current && onBackdrop(e)) e.currentTarget.close();
+      }}
     >
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-bg px-4 py-3 sm:px-5">
         <h2 id="edit-h" className="text-lg font-semibold">
