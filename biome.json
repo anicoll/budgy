@@ -7,7 +7,14 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/node_modules", "!**/.next", "!**/out", "!**/rbaHistory.ts"]
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/out",
+      "!**/rbaHistory.ts",
+      "!.claude/skills/modern-web-guidance"
+    ]
   },
   "formatter": {
     "enabled": true,
