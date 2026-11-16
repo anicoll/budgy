@@ -20,6 +20,7 @@ import {
   Detail,
   Disclosure,
   EditSheet,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -729,7 +730,7 @@ function Results({
               Super is locked until 65, or until you retire after 60. Money on the loan you can
               redraw or get back by selling.
             </p>
-            <div className="overflow-x-auto">
+            <ScrollTable label="In between">
               <table className="num w-full min-w-[420px] text-sm">
                 <thead>
                   <tr className="text-right text-muted [&_th]:py-1.5 [&_th]:pr-3 [&_th]:font-medium">
@@ -762,7 +763,7 @@ function Results({
                   })}
                 </tbody>
               </table>
-            </div>
+            </ScrollTable>
             {reachDips && (
               <p className="mt-3 text-xs text-muted">
                 Once the loan&apos;s gone in {monthYear(r.mortgage.loanPaidOff)}, the repayments you

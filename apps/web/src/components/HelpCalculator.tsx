@@ -18,6 +18,7 @@ import {
   AnswerRow,
   Detail,
   Disclosure,
+  ScrollTable,
   ToolHeader,
   ToolPage,
   ToolSection,
@@ -336,7 +337,7 @@ function Results({ r, form }: { r: HelpEarlyResult; form: HelpForm }) {
 
 function YearByYear({ r }: { r: HelpEarlyResult }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollTable label="Year by year">
       <table className="num w-full text-sm">
         <thead className="text-right text-muted">
           <tr>
@@ -368,7 +369,7 @@ function YearByYear({ r }: { r: HelpEarlyResult }) {
         </a>
         . Compulsory repayments come off after that year&apos;s indexation.
       </p>
-    </div>
+    </ScrollTable>
   );
 }
 

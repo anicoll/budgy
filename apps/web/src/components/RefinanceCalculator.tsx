@@ -24,6 +24,7 @@ import {
   EditSheet,
   IdeaCard,
   Ideas,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -662,7 +663,7 @@ function SideBySide({
   hasIntro: boolean;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollTable label="Your loan and the new one">
       <table className="num w-full text-sm">
         <thead>
           <tr className="text-left text-muted">
@@ -699,7 +700,7 @@ function SideBySide({
           </tr>
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 
@@ -725,7 +726,7 @@ function OfferCompare({
   const win = (k: "a" | "b") => c.winner === k;
   const cell = (k: "a" | "b") => (win(k) ? "font-semibold text-good" : "");
   return (
-    <div className={`${card} overflow-x-auto`}>
+    <ScrollTable label="Offer A or Offer B" className={card}>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold">Offer A or Offer B</h3>
         <div className="flex gap-2">
@@ -839,7 +840,7 @@ function OfferCompare({
         and fees saved, switching costs and cashback. &ldquo;Ahead&rdquo; is compared with staying
         where you are.
       </p>
-    </div>
+    </ScrollTable>
   );
 }
 

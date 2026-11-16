@@ -22,6 +22,7 @@ import {
   IdeaCard,
   Ideas,
   openDisclosure,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -727,7 +728,7 @@ function PayTable({ result, lease }: { result: PayResult; lease: boolean }) {
   const cell = "border-b border-grid py-2.5";
   const fmt = (v: number, sign?: -1) => (sign && v > 0 ? `−${moneyExact(v)}` : moneyExact(v));
   return (
-    <div className="mt-6 hidden sm:block">
+    <ScrollTable label="Your pay, line by line" className="mt-6 hidden sm:block">
       <table className="num w-full min-w-[520px] border-collapse text-right text-[15px]">
         <thead>
           <tr className="text-sm text-muted">
@@ -776,7 +777,7 @@ function PayTable({ result, lease }: { result: PayResult; lease: boolean }) {
           </tr>
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 

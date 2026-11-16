@@ -22,6 +22,7 @@ import {
   Detail,
   Disclosure,
   EditSheet,
+  ScrollTable,
   SummaryRow,
   SummaryRows,
   ToolHeader,
@@ -310,7 +311,7 @@ function Results({
           <p className="mb-3 text-sm text-muted">
             {describeLoan(form)}. {month}.
           </p>
-          <div className="overflow-x-auto">
+          <ScrollTable label="How you compare">
             <table className="num w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted">
@@ -333,7 +334,7 @@ function Results({
                 />
               </tbody>
             </table>
-          </div>
+          </ScrollTable>
         </Disclosure>
         <Disclosure title="Good to know" hint="tips and things to check">
           <GoodToKnow tool="rates" bare />

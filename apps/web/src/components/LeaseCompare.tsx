@@ -9,6 +9,7 @@ import {
 } from "@budgy/engine";
 import { useMemo } from "react";
 import { MoneyField, SelectField } from "@/components/fields";
+import { ScrollTable } from "@/components/tool";
 import { money, moneyExact } from "@/lib/format";
 import {
   type AltCar,
@@ -191,7 +192,7 @@ export function LeaseCompare({
         <p className="text-sm text-warn">Check the second car&apos;s price and running costs.</p>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <ScrollTable label="The two cars side by side">
             <table className="num w-full text-sm">
               <thead>
                 <tr className="text-left text-muted">
@@ -210,7 +211,7 @@ export function LeaseCompare({
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollTable>
           <div
             className="rounded-xl bg-primary-container p-4 text-on-primary-container"
             aria-live="polite"
