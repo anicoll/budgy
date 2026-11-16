@@ -23,6 +23,10 @@ export default function PrivacyPage() {
           this device&rdquo; on the home page.
         </p>
         <p>
+          So the tools open with no signal, your browser keeps a copy of budgy&apos;s own pages and
+          code on this device. That copy never holds what you type.
+        </p>
+        <p>
           To move your numbers to another device, Settings can copy a link that carries them. The
           numbers sit in the part of the link after the <code>#</code>, which browsers never send to
           a server, so they travel only inside the link. Anyone you give the link to can see them,
