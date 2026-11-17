@@ -243,3 +243,32 @@ describe("calculatePay", () => {
     expect(r.otherPackaging).toBe(c(2_000));
   });
 });
+
+describe("rounding", () => {
+  // Found by the "earning more never leaves you worse off" property: income
+  // tax and the study loan each rounded up a cent on a 1 cent raise.
+  const base: PayInput = {
+    year: "2027-28",
+    salary: 50_025_724 as Cents,
+    overtime: 363_875 as Cents,
+    bonus: 2_714_853 as Cents,
+    allowances: 645_373 as Cents,
+    otherPackaging: 327_504 as Cents,
+    fringeBenefits: 397_932 as Cents,
+    deductions: 929_709 as Cents,
+    studyLoan: true,
+    residency: "foreign",
+  };
+
+  it("a 1 cent raise never costs take-home pay", () => {
+    const a = calculatePay(base);
+    const b = calculatePay({ ...base, salary: (base.salary + 1) as Cents });
+    expect(b.net).toBeGreaterThanOrEqual(a.net);
+  });
+
+  it("the charges still add up, and tax before offsets less the offset is income tax", () => {
+    const r = calculatePay(base);
+    expect(r.incomeTax + r.medicare + r.surcharge + r.studyLoan).toBe(r.totalTax);
+    expect(r.taxBeforeOffsets - r.lito).toBe(r.incomeTax);
+  });
+});

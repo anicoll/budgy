@@ -140,6 +140,10 @@ const ZERO = 0 as Cents;
 
 /** Tax on `income` from progressive brackets, to the cent. */
 export function bracketTax(income: Cents, brackets: Bracket[]): Cents {
+  return toC(bracketTaxExact(income, brackets));
+}
+
+function bracketTaxExact(income: Cents, brackets: Bracket[]): number {
   let tax = 0;
   for (let i = 0; i < brackets.length; i++) {
     const { from, rate } = brackets[i];
@@ -147,15 +151,19 @@ export function bracketTax(income: Cents, brackets: Bracket[]): Cents {
     const to = i + 1 < brackets.length ? Math.min(income, brackets[i + 1].from) : income;
     tax += (to - from) * rate;
   }
-  return toC(tax);
+  return tax;
 }
 
 /** Low income tax offset. It can't take tax below zero, which the caller handles. */
 export function lowIncomeOffset(taxable: Cents, r: TaxRules["lito"]): Cents {
+  return toC(lowIncomeOffsetExact(taxable, r));
+}
+
+function lowIncomeOffsetExact(taxable: Cents, r: TaxRules["lito"]): number {
   if (taxable <= r.full) return r.max;
   let offset = r.max - (Math.min(taxable, r.taper1To) - r.full) * r.taper1Rate;
   if (taxable > r.taper1To) offset -= (taxable - r.taper1To) * r.taper2Rate;
-  return toC(Math.max(0, offset));
+  return Math.max(0, offset);
 }
 
 /** Medicare levy, shaded in above the low-income threshold. */
@@ -164,17 +172,25 @@ export function medicareLevy(
   r: TaxRules["medicare"],
   family?: PayInput["family"],
 ): Cents {
-  if (taxable <= r.lowSingle) return ZERO;
+  return toC(medicareLevyExact(taxable, r, family));
+}
+
+function medicareLevyExact(
+  taxable: Cents,
+  r: TaxRules["medicare"],
+  family?: PayInput["family"],
+): number {
+  if (taxable <= r.lowSingle) return 0;
   let levy = Math.min(taxable * r.rate, (taxable - r.lowSingle) * r.shadeIn);
   if (family) {
     // A family shades in on family income, and each partner pays their share.
     const low = r.lowFamily + r.perChild * family.children;
     const familyIncome = taxable + family.partnerIncome;
-    if (familyIncome <= low) return ZERO;
+    if (familyIncome <= low) return 0;
     const share = ((familyIncome - low) * r.shadeIn * taxable) / familyIncome;
     levy = Math.min(levy, share);
   }
-  return toC(levy);
+  return levy;
 }
 
 /** Medicare levy surcharge rate for someone without private hospital cover. */
@@ -193,10 +209,32 @@ export function surchargeRate(
 
 /** Compulsory study and training loan repayment for a year. */
 export function studyLoanRepayment(repaymentIncome: Cents, r: TaxRules["help"]): Cents {
-  if (repaymentIncome <= r.nil) return ZERO;
-  if (repaymentIncome >= r.topFrom) return toC(repaymentIncome * r.topRate);
-  if (repaymentIncome <= r.band1To) return toC((repaymentIncome - r.nil) * r.band1Rate);
-  return toC(r.band2Base + (repaymentIncome - r.band1To) * r.band2Rate);
+  return toC(studyLoanExact(repaymentIncome, r));
+}
+
+function studyLoanExact(repaymentIncome: Cents, r: TaxRules["help"]): number {
+  if (repaymentIncome <= r.nil) return 0;
+  if (repaymentIncome >= r.topFrom) return repaymentIncome * r.topRate;
+  if (repaymentIncome <= r.band1To) return (repaymentIncome - r.nil) * r.band1Rate;
+  return r.band2Base + (repaymentIncome - r.band1To) * r.band2Rate;
+}
+
+/**
+ * Rounds the year's charges to the cent so they add up to the rounded total.
+ * Rounding each one on its own could take 2 cents for a 1 cent raise; rounding
+ * the total once keeps take-home pay from ever going down as pay goes up.
+ * Any cent left over goes on the largest charge.
+ */
+function roundCharges(exact: number[]): { parts: Cents[]; total: Cents } {
+  const total = toC(exact.reduce((a, b) => a + b, 0));
+  const parts = exact.map(toC);
+  const diff = total - parts.reduce((a, b) => a + b, 0);
+  if (diff !== 0) {
+    let big = 0;
+    for (let i = 1; i < parts.length; i++) if (exact[i] > exact[big]) big = i;
+    parts[big] = (parts[big] + diff) as Cents;
+  }
+  return { parts, total };
 }
 
 function superRulesForYear(fy: string): SuperRules {
@@ -267,25 +305,27 @@ function core(input: PayInput, rules: TaxRules, sup: SuperRules): Core {
   const brackets =
     residency === "foreign" ? rules.foreign : residency === "whm" ? rules.whm : rules.resident;
 
-  const taxBeforeOffsets = bracketTax(taxable, brackets);
-  const lito = resident ? lowIncomeOffset(taxable, rules.lito) : ZERO;
-  const incomeTax = Math.max(0, taxBeforeOffsets - lito) as Cents;
-  const fullLevy = medicareLevy(taxable, rules.medicare, input.family);
-  const medicare =
-    exemption === "full" ? ZERO : exemption === "half" ? toC(fullLevy / 2) : fullLevy;
+  const taxBeforeOffsets = bracketTaxExact(taxable, brackets);
+  const lito = resident ? lowIncomeOffsetExact(taxable, rules.lito) : 0;
+  const fullLevy = medicareLevyExact(taxable, rules.medicare, input.family);
 
   // Salary sacrifice is a reportable super contribution, and fringe benefits
   // are reportable too: both count for the surcharge and study loan tests.
   const fringe = amt(input.fringeBenefits);
   const repaymentIncome = (taxable + sacrifice + fringe) as Cents;
-  const surcharge =
+  const {
+    parts: [incomeTax, medicare, surcharge, studyLoan],
+    total: totalTax,
+  } = roundCharges([
+    Math.max(0, taxBeforeOffsets - lito),
+    exemption === "full" ? 0 : exemption === "half" ? fullLevy / 2 : fullLevy,
     exemption === "full" || input.hospitalCover !== false
-      ? ZERO
-      : toC((taxable + fringe) * surchargeRate(repaymentIncome, rules.mls, input.family));
-  const studyLoan = input.studyLoan ? studyLoanRepayment(repaymentIncome, rules.help) : ZERO;
-
-  const totalTax = (incomeTax + medicare + surcharge + studyLoan) as Cents;
+      ? 0
+      : (taxable + fringe) * surchargeRate(repaymentIncome, rules.mls, input.family),
+    input.studyLoan ? studyLoanExact(repaymentIncome, rules.help) : 0,
+  ]);
   const afterTax = Math.min(amt(input.afterTax), Math.max(0, cash - totalTax)) as Cents;
+  const litoUsed = toC(Math.min(lito, taxBeforeOffsets));
   return {
     salary,
     overtime,
@@ -297,8 +337,9 @@ function core(input: PayInput, rules: TaxRules, sup: SuperRules): Core {
     otherPackaging: packaging,
     taxableIncome: taxable,
     repaymentIncome,
-    taxBeforeOffsets,
-    lito: Math.min(lito, taxBeforeOffsets) as Cents,
+    // Shown so that tax before offsets, less the offset, is the income tax.
+    taxBeforeOffsets: (incomeTax > 0 ? incomeTax + litoUsed : toC(taxBeforeOffsets)) as Cents,
+    lito: litoUsed,
     incomeTax,
     medicare,
     surcharge,
