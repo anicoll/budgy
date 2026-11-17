@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { ViewTransition } from "react";
 import { Analytics } from "@/components/Analytics";
 import { BottomNav, SideNav, TopBar } from "@/components/AppNav";
 import { ServiceWorker } from "@/components/ServiceWorker";
@@ -44,8 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <SideNav />
           <div className="min-w-0 flex-1 pb-[var(--bottom-nav-h)]">
             <TopBar />
-            {/* Moving between tools cross-fades the page, where the browser supports it. */}
-            <ViewTransition>{children}</ViewTransition>
+            {children}
             <SiteFooter />
           </div>
         </div>
