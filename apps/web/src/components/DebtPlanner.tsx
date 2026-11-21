@@ -213,7 +213,7 @@ export function DebtPlanner() {
                 <button
                   type="button"
                   onClick={() => edit("add-debt")}
-                  className="text-sm font-semibold text-accent hover:underline"
+                  className="tap text-sm font-semibold text-accent hover:underline"
                 >
                   + Add a debt
                 </button>
@@ -535,7 +535,11 @@ function DebtCard({
           onChange={(e) => onChange({ name: e.target.value })}
         />
         {onRemove && (
-          <button type="button" onClick={onRemove} className="text-sm text-muted hover:text-warn">
+          <button
+            type="button"
+            onClick={onRemove}
+            className="tap text-sm text-muted hover:text-warn"
+          >
             Remove
           </button>
         )}

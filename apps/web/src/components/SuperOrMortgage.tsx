@@ -344,7 +344,11 @@ function PersonCard({
           onChange={(e) => onChange({ name: e.target.value })}
         />
         {onRemove && (
-          <button type="button" onClick={onRemove} className="text-sm text-muted hover:text-warn">
+          <button
+            type="button"
+            onClick={onRemove}
+            className="tap text-sm text-muted hover:text-warn"
+          >
             Remove
           </button>
         )}
@@ -380,7 +384,7 @@ function PersonCard({
         />
       </div>
       <details className="mt-3 text-sm">
-        <summary className="cursor-pointer text-muted">
+        <summary className="cursor-pointer py-3 text-muted">
           Super balance, HELP debt, private cover
         </summary>
         <div className="mt-3 space-y-3">
@@ -544,7 +548,9 @@ function Results({
                       style={{ background: lineColor(o) }}
                     />
                     {optionName(o)}
-                    <span className="ml-2 text-xs font-medium text-muted">{placeLabel(i)}</span>
+                    <span className="block text-xs font-medium text-muted sm:ml-2 sm:inline">
+                      {placeLabel(i)}
+                    </span>
                   </span>
                   <span className="num text-lg font-semibold">{money(o.gain)}</span>
                 </div>
@@ -638,7 +644,7 @@ function Results({
             <button
               type="button"
               onClick={onAddPerson}
-              className="text-sm font-semibold text-accent hover:underline"
+              className="tap text-sm font-semibold text-accent hover:underline"
             >
               + Add a person
             </button>

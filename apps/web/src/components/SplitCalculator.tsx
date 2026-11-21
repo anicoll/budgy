@@ -195,7 +195,7 @@ export function SplitCalculator() {
                       add();
                       edit("add-borrower");
                     }}
-                    className="text-sm font-semibold text-accent hover:underline"
+                    className="tap text-sm font-semibold text-accent hover:underline"
                   >
                     + Add a borrower
                   </button>

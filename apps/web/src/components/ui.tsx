@@ -212,7 +212,7 @@ export function DatePicker({
       >
         <Label className="mb-1 block text-sm font-medium">{label}</Label>
         <Group
-          className={`flex items-center gap-2 pr-1 ${filledField} py-1.5 focus-within:border-accent`}
+          className={`flex items-center gap-1 pr-1 ${filledField} py-1.5 focus-within:border-accent`}
         >
           <DateInput className="num flex flex-1">
             {(seg) => (
@@ -224,7 +224,7 @@ export function DatePicker({
           </DateInput>
           <Button
             aria-label="Open calendar"
-            className={`flex size-9 cursor-pointer items-center justify-center rounded-full hover:bg-text/8 ${focusRing}`}
+            className={`flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full hover:bg-text/8 ${focusRing}`}
           >
             <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
               <rect

@@ -1232,13 +1232,13 @@ function Method({ result }: { result: PayResult }) {
       {notes.map((n) => (
         <p key={n}>{n}</p>
       ))}
-      <p className="flex flex-wrap gap-x-3 gap-y-1">
+      <p className="flex flex-wrap items-center gap-x-3">
         <span>Sources:</span>
         {[...result.rules.sources, ...result.superRules.sources.slice(0, 1)].map((s) => (
           <a
             key={s}
             href={s}
-            className="text-accent hover:underline"
+            className="py-1.5 text-accent hover:underline"
             rel="noreferrer"
             target="_blank"
           >

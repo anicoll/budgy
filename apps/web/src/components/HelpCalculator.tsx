@@ -143,7 +143,7 @@ export function HelpCalculator() {
             />
           </div>
           <details className={card}>
-            <summary className="min-h-7 cursor-pointer text-sm font-medium">Assumptions</summary>
+            <summary className="cursor-pointer py-3 text-sm font-medium">Assumptions</summary>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <NumberField
                 label="Future indexation"

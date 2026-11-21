@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useId, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useId, useRef, useState } from "react";
 import type { SavedControls } from "@/lib/useSavedState";
 import { PortalContainer } from "./portal";
 
@@ -43,9 +43,11 @@ export function ToolHeader({
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
           <p className="mt-1 max-w-2xl text-muted">{intro}</p>
+          {/* On a phone the buttons go under the intro so the title keeps its width. */}
+          {actions && <div className="mt-3 flex gap-2 sm:hidden print:hidden">{actions}</div>}
         </div>
         <div className="flex shrink-0 items-center gap-2 print:hidden">
-          {actions}
+          {actions && <div className="hidden items-center gap-2 sm:flex">{actions}</div>}
           <ToolMenu saved={saved} />
         </div>
       </div>
@@ -202,6 +204,12 @@ export function ToolMenu({ saved }: { saved: SavedControls }) {
  * A table that's wider than its card scrolls sideways in its own box, with the
  * first column pinned so you can see which row you're on. It takes keyboard
  * focus so arrow keys scroll it, and its label names it for screen readers.
+ *
+ * On a phone it stacks instead: each row becomes a small card with the first
+ * cell as its heading and every other cell labelled with its column heading.
+ * The labels are copied from the header row once the page is running (a cell's
+ * own `data-name` wins), and the table only stacks once they're there, so
+ * before then it still scrolls.
  */
 export function ScrollTable({
   label,
@@ -212,9 +220,40 @@ export function ScrollTable({
   className?: string;
   children: React.ReactNode;
 }) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const box = ref.current;
+    if (!box) return;
+    const labelCells = () => {
+      for (const table of box.querySelectorAll("table")) {
+        const head = table.tHead?.rows[0];
+        if (!head) continue;
+        const names: string[] = [];
+        for (const th of head.cells) {
+          const name = th.textContent?.trim() ?? "";
+          for (let i = 0; i < th.colSpan; i++) names.push(name);
+        }
+        for (const body of [...table.tBodies, ...(table.tFoot ? [table.tFoot] : [])]) {
+          for (const row of body.rows) {
+            let col = 0;
+            for (const cell of row.cells) {
+              const name = cell.dataset.name ?? names[col] ?? "";
+              if (cell.dataset.label !== name) cell.dataset.label = name;
+              col += cell.colSpan;
+            }
+          }
+        }
+      }
+      box.dataset.stack = "";
+    };
+    labelCells();
+    const watch = new MutationObserver(labelCells);
+    watch.observe(box, { childList: true, subtree: true, characterData: true });
+    return () => watch.disconnect();
+  }, []);
   return (
     // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region needs focus for keyboard scrolling
-    <section aria-label={label} tabIndex={0} className={`table-scroll ${className}`}>
+    <section ref={ref} aria-label={label} tabIndex={0} className={`table-scroll ${className}`}>
       {children}
     </section>
   );

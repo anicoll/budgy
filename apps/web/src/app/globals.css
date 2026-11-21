@@ -116,6 +116,82 @@ body {
   }
 }
 
+/* On a phone, a table stacks into one small card per row: the first cell is
+   the row's heading and the rest sit in a grid, each under its column's name.
+   ScrollTable sets data-stack once every cell has its data-label. */
+@container (width < 30rem) {
+  .table-scroll[data-stack] :is(table, thead, tbody, tfoot, tr, th, td) {
+    display: block;
+  }
+  .table-scroll[data-stack] table {
+    min-width: 0;
+  }
+  .table-scroll[data-stack] thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .table-scroll[data-stack] tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 0.75rem;
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--grid, var(--border));
+  }
+  /* Three numbers fit side by side; two or four sit in pairs. */
+  .table-scroll[data-stack] tr:has(> :nth-child(4):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .table-scroll[data-stack] tbody tr:last-child,
+  .table-scroll[data-stack] tfoot tr:last-child {
+    border-bottom: 0;
+  }
+  .table-scroll[data-stack] :is(th, td) {
+    padding: 0;
+    border: 0;
+    text-align: left;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .table-scroll[data-stack] :is(th, td):first-child {
+    position: static;
+    grid-column: 1 / -1;
+    box-shadow: none;
+    background: none;
+    font-weight: 600;
+  }
+  .table-scroll[data-stack] :is(th, td):empty {
+    display: none;
+  }
+  .table-scroll[data-stack] :is(th, td):not(:first-child)[data-label]:not([data-label=""])::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.125rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 400;
+    color: var(--muted);
+  }
+}
+
+/* A small text button or link that's still easy to hit with a thumb: its hit
+   area grows to 44px tall (and at least 44px wide) without moving anything. */
+.tap {
+  position: relative;
+}
+.tap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  translate: -50% -50%;
+}
+
 /* The phone tab bar's height, so fixed bars and the page end sit above it. None on wide screens. */
 html {
   --bottom-nav-h: 0px;
