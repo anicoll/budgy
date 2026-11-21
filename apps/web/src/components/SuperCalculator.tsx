@@ -462,7 +462,7 @@ function Answer({ result, state }: { result: SuperResult; state: SuperState }) {
           {state.wageGrowthPct}% wage growth and {state.inflationPct}% inflation.{" "}
           <button
             type="button"
-            className="font-semibold underline"
+            className="tap font-semibold underline"
             onClick={() => openDisclosure("assumptions")}
           >
             Change

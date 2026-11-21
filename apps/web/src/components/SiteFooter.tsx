@@ -10,7 +10,7 @@ export function SiteFooter() {
         <LogoMark size={22} />
         <span className="text-[15px] font-bold tracking-tight text-text">budgy</span>
         <span>Every nickel counts.</span>
-        <Link href="/privacy/" className="text-accent hover:underline">
+        <Link href="/privacy/" className="tap text-accent hover:underline">
           Privacy
         </Link>
         <span className="sm:ml-auto">

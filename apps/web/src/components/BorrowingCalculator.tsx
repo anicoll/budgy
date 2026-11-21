@@ -266,7 +266,7 @@ export function BorrowingCalculator() {
           </div>
           <p className="mt-1 text-xs text-muted">A year, before tax, not counting super.</p>
           <details className="mt-3 text-sm">
-            <summary className="cursor-pointer font-medium text-accent">
+            <summary className="cursor-pointer py-2.5 font-medium text-accent">
               Overtime, bonuses, rent and HELP
             </summary>
             <div className="mt-3 space-y-4">
@@ -408,7 +408,7 @@ export function BorrowingCalculator() {
           {form.homeLoans.length < MAX_HOME_LOANS && (
             <button
               type="button"
-              className="mt-3 text-sm font-medium text-accent hover:underline"
+              className="tap mt-3 text-sm font-medium text-accent hover:underline"
               onClick={() =>
                 set({ homeLoans: [...form.homeLoans, { balance: 300_000, termYears: 25 }] })
               }

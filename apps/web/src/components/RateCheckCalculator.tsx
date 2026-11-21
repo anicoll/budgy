@@ -509,8 +509,13 @@ function RateScale({ r, yours }: { r: RateCheckResult; yours: number }) {
         />
       </div>
       <div className="relative mt-1 h-4 text-xs text-muted">
-        {ticks.map((t) => (
-          <span key={t} className="num absolute -translate-x-1/2" style={{ left: at(t) }}>
+        {ticks.map((t, i) => (
+          <span
+            key={t}
+            // The end labels sit inside the scale rather than hanging off it.
+            className={`num absolute ${i === 0 && t - lo < 1e-9 ? "" : i === ticks.length - 1 && hi - t < 1e-9 ? "-translate-x-full" : "-translate-x-1/2"}`}
+            style={{ left: at(t) }}
+          >
             {(t * 100).toFixed(step < 0.01 ? 1 : 0)}%
           </span>
         ))}
@@ -608,7 +613,7 @@ function CallScript({
   };
   return (
     <details className="w-full border-t border-border pt-3">
-      <summary className="min-h-7 cursor-pointer text-sm font-medium text-accent">
+      <summary className="cursor-pointer py-3 text-sm font-medium text-accent">
         What to say when you call
       </summary>
       <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed">

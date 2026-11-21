@@ -68,8 +68,8 @@ export function RateHistoryChart({
     const yTicks: number[] = [];
     for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step)
       yTicks.push(Math.round(v * 10_000) / 10_000);
-    // About four labels along the bottom, on January or the first point.
-    const every = Math.max(1, Math.round(n / (W < 480 ? 3 : 5)));
+    // A few labels along the bottom: three on a phone, where four touch.
+    const every = Math.max(1, Math.round(n / (W < 400 ? 2 : W < 480 ? 3 : 5)));
     const xTicks: number[] = [];
     for (let i = n; i >= 0; i -= every) xTicks.unshift(i);
     return { xAt, yAt, yTicks, xTicks, step };

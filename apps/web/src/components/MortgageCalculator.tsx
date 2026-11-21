@@ -397,7 +397,7 @@ export function MortgageCalculator() {
           </div>
           <a
             href={`../split/?${encodeSplitState(splitFromBaseLoan(base))}&${OWN_LINK_PARAM}=1`}
-            className="mt-3 inline-block text-sm text-accent hover:underline"
+            className="tap mt-3 inline-block text-sm text-accent hover:underline"
           >
             Sharing this loan? Split it between borrowers →
           </a>
@@ -672,7 +672,7 @@ function ScenarioCard({
           maxLength={40}
           onChange={(e) => onChange({ name: e.target.value })}
         />
-        <button type="button" onClick={onRemove} className="text-sm text-muted hover:text-warn">
+        <button type="button" onClick={onRemove} className="tap text-sm text-muted hover:text-warn">
           Remove
         </button>
       </div>

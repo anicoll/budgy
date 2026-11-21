@@ -32,6 +32,22 @@ for (const { path, heading } of PAGES) {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow, "page is wider than the screen").toBeLessThanOrEqual(0);
+
+    // On a phone, tables stack into cards rather than scrolling sideways.
+    if ((page.viewportSize()?.width ?? 1000) < 640) {
+      await page.evaluate(() => {
+        for (const d of document.querySelectorAll("details")) d.open = true;
+      });
+      await expect
+        .poll(() =>
+          page.evaluate(() =>
+            [...document.querySelectorAll<HTMLElement>(".table-scroll")]
+              .filter((t) => t.offsetWidth > 0 && t.scrollWidth > t.clientWidth + 1)
+              .map((t) => t.getAttribute("aria-label")),
+          ),
+        )
+        .toEqual([]);
+    }
   });
 }
 

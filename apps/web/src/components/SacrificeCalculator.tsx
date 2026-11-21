@@ -834,22 +834,38 @@ function Bar({
   const sum = parts.reduce((s, p) => s + Math.max(0, p.value), 0) || 1;
   const shown = parts.filter((p) => p.value > 0);
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-24 shrink-0 text-sm text-muted">{label}</span>
-      <div
-        className="num flex h-9 min-w-0 flex-1 overflow-hidden rounded-md text-xs font-medium sm:text-sm"
-        role="img"
-        aria-label={`${label}: ${shown.map((p) => `${p.label} ${money(p.value)}`).join(", ")}`}
-      >
-        {shown.map((p) => (
-          <div
-            key={p.label}
-            className={`flex items-center overflow-hidden px-2 whitespace-nowrap ${p.dark ? "text-bg" : "text-text"}`}
-            style={{ width: `${(p.value / sum) * 100}%`, background: p.color }}
-          >
-            {p.value / sum > 0.12 ? `${p.label} ${money(p.value)}` : ""}
-          </div>
-        ))}
+    <div className="flex items-start gap-3">
+      <span className="w-24 shrink-0 pt-2 text-sm text-muted">{label}</span>
+      <div className="min-w-0 flex-1">
+        <div
+          className="num flex h-9 overflow-hidden rounded-md text-sm font-medium"
+          role="img"
+          aria-label={`${label}: ${shown.map((p) => `${p.label} ${money(p.value)}`).join(", ")}`}
+        >
+          {shown.map((p) => (
+            <div
+              key={p.label}
+              className={`flex items-center overflow-hidden px-2 whitespace-nowrap ${p.dark ? "text-bg" : "text-text"}`}
+              style={{ width: `${(p.value / sum) * 100}%`, background: p.color }}
+            >
+              {/* On a phone the parts are too thin to hold words, so they're listed below. */}
+              <span className="hidden sm:inline">
+                {p.value / sum > 0.12 ? `${p.label} ${money(p.value)}` : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+        <ul
+          className="num mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm sm:hidden"
+          aria-hidden="true"
+        >
+          {shown.map((p) => (
+            <li key={p.label} className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full" style={{ background: p.color }} />
+              {p.label} {money(p.value)}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
@@ -1330,13 +1346,13 @@ function Method({ result }: { result: SacrificeResult }) {
         seniors offset. This is general information, not financial advice.
       </p>
       {result.rulesCarriedForward && <p>Using the latest published rules for {result.year}.</p>}
-      <p className="flex flex-wrap gap-x-3 gap-y-1">
+      <p className="flex flex-wrap items-center gap-x-3">
         <span>Sources:</span>
         {sources.map((s) => (
           <a
             key={s}
             href={s}
-            className="text-accent hover:underline"
+            className="py-1.5 text-accent hover:underline"
             rel="noreferrer"
             target="_blank"
           >

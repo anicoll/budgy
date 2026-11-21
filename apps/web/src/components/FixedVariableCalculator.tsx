@@ -825,7 +825,7 @@ function Grid({
               <th key={s} className="py-1.5 pr-3 text-right font-medium">
                 <button
                   type="button"
-                  className={`underline-offset-2 hover:underline ${s === form.fixedSharePct ? "text-accent" : ""}`}
+                  className={`tap underline-offset-2 hover:underline ${s === form.fixedSharePct ? "text-accent" : ""}`}
                   onClick={() => onChange({ fixedSharePct: s })}
                 >
                   {s === 100 ? "Fix all" : `Fix ${s}%`}
@@ -840,7 +840,7 @@ function Grid({
               <td>
                 <button
                   type="button"
-                  className={`text-left underline-offset-2 hover:underline ${row.path === form.path ? "text-accent" : ""}`}
+                  className={`tap text-left underline-offset-2 hover:underline ${row.path === form.path ? "text-accent" : ""}`}
                   onClick={() => onChange({ path: row.path })}
                 >
                   {pathLabel(row.path)

@@ -170,12 +170,15 @@ export function LeaseCompare({
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <SelectField
-          label="Second car"
-          value={alt.car}
-          options={KINDS}
-          onChange={(car) => setAlt({ car })}
-        />
+        {/* Full width on a phone so "Petrol or diesel" isn't cut short. */}
+        <div className="col-span-2 sm:col-span-1">
+          <SelectField
+            label="Second car"
+            value={alt.car}
+            options={KINDS}
+            onChange={(car) => setAlt({ car })}
+          />
+        </div>
         <MoneyField label="Price" value={alt.price} onChange={(v) => setAlt({ price: v ?? 0 })} />
         <MoneyField
           label={`Charging or fuel ${state.quoteAmounts ? "a month" : "a year"}`}

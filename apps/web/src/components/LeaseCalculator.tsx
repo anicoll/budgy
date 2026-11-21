@@ -461,7 +461,7 @@ function Inputs({
           />
         </div>
         <details className="group" open={hasQuoteExtras(state)}>
-          <summary className="cursor-pointer text-sm font-medium text-accent">
+          <summary className="cursor-pointer py-3 text-sm font-medium text-accent">
             Fees and charges from a quote
           </summary>
           <div className="mt-3 grid grid-cols-2 gap-3">
@@ -675,7 +675,9 @@ function Breakdown({ result }: { result: NovatedLeaseResult }) {
               At the end: residual {moneyExact(result.residual)} plus GST
             </td>
             <td className="border-t border-border" />
-            <td className="border-t border-border">{moneyExact(result.residualWithGst)}</td>
+            <td className="border-t border-border" data-name="With GST">
+              {moneyExact(result.residualWithGst)}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -1034,7 +1036,7 @@ function LeaveJob({ input, result }: { input: NovatedLeaseInput; result: Novated
         </p>
         <div className="grid grid-cols-2 gap-3">
           <NumberField
-            label="Months left on the lease"
+            label="Months left"
             suffix="months"
             min={1}
             max={result.months}
